@@ -1,7 +1,7 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
-	<groupId>demod.fbsr</groupId>
+	<groupId>com.demod.fbsr</groupId>
 	<artifactId>FactorioBlueprintStringRenderer</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<build>
@@ -18,17 +18,22 @@
 		</plugins>
 	</build>
 	<repositories>
+		<repository>
+			<id>jcenter</id>
+			<name>jcenter-bintray</name>
+			<url>http://jcenter.bintray.com</url>
+		</repository>
+		<repository>
+			<id>revonline-repository</id>
+			<name>Revonline Maven Repository</name>
+			<url>http://revonline.comuf.com/maven3/</url>
+		</repository>
 	</repositories>
 	<dependencies>
 		<dependency>
-			<groupId>org.luaj</groupId>
-			<artifactId>luaj-jse</artifactId>
-			<version>3.0.1</version>
-		</dependency>
-		<dependency>
-			<groupId>net.sf.jopt-simple</groupId>
-			<artifactId>jopt-simple</artifactId>
-			<version>6.0-alpha-1</version>
+			<groupId>net.dv8tion</groupId>
+			<artifactId>JDA</artifactId>
+			<version>3.0.0_191</version>
 		</dependency>
 		<dependency>
 			<groupId>com.google.guava</groupId>
@@ -36,9 +41,19 @@
 			<version>20.0</version>
 		</dependency>
 		<dependency>
-			<groupId>org.json</groupId>
-			<artifactId>json</artifactId>
-			<version>20160810</version>
+			<groupId>com.demod.factorio</groupId>
+			<artifactId>FactorioDataWrapper</artifactId>
+			<version>0.0.1-SNAPSHOT</version>
+		</dependency>
+		<dependency>
+			<groupId>commons-codec</groupId>
+			<artifactId>commons-codec</artifactId>
+			<version>1.10</version>
+		</dependency>
+		<dependency>
+			<groupId>net.sf.jopt-simple</groupId>
+			<artifactId>jopt-simple</artifactId>
+			<version>6.0-alpha-1</version>
 		</dependency>
 	</dependencies>
 </project>

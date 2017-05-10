@@ -1,0 +1,41 @@
+package com.demod.fbsr.render;
+
+import java.awt.geom.Point2D;
+import java.util.function.Consumer;
+
+import com.demod.factorio.DataTable;
+import com.demod.factorio.prototype.DataPrototype;
+import com.demod.fbsr.BlueprintEntity;
+import com.demod.fbsr.WorldMap;
+
+public class StorageTankRendering extends TypeRendererFactory {
+
+	public static final int[][][] storageTankPipes = //
+			new int[/* NESW */][/* Points */][/* XY */] { //
+					{ { 1, 1 }, { -1, -1 } }, // North
+					{ { 1, -1 }, { -1, 1 } }, // East
+					{ { 1, 1 }, { -1, -1 } }, // South
+					{ { 1, -1 }, { -1, 1 } },// West
+			};
+
+	@Override
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
+			DataPrototype prototype) {
+		Sprite sprite = getSpriteFromAnimation(prototype.lua().get("pictures").get("picture").get("sheet"));
+		sprite.source.x = sprite.source.width * (entity.getDirection().cardinal() % 2);
+		register.accept(spriteRenderer(sprite, entity, prototype));
+	}
+
+	@Override
+	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity, DataPrototype prototype) {
+		// FIXME maybe should use the fluid box
+
+		Point2D.Double position = entity.getPosition();
+
+		int[][] pipePoints = storageTankPipes[entity.getDirection().cardinal()];
+
+		for (int[] point : pipePoints) {
+			map.setPipe(new Point2D.Double(position.x + point[0], position.y + point[1]));
+		}
+	}
+}
