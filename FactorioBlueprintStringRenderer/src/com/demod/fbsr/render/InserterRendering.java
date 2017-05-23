@@ -1,54 +1,55 @@
 package com.demod.fbsr.render;
 
+import java.awt.Graphics2D;
+import java.awt.Rectangle;
+import java.awt.geom.AffineTransform;
+import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
+import java.awt.image.BufferedImage;
 import java.util.function.Consumer;
 
 import com.demod.factorio.DataTable;
 import com.demod.factorio.prototype.DataPrototype;
 import com.demod.fbsr.BlueprintEntity;
 import com.demod.fbsr.WorldMap;
+import com.demod.fbsr.render.Renderer.Layer;
 
 public class InserterRendering extends TypeRendererFactory {
 
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
 			DataPrototype prototype) {
-		// Utils.debugPrintTable(entity.lua());
-		// System.exit(1);
+		Point2D.Double pos = entity.getPosition();
 
 		Sprite sprite = getSpriteFromAnimation(prototype.lua().get("platform_picture").get("sheet"));
 		sprite.source.x += sprite.source.width * (entity.getDirection().back().cardinal());
 
-		register.accept(spriteRenderer(sprite, entity, prototype));
+		Sprite spriteArm1 = getSpriteFromAnimation(prototype.lua().get("hand_base_picture"));
+		Sprite spriteArm2 = getSpriteFromAnimation(prototype.lua().get("hand_open_picture"));
+		double armStretch = -prototype.lua().get("pickup_position").get(2).todouble();
 
-		// register.accept(new Renderer(Layer.OVERLAY, entity.getPosition()) {
-		// @Override
-		// public void render(Graphics2D g) {
-		// Point2D.Double pos = entity.getPosition();
-		// Direction forward = entity.getDirection().back();
-		// Direction left = forward.left();
-		//
-		// Point2D.Double pickupOffset =
-		// LuaUtils.parsePoint2D(prototype.lua().get("pickup_position"));
-		// Point2D.Double insertOffset =
-		// LuaUtils.parsePoint2D(prototype.lua().get("insert_position"));
-		//
-		// Point2D.Double pickupPosition = left.offset(forward.offset(pos,
-		// pickupOffset.y), pickupOffset.x);
-		// Point2D.Double insertPosition = left.offset(forward.offset(pos,
-		// insertOffset.y), insertOffset.x);
-		//
-		// Ellipse2D.Double pickupShape = new Ellipse2D.Double(pickupPosition.x
-		// - 0.3, pickupPosition.y - 0.3, 0.6,
-		// 0.6);
-		// Ellipse2D.Double insertShape = new Ellipse2D.Double(insertPosition.x
-		// - 0.2, insertPosition.y - 0.2, 0.4,
-		// 0.4);
-		//
-		// g.setColor(new Color(128, 128, 0, 100));
-		// g.fill(pickupShape);
-		// g.fill(insertShape);
-		// }
-		// });
+		register.accept(spriteRenderer(sprite, entity, prototype));
+		register.accept(new Renderer(Layer.ENTITY2, sprite.bounds) {
+			@Override
+			public void render(Graphics2D g) {
+				AffineTransform pat = g.getTransform();
+
+				{
+					Rectangle2D.Double bounds = spriteArm2.bounds;
+					Rectangle source = spriteArm2.source;
+					BufferedImage image = spriteArm2.image;
+
+					g.translate(pos.x, pos.y);
+					g.rotate(entity.getDirection().back().ordinal() * Math.PI / 4.0);
+					g.translate(bounds.x, 0);
+					g.scale(bounds.width, armStretch);
+					g.drawImage(image, 0, 1, 1, 0, source.x, source.y, source.x + source.width,
+							source.y + source.height, null);
+				}
+
+				g.setTransform(pat);
+			}
+		});
 	}
 
 }

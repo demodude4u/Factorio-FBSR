@@ -15,6 +15,9 @@ public class DeciderCombinatorRendering extends TypeRendererFactory {
 		operationSprites.put("=", "equal_symbol_sprites");
 		operationSprites.put(">", "greater_symbol_sprites");
 		operationSprites.put("<", "less_symbol_sprites");
+		operationSprites.put("\u2260", "not_equal_symbol_sprites");
+		operationSprites.put("\u2264", "less_or_equal_symbol_sprites");
+		operationSprites.put("\u2265", "greater_or_equal_symbol_sprites");
 	}
 
 	@Override

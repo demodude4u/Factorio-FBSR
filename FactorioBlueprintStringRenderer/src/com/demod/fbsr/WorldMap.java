@@ -11,6 +11,7 @@ public class WorldMap {
 
 	private final Table<Integer, Integer, Direction> belts = HashBasedTable.create();
 	private final Table<Integer, Integer, Integer> pipes = HashBasedTable.create();
+	private final Table<Integer, Integer, Integer> heatPipes = HashBasedTable.create();
 	private final Table<Integer, Integer, Object> walls = HashBasedTable.create();
 	private final Table<Integer, Integer, Boolean> gates = HashBasedTable.create();
 
@@ -22,6 +23,12 @@ public class WorldMap {
 		int kr = keyOf(pos.x);
 		int kc = keyOf(pos.y);
 		return Optional.ofNullable(belts.get(kr, kc));
+	}
+
+	public boolean isHeatPipe(Point2D.Double pos, Direction facing) {
+		int kr = keyOf(pos.x);
+		int kc = keyOf(pos.y);
+		return heatPipes.contains(kr, kc) && (heatPipes.get(kr, kc) & flag(facing)) > 0;
 	}
 
 	public boolean isHorizontalGate(Point2D.Double pos) {
@@ -56,6 +63,20 @@ public class WorldMap {
 		int kr = keyOf(pos.x);
 		int kc = keyOf(pos.y);
 		belts.put(kr, kc, direction);
+	}
+
+	public void setHeatPipe(Point2D.Double pos, Direction... facings) {
+		int kr = keyOf(pos.x);
+		int kc = keyOf(pos.y);
+		int flags = 0;
+		if (facings.length == 0) {
+			flags = 0b1111;
+		} else {
+			for (Direction facing : facings) {
+				flags |= flag(facing);
+			}
+		}
+		heatPipes.put(kr, kc, flags);
 	}
 
 	public void setHorizontalGate(Point2D.Double pos) {

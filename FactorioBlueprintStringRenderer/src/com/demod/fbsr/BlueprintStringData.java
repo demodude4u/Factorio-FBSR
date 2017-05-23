@@ -12,16 +12,32 @@ import org.apache.commons.codec.binary.Base64;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import com.google.common.base.Charsets;
+
 public class BlueprintStringData {
+	private static String cleanupBlueprintString(String blueprintString) {
+		// Remove new lines
+		blueprintString = blueprintString.replaceAll("\\r|\\n", "");
+
+		return blueprintString;
+	}
+
 	private final List<Blueprint> blueprints = new ArrayList<>();
+
 	private final int version;
 
 	public BlueprintStringData(String blueprintString) throws IllegalArgumentException, IOException {
-		version = Integer.parseInt(blueprintString.substring(0, 1));
+		blueprintString = cleanupBlueprintString(blueprintString);
+		String versionChar = blueprintString.substring(0, 1);
+		try {
+			version = Integer.parseInt(versionChar);
+		} catch (NumberFormatException e) {
+			throw new IllegalArgumentException("Version is not valid! (" + versionChar + ")");
+		}
 		byte[] decoded = Base64.decodeBase64(blueprintString.substring(1));
 		JSONObject json;
 		try (BufferedReader br = new BufferedReader(
-				new InputStreamReader(new InflaterInputStream(new ByteArrayInputStream(decoded))))) {
+				new InputStreamReader(new InflaterInputStream(new ByteArrayInputStream(decoded)), Charsets.UTF_8))) {
 			StringBuilder jsonBuilder = new StringBuilder();
 			String line;
 			while ((line = br.readLine()) != null) {

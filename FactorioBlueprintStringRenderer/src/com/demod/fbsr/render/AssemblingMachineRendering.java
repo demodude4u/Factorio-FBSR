@@ -26,15 +26,13 @@ public class AssemblingMachineRendering extends TypeRendererFactory {
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
 			DataPrototype prototype) {
-		Sprite sprite = getSpriteFromAnimation(prototype.lua().get("animation").get("layers").get(1));
-		Sprite spriteShadow = getSpriteFromAnimation(prototype.lua().get("animation").get("layers").get(2));
+		List<Sprite> sprites = getSpritesFromAnimation(prototype.lua().get("animation"), entity.getDirection());
 
-		register.accept(spriteRenderer(spriteShadow, entity, prototype));
-		register.accept(spriteRenderer(sprite, entity, prototype));
+		register.accept(spriteRenderer(sprites, entity, prototype));
 
 		Sprite spriteIcon = new Sprite();
 
-		String recipe = entity.json().optString("recipe");
+		String recipe = entity.json().optString("recipe", null);
 		if (recipe != null) {
 			DataPrototype protoRecipe = dataTable.getRecipes().get(recipe);
 			if (protoRecipe.lua().get("icon") != LuaValue.NIL) {
@@ -70,12 +68,10 @@ public class AssemblingMachineRendering extends TypeRendererFactory {
 
 	@Override
 	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity, DataPrototype prototype) {
-		String recipe = entity.json().getString("recipe");
+		String recipe = entity.json().optString("recipe", null);
 		boolean hasFluid = false;
 		if (recipe != null) {
 			RecipePrototype protoRecipe = dataTable.getRecipes().get(recipe);
-
-			Utils.debugPrintTable(protoRecipe.lua());
 
 			List<LuaValue> items = new ArrayList<>();
 			Utils.forEach(protoRecipe.lua().get("ingredients"), (Consumer<LuaValue>) items::add);

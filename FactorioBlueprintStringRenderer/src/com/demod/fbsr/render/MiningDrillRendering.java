@@ -24,9 +24,8 @@ public class MiningDrillRendering extends TypeRendererFactory {
 			register.accept(spriteRenderer(baseSprite, entity, prototype));
 			register.accept(spriteRenderer(jackSprite, entity, prototype));
 		} else {
-			Sprite sprite = getSpriteFromAnimation(
-					prototype.lua().get("animations").get(entity.getDirection().name().toLowerCase()));
-			register.accept(spriteRenderer(sprite, entity, prototype));
+			List<Sprite> sprites = getSpritesFromAnimation(prototype.lua().get("animations"), entity.getDirection());
+			register.accept(spriteRenderer(sprites, entity, prototype));
 		}
 	}
 
@@ -35,9 +34,10 @@ public class MiningDrillRendering extends TypeRendererFactory {
 		if (entity.getName().equals("pumpjack")) {
 
 			List<Point2D.Double> positions = new ArrayList<>();
-			Utils.forEach(prototype.lua().get("fluid_box").get("pipe_connections").get(1).get("positions"), l -> {
-				positions.add(Utils.parsePoint2D(l));
-			});
+			Utils.forEach(prototype.lua().get("output_fluid_box").get("pipe_connections").get(1).get("positions"),
+					l -> {
+						positions.add(Utils.parsePoint2D(l));
+					});
 
 			Point2D.Double entityPos = entity.getPosition();
 			Point2D.Double pipePos = entity.getDirection().back()

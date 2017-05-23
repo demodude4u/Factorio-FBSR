@@ -15,7 +15,6 @@ public class ElectricPoleRendering extends TypeRendererFactory {
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
 			DataPrototype prototype) {
-		super.createRenderers(register, map, dataTable, entity, prototype);
 		Sprite sprite = getSpriteFromAnimation(prototype.lua().get("pictures"));
 		sprite.source.x = sprite.source.width * SpriteIndex;
 		register.accept(spriteRenderer(Layer.ENTITY3, sprite, entity, prototype));

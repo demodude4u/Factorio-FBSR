@@ -6,7 +6,7 @@ import java.awt.geom.Rectangle2D;
 
 public abstract class Renderer {
 	public static enum Layer {
-		ENTITY, ENTITY2, ENTITY3, OVERLAY, OVERLAY2, OVERLAY3, OVERLAY4;
+		RAIL_STONE_BACKGROUND, RAIL_STONE, RAIL_TIES, RAIL_BACKPLATES, RAIL_METALS, ENTITY, ENTITY2, ENTITY3, OVERLAY, OVERLAY2, OVERLAY3, OVERLAY4;
 	}
 
 	protected final Rectangle2D.Double bounds;

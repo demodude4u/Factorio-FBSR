@@ -31,11 +31,6 @@
 	</repositories>
 	<dependencies>
 		<dependency>
-			<groupId>net.dv8tion</groupId>
-			<artifactId>JDA</artifactId>
-			<version>3.0.0_191</version>
-		</dependency>
-		<dependency>
 			<groupId>com.google.guava</groupId>
 			<artifactId>guava</artifactId>
 			<version>20.0</version>
@@ -54,6 +49,11 @@
 			<groupId>net.sf.jopt-simple</groupId>
 			<artifactId>jopt-simple</artifactId>
 			<version>6.0-alpha-1</version>
+		</dependency>
+		<dependency>
+			<groupId>com.demod.dcba</groupId>
+			<artifactId>DiscordCoreBotApple</artifactId>
+			<version>0.0.1-SNAPSHOT</version>
 		</dependency>
 	</dependencies>
 </project>

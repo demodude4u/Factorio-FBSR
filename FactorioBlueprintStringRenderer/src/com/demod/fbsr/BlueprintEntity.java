@@ -6,6 +6,8 @@ import java.awt.geom.Rectangle2D;
 
 import org.json.JSONObject;
 
+import com.demod.factorio.Utils;
+
 public class BlueprintEntity {
 	public static enum Direction {
 		NORTH(0, -1), //
@@ -35,6 +37,14 @@ public class BlueprintEntity {
 
 		public int cardinal() {
 			return ordinal() / 2;
+		}
+
+		public int getDx() {
+			return dx;
+		}
+
+		public int getDy() {
+			return dy;
 		}
 
 		public Direction left() {
@@ -75,6 +85,12 @@ public class BlueprintEntity {
 		this.name = entityJson.getString("name");
 		this.position = new Point2D.Double(positionJson.getDouble("x"), positionJson.getDouble("y"));
 		this.direction = Direction.values()[entityJson.optInt("direction", 0)];
+	}
+
+	public void debugPrint() {
+		System.out.println();
+		System.out.println(getName());
+		Utils.debugPrintJson(json);
 	}
 
 	public Direction getDirection() {

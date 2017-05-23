@@ -16,6 +16,10 @@ public class ArithmeticCombinatorRendering extends TypeRendererFactory {
 		operationSprites.put("-", "minus_symbol_sprites");
 		operationSprites.put("*", "multiply_symbol_sprites");
 		operationSprites.put("/", "divide_symbol_sprites");
+		operationSprites.put("AND", "and_symbol_sprites");
+		operationSprites.put("XOR", "xor_symbol_sprites");
+		operationSprites.put("MOD", "modulo_symbol_sprites");// FIXME
+		operationSprites.put("%", "modulo_symbol_sprites");// FIXME
 	}
 
 	@Override
