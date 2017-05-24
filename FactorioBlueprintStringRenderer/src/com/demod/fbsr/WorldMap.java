@@ -1,19 +1,28 @@
 package com.demod.fbsr;
 
 import java.awt.geom.Point2D;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Optional;
 
 import com.demod.fbsr.BlueprintEntity.Direction;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
 
+import javafx.util.Pair;
+
 public class WorldMap {
 
+	// Row: X
+	// Column: Y
 	private final Table<Integer, Integer, Direction> belts = HashBasedTable.create();
 	private final Table<Integer, Integer, Integer> pipes = HashBasedTable.create();
 	private final Table<Integer, Integer, Integer> heatPipes = HashBasedTable.create();
 	private final Table<Integer, Integer, Object> walls = HashBasedTable.create();
 	private final Table<Integer, Integer, Boolean> gates = HashBasedTable.create();
+
+	// Key: id1|id2|color
+	private final Map<String, Pair<Point2D.Double, Point2D.Double>> wires = new LinkedHashMap<>();
 
 	private int flag(Direction facing) {
 		return 1 << facing.cardinal();
@@ -23,6 +32,14 @@ public class WorldMap {
 		int kr = keyOf(pos.x);
 		int kc = keyOf(pos.y);
 		return Optional.ofNullable(belts.get(kr, kc));
+	}
+
+	public Pair<Point2D.Double, Point2D.Double> getWire(String key) {
+		return wires.get(key);
+	}
+
+	public boolean hasWire(String key) {
+		return wires.containsKey(key);
 	}
 
 	public boolean isHeatPipe(Point2D.Double pos, Direction facing) {
@@ -109,5 +126,9 @@ public class WorldMap {
 		int kr = keyOf(pos.x);
 		int kc = keyOf(pos.y);
 		walls.put(kr, kc, pos);
+	}
+
+	public void setWire(String key, Pair<Point2D.Double, Point2D.Double> pair) {
+		wires.put(key, pair);
 	}
 }

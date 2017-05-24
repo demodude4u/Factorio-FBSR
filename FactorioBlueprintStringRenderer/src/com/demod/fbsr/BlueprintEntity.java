@@ -74,17 +74,22 @@ public class BlueprintEntity {
 	}
 
 	private final JSONObject json;
+
+	private final int id;
 	private final String name;
 	private final Double position;
 	private final Direction direction;
 
 	public BlueprintEntity(JSONObject entityJson) {
 		json = entityJson;
-		JSONObject positionJson = entityJson.getJSONObject("position");
 
-		this.name = entityJson.getString("name");
-		this.position = new Point2D.Double(positionJson.getDouble("x"), positionJson.getDouble("y"));
-		this.direction = Direction.values()[entityJson.optInt("direction", 0)];
+		id = entityJson.getInt("entity_number");
+		name = entityJson.getString("name");
+
+		JSONObject positionJson = entityJson.getJSONObject("position");
+		position = new Point2D.Double(positionJson.getDouble("x"), positionJson.getDouble("y"));
+
+		direction = Direction.values()[entityJson.optInt("direction", 0)];
 	}
 
 	public void debugPrint() {
@@ -95,6 +100,10 @@ public class BlueprintEntity {
 
 	public Direction getDirection() {
 		return direction;
+	}
+
+	public int getId() {
+		return id;
 	}
 
 	public String getName() {

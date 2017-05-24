@@ -4,6 +4,7 @@ import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.Graphics2D;
+import java.awt.RenderingHints;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Area;
 import java.awt.geom.Line2D;
@@ -113,6 +114,10 @@ public class FBSR {
 		BufferedImage image = new BufferedImage((int) (bounds.getWidth() * tileSize),
 				(int) (bounds.getHeight() * tileSize), BufferedImage.TYPE_INT_RGB);
 		Graphics2D g = image.createGraphics();
+
+		g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+		g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+
 		g.scale(image.getWidth() / bounds.getWidth(), image.getHeight() / bounds.getHeight());
 		g.translate(-bounds.getX(), -bounds.getY());
 		AffineTransform worldXform = g.getTransform();
@@ -254,19 +259,28 @@ public class FBSR {
 		}
 		alignRenderingTuplesToGrid(renderingTuples);
 
-		WorldMap worldState = new WorldMap();
+		WorldMap worldMap = new WorldMap();
 		renderingTuples.forEach(t -> {
 			try {
-				t.factory.populateWorldMap(worldState, table, t.entity, t.prototype);
+				t.factory.populateWorldMap(worldMap, table, t.entity, t.prototype);
 			} catch (Exception e) {
 				reporting.addException(e);
 			}
 		});
 
 		List<Renderer> renderers = new ArrayList<>();
+
 		renderingTuples.forEach(t -> {
 			try {
-				t.factory.createRenderers(renderers::add, worldState, table, t.entity, t.prototype);
+				t.factory.createRenderers(renderers::add, worldMap, table, t.entity, t.prototype);
+			} catch (Exception e) {
+				reporting.addException(e);
+			}
+		});
+
+		renderingTuples.forEach(t -> {
+			try {
+				t.factory.createWireConnections(renderers::add, worldMap, table, t.entity, t.prototype);
 			} catch (Exception e) {
 				reporting.addException(e);
 			}

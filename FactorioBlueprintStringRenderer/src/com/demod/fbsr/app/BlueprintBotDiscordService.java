@@ -49,9 +49,9 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 	private static final int ATTACHMENT_MAX_SIZE = 1024 * 1024;
 
-	private static final Pattern blueprintPattern = Pattern.compile("([A-Za-z0-9+\\/][A-Za-z0-9+\\/=\\r\\n]{90,})");
-	private static final Pattern pastebinPattern = Pattern.compile("pastebin\\.com/([A-Za-z0-9]+)");
+	private static final Pattern blueprintPattern = Pattern.compile("([0-9][A-Za-z0-9+\\/=\\r\\n]{90,})");
 
+	private static final Pattern pastebinPattern = Pattern.compile("pastebin\\.com/([A-Za-z0-9]+)");
 	private static final Pattern hastebinPattern = Pattern.compile("hastebin\\.com/([A-Za-z0-9]+)");
 
 	public static void main(String[] args) {
@@ -267,6 +267,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 	@Override
 	protected void startUp() throws Exception {
 		bot = DCBA.builder()//
+				.withCommandPrefix("-")
 				//
 				.setInfo("Blueprint Bot")//
 				.withSupport("Find Demod and complain to him!")//

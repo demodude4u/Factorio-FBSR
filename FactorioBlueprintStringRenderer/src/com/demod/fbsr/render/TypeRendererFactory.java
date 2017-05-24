@@ -1,16 +1,21 @@
 package com.demod.fbsr.render;
 
+import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
+import java.awt.Stroke;
 import java.awt.geom.AffineTransform;
+import java.awt.geom.Path2D;
 import java.awt.geom.Point2D;
+import java.awt.geom.Point2D.Double;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -18,6 +23,8 @@ import java.util.Random;
 import java.util.Set;
 import java.util.function.Consumer;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.luaj.vm2.LuaValue;
 
 import com.demod.factorio.DataTable;
@@ -29,6 +36,8 @@ import com.demod.fbsr.FBSR;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.render.Renderer.Layer;
 import com.google.common.collect.ImmutableList;
+
+import javafx.util.Pair;
 
 public class TypeRendererFactory {
 
@@ -135,6 +144,15 @@ public class TypeRendererFactory {
 
 	public static final double tileSize = 32.0;
 
+	private static final Map<String, Integer> wireConnectionCircuitId = new LinkedHashMap<>();
+	static {
+		wireConnectionCircuitId.put("circuit_wire_connection_point", 1);
+		wireConnectionCircuitId.put("connection_points", 1);
+		wireConnectionCircuitId.put("circuit_wire_connection_points", 1);
+		wireConnectionCircuitId.put("input_connection_points", 1);
+		wireConnectionCircuitId.put("output_connection_points", 2);
+	}
+
 	protected static void drawImageInBounds(BufferedImage image, Rectangle source, Rectangle2D.Double bounds,
 			Graphics2D g) {
 		AffineTransform pat = g.getTransform();
@@ -153,12 +171,6 @@ public class TypeRendererFactory {
 	}
 
 	protected static Sprite getSpriteFromAnimation(LuaValue lua) {
-		// FIXME there are lots of problems with HD version
-		// LuaValue hrLua = lua.get("hr_version");
-		// if (!hrLua.isnil()) {
-		// lua = hrLua;
-		// }
-
 		Sprite ret = new Sprite();
 		ret.image = FBSR.getModImage(lua.get("filename"));
 		int srcX = lua.get("x").optint(0);
@@ -255,12 +267,6 @@ public class TypeRendererFactory {
 		return spriteRenderer(Layer.ENTITY, sprite, entity, prototype);
 	}
 
-	// protected final String type;
-
-	// protected TypeRendererFactory(String type) {
-	// this.type = type;
-	// }
-
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
 			DataPrototype prototype) {
 		try {
@@ -293,15 +299,107 @@ public class TypeRendererFactory {
 		}
 	}
 
+	public void createWireConnections(Consumer<Renderer> register, WorldMap map, DataTable table,
+			BlueprintEntity entity, DataPrototype prototype) {
+		int entityId = entity.getId();
+
+		JSONObject connectionsJson = entity.json().optJSONObject("connections");
+		if (connectionsJson != null) {
+			Utils.forEach(connectionsJson, (String circuitIdStr, JSONObject connectionJson) -> {
+				int circuitId = Integer.parseInt(circuitIdStr);
+				Utils.forEach(connectionJson, (String colorName, JSONArray wiresJson) -> {
+					Utils.forEach(wiresJson, (JSONObject wireJson) -> {
+						int targetCircuitId = wireJson.optInt("circuit_id", 1);
+						int targetEntityId = wireJson.getInt("entity_id");
+
+						String key;
+						if (entityId < targetEntityId) {
+							key = entityId + "|" + circuitId + "|" + targetEntityId + "|" + targetCircuitId + "|"
+									+ colorName;
+						} else {
+							key = targetEntityId + "|" + targetCircuitId + "|" + entityId + "|" + circuitId + "|"
+									+ colorName;
+						}
+
+						if (!map.hasWire(key)) {
+							map.setWire(key, new Pair<>(getWirePositionFor(entity, prototype, colorName, circuitId),
+									new Point2D.Double()));
+
+						} else {
+							Pair<Double, Double> pair = map.getWire(key);
+
+							Double p1 = pair.getKey();
+							Double p2 = pair.getValue();
+							p2.setLocation(getWirePositionFor(entity, prototype, colorName, circuitId));
+
+							Rectangle2D.Double bounds = new Rectangle2D.Double();
+							bounds.setFrameFromDiagonal(p1, p2);
+
+							Color color;
+							switch (colorName) {
+							case "red":
+								color = Color.red.darker();
+								break;
+							case "green":
+								color = Color.green.darker();
+								break;
+							default:
+								System.err.println("UNKNOWN COLOR NAME: " + colorName);
+								color = Color.magenta;
+								break;
+							}
+
+							register.accept(new Renderer(Layer.WIRE, bounds) {
+								final double drop = 0.6;
+
+								@Override
+								public void render(Graphics2D g) {
+									Stroke ps = g.getStroke();
+									g.setStroke(new BasicStroke(1f / 32f));
+									g.setColor(color);
+
+									Path2D.Double path = new Path2D.Double();
+									path.moveTo(p1.x, p1.y);
+									Point2D.Double mid = new Point2D.Double((p1.x + p2.x) / 2,
+											(p1.y + p2.y) / 2 + drop);
+									path.curveTo(mid.x, mid.y, mid.x, mid.y, p2.x, p2.y);
+									g.draw(path);
+
+									g.setStroke(ps);
+								}
+							});
+						}
+					});
+				});
+			});
+		}
+	}
+
 	protected void debugPrintContext(BlueprintEntity entity, DataPrototype prototype) {
 		System.out.println("=================================================================");
 		System.out.println("=========================== PROTOTYPE ===========================");
 		System.out.println("=================================================================");
-		Utils.debugPrintTable(prototype.lua());
+		Utils.debugPrintLua(prototype.lua());
 		System.out.println("=================================================================");
 		System.out.println("============================ ENTITY =============================");
 		System.out.println("=================================================================");
-		System.out.println(entity.json());// FIXME beautify the json!
+		Utils.debugPrintJson(entity.json());
+	}
+
+	protected Point2D.Double getWirePositionFor(BlueprintEntity entity, DataPrototype prototype, String colorName,
+			int circuitId) {
+		LuaValue connectionPointLua = wireConnectionCircuitId.entrySet().stream().filter(e -> e.getValue() == circuitId)
+				.map(e -> prototype.lua().get(e.getKey())).filter(l -> !l.isnil()).findAny().get();
+
+		if (connectionPointLua.get("wire").isnil()) {
+			connectionPointLua = connectionPointLua.get(entity.getDirection().cardinal() + 1);
+		}
+
+		Double pos = entity.getPosition();
+		Point2D.Double offset;
+		offset = Utils.parsePoint2D(connectionPointLua.get("wire").get(colorName));
+
+		return new Point2D.Double(pos.x + offset.x, pos.y + offset.y);
 	}
 
 	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity, DataPrototype prototype) {

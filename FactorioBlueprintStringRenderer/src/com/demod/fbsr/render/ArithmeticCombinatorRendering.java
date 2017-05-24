@@ -25,6 +25,8 @@ public class ArithmeticCombinatorRendering extends TypeRendererFactory {
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
 			DataPrototype prototype) {
+		// prototype.debugPrint();
+		// entity.debugPrint();
 		Sprite sprite = getSpriteFromAnimation(
 				prototype.lua().get("sprites").get(entity.getDirection().name().toLowerCase()));
 		Sprite operatorSprite = getSpriteFromAnimation(prototype.lua()
