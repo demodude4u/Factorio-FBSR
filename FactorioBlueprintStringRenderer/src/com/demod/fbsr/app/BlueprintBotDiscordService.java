@@ -53,6 +53,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 	private static final Pattern pastebinPattern = Pattern.compile("pastebin\\.com/([A-Za-z0-9]+)");
 	private static final Pattern hastebinPattern = Pattern.compile("hastebin\\.com/([A-Za-z0-9]+)");
+	private static final Pattern gistPattern = Pattern.compile("gist\\.github\\.com/([-a-zA-Z0-9@:%_\\+.~#?&//=]+)");
 
 	public static void main(String[] args) {
 		new BlueprintBotDiscordService().startAsync();
@@ -150,6 +151,13 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			while (matcher.find()) {
 				String code = matcher.group(1);
 				findBlueprintsInURL(event, reporting, "https://hastebin.com/raw/" + code);
+			}
+		}
+		{
+			Matcher matcher = gistPattern.matcher(content);
+			while (matcher.find()) {
+				String code = matcher.group(1);
+				findBlueprintsInURL(event, reporting, "https://gist.githubusercontent.com/" + code + "/raw/");
 			}
 		}
 	}

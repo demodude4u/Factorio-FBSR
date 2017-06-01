@@ -28,13 +28,16 @@ import org.json.JSONObject;
 import org.luaj.vm2.LuaValue;
 
 import com.demod.factorio.DataTable;
+import com.demod.factorio.FactorioData;
 import com.demod.factorio.Utils;
-import com.demod.factorio.prototype.DataPrototype;
+import com.demod.factorio.prototype.EntityPrototype;
+import com.demod.factorio.prototype.RecipePrototype;
 import com.demod.fbsr.BlueprintEntity;
-import com.demod.fbsr.BlueprintEntity.Direction;
-import com.demod.fbsr.FBSR;
+import com.demod.fbsr.Direction;
+import com.demod.fbsr.LogisticGridCell;
+import com.demod.fbsr.Renderer;
+import com.demod.fbsr.Renderer.Layer;
 import com.demod.fbsr.WorldMap;
-import com.demod.fbsr.render.Renderer.Layer;
 import com.google.common.collect.ImmutableList;
 
 import javafx.util.Pair;
@@ -62,7 +65,7 @@ public class TypeRendererFactory {
 
 		@Override
 		public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
-				BlueprintEntity entity, DataPrototype prototype) {
+				BlueprintEntity entity, EntityPrototype prototype) {
 			super.createRenderers(register, map, dataTable, entity, prototype);
 			register.accept(new Renderer(Layer.OVERLAY3, entity.getPosition()) {
 				@Override
@@ -86,7 +89,7 @@ public class TypeRendererFactory {
 
 		@Override
 		public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity,
-				DataPrototype prototype) {
+				EntityPrototype prototype) {
 			super.populateWorldMap(map, dataTable, entity, prototype);
 
 			if (!defaultedTypes.isEmpty()) {
@@ -172,7 +175,14 @@ public class TypeRendererFactory {
 
 	protected static Sprite getSpriteFromAnimation(LuaValue lua) {
 		Sprite ret = new Sprite();
-		ret.image = FBSR.getModImage(lua.get("filename"));
+		LuaValue filenameLua = lua.get("filename");
+		boolean drawAsShadow = lua.get("draw_as_shadow").optboolean(false);
+		drawAsShadow = false;// FIXME shadows need a special mask layer
+		if (drawAsShadow) {
+			ret.image = FactorioData.getModImage(filenameLua, new Color(255, 255, 255, 128));
+		} else {
+			ret.image = FactorioData.getModImage(filenameLua);
+		}
 		int srcX = lua.get("x").optint(0);
 		int srcY = lua.get("y").optint(0);
 		int srcWidth = lua.get("width").checkint();
@@ -209,7 +219,7 @@ public class TypeRendererFactory {
 	}
 
 	protected static Renderer spriteRenderer(Layer layer, List<Sprite> sprites, BlueprintEntity entity,
-			DataPrototype prototype) {
+			EntityPrototype prototype) {
 		Point2D.Double pos = entity.getPosition();
 		for (Sprite sprite : sprites) {
 			sprite.bounds.x += pos.x;
@@ -255,20 +265,20 @@ public class TypeRendererFactory {
 	}
 
 	protected static Renderer spriteRenderer(Layer layer, Sprite sprite, BlueprintEntity entity,
-			DataPrototype prototype) {
+			EntityPrototype prototype) {
 		return spriteRenderer(layer, ImmutableList.of(sprite), entity, prototype);
 	}
 
-	protected static Renderer spriteRenderer(List<Sprite> sprites, BlueprintEntity entity, DataPrototype prototype) {
+	protected static Renderer spriteRenderer(List<Sprite> sprites, BlueprintEntity entity, EntityPrototype prototype) {
 		return spriteRenderer(Layer.ENTITY, sprites, entity, prototype);
 	}
 
-	protected static Renderer spriteRenderer(Sprite sprite, BlueprintEntity entity, DataPrototype prototype) {
+	protected static Renderer spriteRenderer(Sprite sprite, BlueprintEntity entity, EntityPrototype prototype) {
 		return spriteRenderer(Layer.ENTITY, sprite, entity, prototype);
 	}
 
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
-			DataPrototype prototype) {
+			EntityPrototype prototype) {
 		try {
 			List<Sprite> sprites;
 
@@ -286,9 +296,9 @@ public class TypeRendererFactory {
 				sprites = getSpritesFromAnimation(spriteLua, entity.getDirection());
 			} else {
 				Sprite sprite = new Sprite();
-				sprite.image = FBSR.getModImage(prototype.lua().get("icon"));
+				sprite.image = FactorioData.getModImage(prototype.lua().get("icon"));
 				sprite.source = new Rectangle(0, 0, sprite.image.getWidth(), sprite.image.getHeight());
-				sprite.bounds = Utils.parseRectangle(prototype.lua().get("selection_box"));
+				sprite.bounds = (Rectangle2D.Double) prototype.getSelectionBox().clone();
 				sprites = ImmutableList.of(sprite);
 			}
 
@@ -300,7 +310,7 @@ public class TypeRendererFactory {
 	}
 
 	public void createWireConnections(Consumer<Renderer> register, WorldMap map, DataTable table,
-			BlueprintEntity entity, DataPrototype prototype) {
+			BlueprintEntity entity, EntityPrototype prototype) {
 		int entityId = entity.getId();
 
 		JSONObject connectionsJson = entity.json().optJSONObject("connections");
@@ -332,9 +342,6 @@ public class TypeRendererFactory {
 							Double p2 = pair.getValue();
 							p2.setLocation(getWirePositionFor(entity, prototype, colorName, circuitId));
 
-							Rectangle2D.Double bounds = new Rectangle2D.Double();
-							bounds.setFrameFromDiagonal(p1, p2);
-
 							Color color;
 							switch (colorName) {
 							case "red":
@@ -349,25 +356,7 @@ public class TypeRendererFactory {
 								break;
 							}
 
-							register.accept(new Renderer(Layer.WIRE, bounds) {
-								final double drop = 0.6;
-
-								@Override
-								public void render(Graphics2D g) {
-									Stroke ps = g.getStroke();
-									g.setStroke(new BasicStroke(1f / 32f));
-									g.setColor(color);
-
-									Path2D.Double path = new Path2D.Double();
-									path.moveTo(p1.x, p1.y);
-									Point2D.Double mid = new Point2D.Double((p1.x + p2.x) / 2,
-											(p1.y + p2.y) / 2 + drop);
-									path.curveTo(mid.x, mid.y, mid.x, mid.y, p2.x, p2.y);
-									g.draw(path);
-
-									g.setStroke(ps);
-								}
-							});
+							register.accept(createWireRenderer(p1, p2, color));
 						}
 					});
 				});
@@ -375,7 +364,31 @@ public class TypeRendererFactory {
 		}
 	}
 
-	protected void debugPrintContext(BlueprintEntity entity, DataPrototype prototype) {
+	protected Renderer createWireRenderer(Point2D.Double p1, Point2D.Double p2, Color color) {
+		Rectangle2D.Double bounds = new Rectangle2D.Double();
+		bounds.setFrameFromDiagonal(p1, p2);
+
+		return new Renderer(Layer.WIRE, bounds) {
+			final double drop = 0.6;
+
+			@Override
+			public void render(Graphics2D g) {
+				Stroke ps = g.getStroke();
+				g.setStroke(new BasicStroke(1f / 32f));
+				g.setColor(color);
+
+				Path2D.Double path = new Path2D.Double();
+				path.moveTo(p1.x, p1.y);
+				Point2D.Double mid = new Point2D.Double((p1.x + p2.x) / 2, (p1.y + p2.y) / 2 + drop);
+				path.curveTo(mid.x, mid.y, mid.x, mid.y, p2.x, p2.y);
+				g.draw(path);
+
+				g.setStroke(ps);
+			}
+		};
+	}
+
+	protected void debugPrintContext(BlueprintEntity entity, EntityPrototype prototype) {
 		System.out.println("=================================================================");
 		System.out.println("=========================== PROTOTYPE ===========================");
 		System.out.println("=================================================================");
@@ -386,7 +399,7 @@ public class TypeRendererFactory {
 		Utils.debugPrintJson(entity.json());
 	}
 
-	protected Point2D.Double getWirePositionFor(BlueprintEntity entity, DataPrototype prototype, String colorName,
+	protected Point2D.Double getWirePositionFor(BlueprintEntity entity, EntityPrototype prototype, String colorName,
 			int circuitId) {
 		LuaValue connectionPointLua = wireConnectionCircuitId.entrySet().stream().filter(e -> e.getValue() == circuitId)
 				.map(e -> prototype.lua().get(e.getKey())).filter(l -> !l.isnil()).findAny().get();
@@ -402,8 +415,59 @@ public class TypeRendererFactory {
 		return new Point2D.Double(pos.x + offset.x, pos.y + offset.y);
 	}
 
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity, DataPrototype prototype) {
+	public void populateLogistics(WorldMap map, DataTable dataTable, BlueprintEntity entity,
+			EntityPrototype prototype) {
 		// default do nothing
+	}
+
+	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity, EntityPrototype prototype) {
+		// default do nothing
+	}
+
+	protected void setLogisticMachine(WorldMap map, BlueprintEntity entity, EntityPrototype prototype,
+			RecipePrototype recipe) {
+		Point2D.Double entityPos = entity.getPosition();
+		Rectangle2D.Double box = prototype.getSelectionBox();
+		double xStart = entityPos.x + box.x;
+		double yStart = entityPos.y + box.y;
+		double xEnd = xStart + box.width;
+		double yEnd = yStart + box.height;
+
+		Set<String> inputs = recipe.getInputs().keySet();
+		Set<String> outputs = recipe.getOutputs().keySet();
+
+		Point2D.Double cellPos = new Point2D.Double();
+		for (cellPos.x = xStart + 0.25; cellPos.x < xEnd; cellPos.x += 0.5) {
+			for (cellPos.y = yStart + 0.25; cellPos.y < yEnd; cellPos.y += 0.5) {
+				LogisticGridCell cell = map.getOrCreateLogisticGridCell(cellPos);
+				cell.setInputs(Optional.of(inputs));
+				cell.setOutputs(Optional.of(outputs));
+				cell.setBlockTransit(true);
+			}
+		}
+	}
+
+	protected void setLogisticMove(WorldMap map, Point2D.Double gridPos, Direction cellDir, Direction moveDir) {
+		map.getOrCreateLogisticGridCell(cellDir.offset(gridPos, 0.25)).setMove(Optional.of(moveDir));
+	}
+
+	protected void setLogisticMoveAndAcceptFilter(WorldMap map, Point2D.Double gridPos, Direction cellDir, Direction moveDir,
+			Direction acceptFilter) {
+		LogisticGridCell cell = map.getOrCreateLogisticGridCell(cellDir.offset(gridPos, 0.25));
+		cell.setMove(Optional.of(moveDir));
+		cell.setAcceptFilter(Optional.of(acceptFilter));
+	}
+
+	protected void setLogisticAcceptFilter(WorldMap map, Point2D.Double gridPos, Direction cellDir,
+			Direction acceptFilter) {
+		LogisticGridCell cell = map.getOrCreateLogisticGridCell(cellDir.offset(gridPos, 0.25));
+		cell.setAcceptFilter(Optional.of(acceptFilter));
+	}
+
+	protected void setLogisticWarp(WorldMap map, Double gridPos1, Direction cellDir1, Double gridPos2,
+			Direction cellDir2) {
+		map.getOrCreateLogisticGridCell(cellDir1.offset(gridPos1, 0.25))
+				.setWarp(Optional.of(cellDir2.offset(gridPos2, 0.25)));
 	}
 
 }

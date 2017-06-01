@@ -4,15 +4,16 @@ import java.util.List;
 import java.util.function.Consumer;
 
 import com.demod.factorio.DataTable;
-import com.demod.factorio.prototype.DataPrototype;
+import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.BlueprintEntity;
+import com.demod.fbsr.Renderer;
 import com.demod.fbsr.WorldMap;
-import com.demod.fbsr.render.Renderer.Layer;
+import com.demod.fbsr.Renderer.Layer;
 
 public class TrainStopRendering extends TypeRendererFactory {
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
-			DataPrototype prototype) {
+			EntityPrototype prototype) {
 		List<Sprite> railSprites = getSpritesFromAnimation(prototype.lua().get("rail_overlay_animations"),
 				entity.getDirection());
 		List<Sprite> sprites = getSpritesFromAnimation(prototype.lua().get("animations"), entity.getDirection());

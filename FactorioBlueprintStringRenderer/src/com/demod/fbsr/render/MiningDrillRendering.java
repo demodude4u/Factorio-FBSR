@@ -7,15 +7,16 @@ import java.util.function.Consumer;
 
 import com.demod.factorio.DataTable;
 import com.demod.factorio.Utils;
-import com.demod.factorio.prototype.DataPrototype;
+import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.BlueprintEntity;
+import com.demod.fbsr.Renderer;
 import com.demod.fbsr.WorldMap;
 
 public class MiningDrillRendering extends TypeRendererFactory {
 
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
-			DataPrototype prototype) {
+			EntityPrototype prototype) {
 		if (entity.getName().equals("pumpjack")) {
 			Sprite baseSprite = getSpriteFromAnimation(prototype.lua().get("base_picture").get("sheet"));
 			baseSprite.source.x = baseSprite.source.width * entity.getDirection().cardinal();
@@ -30,7 +31,7 @@ public class MiningDrillRendering extends TypeRendererFactory {
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity, DataPrototype prototype) {
+	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity, EntityPrototype prototype) {
 		if (entity.getName().equals("pumpjack")) {
 
 			List<Point2D.Double> positions = new ArrayList<>();

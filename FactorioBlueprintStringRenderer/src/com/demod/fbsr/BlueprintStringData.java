@@ -45,7 +45,7 @@ public class BlueprintStringData {
 			}
 			json = new JSONObject(jsonBuilder.toString());
 		}
-		System.out.println(json);
+		// System.out.println(json);
 		if (json.has("blueprint")) {
 			blueprints.add(new Blueprint(json));
 		} else {

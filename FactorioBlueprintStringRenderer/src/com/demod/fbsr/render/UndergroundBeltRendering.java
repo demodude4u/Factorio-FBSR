@@ -1,19 +1,21 @@
 package com.demod.fbsr.render;
 
+import java.awt.geom.Point2D;
 import java.util.function.Consumer;
 
 import com.demod.factorio.DataTable;
-import com.demod.factorio.prototype.DataPrototype;
+import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.BlueprintEntity;
-import com.demod.fbsr.BlueprintEntity.Direction;
+import com.demod.fbsr.Direction;
+import com.demod.fbsr.Renderer;
+import com.demod.fbsr.Renderer.Layer;
 import com.demod.fbsr.WorldMap;
-import com.demod.fbsr.render.Renderer.Layer;
 
 public class UndergroundBeltRendering extends TypeRendererFactory {
 
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
-			DataPrototype prototype) {
+			EntityPrototype prototype) {
 		// LuaUtils.debugPrintTable("", prototype.lua());
 		// System.exit(1);
 
@@ -62,10 +64,47 @@ public class UndergroundBeltRendering extends TypeRendererFactory {
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity, DataPrototype prototype) {
+	public void populateLogistics(WorldMap map, DataTable dataTable, BlueprintEntity entity,
+			EntityPrototype prototype) {
+		Direction dir = entity.getDirection();
+		Point2D.Double pos = entity.getPosition();
 		boolean input = entity.json().getString("type").equals("input");
-		if (!input) {
-			map.setBelt(entity.getPosition(), entity.getDirection());
+
+		if (input) {
+			setLogisticMove(map, pos, dir.backLeft(), dir);
+			setLogisticMove(map, pos, dir.backRight(), dir);
+			setLogisticAcceptFilter(map, pos, dir.frontLeft(), dir);
+			setLogisticAcceptFilter(map, pos, dir.frontRight(), dir);
+		} else {
+			// XXX really should be a filter that accepts no direction
+			setLogisticMoveAndAcceptFilter(map, pos, dir.backLeft(), dir, dir.back());
+			setLogisticMoveAndAcceptFilter(map, pos, dir.backRight(), dir, dir.back());
+			setLogisticMove(map, pos, dir.frontLeft(), dir);
+			setLogisticMove(map, pos, dir.frontRight(), dir);
+		}
+
+		if (input) {
+			int maxDistance = prototype.lua().get("max_distance").toint();
+			for (int offset = 1; offset <= maxDistance; offset++) {
+				Point2D.Double targetPos = dir.offset(pos, offset);
+				if (map.isMatchingUndergroundBeltEnding(entity.getName(), targetPos, dir)) {
+					setLogisticWarp(map, pos, dir.frontLeft(), targetPos, dir.backLeft());
+					setLogisticWarp(map, pos, dir.frontRight(), targetPos, dir.backRight());
+					break;
+				}
+			}
+		}
+	}
+
+	@Override
+	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity, EntityPrototype prototype) {
+		boolean input = entity.json().getString("type").equals("input");
+
+		if (input) {
+			map.setBelt(entity.getPosition(), entity.getDirection(), false, false);
+		} else {
+			map.setBelt(entity.getPosition(), entity.getDirection(), false, true);
+			map.setUndergroundBeltEnding(entity.getName(), entity.getPosition(), entity.getDirection());
 		}
 	}
 }

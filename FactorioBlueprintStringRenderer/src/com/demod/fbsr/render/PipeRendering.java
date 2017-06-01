@@ -3,9 +3,10 @@ package com.demod.fbsr.render;
 import java.util.function.Consumer;
 
 import com.demod.factorio.DataTable;
-import com.demod.factorio.prototype.DataPrototype;
+import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.BlueprintEntity;
-import com.demod.fbsr.BlueprintEntity.Direction;
+import com.demod.fbsr.Direction;
+import com.demod.fbsr.Renderer;
 import com.demod.fbsr.WorldMap;
 
 public class PipeRendering extends TypeRendererFactory {
@@ -32,7 +33,7 @@ public class PipeRendering extends TypeRendererFactory {
 
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
-			DataPrototype prototype) {
+			EntityPrototype prototype) {
 		int adjCode = 0;
 		adjCode |= ((pipeFacingMeFrom(Direction.NORTH, map, entity) ? 1 : 0) << 0);
 		adjCode |= ((pipeFacingMeFrom(Direction.EAST, map, entity) ? 1 : 0) << 1);
@@ -50,7 +51,7 @@ public class PipeRendering extends TypeRendererFactory {
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity, DataPrototype prototype) {
+	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity, EntityPrototype prototype) {
 		map.setPipe(entity.getPosition());
 	}
 

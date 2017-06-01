@@ -1,51 +1,42 @@
 package com.demod.fbsr.render;
 
 import java.awt.geom.Point2D;
-import java.util.Optional;
 import java.util.function.Consumer;
-import java.util.function.UnaryOperator;
+
+import org.luaj.vm2.LuaValue;
 
 import com.demod.factorio.DataTable;
-import com.demod.factorio.prototype.DataPrototype;
+import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.BlueprintEntity;
-import com.demod.fbsr.BlueprintEntity.Direction;
+import com.demod.fbsr.Direction;
+import com.demod.fbsr.Renderer;
 import com.demod.fbsr.WorldMap;
+import com.demod.fbsr.WorldMap.BeltBend;
 
 public class TransportBeltRendering extends TypeRendererFactory {
 
 	public static final int[][][] transportBeltSpriteMapping = //
-			new int[/* NESW */][/* LNR */][/* SXY */] { //
+			new int[/* Cardinal */][/* Bend */][/* SXY */] { //
 					{ { 8, 1, 0 }, { 1, 0, 0 }, { 8, 0, 0 } }, // North
 					{ { 9, 0, 0 }, { 0, 0, 0 }, { 11, 0, 0 } }, // East
 					{ { 10, 1, 0 }, { 1, 0, 1 }, { 10, 0, 0 } }, // South
 					{ { 11, 1, 0 }, { 0, 1, 0 }, { 9, 1, 0 } }, // West
 			};
 
-	public boolean beltFacingMeFrom(UnaryOperator<Direction> rotateFunction, WorldMap map, BlueprintEntity entity) {
-		Point2D.Double adjacentPosition = rotateFunction.apply(entity.getDirection()).offset(entity.getPosition());
-		Optional<Direction> adjacentDirection = map.getBelt(adjacentPosition);
-		return adjacentDirection.map(d -> entity.getPosition().distance(d.offset(adjacentPosition)) < 0.1)
-				.orElse(false);
-	}
+	// XXX I'm not using horizontal or vertical frames
+	public static final String[][] transportBeltConnectorFrameMapping = //
+			new String[/* Cardinal */][/* Bend */] { //
+					{ "nw", "x", "ne" }, // North
+					{ "ne", "x", "se" }, // East
+					{ "se", "x", "sw" }, // South
+					{ "sw", "x", "nw" }, // West
+			};
 
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
-			DataPrototype prototype) {
-		boolean left = beltFacingMeFrom(Direction::left, map, entity);
-		boolean right = beltFacingMeFrom(Direction::right, map, entity);
-		boolean back = beltFacingMeFrom(Direction::back, map, entity);
-
-		int bend;
-		if (back || (left && right)) {
-			bend = 1; // none
-		} else if (left) {
-			bend = 0; // from the left
-		} else if (right) {
-			bend = 2; // from the right
-		} else {
-			bend = 1; // none
-		}
-		int[] spriteMapping = transportBeltSpriteMapping[entity.getDirection().cardinal()][bend];
+			EntityPrototype prototype) {
+		BeltBend bend = map.getBeltBend(entity.getPosition()).get();
+		int[] spriteMapping = transportBeltSpriteMapping[entity.getDirection().cardinal()][bend.ordinal()];
 
 		Sprite sprite = getSpriteFromAnimation(prototype.lua().get("animations"));
 		sprite.source.y = sprite.source.height * spriteMapping[0];
@@ -59,11 +50,51 @@ public class TransportBeltRendering extends TypeRendererFactory {
 		}
 
 		register.accept(spriteRenderer(sprite, entity, prototype));
+
+		if (entity.json().has("connections")) {
+			String connectorFrameMapping = transportBeltConnectorFrameMapping[entity.getDirection().cardinal()][bend
+					.ordinal()];
+
+			LuaValue connectorFrameSpritesLua = prototype.lua().get("connector_frame_sprites");
+			Sprite connectorShadow = getSpriteFromAnimation(
+					connectorFrameSpritesLua.get("frame_shadow_" + connectorFrameMapping));
+			Sprite connectorSprite = getSpriteFromAnimation(
+					connectorFrameSpritesLua.get("frame_main_" + connectorFrameMapping));
+
+			register.accept(spriteRenderer(connectorShadow, entity, prototype));
+			register.accept(spriteRenderer(connectorSprite, entity, prototype));
+		}
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity, DataPrototype prototype) {
-		map.setBelt(entity.getPosition(), entity.getDirection());
+	public void populateLogistics(WorldMap map, DataTable dataTable, BlueprintEntity entity,
+			EntityPrototype prototype) {
+		Direction dir = entity.getDirection();
+		Point2D.Double pos = entity.getPosition();
+
+		setLogisticMove(map, pos, dir.frontLeft(), dir);
+		setLogisticMove(map, pos, dir.frontRight(), dir);
+
+		BeltBend bend = map.getBeltBend(pos).get();
+		switch (bend) {
+		case FROM_LEFT:
+			setLogisticMove(map, pos, dir.backLeft(), dir.right());
+			setLogisticMove(map, pos, dir.backRight(), dir);
+			break;
+		case FROM_RIGHT:
+			setLogisticMove(map, pos, dir.backLeft(), dir);
+			setLogisticMove(map, pos, dir.backRight(), dir.left());
+			break;
+		case NONE:
+			setLogisticMove(map, pos, dir.backLeft(), dir);
+			setLogisticMove(map, pos, dir.backRight(), dir);
+			break;
+		}
+	}
+
+	@Override
+	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity, EntityPrototype prototype) {
+		map.setBelt(entity.getPosition(), entity.getDirection(), true, true);
 	}
 
 }

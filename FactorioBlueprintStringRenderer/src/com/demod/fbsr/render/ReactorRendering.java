@@ -3,15 +3,16 @@ package com.demod.fbsr.render;
 import java.util.function.Consumer;
 
 import com.demod.factorio.DataTable;
-import com.demod.factorio.prototype.DataPrototype;
+import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.BlueprintEntity;
-import com.demod.fbsr.BlueprintEntity.Direction;
+import com.demod.fbsr.Direction;
+import com.demod.fbsr.Renderer;
 import com.demod.fbsr.WorldMap;
 
 public class ReactorRendering extends TypeRendererFactory {
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
-			DataPrototype prototype) {
+			EntityPrototype prototype) {
 		register.accept(spriteRenderer(getSpritesFromAnimation(prototype.lua().get("picture"), entity.getDirection()),
 				entity, prototype));
 		register.accept(spriteRenderer(
@@ -20,7 +21,7 @@ public class ReactorRendering extends TypeRendererFactory {
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity, DataPrototype prototype) {
+	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity, EntityPrototype prototype) {
 		for (Direction dir : Direction.values()) {
 			map.setHeatPipe(dir.offset(entity.getPosition(), 2));
 		}

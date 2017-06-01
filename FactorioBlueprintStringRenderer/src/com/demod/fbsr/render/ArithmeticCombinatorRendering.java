@@ -5,8 +5,9 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 import com.demod.factorio.DataTable;
-import com.demod.factorio.prototype.DataPrototype;
+import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.BlueprintEntity;
+import com.demod.fbsr.Renderer;
 import com.demod.fbsr.WorldMap;
 
 public class ArithmeticCombinatorRendering extends TypeRendererFactory {
@@ -24,7 +25,7 @@ public class ArithmeticCombinatorRendering extends TypeRendererFactory {
 
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
-			DataPrototype prototype) {
+			EntityPrototype prototype) {
 		// prototype.debugPrint();
 		// entity.debugPrint();
 		Sprite sprite = getSpriteFromAnimation(

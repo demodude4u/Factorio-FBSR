@@ -7,25 +7,28 @@ import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Consumer;
 
 import org.luaj.vm2.LuaValue;
 
 import com.demod.factorio.DataTable;
+import com.demod.factorio.FactorioData;
 import com.demod.factorio.Utils;
 import com.demod.factorio.prototype.DataPrototype;
+import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.factorio.prototype.RecipePrototype;
 import com.demod.fbsr.BlueprintEntity;
-import com.demod.fbsr.BlueprintEntity.Direction;
-import com.demod.fbsr.FBSR;
+import com.demod.fbsr.Direction;
+import com.demod.fbsr.Renderer;
+import com.demod.fbsr.Renderer.Layer;
 import com.demod.fbsr.WorldMap;
-import com.demod.fbsr.render.Renderer.Layer;
 
 public class AssemblingMachineRendering extends TypeRendererFactory {
 
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
-			DataPrototype prototype) {
+			EntityPrototype prototype) {
 		List<Sprite> sprites = getSpritesFromAnimation(prototype.lua().get("animation"), entity.getDirection());
 
 		register.accept(spriteRenderer(sprites, entity, prototype));
@@ -34,9 +37,10 @@ public class AssemblingMachineRendering extends TypeRendererFactory {
 
 		String recipe = entity.json().optString("recipe", null);
 		if (recipe != null) {
-			DataPrototype protoRecipe = dataTable.getRecipes().get(recipe);
-			if (protoRecipe.lua().get("icon") != LuaValue.NIL) {
-				spriteIcon.image = FBSR.getModImage(protoRecipe.lua().get("icon"));
+			RecipePrototype protoRecipe = dataTable.getRecipe(recipe).get();
+			LuaValue iconLua = protoRecipe.lua().get("icon");
+			if (!iconLua.isnil()) {
+				spriteIcon.image = FactorioData.getModImage(iconLua);
 			} else {
 				String name;
 				if (protoRecipe.lua().get("results") != LuaValue.NIL) {
@@ -44,11 +48,11 @@ public class AssemblingMachineRendering extends TypeRendererFactory {
 				} else {
 					name = protoRecipe.lua().get("result").toString();
 				}
-				DataPrototype protoProduct = dataTable.getItems().get(name);
-				if (protoProduct == null) {
-					protoProduct = dataTable.getFluids().get(name);
+				Optional<DataPrototype> protoProduct = dataTable.getItem(name);
+				if (!protoProduct.isPresent()) {
+					protoProduct = dataTable.getFluid(name);
 				}
-				spriteIcon.image = FBSR.getModImage(protoProduct.lua().get("icon"));
+				spriteIcon.image = FactorioData.getModImage(protoProduct.get().lua().get("icon"));
 			}
 
 			spriteIcon.source = new Rectangle(0, 0, spriteIcon.image.getWidth(), spriteIcon.image.getHeight());
@@ -63,15 +67,26 @@ public class AssemblingMachineRendering extends TypeRendererFactory {
 					delegate.render(g);
 				}
 			});
+
 		}
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity, DataPrototype prototype) {
-		String recipe = entity.json().optString("recipe", null);
+	public void populateLogistics(WorldMap map, DataTable dataTable, BlueprintEntity entity,
+			EntityPrototype prototype) {
+		String recipeName = entity.json().optString("recipe", null);
+		if (recipeName != null) {
+			RecipePrototype protoRecipe = dataTable.getRecipe(recipeName).get();
+			setLogisticMachine(map, entity, prototype, protoRecipe);
+		}
+	}
+
+	@Override
+	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity, EntityPrototype prototype) {
+		String recipeName = entity.json().optString("recipe", null);
 		boolean hasFluid = false;
-		if (recipe != null) {
-			RecipePrototype protoRecipe = dataTable.getRecipes().get(recipe);
+		if (recipeName != null) {
+			RecipePrototype protoRecipe = dataTable.getRecipe(recipeName).get();
 
 			List<LuaValue> items = new ArrayList<>();
 			Utils.forEach(protoRecipe.lua().get("ingredients"), (Consumer<LuaValue>) items::add);

@@ -5,8 +5,10 @@ import java.awt.Color;
 import java.awt.Font;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
+import java.awt.Stroke;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Area;
+import java.awt.geom.Ellipse2D;
 import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
@@ -15,31 +17,36 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import javax.imageio.ImageIO;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Consumer;
 
 import org.json.JSONException;
-import org.luaj.vm2.LuaValue;
 
 import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
 import com.demod.factorio.ModInfo;
 import com.demod.factorio.Utils;
 import com.demod.factorio.prototype.DataPrototype;
-import com.demod.fbsr.render.Renderer;
+import com.demod.factorio.prototype.EntityPrototype;
+import com.demod.fbsr.Renderer.Layer;
 import com.demod.fbsr.render.TypeRendererFactory;
 import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.Multiset;
+import com.google.common.collect.Table;
+
+import javafx.util.Pair;
 
 public class FBSR {
 
 	private static class RenderingTuple {
 		BlueprintEntity entity;
-		DataPrototype prototype;
+		EntityPrototype prototype;
 		TypeRendererFactory factory;
 	}
 
@@ -54,6 +61,8 @@ public class FBSR {
 
 	private static volatile String version = null;
 
+	private static final Map<String, Color> itemColorCache = new HashMap<>();
+
 	private static void alignRenderingTuplesToGrid(List<RenderingTuple> renderingTuples) {
 		Multiset<Boolean> xAligned = LinkedHashMultiset.create();
 		Multiset<Boolean> yAligned = LinkedHashMultiset.create();
@@ -63,10 +72,10 @@ public class FBSR {
 				continue; // XXX
 			}
 
-			Rectangle2D.Double bounds = Utils.parseRectangle(tuple.prototype.lua().get("selection_box"));
+			Rectangle2D.Double selectionBox = tuple.prototype.getSelectionBox();
 			Point2D.Double position = tuple.entity.getPosition();
-			bounds.x += position.x;
-			bounds.y += position.y;
+			Rectangle2D.Double bounds = new Rectangle2D.Double(selectionBox.x + position.x, selectionBox.y + position.y,
+					selectionBox.width, selectionBox.height);
 			// System.out.println(bounds);
 
 			// Everything is doubled and rounded to the closest original 0.5
@@ -210,27 +219,38 @@ public class FBSR {
 		return image;
 	}
 
-	public static synchronized BufferedImage getModImage(LuaValue value) {
-		String path = value.toString();
-		if (path.isEmpty()) {
-			throw new IllegalArgumentException("Path is Empty!");
-		}
-		return modImageCache.computeIfAbsent(path, p -> {
-			String firstSegment = path.split("\\/")[0];
-			String mod = firstSegment.substring(2, firstSegment.length() - 2);
-			File modFolder = new File(FactorioData.factorio, "data/" + mod);
-			File file = new File(modFolder, path.replace(firstSegment, "").substring(1));
-			try {
-				return ImageIO.read(file);
-			} catch (IOException e) {
-				System.err.println(file.getAbsolutePath());
-				e.printStackTrace();
-				throw new RuntimeException(e);
+	private static void debugTracePath(Consumer<Renderer> register, DataTable table, WorldMap map, Point2D.Double pos,
+			String itemName) {
+		paintLogisticsAt(map, pos, itemName);
+		paintReverseLogisticsAt(map, pos, itemName);
+		drawDot(register, table, pos, itemName);
+	}
+
+	private static void drawDot(Consumer<Renderer> register, DataTable table, Point2D.Double pos, String itemName) {
+		register.accept(new Renderer(Layer.WIRE, pos) {
+			@Override
+			public void render(Graphics2D g) {
+				g.setColor(getItemLogisticColor(table, itemName));
+				g.fill(new Ellipse2D.Double(pos.x - 0.25, pos.y - 0.25, 0.5, 0.5));
 			}
 		});
 	}
 
-	private static String getVersion() throws JSONException, FileNotFoundException, IOException {
+	private static Color getItemLogisticColor(DataTable table, String itemName) {
+		return itemColorCache.computeIfAbsent(itemName, k -> {
+			DataPrototype prototype = table.getItem(k).get();
+			BufferedImage image = FactorioData.getModImage(prototype.lua().get("icon"));
+			Color color = Utils.getAverageColor(image);
+			// return new Color(color.getRGB() | 0xA0A0A0);
+			// return color.brighter().brighter();
+			float[] hsb = Color.RGBtoHSB(color.getRed(), color.getGreen(), color.getBlue(), null);
+			return Color.getHSBColor(hsb[0], Math.max(0.25f, hsb[1]), Math.max(0.5f, hsb[2]));
+			// return Color.getHSBColor(hsb[0], Math.max(1f, hsb[1]),
+			// Math.max(0.75f, hsb[2]));
+		});
+	}
+
+	public static String getVersion() throws JSONException, FileNotFoundException, IOException {
 		if (version == null) {
 			ModInfo baseInfo = new ModInfo(Utils
 					.readJsonFromStream(new FileInputStream(new File(FactorioData.factorio, "data/base/info.json"))));
@@ -239,19 +259,140 @@ public class FBSR {
 		return version;
 	}
 
+	private static void paintLogisticsAt(WorldMap map, Point2D.Double startPos, String itemName) {
+		ArrayDeque<Point2D.Double> work = new ArrayDeque<>();
+		work.add(startPos);
+		while (!work.isEmpty()) {
+			Point2D.Double pos = work.poll();
+			map.getLogisticGridCell(pos).ifPresent(c -> {
+				if (!c.getTransits().isPresent() || !c.getTransits().get().contains(itemName)) {
+					c.addTransit(itemName);
+					c.getMove().ifPresent(d -> {
+						work.add(d.offset(pos, 0.5));
+					});
+					c.getWarp().ifPresent(p -> {
+						work.add(p);
+					});
+				}
+			});
+		}
+
+	}
+
+	private static void paintReverseLogisticsAt(WorldMap map, Point2D.Double startPos, String itemName) {
+		ArrayDeque<Point2D.Double> work = new ArrayDeque<>();
+		map.getLogisticGridCell(startPos).ifPresent(c -> {
+			c.getMovedFrom().ifPresent(l -> {
+				l.forEach(d -> work.add(d.offset(startPos, 0.5)));
+			});
+			c.getWarpedFrom().ifPresent(l -> {
+				l.forEach(p -> work.add(p));
+			});
+		});
+		while (!work.isEmpty()) {
+			Point2D.Double pos = work.poll();
+			map.getLogisticGridCell(pos).ifPresent(c -> {
+				if (!c.getTransits().isPresent() || !c.getTransits().get().contains(itemName)) {
+					c.addTransit(itemName);
+					c.getMovedFrom().ifPresent(l -> {
+						l.forEach(d -> work.add(d.offset(pos, 0.5)));
+					});
+					c.getWarpedFrom().ifPresent(l -> {
+						l.forEach(p -> work.add(p));
+					});
+				}
+			});
+		}
+	}
+
+	private static void populateReverseLogistics(WorldMap map) {
+		Table<Integer, Integer, LogisticGridCell> logisticGrid = map.getLogisticGrid();
+		logisticGrid.cellSet().forEach(c -> {
+			Point2D.Double pos = new Point2D.Double(c.getRowKey() / 2.0 + 0.25, c.getColumnKey() / 2.0 + 0.25);
+			LogisticGridCell cell = c.getValue();
+			cell.getMove().ifPresent(d -> {
+				map.getLogisticGridCell(d.offset(pos, 0.5)).ifPresent(mc -> mc.addMovedFrom(d.back()));
+			});
+			cell.getWarp().ifPresent(p -> {
+				map.getLogisticGridCell(p).ifPresent(mc -> mc.addWarpedFrom(pos));
+			});
+		});
+	}
+
+	private static void populateTransitLogistics(WorldMap map) {
+		Table<Integer, Integer, LogisticGridCell> logisticGrid = map.getLogisticGrid();
+		ArrayDeque<Pair<Point2D.Double, LogisticGridCell>> work = new ArrayDeque<>();
+
+		logisticGrid.cellSet().stream().filter(c -> c.getValue().isTransitStart()).forEach(c -> {
+			Set<String> outputs = c.getValue().getOutputs().get();
+			for (String item : outputs) {
+				work.add(new Pair<>(map.getLogisticCellPosition(c), c.getValue()));
+				while (!work.isEmpty()) {
+					Pair<Point2D.Double, LogisticGridCell> pair = work.pop();
+					Point2D.Double cellPos = pair.getKey();
+					LogisticGridCell cell = pair.getValue();
+					if (cell.addTransit(item)) {
+						cell.getMove().ifPresent(d -> {
+							Point2D.Double nextCellPos = d.offset(cellPos, 0.5);
+							map.getLogisticGridCell(nextCellPos)
+									.filter(nc -> !nc.isBlockTransit() && nc.acceptMoveFrom(d))
+									.ifPresent(next -> work.add(new Pair<>(nextCellPos, next)));
+						});
+						cell.getWarp().ifPresent(p -> {
+							map.getLogisticGridCell(p).filter(nc -> !nc.isBlockTransit())
+									.ifPresent(next -> work.add(new Pair<>(p, next)));
+						});
+					}
+				}
+			}
+		});
+
+		// logisticGrid.cellSet().stream().filter(c ->
+		// c.getValue().isTransitEnd()).forEach(c -> {
+		// Set<String> inputs = c.getValue().getInputs().get();
+		// for (String item : inputs) {
+		// work.add(new Pair<>(map.getLogisticCellPosition(c), c.getValue()));
+		// while (!work.isEmpty()) {
+		// Pair<Point2D.Double, LogisticGridCell> pair = work.pop();
+		// Point2D.Double cellPos = pair.getKey();
+		// LogisticGridCell cell = pair.getValue();
+		// if (cell.addTransit(item)) {
+		// cell.getMovedFrom().ifPresent(l -> {
+		// for (Direction d : l) {
+		// Point2D.Double nextCellPos = d.offset(cellPos, 0.5);
+		// map.getLogisticGridCell(nextCellPos).filter(nc ->
+		// !nc.isBlockTransit())
+		// .ifPresent(next -> work.add(new Pair<>(nextCellPos, next)));
+		// }
+		// });
+		// cell.getWarpedFrom().ifPresent(l -> {
+		// for (Point2D.Double p : l) {
+		// map.getLogisticGridCell(p).filter(nc -> !nc.isBlockTransit())
+		// .ifPresent(next -> work.add(new Pair<>(p, next)));
+		// }
+		// });
+		// }
+		// }
+		// }
+		// });
+
+	}
+
 	public static BufferedImage renderBlueprint(Blueprint blueprint, BlueprintReporting reporting)
 			throws JSONException, IOException {
 		DataTable table = FactorioData.getTable();
+		WorldMap map = new WorldMap();
 
 		List<RenderingTuple> renderingTuples = new ArrayList<RenderingTuple>();
 		for (BlueprintEntity entity : blueprint.getEntities()) {
 			RenderingTuple tuple = new RenderingTuple();
 			tuple.entity = entity;
-			tuple.prototype = table.getEntities().get(entity.getName());
-			if (tuple.prototype == null) {
+			Optional<EntityPrototype> prototype = table.getEntity(entity.getName());
+			if (!prototype.isPresent()) {
 				reporting.addWarning("Cant find prototype for " + entity.getName());
 				continue;
 			}
+			tuple.prototype = prototype.get();
 			tuple.factory = TypeRendererFactory.forType(tuple.prototype.getType());
 			// System.out.println("\t" + entity.getName() + " -> " +
 			// tuple.factory.getClass().getSimpleName());
@@ -259,20 +400,31 @@ public class FBSR {
 		}
 		alignRenderingTuplesToGrid(renderingTuples);
 
-		WorldMap worldMap = new WorldMap();
 		renderingTuples.forEach(t -> {
 			try {
-				t.factory.populateWorldMap(worldMap, table, t.entity, t.prototype);
+				t.factory.populateWorldMap(map, table, t.entity, t.prototype);
 			} catch (Exception e) {
 				reporting.addException(e);
 			}
 		});
+
+		renderingTuples.forEach(t -> {
+			try {
+				t.factory.populateLogistics(map, table, t.entity, t.prototype);
+			} catch (Exception e) {
+				reporting.addException(e);
+			}
+		});
+
+		populateReverseLogistics(map);
+
+		populateTransitLogistics(map);
 
 		List<Renderer> renderers = new ArrayList<>();
 
 		renderingTuples.forEach(t -> {
 			try {
-				t.factory.createRenderers(renderers::add, worldMap, table, t.entity, t.prototype);
+				t.factory.createRenderers(renderers::add, map, table, t.entity, t.prototype);
 			} catch (Exception e) {
 				reporting.addException(e);
 			}
@@ -280,12 +432,75 @@ public class FBSR {
 
 		renderingTuples.forEach(t -> {
 			try {
-				t.factory.createWireConnections(renderers::add, worldMap, table, t.entity, t.prototype);
+				t.factory.createWireConnections(renderers::add, map, table, t.entity, t.prototype);
 			} catch (Exception e) {
 				reporting.addException(e);
 			}
 		});
 
+		// debugTracePath(renderers::add, table, map, new Point2D.Double(0.25,
+		// 0.25), "debug");
+		// debugTracePath(map, renderers, new Point2D.Double(-7.75, -7.75),
+		// Color.blue);
+		// debugTracePath(map, renderers, new Point2D.Double(7.75, -7.75),
+		// Color.green);
+
+		showLogisticGrid(renderers::add, table, map);
+
 		return applyRendering(reporting, (int) Math.round(TypeRendererFactory.tileSize), renderers);
+	}
+
+	private static void showLogisticGrid(Consumer<Renderer> register, DataTable table, WorldMap map) {
+		Table<Integer, Integer, LogisticGridCell> logisticGrid = map.getLogisticGrid();
+		logisticGrid.cellSet().forEach(c -> {
+			Point2D.Double pos = new Point2D.Double(c.getRowKey() / 2.0 + 0.25, c.getColumnKey() / 2.0 + 0.25);
+			LogisticGridCell cell = c.getValue();
+			cell.getTransits().ifPresent(s -> {
+				if (s.isEmpty()) {
+					return;
+				}
+				int i = 0;
+				float width = 0.3f / s.size();
+				for (String itemName : s) {
+					double shift = ((i + 1) / (double) (s.size() + 1) - 0.5) / 3.0; // -0.25..0.25
+					cell.getMove().filter(d -> map.getLogisticGridCell(d.offset(pos, 0.5))
+							.map(LogisticGridCell::isAccepting).orElse(false)).ifPresent(d -> {
+								register.accept(new Renderer(Layer.LOGISTICS_MOVE, pos) {
+									@Override
+									public void render(Graphics2D g) {
+										Stroke ps = g.getStroke();
+										g.setStroke(
+												new BasicStroke(width, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+										g.setColor(Utils.withAlpha(getItemLogisticColor(table, itemName), 128));
+										g.draw(new Line2D.Double(d.right().offset(pos, shift),
+												d.right().offset(d.offset(pos, 0.5), shift)));
+										g.setStroke(ps);
+									}
+								});
+							});
+					// cell.getWarp()
+					// .filter(p ->
+					// map.getLogisticGridCell(p).map(LogisticGridCell::isAccepting).orElse(false))
+					// .ifPresent(p -> {
+					// register.accept(new Renderer(Layer.LOGISTICS_WARP, pos) {
+					//
+					// @Override
+					// public void render(Graphics2D g) {
+					// Stroke ps = g.getStroke();
+					// g.setStroke(
+					// new BasicStroke(0.15f, BasicStroke.CAP_ROUND,
+					// BasicStroke.JOIN_ROUND));
+					// g.setColor(Utils.withAlpha(getItemLogisticColor(table,
+					// itemName), 128));
+					// g.draw(new Line2D.Double(pos, p));
+					// g.setStroke(ps);
+					// }
+					// });
+					// });
+					i++;
+				}
+
+			});
+		});
 	}
 }

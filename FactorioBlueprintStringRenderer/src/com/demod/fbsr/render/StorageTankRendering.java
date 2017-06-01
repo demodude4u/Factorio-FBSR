@@ -4,8 +4,9 @@ import java.awt.geom.Point2D;
 import java.util.function.Consumer;
 
 import com.demod.factorio.DataTable;
-import com.demod.factorio.prototype.DataPrototype;
+import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.BlueprintEntity;
+import com.demod.fbsr.Renderer;
 import com.demod.fbsr.WorldMap;
 
 public class StorageTankRendering extends TypeRendererFactory {
@@ -20,14 +21,14 @@ public class StorageTankRendering extends TypeRendererFactory {
 
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
-			DataPrototype prototype) {
+			EntityPrototype prototype) {
 		Sprite sprite = getSpriteFromAnimation(prototype.lua().get("pictures").get("picture").get("sheet"));
 		sprite.source.x = sprite.source.width * (entity.getDirection().cardinal() % 2);
 		register.accept(spriteRenderer(sprite, entity, prototype));
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity, DataPrototype prototype) {
+	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity, EntityPrototype prototype) {
 		// FIXME maybe should use the fluid box
 
 		Point2D.Double position = entity.getPosition();

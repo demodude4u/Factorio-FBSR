@@ -3,15 +3,16 @@ package com.demod.fbsr.render;
 import java.util.function.Consumer;
 
 import com.demod.factorio.DataTable;
-import com.demod.factorio.prototype.DataPrototype;
+import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.BlueprintEntity;
+import com.demod.fbsr.Renderer;
 import com.demod.fbsr.WorldMap;
 
 public class LampRendering extends TypeRendererFactory {
 
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
-			DataPrototype prototype) {
+			EntityPrototype prototype) {
 		Sprite sprite = getSpriteFromAnimation(prototype.lua().get("picture_off"));
 		register.accept(spriteRenderer(sprite, entity, prototype));
 	}

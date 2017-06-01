@@ -7,10 +7,11 @@ import java.util.function.Consumer;
 import org.luaj.vm2.LuaValue;
 
 import com.demod.factorio.DataTable;
-import com.demod.factorio.prototype.DataPrototype;
+import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.BlueprintEntity;
+import com.demod.fbsr.Renderer;
 import com.demod.fbsr.WorldMap;
-import com.demod.fbsr.render.Renderer.Layer;
+import com.demod.fbsr.Renderer.Layer;
 
 public class StraightRailRendering extends TypeRendererFactory {
 
@@ -36,7 +37,7 @@ public class StraightRailRendering extends TypeRendererFactory {
 
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
-			DataPrototype prototype) {
+			EntityPrototype prototype) {
 
 		String railName = railNames[entity.getDirection().ordinal()];
 		LuaValue pictureRailLua = prototype.lua().get("pictures").get(railName);
@@ -47,6 +48,6 @@ public class StraightRailRendering extends TypeRendererFactory {
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity, DataPrototype prototype) {
+	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity, EntityPrototype prototype) {
 	}
 }

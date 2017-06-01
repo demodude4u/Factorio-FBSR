@@ -5,15 +5,16 @@ import java.util.function.Consumer;
 import org.luaj.vm2.LuaValue;
 
 import com.demod.factorio.DataTable;
-import com.demod.factorio.prototype.DataPrototype;
+import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.BlueprintEntity;
-import com.demod.fbsr.BlueprintEntity.Direction;
+import com.demod.fbsr.Direction;
+import com.demod.fbsr.Renderer;
 import com.demod.fbsr.WorldMap;
 
 public class FluidTurretRendering extends TypeRendererFactory {
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
-			DataPrototype prototype) {
+			EntityPrototype prototype) {
 		Sprite baseSprite = getSpriteFromAnimation(prototype.lua().get("base_picture")
 				.get(entity.getDirection().name().toLowerCase()).get("layers").get(1));
 		register.accept(spriteRenderer(baseSprite, entity, prototype));
@@ -24,7 +25,7 @@ public class FluidTurretRendering extends TypeRendererFactory {
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity, DataPrototype prototype) {
+	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity, EntityPrototype prototype) {
 		Direction dir = entity.getDirection();
 		map.setPipe(dir.right().offset(dir.back().offset(entity.getPosition()), 0.5), dir.right());
 		map.setPipe(dir.left().offset(dir.back().offset(entity.getPosition()), 0.5), dir.left());

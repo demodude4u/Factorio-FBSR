@@ -1,4 +1,4 @@
-package com.demod.fbsr.render;
+package com.demod.fbsr;
 
 import java.awt.Graphics2D;
 import java.awt.geom.Point2D;
@@ -7,9 +7,11 @@ import java.awt.geom.Rectangle2D;
 public abstract class Renderer {
 	public static enum Layer {
 		RAIL_STONE_BACKGROUND, RAIL_STONE, RAIL_TIES, RAIL_BACKPLATES, RAIL_METALS, //
-		ENTITY, ENTITY2, ENTITY3, //
+		ENTITY, LOGISTICS_MOVE, ENTITY2, ENTITY3, //
 		OVERLAY, OVERLAY2, OVERLAY3, OVERLAY4, //
-		WIRE;
+		LOGISTICS_WARP, //
+		WIRE,//
+		;
 	}
 
 	protected final Rectangle2D.Double bounds;

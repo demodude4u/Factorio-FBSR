@@ -5,16 +5,17 @@ import java.util.List;
 import java.util.function.Consumer;
 
 import com.demod.factorio.DataTable;
-import com.demod.factorio.prototype.DataPrototype;
+import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.BlueprintEntity;
-import com.demod.fbsr.BlueprintEntity.Direction;
+import com.demod.fbsr.Direction;
+import com.demod.fbsr.Renderer;
 import com.demod.fbsr.WorldMap;
 
 public class BoilerRendering extends TypeRendererFactory {
 
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
-			DataPrototype prototype) {
+			EntityPrototype prototype) {
 		List<Sprite> sprites = getSpritesFromAnimation(prototype.lua().get("structure"), entity.getDirection());
 		register.accept(spriteRenderer(sprites, entity, prototype));
 	}
@@ -24,7 +25,7 @@ public class BoilerRendering extends TypeRendererFactory {
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity, DataPrototype prototype) {
+	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity, EntityPrototype prototype) {
 		Direction dir = entity.getDirection();
 		Point2D.Double position = dir.back().offset(entity.getPosition(), 0.5);
 		map.setPipe(dir.offset(position, 1), dir);
