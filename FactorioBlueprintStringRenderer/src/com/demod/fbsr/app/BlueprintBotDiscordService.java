@@ -293,7 +293,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 					sendReportToDemod(event, reporting);
 				})//
 				.withHelp("Renders an image of the blueprint string provided. Longer blueprints "
-						+ "can be attached as files or linked with pastebin or hastebin URLs.")//
+						+ "can be attached as files or linked with pastebin, hastebin, or gist URLs.")//
 				//
 				.create();
 
