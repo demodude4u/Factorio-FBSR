@@ -1,18 +1,26 @@
 package com.demod.fbsr.render;
 
+import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 
+import org.json.JSONObject;
+
 import com.demod.factorio.DataTable;
+import com.demod.factorio.FactorioData;
+import com.demod.factorio.Utils;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.BlueprintEntity;
 import com.demod.fbsr.Direction;
+import com.demod.fbsr.LogisticGridCell;
 import com.demod.fbsr.Renderer;
 import com.demod.fbsr.Renderer.Layer;
 import com.demod.fbsr.WorldMap;
@@ -38,8 +46,9 @@ public class InserterRendering extends TypeRendererFactory {
 		Sprite sprite = getSpriteFromAnimation(prototype.lua().get("platform_picture").get("sheet"));
 		sprite.source.x += sprite.source.width * (dir.back().cardinal());
 
-		Sprite spriteArm1 = getSpriteFromAnimation(prototype.lua().get("hand_base_picture"));
-		Sprite spriteArm2 = getSpriteFromAnimation(prototype.lua().get("hand_open_picture"));
+		// Sprite spriteArmBase =
+		// getSpriteFromAnimation(prototype.lua().get("hand_base_picture"));
+		Sprite spriteArmHand = getSpriteFromAnimation(prototype.lua().get("hand_open_picture"));
 		double armStretch = -prototype.lua().get("pickup_position").get(2).todouble();
 
 		register.accept(spriteRenderer(sprite, entity, prototype));
@@ -49,9 +58,9 @@ public class InserterRendering extends TypeRendererFactory {
 				AffineTransform pat = g.getTransform();
 
 				{
-					Rectangle2D.Double bounds = spriteArm2.bounds;
-					Rectangle source = spriteArm2.source;
-					BufferedImage image = spriteArm2.image;
+					Rectangle2D.Double bounds = spriteArmHand.bounds;
+					Rectangle source = spriteArmHand.source;
+					BufferedImage image = spriteArmHand.image;
 
 					g.translate(pos.x, pos.y);
 					g.rotate(dir.back().ordinal() * Math.PI / 4.0);
@@ -64,28 +73,31 @@ public class InserterRendering extends TypeRendererFactory {
 				g.setTransform(pat);
 			}
 		});
-		// register.accept(new Renderer(Layer.LOGISTICS_MOVE, sprite.bounds) {
-		// @Override
-		// public void render(Graphics2D g) {
-		// double armStretch =
-		// -prototype.lua().get("pickup_position").get(2).todouble();
-		// Point2D.Double inPos = dir.offset(pos, armStretch);
-		// Point2D.Double outPos = dir.offset(pos, -armStretch);
-		//
-		// map.getBelt(outPos).ifPresent(b -> {
-		// BeltBend bend = map.getBeltBend(outPos, b);
-		// Direction cellDir = dir.back().rotate(
-		// placeItemDir[b.getFacing().rotate(-dir.back().ordinal()).cardinal()][bend.ordinal()]);
-		//
-		// g.setColor(Color.cyan);
-		// g.draw(new Line2D.Double(pos, cellDir.offset(outPos, 0.25)));
-		// g.setColor(Color.magenta);
-		// g.drawString(dir.back().cardinal() + "|" + b.getFacing().cardinal() +
-		// "|" + bend.ordinal(),
-		// (float) outPos.x, (float) outPos.y);
-		// });
-		// }
-		// });
+
+		if (entity.json().has("filters")) {
+			List<String> items = new ArrayList<>();
+			Utils.forEach(entity.json().getJSONArray("filters"), (JSONObject j) -> {
+				items.add(j.getString("name"));
+			});
+
+			if (!items.isEmpty()) {
+				String itemName = items.get(0);
+				Sprite spriteIcon = new Sprite();
+				spriteIcon.image = FactorioData.getModImage(dataTable.getItem(itemName).get().lua().get("icon"));
+				spriteIcon.source = new Rectangle(0, 0, spriteIcon.image.getWidth(), spriteIcon.image.getHeight());
+				spriteIcon.bounds = new Rectangle2D.Double(-0.3, -0.3, 0.6, 0.6);
+
+				Renderer delegate = spriteRenderer(spriteIcon, entity, prototype);
+				register.accept(new Renderer(Layer.OVERLAY2, delegate.getBounds()) {
+					@Override
+					public void render(Graphics2D g) {
+						g.setColor(new Color(0, 0, 0, 128));
+						g.fill(spriteIcon.bounds);
+						delegate.render(g);
+					}
+				});
+			}
+		}
 	}
 
 	@Override
@@ -98,22 +110,27 @@ public class InserterRendering extends TypeRendererFactory {
 		Point2D.Double inPos = dir.offset(pos, armStretch);
 		Point2D.Double outPos = dir.offset(pos, -armStretch);
 
-		Optional<BeltCell> belt = map.getBelt(outPos);
-		belt.ifPresent(b -> {
-			BeltBend bend = map.getBeltBend(outPos, b);
-			Direction cellDir = dir.back()
-					.rotate(placeItemDir[b.getFacing().rotate(-dir.back().ordinal()).cardinal()][bend.ordinal()]);
+		Direction cellDir;
 
-			setLogisticWarp(map, inPos, dir.frontLeft(), outPos, cellDir);
-			setLogisticWarp(map, inPos, dir.frontRight(), outPos, cellDir);
-			setLogisticWarp(map, inPos, dir.backLeft(), outPos, cellDir);
-			setLogisticWarp(map, inPos, dir.backRight(), outPos, cellDir);
-		});
-		if (!belt.isPresent()) {
-			setLogisticWarp(map, inPos, dir.frontLeft(), outPos, dir.frontRight());
-			setLogisticWarp(map, inPos, dir.frontRight(), outPos, dir.frontRight());
-			setLogisticWarp(map, inPos, dir.backLeft(), outPos, dir.frontRight());
-			setLogisticWarp(map, inPos, dir.backRight(), outPos, dir.frontRight());
+		Optional<BeltCell> belt = map.getBelt(outPos);
+		if (belt.isPresent()) {
+			BeltBend bend = map.getBeltBend(outPos, belt.get());
+			cellDir = dir.back().rotate(
+					placeItemDir[belt.get().getFacing().rotate(-dir.back().ordinal()).cardinal()][bend.ordinal()]);
+		} else {
+			cellDir = dir.frontRight();
+		}
+
+		setLogisticWarp(map, inPos, dir.frontLeft(), outPos, cellDir);
+		setLogisticWarp(map, inPos, dir.frontRight(), outPos, cellDir);
+		setLogisticWarp(map, inPos, dir.backLeft(), outPos, cellDir);
+		setLogisticWarp(map, inPos, dir.backRight(), outPos, cellDir);
+
+		if (entity.json().has("filters")) {
+			LogisticGridCell cell = map.getOrCreateLogisticGridCell(cellDir.offset(outPos, 0.25));
+			Utils.forEach(entity.json().getJSONArray("filters"), (JSONObject j) -> {
+				cell.addOutput(j.getString("name"));
+			});
 		}
 	}
 

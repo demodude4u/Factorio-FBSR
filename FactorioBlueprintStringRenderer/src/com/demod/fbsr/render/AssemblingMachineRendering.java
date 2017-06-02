@@ -77,7 +77,7 @@ public class AssemblingMachineRendering extends TypeRendererFactory {
 		String recipeName = entity.json().optString("recipe", null);
 		if (recipeName != null) {
 			RecipePrototype protoRecipe = dataTable.getRecipe(recipeName).get();
-			setLogisticMachine(map, entity, prototype, protoRecipe);
+			setLogisticMachine(map, dataTable, entity, prototype, protoRecipe);
 		}
 	}
 

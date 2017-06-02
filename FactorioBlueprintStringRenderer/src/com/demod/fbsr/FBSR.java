@@ -7,8 +7,6 @@ import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.Stroke;
 import java.awt.geom.AffineTransform;
-import java.awt.geom.Area;
-import java.awt.geom.Ellipse2D;
 import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
@@ -56,8 +54,6 @@ public class FBSR {
 	private static final BasicStroke GRID_STROKE = new BasicStroke((float) (3 / TypeRendererFactory.tileSize));
 
 	private static final double FOOTER_HEIGHT = 0.5;
-
-	private static Map<String, BufferedImage> modImageCache = new HashMap<>();
 
 	private static volatile String version = null;
 
@@ -115,9 +111,7 @@ public class FBSR {
 
 	private static BufferedImage applyRendering(BlueprintReporting reporting, int tileSize, List<Renderer> renderers)
 			throws JSONException, FileNotFoundException, IOException {
-		Area area = new Area();
-		renderers.forEach(r -> area.add(new Area(r.getBounds())));
-		Rectangle2D bounds = area.getBounds2D();
+		Rectangle2D.Double bounds = computeBounds(renderers);
 		bounds.setFrameFromDiagonal(Math.floor(bounds.getMinX()) - 1, Math.floor(bounds.getMinY()) - 1,
 				Math.ceil(bounds.getMaxX()) + 1, Math.ceil(bounds.getMaxY()) + 1 + FOOTER_HEIGHT);
 		BufferedImage image = new BufferedImage((int) (bounds.getWidth() * tileSize),
@@ -219,26 +213,38 @@ public class FBSR {
 		return image;
 	}
 
-	private static void debugTracePath(Consumer<Renderer> register, DataTable table, WorldMap map, Point2D.Double pos,
-			String itemName) {
-		paintLogisticsAt(map, pos, itemName);
-		paintReverseLogisticsAt(map, pos, itemName);
-		drawDot(register, table, pos, itemName);
-	}
-
-	private static void drawDot(Consumer<Renderer> register, DataTable table, Point2D.Double pos, String itemName) {
-		register.accept(new Renderer(Layer.WIRE, pos) {
-			@Override
-			public void render(Graphics2D g) {
-				g.setColor(getItemLogisticColor(table, itemName));
-				g.fill(new Ellipse2D.Double(pos.x - 0.25, pos.y - 0.25, 0.5, 0.5));
+	private static Rectangle2D.Double computeBounds(List<Renderer> renderers) {
+		if (renderers.isEmpty()) {
+			return new Rectangle2D.Double();
+		}
+		boolean first = true;
+		double minX = 0, minY = 0, maxX = 0, maxY = 0;
+		for (Renderer renderer : renderers) {
+			Rectangle2D.Double bounds = renderer.bounds;
+			if (first) {
+				first = false;
+				minX = bounds.getMinX();
+				minY = bounds.getMinY();
+				maxX = bounds.getMaxX();
+				maxY = bounds.getMaxY();
+			} else {
+				minX = Math.min(minX, bounds.getMinX());
+				minY = Math.min(minY, bounds.getMinY());
+				maxX = Math.max(maxX, bounds.getMaxX());
+				maxY = Math.max(maxY, bounds.getMaxY());
 			}
-		});
+		}
+		return new Rectangle2D.Double(minX, minY, maxX - minX, maxY - minY);
 	}
 
 	private static Color getItemLogisticColor(DataTable table, String itemName) {
 		return itemColorCache.computeIfAbsent(itemName, k -> {
-			DataPrototype prototype = table.getItem(k).get();
+			Optional<DataPrototype> optProto = table.getItem(k);
+			if (!optProto.isPresent()) {
+				System.err.println("ITEM MISSING FOR LOGISTICS: " + k);
+				return Color.MAGENTA;
+			}
+			DataPrototype prototype = optProto.get();
 			BufferedImage image = FactorioData.getModImage(prototype.lua().get("icon"));
 			Color color = Utils.getAverageColor(image);
 			// return new Color(color.getRGB() | 0xA0A0A0);
@@ -259,59 +265,14 @@ public class FBSR {
 		return version;
 	}
 
-	private static void paintLogisticsAt(WorldMap map, Point2D.Double startPos, String itemName) {
-		ArrayDeque<Point2D.Double> work = new ArrayDeque<>();
-		work.add(startPos);
-		while (!work.isEmpty()) {
-			Point2D.Double pos = work.poll();
-			map.getLogisticGridCell(pos).ifPresent(c -> {
-				if (!c.getTransits().isPresent() || !c.getTransits().get().contains(itemName)) {
-					c.addTransit(itemName);
-					c.getMove().ifPresent(d -> {
-						work.add(d.offset(pos, 0.5));
-					});
-					c.getWarp().ifPresent(p -> {
-						work.add(p);
-					});
-				}
-			});
-		}
-
-	}
-
-	private static void paintReverseLogisticsAt(WorldMap map, Point2D.Double startPos, String itemName) {
-		ArrayDeque<Point2D.Double> work = new ArrayDeque<>();
-		map.getLogisticGridCell(startPos).ifPresent(c -> {
-			c.getMovedFrom().ifPresent(l -> {
-				l.forEach(d -> work.add(d.offset(startPos, 0.5)));
-			});
-			c.getWarpedFrom().ifPresent(l -> {
-				l.forEach(p -> work.add(p));
-			});
-		});
-		while (!work.isEmpty()) {
-			Point2D.Double pos = work.poll();
-			map.getLogisticGridCell(pos).ifPresent(c -> {
-				if (!c.getTransits().isPresent() || !c.getTransits().get().contains(itemName)) {
-					c.addTransit(itemName);
-					c.getMovedFrom().ifPresent(l -> {
-						l.forEach(d -> work.add(d.offset(pos, 0.5)));
-					});
-					c.getWarpedFrom().ifPresent(l -> {
-						l.forEach(p -> work.add(p));
-					});
-				}
-			});
-		}
-	}
-
 	private static void populateReverseLogistics(WorldMap map) {
 		Table<Integer, Integer, LogisticGridCell> logisticGrid = map.getLogisticGrid();
 		logisticGrid.cellSet().forEach(c -> {
 			Point2D.Double pos = new Point2D.Double(c.getRowKey() / 2.0 + 0.25, c.getColumnKey() / 2.0 + 0.25);
 			LogisticGridCell cell = c.getValue();
 			cell.getMove().ifPresent(d -> {
-				map.getLogisticGridCell(d.offset(pos, 0.5)).ifPresent(mc -> mc.addMovedFrom(d.back()));
+				map.getLogisticGridCell(d.offset(pos, 0.5)).filter(mc -> mc.acceptMoveFrom(d))
+						.ifPresent(mc -> mc.addMovedFrom(d.back()));
 			});
 			cell.getWarp().ifPresent(p -> {
 				map.getLogisticGridCell(p).ifPresent(mc -> mc.addWarpedFrom(pos));
@@ -347,34 +308,32 @@ public class FBSR {
 			}
 		});
 
-		// logisticGrid.cellSet().stream().filter(c ->
-		// c.getValue().isTransitEnd()).forEach(c -> {
-		// Set<String> inputs = c.getValue().getInputs().get();
-		// for (String item : inputs) {
-		// work.add(new Pair<>(map.getLogisticCellPosition(c), c.getValue()));
-		// while (!work.isEmpty()) {
-		// Pair<Point2D.Double, LogisticGridCell> pair = work.pop();
-		// Point2D.Double cellPos = pair.getKey();
-		// LogisticGridCell cell = pair.getValue();
-		// if (cell.addTransit(item)) {
-		// cell.getMovedFrom().ifPresent(l -> {
-		// for (Direction d : l) {
-		// Point2D.Double nextCellPos = d.offset(cellPos, 0.5);
-		// map.getLogisticGridCell(nextCellPos).filter(nc ->
-		// !nc.isBlockTransit())
-		// .ifPresent(next -> work.add(new Pair<>(nextCellPos, next)));
-		// }
-		// });
-		// cell.getWarpedFrom().ifPresent(l -> {
-		// for (Point2D.Double p : l) {
-		// map.getLogisticGridCell(p).filter(nc -> !nc.isBlockTransit())
-		// .ifPresent(next -> work.add(new Pair<>(p, next)));
-		// }
-		// });
-		// }
-		// }
-		// }
-		// });
+		logisticGrid.cellSet().stream().filter(c -> c.getValue().isTransitEnd()).forEach(c -> {
+			Set<String> inputs = c.getValue().getInputs().get();
+			for (String item : inputs) {
+				work.add(new Pair<>(map.getLogisticCellPosition(c), c.getValue()));
+				while (!work.isEmpty()) {
+					Pair<Point2D.Double, LogisticGridCell> pair = work.pop();
+					Point2D.Double cellPos = pair.getKey();
+					LogisticGridCell cell = pair.getValue();
+					if (cell.addTransit(item)) {
+						cell.getMovedFrom().ifPresent(l -> {
+							for (Direction d : l) {
+								Point2D.Double nextCellPos = d.offset(cellPos, 0.5);
+								map.getLogisticGridCell(nextCellPos).filter(nc -> !nc.isBlockTransit())
+										.ifPresent(next -> work.add(new Pair<>(nextCellPos, next)));
+							}
+						});
+						cell.getWarpedFrom().ifPresent(l -> {
+							for (Point2D.Double p : l) {
+								map.getLogisticGridCell(p).filter(nc -> !nc.isBlockTransit())
+										.ifPresent(next -> work.add(new Pair<>(p, next)));
+							}
+						});
+					}
+				}
+			}
+		});
 
 	}
 
@@ -438,13 +397,6 @@ public class FBSR {
 			}
 		});
 
-		// debugTracePath(renderers::add, table, map, new Point2D.Double(0.25,
-		// 0.25), "debug");
-		// debugTracePath(map, renderers, new Point2D.Double(-7.75, -7.75),
-		// Color.blue);
-		// debugTracePath(map, renderers, new Point2D.Double(7.75, -7.75),
-		// Color.green);
-
 		showLogisticGrid(renderers::add, table, map);
 
 		return applyRendering(reporting, (int) Math.round(TypeRendererFactory.tileSize), renderers);
@@ -471,36 +423,50 @@ public class FBSR {
 										Stroke ps = g.getStroke();
 										g.setStroke(
 												new BasicStroke(width, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-										g.setColor(Utils.withAlpha(getItemLogisticColor(table, itemName), 128));
+										g.setColor(Utils.withAlpha(getItemLogisticColor(table, itemName),
+												255 - 127 / s.size()));
 										g.draw(new Line2D.Double(d.right().offset(pos, shift),
 												d.right().offset(d.offset(pos, 0.5), shift)));
 										g.setStroke(ps);
 									}
 								});
 							});
-					// cell.getWarp()
-					// .filter(p ->
-					// map.getLogisticGridCell(p).map(LogisticGridCell::isAccepting).orElse(false))
-					// .ifPresent(p -> {
-					// register.accept(new Renderer(Layer.LOGISTICS_WARP, pos) {
-					//
-					// @Override
-					// public void render(Graphics2D g) {
-					// Stroke ps = g.getStroke();
-					// g.setStroke(
-					// new BasicStroke(0.15f, BasicStroke.CAP_ROUND,
-					// BasicStroke.JOIN_ROUND));
-					// g.setColor(Utils.withAlpha(getItemLogisticColor(table,
-					// itemName), 128));
-					// g.draw(new Line2D.Double(pos, p));
-					// g.setStroke(ps);
-					// }
-					// });
-					// });
 					i++;
 				}
 
 			});
+
+			// cell.getMovedFrom().ifPresent(l -> {
+			// for (Direction d : l) {
+			// Point2D.Double p = d.offset(pos, 0.5);
+			// register.accept(new Renderer(Layer.LOGISTICS_WARP, p) {
+			// @Override
+			// public void render(Graphics2D g) {
+			// Stroke ps = g.getStroke();
+			// g.setStroke(new BasicStroke(2 / 32f, BasicStroke.CAP_ROUND,
+			// BasicStroke.JOIN_ROUND));
+			// g.setColor(Color.cyan);
+			// g.draw(new Line2D.Double(pos, p));
+			// g.setStroke(ps);
+			// }
+			// });
+			// }
+			// });
+			// cell.getWarpedFrom().ifPresent(l -> {
+			// for (Point2D.Double p : l) {
+			// register.accept(new Renderer(Layer.LOGISTICS_WARP, p) {
+			// @Override
+			// public void render(Graphics2D g) {
+			// Stroke ps = g.getStroke();
+			// g.setStroke(new BasicStroke(2 / 32f, BasicStroke.CAP_ROUND,
+			// BasicStroke.JOIN_ROUND));
+			// g.setColor(Color.magenta);
+			// g.draw(new Line2D.Double(pos, p));
+			// g.setStroke(ps);
+			// }
+			// });
+			// }
+			// });
 		});
 	}
 }

@@ -2,6 +2,7 @@ package com.demod.fbsr;
 
 import java.awt.geom.Point2D;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -27,14 +28,25 @@ public class LogisticGridCell {
 		return true;
 	}
 
-	public void addMovedFrom(Direction dir) {
-		if (acceptFilter.filter(a -> a.ordinal() != dir.ordinal()).isPresent()) {
-			return;
+	public void addInput(String itemName) {
+		if (!inputs.isPresent()) {
+			inputs = Optional.of(new LinkedHashSet<>());
 		}
+		inputs.get().add(itemName);
+	}
+
+	public void addMovedFrom(Direction dir) {
 		if (!movedFrom.isPresent()) {
 			movedFrom = Optional.of(new ArrayList<>());
 		}
 		movedFrom.get().add(dir);
+	}
+
+	public void addOutput(String itemName) {
+		if (!outputs.isPresent()) {
+			outputs = Optional.of(new LinkedHashSet<>());
+		}
+		outputs.get().add(itemName);
 	}
 
 	public boolean addTransit(String itemName) {

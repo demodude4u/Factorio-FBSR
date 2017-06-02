@@ -48,6 +48,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 	private static final String USERID_DEMOD = "100075603016814592";
 
 	private static final int ATTACHMENT_MAX_SIZE = 1024 * 1024;
+	private static final int BP_MAX_SIZE = 4000000;
 
 	private static final Pattern blueprintPattern = Pattern.compile("([0-9][A-Za-z0-9+\\/=\\r\\n]{90,})");
 
@@ -118,7 +119,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 					"Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.4; en-US; rv:1.9.2.2) Gecko/20100316 Firefox/3.6.2");
 
 			try (BufferedReader br = new BufferedReader(
-					new InputStreamReader(WebUtils.limitMaxBytes(hc.getInputStream(), 1000000)))) {
+					new InputStreamReader(WebUtils.limitMaxBytes(hc.getInputStream(), BP_MAX_SIZE)))) {
 				String line;
 				while ((line = br.readLine()) != null) {
 					contentBuilder.append(line).append('\n');

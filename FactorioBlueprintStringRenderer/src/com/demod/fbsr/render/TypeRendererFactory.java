@@ -22,6 +22,7 @@ import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -424,8 +425,14 @@ public class TypeRendererFactory {
 		// default do nothing
 	}
 
-	protected void setLogisticMachine(WorldMap map, BlueprintEntity entity, EntityPrototype prototype,
-			RecipePrototype recipe) {
+	protected void setLogisticAcceptFilter(WorldMap map, Point2D.Double gridPos, Direction cellDir,
+			Direction acceptFilter) {
+		LogisticGridCell cell = map.getOrCreateLogisticGridCell(cellDir.offset(gridPos, 0.25));
+		cell.setAcceptFilter(Optional.of(acceptFilter));
+	}
+
+	protected void setLogisticMachine(WorldMap map, DataTable dataTable, BlueprintEntity entity,
+			EntityPrototype prototype, RecipePrototype recipe) {
 		Point2D.Double entityPos = entity.getPosition();
 		Rectangle2D.Double box = prototype.getSelectionBox();
 		double xStart = entityPos.x + box.x;
@@ -433,8 +440,10 @@ public class TypeRendererFactory {
 		double xEnd = xStart + box.width;
 		double yEnd = yStart + box.height;
 
-		Set<String> inputs = recipe.getInputs().keySet();
-		Set<String> outputs = recipe.getOutputs().keySet();
+		Set<String> inputs = recipe.getInputs().keySet().stream().filter(k -> dataTable.getItem(k).isPresent())
+				.collect(Collectors.toSet());
+		Set<String> outputs = recipe.getOutputs().keySet().stream().filter(k -> dataTable.getItem(k).isPresent())
+				.collect(Collectors.toSet());
 
 		Point2D.Double cellPos = new Point2D.Double();
 		for (cellPos.x = xStart + 0.25; cellPos.x < xEnd; cellPos.x += 0.5) {
@@ -451,16 +460,10 @@ public class TypeRendererFactory {
 		map.getOrCreateLogisticGridCell(cellDir.offset(gridPos, 0.25)).setMove(Optional.of(moveDir));
 	}
 
-	protected void setLogisticMoveAndAcceptFilter(WorldMap map, Point2D.Double gridPos, Direction cellDir, Direction moveDir,
-			Direction acceptFilter) {
+	protected void setLogisticMoveAndAcceptFilter(WorldMap map, Point2D.Double gridPos, Direction cellDir,
+			Direction moveDir, Direction acceptFilter) {
 		LogisticGridCell cell = map.getOrCreateLogisticGridCell(cellDir.offset(gridPos, 0.25));
 		cell.setMove(Optional.of(moveDir));
-		cell.setAcceptFilter(Optional.of(acceptFilter));
-	}
-
-	protected void setLogisticAcceptFilter(WorldMap map, Point2D.Double gridPos, Direction cellDir,
-			Direction acceptFilter) {
-		LogisticGridCell cell = map.getOrCreateLogisticGridCell(cellDir.offset(gridPos, 0.25));
 		cell.setAcceptFilter(Optional.of(acceptFilter));
 	}
 
