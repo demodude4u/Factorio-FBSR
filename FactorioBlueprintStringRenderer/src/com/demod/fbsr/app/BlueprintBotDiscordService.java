@@ -154,7 +154,6 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				findBlueprintsInURL(event, reporting, "https://hastebin.com/raw/" + code);
 			}
 		}
-
 		{
 			Matcher matcher = gitlabSnippetPattern.matcher(content);
 			while (matcher.find()) {
