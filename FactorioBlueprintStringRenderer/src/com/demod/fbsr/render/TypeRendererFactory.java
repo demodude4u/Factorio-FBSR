@@ -12,7 +12,6 @@ import java.awt.geom.Point2D.Double;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -49,6 +48,8 @@ public class TypeRendererFactory {
 		public BufferedImage image;
 		public Rectangle source;
 		public Rectangle2D.Double bounds;
+		public boolean shadow = false;
+		public int order = 0;
 
 		public Sprite() {
 		}
@@ -57,6 +58,7 @@ public class TypeRendererFactory {
 			image = other.image;
 			source = new Rectangle(other.source);
 			bounds = new Rectangle2D.Double(other.bounds.x, other.bounds.y, other.bounds.width, other.bounds.height);
+			shadow = other.shadow;
 		}
 	}
 
@@ -178,11 +180,16 @@ public class TypeRendererFactory {
 		Sprite ret = new Sprite();
 		LuaValue filenameLua = lua.get("filename");
 		boolean drawAsShadow = lua.get("draw_as_shadow").optboolean(false);
+		ret.shadow = drawAsShadow;
 		drawAsShadow = false;// FIXME shadows need a special mask layer
 		if (drawAsShadow) {
 			ret.image = FactorioData.getModImage(filenameLua, new Color(255, 255, 255, 128));
 		} else {
 			ret.image = FactorioData.getModImage(filenameLua);
+		}
+		String blendMode = lua.get("blend_mode").optjstring("normal");
+		if (!blendMode.equals("normal")) { // FIXME blending will take effort
+			ret.image = Utils.EMPTY_IMAGE;
 		}
 		int srcX = lua.get("x").optint(0);
 		int srcY = lua.get("y").optint(0);
@@ -200,13 +207,22 @@ public class TypeRendererFactory {
 		List<Sprite> sprites = new ArrayList<>();
 		LuaValue layersLua = lua.get("layers");
 		if (!layersLua.isnil()) {
-			Utils.forEach(layersLua.checktable(), l -> {
-				sprites.add(getSpriteFromAnimation(l));
+			Utils.forEach(layersLua.checktable(), (i, l) -> {
+				Sprite sprite = getSpriteFromAnimation(l);
+				sprite.order = i.toint();
+				sprites.add(sprite);
 			});
-			Collections.reverse(sprites);
 		} else {
 			sprites.add(getSpriteFromAnimation(lua));
 		}
+
+		sprites.sort((s1, s2) -> {
+			if (s1.shadow != s2.shadow) {
+				return Boolean.compare(s2.shadow, s1.shadow);
+			}
+			return Integer.compare(s2.order, s1.order);
+		});
+
 		return sprites;
 	}
 

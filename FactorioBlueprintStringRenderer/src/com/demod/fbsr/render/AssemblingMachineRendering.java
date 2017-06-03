@@ -29,7 +29,12 @@ public class AssemblingMachineRendering extends TypeRendererFactory {
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
 			EntityPrototype prototype) {
-		List<Sprite> sprites = getSpritesFromAnimation(prototype.lua().get("animation"), entity.getDirection());
+		prototype.debugPrint();
+		LuaValue animationLua = prototype.lua().get("idle_animation");
+		if (animationLua.isnil()) {
+			animationLua = prototype.lua().get("animation");
+		}
+		List<Sprite> sprites = getSpritesFromAnimation(animationLua, entity.getDirection());
 
 		register.accept(spriteRenderer(sprites, entity, prototype));
 
