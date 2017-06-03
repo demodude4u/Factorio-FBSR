@@ -47,7 +47,6 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 	private static final String USERID_DEMOD = "100075603016814592";
 
-	private static final int ATTACHMENT_MAX_SIZE = 1024 * 1024;
 	private static final int BP_MAX_SIZE = 4000000;
 
 	private static final Pattern blueprintPattern = Pattern.compile("([0-9][A-Za-z0-9+\\/=\\r\\n]{90,})");
@@ -133,7 +132,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 	private void findTextAttachments(MessageReceivedEvent event, BlueprintReporting reporting) {
 		for (Attachment attachment : event.getMessage().getAttachments()) {
-			if (attachment.getSize() < ATTACHMENT_MAX_SIZE) {
+			if (attachment.getSize() < BP_MAX_SIZE) {
 				findBlueprintsInURL(event, reporting, attachment.getUrl());
 			}
 		}
