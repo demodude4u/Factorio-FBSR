@@ -29,7 +29,6 @@ public class AssemblingMachineRendering extends TypeRendererFactory {
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
 			EntityPrototype prototype) {
-		prototype.debugPrint();
 		LuaValue animationLua = prototype.lua().get("idle_animation");
 		if (animationLua.isnil()) {
 			animationLua = prototype.lua().get("animation");
