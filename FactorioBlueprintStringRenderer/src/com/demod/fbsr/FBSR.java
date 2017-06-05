@@ -246,7 +246,7 @@ public class FBSR {
 			}
 			DataPrototype prototype = optProto.get();
 			BufferedImage image = FactorioData.getModImage(prototype.lua().get("icon"));
-			Color color = Utils.getAverageColor(image);
+			Color color = RenderUtils.getAverageColor(image);
 			// return new Color(color.getRGB() | 0xA0A0A0);
 			// return color.brighter().brighter();
 			float[] hsb = Color.RGBtoHSB(color.getRed(), color.getGreen(), color.getBlue(), null);
@@ -424,7 +424,7 @@ public class FBSR {
 										Stroke ps = g.getStroke();
 										g.setStroke(
 												new BasicStroke(width, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-										g.setColor(Utils.withAlpha(getItemLogisticColor(table, itemName),
+										g.setColor(RenderUtils.withAlpha(getItemLogisticColor(table, itemName),
 												255 - 127 / s.size()));
 										g.draw(new Line2D.Double(d.right().offset(pos, shift),
 												d.right().offset(d.offset(pos, 0.5), shift)));

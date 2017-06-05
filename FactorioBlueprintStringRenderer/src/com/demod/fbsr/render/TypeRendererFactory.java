@@ -35,6 +35,7 @@ import com.demod.factorio.prototype.RecipePrototype;
 import com.demod.fbsr.BlueprintEntity;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.LogisticGridCell;
+import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
 import com.demod.fbsr.Renderer.Layer;
 import com.demod.fbsr.WorldMap;
@@ -73,7 +74,7 @@ public class TypeRendererFactory {
 			register.accept(new Renderer(Layer.OVERLAY3, entity.getPosition()) {
 				@Override
 				public void render(Graphics2D g) {
-					g.setColor(Utils.withAlpha(
+					g.setColor(RenderUtils.withAlpha(
 							Color.getHSBColor(new Random(prototype.getName().hashCode()).nextFloat(), 1f, 1f), 128));
 					g.fill(new Rectangle2D.Double(bounds.x - 0.5, bounds.y - 0.5, 1, 1));
 				}
@@ -189,7 +190,7 @@ public class TypeRendererFactory {
 		}
 		String blendMode = lua.get("blend_mode").optjstring("normal");
 		if (!blendMode.equals("normal")) { // FIXME blending will take effort
-			ret.image = Utils.EMPTY_IMAGE;
+			ret.image = RenderUtils.EMPTY_IMAGE;
 		}
 		int srcX = lua.get("x").optint(0);
 		int srcY = lua.get("y").optint(0);

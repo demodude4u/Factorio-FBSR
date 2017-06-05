@@ -27,11 +27,11 @@ import javax.imageio.ImageIO;
 import com.demod.dcba.CommandHandler;
 import com.demod.dcba.DCBA;
 import com.demod.dcba.DiscordBot;
-import com.demod.factorio.Utils;
 import com.demod.fbsr.Blueprint;
 import com.demod.fbsr.BlueprintReporting;
 import com.demod.fbsr.BlueprintStringData;
 import com.demod.fbsr.FBSR;
+import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.WebUtils;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.WorldMap.Debug;
@@ -203,7 +203,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		}
 		if (imageData.length > 8000000) {
 			return generateDiscordFriendlyPNGImage(
-					Utils.scaleImage(image, image.getWidth() / 2, image.getHeight() / 2));
+					RenderUtils.scaleImage(image, image.getWidth() / 2, image.getHeight() / 2));
 		}
 		return imageData;
 	}
