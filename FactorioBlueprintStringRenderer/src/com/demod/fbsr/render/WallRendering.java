@@ -12,6 +12,7 @@ import com.demod.factorio.Utils;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.BlueprintEntity;
 import com.demod.fbsr.Direction;
+import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
 import com.demod.fbsr.WorldMap;
 
@@ -64,15 +65,15 @@ public class WallRendering extends TypeRendererFactory {
 		}
 		LuaValue layersLua = layersChoices.get(Math.abs((int) pos.x + (int) pos.y) % layersChoices.size());
 
-		Sprite sprite = getSpriteFromAnimation(layersLua.get(1));
-		Sprite spriteShadow = getSpriteFromAnimation(layersLua.get(2));
+		Sprite sprite = RenderUtils.getSpriteFromAnimation(layersLua.get(1));
+		Sprite spriteShadow = RenderUtils.getSpriteFromAnimation(layersLua.get(2));
 
-		register.accept(spriteRenderer(spriteShadow, entity, prototype));
-		register.accept(spriteRenderer(sprite, entity, prototype));
+		register.accept(RenderUtils.spriteRenderer(spriteShadow, entity, prototype));
+		register.accept(RenderUtils.spriteRenderer(sprite, entity, prototype));
 
 		if (northGate || eastGate || southGate || westGate) {
-			Sprite wallDiodeSprite = getSpriteFromAnimation(prototype.lua().get("wall_diode_red"));
-			register.accept(spriteRenderer(wallDiodeSprite, entity, prototype));
+			Sprite wallDiodeSprite = RenderUtils.getSpriteFromAnimation(prototype.lua().get("wall_diode_red"));
+			register.accept(RenderUtils.spriteRenderer(wallDiodeSprite, entity, prototype));
 		}
 
 	}

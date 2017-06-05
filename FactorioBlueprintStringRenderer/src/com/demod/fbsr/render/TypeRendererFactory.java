@@ -1,17 +1,11 @@
 package com.demod.fbsr.render;
 
-import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
-import java.awt.Stroke;
-import java.awt.geom.AffineTransform;
-import java.awt.geom.Path2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Point2D.Double;
 import java.awt.geom.Rectangle2D;
-import java.awt.image.BufferedImage;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -44,24 +38,6 @@ import com.google.common.collect.ImmutableList;
 import javafx.util.Pair;
 
 public class TypeRendererFactory {
-
-	protected static class Sprite {
-		public BufferedImage image;
-		public Rectangle source;
-		public Rectangle2D.Double bounds;
-		public boolean shadow = false;
-		public int order = 0;
-
-		public Sprite() {
-		}
-
-		public Sprite(Sprite other) {
-			image = other.image;
-			source = new Rectangle(other.source);
-			bounds = new Rectangle2D.Double(other.bounds.x, other.bounds.y, other.bounds.width, other.bounds.height);
-			shadow = other.shadow;
-		}
-	}
 
 	private static List<String> defaultProperties = ImmutableList.of("animation", "off_animation", "structure");
 	protected static final TypeRendererFactory DEFAULT = new TypeRendererFactory() {
@@ -160,139 +136,8 @@ public class TypeRendererFactory {
 		wireConnectionCircuitId.put("output_connection_points", 2);
 	}
 
-	protected static void drawImageInBounds(BufferedImage image, Rectangle source, Rectangle2D.Double bounds,
-			Graphics2D g) {
-		AffineTransform pat = g.getTransform();
-		g.translate(bounds.x, bounds.y);
-		g.scale(bounds.width, bounds.height);
-		g.drawImage(image, 0, 0, 1, 1, source.x, source.y, source.x + source.width, source.y + source.height, null);
-		g.setTransform(pat);
-	}
-
-	protected static void drawSprite(Sprite sprite, Graphics2D g) {
-		drawImageInBounds(sprite.image, sprite.source, sprite.bounds, g);
-	}
-
 	public static TypeRendererFactory forType(String type) {
 		return byType.getOrDefault(type, DEFAULT);
-	}
-
-	protected static Sprite getSpriteFromAnimation(LuaValue lua) {
-		Sprite ret = new Sprite();
-		LuaValue filenameLua = lua.get("filename");
-		boolean drawAsShadow = lua.get("draw_as_shadow").optboolean(false);
-		ret.shadow = drawAsShadow;
-		drawAsShadow = false;// FIXME shadows need a special mask layer
-		if (drawAsShadow) {
-			ret.image = FactorioData.getModImage(filenameLua, new Color(255, 255, 255, 128));
-		} else {
-			ret.image = FactorioData.getModImage(filenameLua);
-		}
-		String blendMode = lua.get("blend_mode").optjstring("normal");
-		if (!blendMode.equals("normal")) { // FIXME blending will take effort
-			ret.image = RenderUtils.EMPTY_IMAGE;
-		}
-		int srcX = lua.get("x").optint(0);
-		int srcY = lua.get("y").optint(0);
-		int srcWidth = lua.get("width").checkint();
-		double width = srcWidth / tileSize;
-		int srcHeight = lua.get("height").checkint();
-		double height = srcHeight / tileSize;
-		Point2D.Double shift = Utils.parsePoint2D(lua.get("shift"));
-		ret.source = new Rectangle(srcX, srcY, srcWidth, srcHeight);
-		ret.bounds = new Rectangle2D.Double(shift.x - width / 2.0, shift.y - height / 2.0, width, height);
-		return ret;
-	}
-
-	protected static List<Sprite> getSpritesFromAnimation(LuaValue lua) {
-		List<Sprite> sprites = new ArrayList<>();
-		LuaValue layersLua = lua.get("layers");
-		if (!layersLua.isnil()) {
-			Utils.forEach(layersLua.checktable(), (i, l) -> {
-				Sprite sprite = getSpriteFromAnimation(l);
-				sprite.order = i.toint();
-				sprites.add(sprite);
-			});
-		} else {
-			sprites.add(getSpriteFromAnimation(lua));
-		}
-
-		sprites.sort((s1, s2) -> {
-			if (s1.shadow != s2.shadow) {
-				return Boolean.compare(s2.shadow, s1.shadow);
-			}
-			return Integer.compare(s2.order, s1.order);
-		});
-
-		return sprites;
-	}
-
-	protected static List<Sprite> getSpritesFromAnimation(LuaValue lua, Direction direction) {
-		LuaValue dirLua = lua.get(direction.name().toLowerCase());
-		if (!dirLua.isnil()) {
-			return getSpritesFromAnimation(dirLua);
-		} else {
-			return getSpritesFromAnimation(lua);
-		}
-	}
-
-	protected static Renderer spriteRenderer(Layer layer, List<Sprite> sprites, BlueprintEntity entity,
-			EntityPrototype prototype) {
-		Point2D.Double pos = entity.getPosition();
-		for (Sprite sprite : sprites) {
-			sprite.bounds.x += pos.x;
-			sprite.bounds.y += pos.y;
-		}
-		// Rectangle2D.Double groundBounds =
-		// Utils.parseRectangle(prototype.lua().get("collision_box"));
-		Rectangle2D.Double groundBounds = Utils.parseRectangle(prototype.lua().get("selection_box"));
-		groundBounds.x += pos.x;
-		groundBounds.y += pos.y;
-		return new Renderer(layer, groundBounds) {
-			@SuppressWarnings("unused")
-			private void debugShowBounds(Rectangle2D.Double groundBounds, Graphics2D g) {
-				long x = Math.round(groundBounds.getCenterX() * 2);
-				long y = Math.round(groundBounds.getCenterY() * 2);
-				long w = Math.round(groundBounds.width * 2);
-				long h = Math.round(groundBounds.height * 2);
-
-				// System.out.println("x=" + x + " y=" + y + " w=" + w + "
-				// h=" + h);
-
-				g.setColor(new Color(255, 255, 255, 64));
-				g.draw(groundBounds);
-
-				if (((w / 2) % 2) == (x % 2)) {
-					g.setColor(new Color(255, 0, 0, 64));
-					g.fill(groundBounds);
-				}
-				if (((h / 2) % 2) == (y % 2)) {
-					g.setColor(new Color(0, 255, 0, 64));
-					g.fill(groundBounds);
-				}
-			}
-
-			@Override
-			public void render(Graphics2D g) {
-				for (Sprite sprite : sprites) {
-					drawSprite(sprite, g);
-					// debugShowBounds(groundBounds, g);
-				}
-			}
-		};
-	}
-
-	protected static Renderer spriteRenderer(Layer layer, Sprite sprite, BlueprintEntity entity,
-			EntityPrototype prototype) {
-		return spriteRenderer(layer, ImmutableList.of(sprite), entity, prototype);
-	}
-
-	protected static Renderer spriteRenderer(List<Sprite> sprites, BlueprintEntity entity, EntityPrototype prototype) {
-		return spriteRenderer(Layer.ENTITY, sprites, entity, prototype);
-	}
-
-	protected static Renderer spriteRenderer(Sprite sprite, BlueprintEntity entity, EntityPrototype prototype) {
-		return spriteRenderer(Layer.ENTITY, sprite, entity, prototype);
 	}
 
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
@@ -311,7 +156,7 @@ public class TypeRendererFactory {
 					spriteLua = spriteLua.get(entity.getDirection().name().toLowerCase());
 				}
 
-				sprites = getSpritesFromAnimation(spriteLua, entity.getDirection());
+				sprites = RenderUtils.getSpritesFromAnimation(spriteLua, entity.getDirection());
 			} else {
 				Sprite sprite = new Sprite();
 				sprite.image = FactorioData.getModImage(prototype.lua().get("icon"));
@@ -320,7 +165,7 @@ public class TypeRendererFactory {
 				sprites = ImmutableList.of(sprite);
 			}
 
-			register.accept(spriteRenderer(sprites, entity, prototype));
+			register.accept(RenderUtils.spriteRenderer(sprites, entity, prototype));
 		} catch (RuntimeException e) {
 			debugPrintContext(entity, prototype);
 			throw e;
@@ -374,36 +219,12 @@ public class TypeRendererFactory {
 								break;
 							}
 
-							register.accept(createWireRenderer(p1, p2, color));
+							register.accept(RenderUtils.createWireRenderer(p1, p2, color));
 						}
 					});
 				});
 			});
 		}
-	}
-
-	protected Renderer createWireRenderer(Point2D.Double p1, Point2D.Double p2, Color color) {
-		Rectangle2D.Double bounds = new Rectangle2D.Double();
-		bounds.setFrameFromDiagonal(p1, p2);
-
-		return new Renderer(Layer.WIRE, bounds) {
-			final double drop = 0.6;
-
-			@Override
-			public void render(Graphics2D g) {
-				Stroke ps = g.getStroke();
-				g.setStroke(new BasicStroke(1f / 32f));
-				g.setColor(color);
-
-				Path2D.Double path = new Path2D.Double();
-				path.moveTo(p1.x, p1.y);
-				Point2D.Double mid = new Point2D.Double((p1.x + p2.x) / 2, (p1.y + p2.y) / 2 + drop);
-				path.curveTo(mid.x, mid.y, mid.x, mid.y, p2.x, p2.y);
-				g.draw(path);
-
-				g.setStroke(ps);
-			}
-		};
 	}
 
 	protected void debugPrintContext(BlueprintEntity entity, EntityPrototype prototype) {

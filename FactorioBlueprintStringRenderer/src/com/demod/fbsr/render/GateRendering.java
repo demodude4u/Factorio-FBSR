@@ -7,6 +7,7 @@ import org.luaj.vm2.LuaValue;
 import com.demod.factorio.DataTable;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.BlueprintEntity;
+import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
 import com.demod.fbsr.WorldMap;
 
@@ -35,11 +36,11 @@ public class GateRendering extends TypeRendererFactory {
 		// westPatchLayersLua = null,
 		// southPatchLayersLua = null;
 
-		Sprite spriteShadow = getSpriteFromAnimation(spriteLayersLua.get(2));
-		register.accept(spriteRenderer(spriteShadow, entity, prototype));
+		Sprite spriteShadow = RenderUtils.getSpriteFromAnimation(spriteLayersLua.get(2));
+		register.accept(RenderUtils.spriteRenderer(spriteShadow, entity, prototype));
 
-		Sprite baseSprite = getSpriteFromAnimation(prototype.lua().get(orientation + "_base").get("layers").get(1));
-		register.accept(spriteRenderer(baseSprite, entity, prototype));
+		Sprite baseSprite = RenderUtils.getSpriteFromAnimation(prototype.lua().get(orientation + "_base").get("layers").get(1));
+		register.accept(RenderUtils.spriteRenderer(baseSprite, entity, prototype));
 
 		// TODO Patches need to be rendered on the wall pieces!
 
@@ -78,8 +79,8 @@ public class GateRendering extends TypeRendererFactory {
 		// register.accept(spriteRenderer(patchSprite, entity, prototype));
 		// }
 
-		Sprite sprite = getSpriteFromAnimation(spriteLayersLua.get(1));
-		register.accept(spriteRenderer(sprite, entity, prototype));
+		Sprite sprite = RenderUtils.getSpriteFromAnimation(spriteLayersLua.get(1));
+		register.accept(RenderUtils.spriteRenderer(sprite, entity, prototype));
 
 		// if (eastPatch) {
 		// Sprite patchSprite =

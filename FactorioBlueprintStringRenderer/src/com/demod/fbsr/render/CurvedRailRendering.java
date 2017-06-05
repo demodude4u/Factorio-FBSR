@@ -12,6 +12,7 @@ import org.luaj.vm2.LuaValue;
 import com.demod.factorio.DataTable;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.BlueprintEntity;
+import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
 import com.demod.fbsr.Renderer.Layer;
 import com.demod.fbsr.WorldMap;
@@ -34,8 +35,8 @@ public class CurvedRailRendering extends TypeRendererFactory {
 		String railName = railNames[entity.getDirection().ordinal()];
 		LuaValue pictureRailLua = prototype.lua().get("pictures").get(railName);
 		for (Entry<String, Layer> entry : StraightRailRendering.railLayers.entrySet()) {
-			Sprite railLayerSprite = getSpriteFromAnimation(pictureRailLua.get(entry.getKey()).get("sheet"));
-			register.accept(spriteRenderer(entry.getValue(), railLayerSprite, entity, prototype));
+			Sprite railLayerSprite = RenderUtils.getSpriteFromAnimation(pictureRailLua.get(entry.getKey()).get("sheet"));
+			register.accept(RenderUtils.spriteRenderer(entry.getValue(), railLayerSprite, entity, prototype));
 		}
 
 		if (map.getDebug().rail) {

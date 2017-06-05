@@ -21,6 +21,7 @@ import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.BlueprintEntity;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.LogisticGridCell;
+import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
 import com.demod.fbsr.Renderer.Layer;
 import com.demod.fbsr.WorldMap;
@@ -43,15 +44,15 @@ public class InserterRendering extends TypeRendererFactory {
 		Point2D.Double pos = entity.getPosition();
 		Direction dir = entity.getDirection();
 
-		Sprite sprite = getSpriteFromAnimation(prototype.lua().get("platform_picture").get("sheet"));
+		Sprite sprite = RenderUtils.getSpriteFromAnimation(prototype.lua().get("platform_picture").get("sheet"));
 		sprite.source.x += sprite.source.width * (dir.back().cardinal());
 
 		// Sprite spriteArmBase =
 		// getSpriteFromAnimation(prototype.lua().get("hand_base_picture"));
-		Sprite spriteArmHand = getSpriteFromAnimation(prototype.lua().get("hand_open_picture"));
+		Sprite spriteArmHand = RenderUtils.getSpriteFromAnimation(prototype.lua().get("hand_open_picture"));
 		double armStretch = -prototype.lua().get("pickup_position").get(2).todouble();
 
-		register.accept(spriteRenderer(sprite, entity, prototype));
+		register.accept(RenderUtils.spriteRenderer(sprite, entity, prototype));
 		register.accept(new Renderer(Layer.ENTITY2, sprite.bounds) {
 			@Override
 			public void render(Graphics2D g) {
@@ -87,7 +88,7 @@ public class InserterRendering extends TypeRendererFactory {
 				spriteIcon.source = new Rectangle(0, 0, spriteIcon.image.getWidth(), spriteIcon.image.getHeight());
 				spriteIcon.bounds = new Rectangle2D.Double(-0.3, -0.3, 0.6, 0.6);
 
-				Renderer delegate = spriteRenderer(spriteIcon, entity, prototype);
+				Renderer delegate = RenderUtils.spriteRenderer(spriteIcon, entity, prototype);
 				register.accept(new Renderer(Layer.OVERLAY2, delegate.getBounds()) {
 					@Override
 					public void render(Graphics2D g) {

@@ -8,6 +8,7 @@ import com.demod.factorio.DataTable;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.BlueprintEntity;
 import com.demod.fbsr.Direction;
+import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
 import com.demod.fbsr.WorldMap;
 
@@ -16,8 +17,8 @@ public class BoilerRendering extends TypeRendererFactory {
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
 			EntityPrototype prototype) {
-		List<Sprite> sprites = getSpritesFromAnimation(prototype.lua().get("structure"), entity.getDirection());
-		register.accept(spriteRenderer(sprites, entity, prototype));
+		List<Sprite> sprites = RenderUtils.getSpritesFromAnimation(prototype.lua().get("structure"), entity.getDirection());
+		register.accept(RenderUtils.spriteRenderer(sprites, entity, prototype));
 	}
 
 	public boolean pipeFacingMeFrom(Direction direction, WorldMap map, BlueprintEntity entity) {

@@ -8,6 +8,7 @@ import com.demod.factorio.DataTable;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.BlueprintEntity;
 import com.demod.fbsr.Direction;
+import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
 import com.demod.fbsr.Renderer.Layer;
 import com.demod.fbsr.WorldMap;
@@ -19,7 +20,7 @@ public class SplitterRendering extends TypeRendererFactory {
 			EntityPrototype prototype) {
 		int[] beltSpriteMapping = TransportBeltRendering.transportBeltSpriteMapping[entity.getDirection()
 				.cardinal()][1];
-		Sprite belt1Sprite = getSpriteFromAnimation(prototype.lua().get("belt_horizontal"));
+		Sprite belt1Sprite = RenderUtils.getSpriteFromAnimation(prototype.lua().get("belt_horizontal"));
 		belt1Sprite.source.y = belt1Sprite.source.height * beltSpriteMapping[0];
 		if (beltSpriteMapping[1] == 1) {
 			belt1Sprite.source.x += belt1Sprite.source.width;
@@ -38,12 +39,12 @@ public class SplitterRendering extends TypeRendererFactory {
 		belt2Sprite.bounds.x -= beltShift.x;
 		belt2Sprite.bounds.y -= beltShift.y;
 
-		Sprite sprite = getSpriteFromAnimation(
+		Sprite sprite = RenderUtils.getSpriteFromAnimation(
 				prototype.lua().get("structure").get(entity.getDirection().toString().toLowerCase()));
 
-		register.accept(spriteRenderer(Layer.ENTITY, belt1Sprite, entity, prototype));
-		register.accept(spriteRenderer(Layer.ENTITY, belt2Sprite, entity, prototype));
-		register.accept(spriteRenderer(Layer.ENTITY2, sprite, entity, prototype));
+		register.accept(RenderUtils.spriteRenderer(Layer.ENTITY, belt1Sprite, entity, prototype));
+		register.accept(RenderUtils.spriteRenderer(Layer.ENTITY, belt2Sprite, entity, prototype));
+		register.accept(RenderUtils.spriteRenderer(Layer.ENTITY2, sprite, entity, prototype));
 	}
 
 	@Override

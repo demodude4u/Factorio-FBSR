@@ -9,6 +9,7 @@ import com.demod.factorio.DataTable;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.BlueprintEntity;
 import com.demod.fbsr.Direction;
+import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.WorldMap.BeltBend;
@@ -38,7 +39,7 @@ public class TransportBeltRendering extends TypeRendererFactory {
 		BeltBend bend = map.getBeltBend(entity.getPosition()).get();
 		int[] spriteMapping = transportBeltSpriteMapping[entity.getDirection().cardinal()][bend.ordinal()];
 
-		Sprite sprite = getSpriteFromAnimation(prototype.lua().get("animations"));
+		Sprite sprite = RenderUtils.getSpriteFromAnimation(prototype.lua().get("animations"));
 		sprite.source.y = sprite.source.height * spriteMapping[0];
 		if (spriteMapping[1] == 1) {
 			sprite.source.x += sprite.source.width;
@@ -49,20 +50,20 @@ public class TransportBeltRendering extends TypeRendererFactory {
 			sprite.source.height *= -1;
 		}
 
-		register.accept(spriteRenderer(sprite, entity, prototype));
+		register.accept(RenderUtils.spriteRenderer(sprite, entity, prototype));
 
 		if (entity.json().has("connections")) {
 			String connectorFrameMapping = transportBeltConnectorFrameMapping[entity.getDirection().cardinal()][bend
 					.ordinal()];
 
 			LuaValue connectorFrameSpritesLua = prototype.lua().get("connector_frame_sprites");
-			Sprite connectorShadow = getSpriteFromAnimation(
+			Sprite connectorShadow = RenderUtils.getSpriteFromAnimation(
 					connectorFrameSpritesLua.get("frame_shadow_" + connectorFrameMapping));
-			Sprite connectorSprite = getSpriteFromAnimation(
+			Sprite connectorSprite = RenderUtils.getSpriteFromAnimation(
 					connectorFrameSpritesLua.get("frame_main_" + connectorFrameMapping));
 
-			register.accept(spriteRenderer(connectorShadow, entity, prototype));
-			register.accept(spriteRenderer(connectorSprite, entity, prototype));
+			register.accept(RenderUtils.spriteRenderer(connectorShadow, entity, prototype));
+			register.accept(RenderUtils.spriteRenderer(connectorSprite, entity, prototype));
 		}
 	}
 

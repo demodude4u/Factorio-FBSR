@@ -6,6 +6,7 @@ import com.demod.factorio.DataTable;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.BlueprintEntity;
 import com.demod.fbsr.Direction;
+import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
 import com.demod.fbsr.WorldMap;
 
@@ -41,9 +42,9 @@ public class HeatPipeRendering extends TypeRendererFactory {
 		adjCode |= ((heatPipeFacingMeFrom(Direction.WEST, map, entity) ? 1 : 0) << 3);
 		String spriteName = heatPipeSpriteNameMapping[adjCode];
 
-		Sprite sprite = getSpriteFromAnimation(prototype.lua().get("connection_sprites").get(spriteName).get(1));
+		Sprite sprite = RenderUtils.getSpriteFromAnimation(prototype.lua().get("connection_sprites").get(spriteName).get(1));
 
-		register.accept(spriteRenderer(sprite, entity, prototype));
+		register.accept(RenderUtils.spriteRenderer(sprite, entity, prototype));
 	}
 
 	public boolean heatPipeFacingMeFrom(Direction direction, WorldMap map, BlueprintEntity entity) {

@@ -5,6 +5,7 @@ import java.util.function.Consumer;
 import com.demod.factorio.DataTable;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.BlueprintEntity;
+import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
 import com.demod.fbsr.WorldMap;
 
@@ -17,9 +18,9 @@ public class PipeToGroundRendering extends TypeRendererFactory {
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
 			EntityPrototype prototype) {
-		Sprite sprite = getSpriteFromAnimation(
+		Sprite sprite = RenderUtils.getSpriteFromAnimation(
 				prototype.lua().get("pictures").get(pipeToGroundCardinalNaming[entity.getDirection().cardinal()]));
-		register.accept(spriteRenderer(sprite, entity, prototype));
+		register.accept(RenderUtils.spriteRenderer(sprite, entity, prototype));
 	}
 
 	@Override

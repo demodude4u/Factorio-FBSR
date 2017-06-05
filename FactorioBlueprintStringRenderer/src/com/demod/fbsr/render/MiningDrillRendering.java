@@ -9,6 +9,7 @@ import com.demod.factorio.DataTable;
 import com.demod.factorio.Utils;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.BlueprintEntity;
+import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
 import com.demod.fbsr.WorldMap;
 
@@ -18,15 +19,15 @@ public class MiningDrillRendering extends TypeRendererFactory {
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
 			EntityPrototype prototype) {
 		if (entity.getName().equals("pumpjack")) {
-			Sprite baseSprite = getSpriteFromAnimation(prototype.lua().get("base_picture").get("sheet"));
+			Sprite baseSprite = RenderUtils.getSpriteFromAnimation(prototype.lua().get("base_picture").get("sheet"));
 			baseSprite.source.x = baseSprite.source.width * entity.getDirection().cardinal();
-			Sprite jackSprite = getSpriteFromAnimation(prototype.lua().get("animations").get("north"));
+			Sprite jackSprite = RenderUtils.getSpriteFromAnimation(prototype.lua().get("animations").get("north"));
 
-			register.accept(spriteRenderer(baseSprite, entity, prototype));
-			register.accept(spriteRenderer(jackSprite, entity, prototype));
+			register.accept(RenderUtils.spriteRenderer(baseSprite, entity, prototype));
+			register.accept(RenderUtils.spriteRenderer(jackSprite, entity, prototype));
 		} else {
-			List<Sprite> sprites = getSpritesFromAnimation(prototype.lua().get("animations"), entity.getDirection());
-			register.accept(spriteRenderer(sprites, entity, prototype));
+			List<Sprite> sprites = RenderUtils.getSpritesFromAnimation(prototype.lua().get("animations"), entity.getDirection());
+			register.accept(RenderUtils.spriteRenderer(sprites, entity, prototype));
 		}
 	}
 

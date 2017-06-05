@@ -7,6 +7,7 @@ import java.util.function.Consumer;
 import com.demod.factorio.DataTable;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.BlueprintEntity;
+import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
 import com.demod.fbsr.WorldMap;
 
@@ -24,14 +25,14 @@ public class DeciderCombinatorRendering extends TypeRendererFactory {
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
 			EntityPrototype prototype) {
-		Sprite sprite = getSpriteFromAnimation(
+		Sprite sprite = RenderUtils.getSpriteFromAnimation(
 				prototype.lua().get("sprites").get(entity.getDirection().name().toLowerCase()));
-		Sprite operatorSprite = getSpriteFromAnimation(prototype.lua()
+		Sprite operatorSprite = RenderUtils.getSpriteFromAnimation(prototype.lua()
 				.get(operationSprites.get(entity.json().getJSONObject("control_behavior")
 						.getJSONObject("decider_conditions").getString("comparator")))
 				.get(entity.getDirection().name().toLowerCase()));
 
-		register.accept(spriteRenderer(sprite, entity, prototype));
-		register.accept(spriteRenderer(operatorSprite, entity, prototype));
+		register.accept(RenderUtils.spriteRenderer(sprite, entity, prototype));
+		register.accept(RenderUtils.spriteRenderer(operatorSprite, entity, prototype));
 	}
 }

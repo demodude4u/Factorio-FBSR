@@ -20,6 +20,7 @@ import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.factorio.prototype.RecipePrototype;
 import com.demod.fbsr.BlueprintEntity;
 import com.demod.fbsr.Direction;
+import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
 import com.demod.fbsr.Renderer.Layer;
 import com.demod.fbsr.WorldMap;
@@ -33,9 +34,9 @@ public class AssemblingMachineRendering extends TypeRendererFactory {
 		if (animationLua.isnil()) {
 			animationLua = prototype.lua().get("animation");
 		}
-		List<Sprite> sprites = getSpritesFromAnimation(animationLua, entity.getDirection());
+		List<Sprite> sprites = RenderUtils.getSpritesFromAnimation(animationLua, entity.getDirection());
 
-		register.accept(spriteRenderer(sprites, entity, prototype));
+		register.accept(RenderUtils.spriteRenderer(sprites, entity, prototype));
 
 		Sprite spriteIcon = new Sprite();
 
@@ -62,7 +63,7 @@ public class AssemblingMachineRendering extends TypeRendererFactory {
 			spriteIcon.source = new Rectangle(0, 0, spriteIcon.image.getWidth(), spriteIcon.image.getHeight());
 			spriteIcon.bounds = new Rectangle2D.Double(-0.7, -1.0, 1.4, 1.4);
 
-			Renderer delegate = spriteRenderer(spriteIcon, entity, prototype);
+			Renderer delegate = RenderUtils.spriteRenderer(spriteIcon, entity, prototype);
 			register.accept(new Renderer(Layer.OVERLAY2, delegate.getBounds()) {
 				@Override
 				public void render(Graphics2D g) {

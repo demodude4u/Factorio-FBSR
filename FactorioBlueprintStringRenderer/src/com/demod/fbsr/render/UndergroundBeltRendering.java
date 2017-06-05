@@ -7,6 +7,7 @@ import com.demod.factorio.DataTable;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.BlueprintEntity;
 import com.demod.fbsr.Direction;
+import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
 import com.demod.fbsr.Renderer.Layer;
 import com.demod.fbsr.WorldMap;
@@ -24,7 +25,7 @@ public class UndergroundBeltRendering extends TypeRendererFactory {
 
 		int[] beltSpriteMapping = TransportBeltRendering.transportBeltSpriteMapping[entity.getDirection()
 				.cardinal()][1];
-		Sprite beltSprite = getSpriteFromAnimation(prototype.lua().get("belt_horizontal"));
+		Sprite beltSprite = RenderUtils.getSpriteFromAnimation(prototype.lua().get("belt_horizontal"));
 		beltSprite.source.y = beltSprite.source.height * beltSpriteMapping[0];
 		if (beltSpriteMapping[1] == 1) {
 			beltSprite.source.x += beltSprite.source.width;
@@ -55,12 +56,12 @@ public class UndergroundBeltRendering extends TypeRendererFactory {
 			break;
 		}
 
-		Sprite sprite = getSpriteFromAnimation(
+		Sprite sprite = RenderUtils.getSpriteFromAnimation(
 				prototype.lua().get("structure").get(input ? "direction_in" : "direction_out").get("sheet"));
 		sprite.source.x += sprite.source.width * (structDir.cardinal());
 
-		register.accept(spriteRenderer(Layer.ENTITY, beltSprite, entity, prototype));
-		register.accept(spriteRenderer(Layer.ENTITY2, sprite, entity, prototype));
+		register.accept(RenderUtils.spriteRenderer(Layer.ENTITY, beltSprite, entity, prototype));
+		register.accept(RenderUtils.spriteRenderer(Layer.ENTITY2, sprite, entity, prototype));
 	}
 
 	@Override

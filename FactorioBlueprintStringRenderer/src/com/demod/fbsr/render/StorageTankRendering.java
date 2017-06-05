@@ -6,6 +6,7 @@ import java.util.function.Consumer;
 import com.demod.factorio.DataTable;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.BlueprintEntity;
+import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
 import com.demod.fbsr.WorldMap;
 
@@ -22,9 +23,9 @@ public class StorageTankRendering extends TypeRendererFactory {
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
 			EntityPrototype prototype) {
-		Sprite sprite = getSpriteFromAnimation(prototype.lua().get("pictures").get("picture").get("sheet"));
+		Sprite sprite = RenderUtils.getSpriteFromAnimation(prototype.lua().get("pictures").get("picture").get("sheet"));
 		sprite.source.x = sprite.source.width * (entity.getDirection().cardinal() % 2);
-		register.accept(spriteRenderer(sprite, entity, prototype));
+		register.accept(RenderUtils.spriteRenderer(sprite, entity, prototype));
 	}
 
 	@Override

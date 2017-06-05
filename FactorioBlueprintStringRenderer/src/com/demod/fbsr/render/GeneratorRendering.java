@@ -8,6 +8,7 @@ import com.demod.factorio.DataTable;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.BlueprintEntity;
 import com.demod.fbsr.Direction;
+import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
 import com.demod.fbsr.WorldMap;
 
@@ -15,9 +16,9 @@ public class GeneratorRendering extends TypeRendererFactory {
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
 			EntityPrototype prototype) {
-		List<Sprite> sprites = getSpritesFromAnimation(prototype.lua()
+		List<Sprite> sprites = RenderUtils.getSpritesFromAnimation(prototype.lua()
 				.get((entity.getDirection().cardinal() % 2) == 0 ? "vertical_animation" : "horizontal_animation"));
-		register.accept(spriteRenderer(sprites, entity, prototype));
+		register.accept(RenderUtils.spriteRenderer(sprites, entity, prototype));
 	}
 
 	@Override
