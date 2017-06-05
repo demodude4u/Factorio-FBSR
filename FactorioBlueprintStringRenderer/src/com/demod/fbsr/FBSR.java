@@ -341,6 +341,7 @@ public class FBSR {
 			throws JSONException, IOException {
 		DataTable table = FactorioData.getTable();
 		WorldMap map = new WorldMap();
+		reporting.getDebug().ifPresent(map::setDebug);
 
 		List<RenderingTuple> renderingTuples = new ArrayList<RenderingTuple>();
 		for (BlueprintEntity entity : blueprint.getEntities()) {
@@ -436,37 +437,37 @@ public class FBSR {
 
 			});
 
-			// cell.getMovedFrom().ifPresent(l -> {
-			// for (Direction d : l) {
-			// Point2D.Double p = d.offset(pos, 0.5);
-			// register.accept(new Renderer(Layer.LOGISTICS_WARP, p) {
-			// @Override
-			// public void render(Graphics2D g) {
-			// Stroke ps = g.getStroke();
-			// g.setStroke(new BasicStroke(2 / 32f, BasicStroke.CAP_ROUND,
-			// BasicStroke.JOIN_ROUND));
-			// g.setColor(Color.cyan);
-			// g.draw(new Line2D.Double(pos, p));
-			// g.setStroke(ps);
-			// }
-			// });
-			// }
-			// });
-			// cell.getWarpedFrom().ifPresent(l -> {
-			// for (Point2D.Double p : l) {
-			// register.accept(new Renderer(Layer.LOGISTICS_WARP, p) {
-			// @Override
-			// public void render(Graphics2D g) {
-			// Stroke ps = g.getStroke();
-			// g.setStroke(new BasicStroke(2 / 32f, BasicStroke.CAP_ROUND,
-			// BasicStroke.JOIN_ROUND));
-			// g.setColor(Color.magenta);
-			// g.draw(new Line2D.Double(pos, p));
-			// g.setStroke(ps);
-			// }
-			// });
-			// }
-			// });
+			if (map.getDebug().logistic) {
+				cell.getMovedFrom().ifPresent(l -> {
+					for (Direction d : l) {
+						Point2D.Double p = d.offset(pos, 0.5);
+						register.accept(new Renderer(Layer.DEBUG_LA1, p) {
+							@Override
+							public void render(Graphics2D g) {
+								Stroke ps = g.getStroke();
+								g.setStroke(new BasicStroke(2 / 32f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+								g.setColor(Color.cyan);
+								g.draw(new Line2D.Double(pos, p));
+								g.setStroke(ps);
+							}
+						});
+					}
+				});
+				cell.getWarpedFrom().ifPresent(l -> {
+					for (Point2D.Double p : l) {
+						register.accept(new Renderer(Layer.DEBUG_LA2, p) {
+							@Override
+							public void render(Graphics2D g) {
+								Stroke ps = g.getStroke();
+								g.setStroke(new BasicStroke(2 / 32f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+								g.setColor(Color.magenta);
+								g.draw(new Line2D.Double(pos, p));
+								g.setStroke(ps);
+							}
+						});
+					}
+				});
+			}
 		});
 	}
 }

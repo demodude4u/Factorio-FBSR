@@ -45,13 +45,13 @@ public class BlueprintStringData {
 			}
 			json = new JSONObject(jsonBuilder.toString());
 		}
-		// System.out.println(json);
 		if (json.has("blueprint")) {
 			blueprints.add(new Blueprint(json));
 		} else {
 			JSONArray blueprintsJson = json.getJSONObject("blueprint_book").getJSONArray("blueprints");
 			for (int i = 0; i < blueprintsJson.length(); i++) {
-				blueprints.add(new Blueprint(blueprintsJson.getJSONObject(i)));
+				Blueprint blueprint = new Blueprint(blueprintsJson.getJSONObject(i));
+				blueprints.add(blueprint);
 			}
 		}
 	}

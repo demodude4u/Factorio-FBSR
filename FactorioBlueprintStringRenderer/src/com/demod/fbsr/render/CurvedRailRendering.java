@@ -1,5 +1,9 @@
 package com.demod.fbsr.render;
 
+import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.geom.Ellipse2D;
+import java.awt.geom.Point2D;
 import java.util.Map.Entry;
 import java.util.function.Consumer;
 
@@ -9,8 +13,8 @@ import com.demod.factorio.DataTable;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.BlueprintEntity;
 import com.demod.fbsr.Renderer;
-import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.Renderer.Layer;
+import com.demod.fbsr.WorldMap;
 
 public class CurvedRailRendering extends TypeRendererFactory {
 	private static final String[] railNames = { //
@@ -32,6 +36,17 @@ public class CurvedRailRendering extends TypeRendererFactory {
 		for (Entry<String, Layer> entry : StraightRailRendering.railLayers.entrySet()) {
 			Sprite railLayerSprite = getSpriteFromAnimation(pictureRailLua.get(entry.getKey()).get("sheet"));
 			register.accept(spriteRenderer(entry.getValue(), railLayerSprite, entity, prototype));
+		}
+
+		if (map.getDebug().rail) {
+			register.accept(new Renderer(Layer.DEBUG_RA, entity.getPosition()) {
+				@Override
+				public void render(Graphics2D g) {
+					Point2D.Double pos = entity.getPosition();
+					g.setColor(Color.cyan);
+					g.fill(new Ellipse2D.Double(pos.x - 0.2, pos.y - 0.2, 0.4, 0.4));
+				}
+			});
 		}
 	}
 

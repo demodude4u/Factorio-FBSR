@@ -2,8 +2,12 @@ package com.demod.fbsr;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+
+import com.demod.fbsr.WorldMap.Debug;
 
 public class BlueprintReporting {
+	private Optional<Debug> debug = Optional.empty();
 	private final List<String> contexts = new ArrayList<>();
 	private final List<String> warnings = new ArrayList<>();
 	private final List<Exception> exceptions = new ArrayList<>();
@@ -34,6 +38,10 @@ public class BlueprintReporting {
 		return contexts;
 	}
 
+	public Optional<Debug> getDebug() {
+		return debug;
+	}
+
 	public List<String> getDownloadURLs() {
 		return downloadUrls;
 	}
@@ -48,5 +56,9 @@ public class BlueprintReporting {
 
 	public List<String> getWarnings() {
 		return warnings;
+	}
+
+	public void setDebug(Optional<Debug> debug) {
+		this.debug = debug;
 	}
 }

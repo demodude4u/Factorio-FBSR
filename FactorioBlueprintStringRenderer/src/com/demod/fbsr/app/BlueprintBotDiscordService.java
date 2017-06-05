@@ -9,11 +9,13 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.lang.reflect.Field;
 import java.net.URL;
 import java.net.URLConnection;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -31,6 +33,8 @@ import com.demod.fbsr.BlueprintReporting;
 import com.demod.fbsr.BlueprintStringData;
 import com.demod.fbsr.FBSR;
 import com.demod.fbsr.WebUtils;
+import com.demod.fbsr.WorldMap;
+import com.demod.fbsr.WorldMap.Debug;
 import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Multiset.Entry;
@@ -50,6 +54,8 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 	private static final int BP_MAX_SIZE = 4000000;
 
 	private static final Pattern blueprintPattern = Pattern.compile("([0-9][A-Za-z0-9+\\/=\\r\\n]{90,})");
+
+	private static final Pattern debugPattern = Pattern.compile("DEBUG:([A-Za-z0-9_]+)");
 
 	private static final Pattern pastebinPattern = Pattern.compile("pastebin\\.com/([A-Za-z0-9]+)");
 	private static final Pattern hastebinPattern = Pattern.compile("hastebin\\.com/([A-Za-z0-9]+)");
@@ -131,6 +137,25 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		}
 	}
 
+	private void findDebugOptions(BlueprintReporting reporting, String content) {
+		Matcher matcher = debugPattern.matcher(content);
+		while (matcher.find()) {
+			String fieldName = matcher.group(1);
+			try {
+				Field field = WorldMap.Debug.class.getField(fieldName);
+				if (!reporting.getDebug().isPresent()) {
+					reporting.setDebug(Optional.of(new WorldMap.Debug()));
+				}
+				field.set(reporting.getDebug().get(), true);
+				reporting.addWarning("Debug Enabled: " + fieldName);
+			} catch (NoSuchFieldException e) {
+				reporting.addWarning("Unknown Debug Option: " + fieldName);
+			} catch (SecurityException | IllegalArgumentException | IllegalAccessException e) {
+				reporting.addException(e);
+			}
+		}
+	}
+
 	private void findTextAttachments(MessageReceivedEvent event, BlueprintReporting reporting) {
 		for (Attachment attachment : event.getMessage().getAttachments()) {
 			if (attachment.getSize() < BP_MAX_SIZE) {
@@ -193,6 +218,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 	}
 
 	private void sendReportToDemod(MessageReceivedEvent event, BlueprintReporting reporting) {
+		Optional<Debug> debug = reporting.getDebug();
 		List<String> contexts = reporting.getContexts();
 		List<Exception> exceptions = reporting.getExceptions();
 		List<String> warnings = reporting.getWarnings();
@@ -216,6 +242,9 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 		if (!warnings.isEmpty()) {
 			builder.setColor(Color.orange);
+		}
+		if (debug.isPresent()) {
+			builder.setColor(Color.magenta);
 		}
 		if (!exceptions.isEmpty()) {
 			builder.setColor(Color.red);
@@ -295,6 +324,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 					String content = event.getMessage().getStrippedContent();
 					BlueprintReporting reporting = new BlueprintReporting();
 					System.out.println("\n############################################################\n");
+					findDebugOptions(reporting, content);
 					findBlueprints(event, reporting, content);
 					findTextHostingSites(event, reporting, content);
 					findTextAttachments(event, reporting);

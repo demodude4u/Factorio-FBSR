@@ -10,7 +10,8 @@ public abstract class Renderer {
 		ENTITY, LOGISTICS_MOVE, ENTITY2, ENTITY3, //
 		OVERLAY, OVERLAY2, OVERLAY3, OVERLAY4, //
 		LOGISTICS_WARP, //
-		WIRE,//
+		WIRE, //
+		DEBUG_RA, DEBUG_LA1, DEBUG_LA2, //
 		;
 	}
 

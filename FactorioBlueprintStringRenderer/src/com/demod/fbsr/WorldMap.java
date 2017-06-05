@@ -41,6 +41,11 @@ public class WorldMap {
 		}
 	}
 
+	public static class Debug {
+		public boolean logistic = false;
+		public boolean rail = false;
+	}
+
 	// XXX Hash-based tables are not the most efficient here
 	// Row: X
 	// Column: Y
@@ -57,6 +62,8 @@ public class WorldMap {
 
 	// Key: "eid1|cid1|eid2|cid2|color"
 	private final Map<String, Pair<Point2D.Double, Point2D.Double>> wires = new LinkedHashMap<>();
+
+	private Debug debug = new Debug();
 
 	private int flag(Direction facing) {
 		return 1 << facing.cardinal();
@@ -98,6 +105,10 @@ public class WorldMap {
 		int kr = (int) Math.floor(pos.x);
 		int kc = (int) Math.floor(pos.y);
 		return Optional.ofNullable(belts.get(kr, kc)).map(BeltCell::getFacing);
+	}
+
+	public Debug getDebug() {
+		return debug;
 	}
 
 	public Point2D.Double getLogisticCellPosition(Cell<Integer, Integer, LogisticGridCell> c) {
@@ -178,6 +189,10 @@ public class WorldMap {
 		int kr = (int) Math.floor(pos.x);
 		int kc = (int) Math.floor(pos.y);
 		belts.put(kr, kc, new BeltCell(facing, bendable, bendOthers));
+	}
+
+	public void setDebug(Debug debug) {
+		this.debug = debug;
 	}
 
 	public void setHeatPipe(Point2D.Double pos, Direction... facings) {
