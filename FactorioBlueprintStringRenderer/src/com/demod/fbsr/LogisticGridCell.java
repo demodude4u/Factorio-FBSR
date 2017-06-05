@@ -12,7 +12,7 @@ import java.util.TreeSet;
 public class LogisticGridCell {
 	private Optional<Direction> move = Optional.empty();
 	private Optional<Direction> acceptFilter = Optional.empty();
-	private Optional<Point2D.Double> warp = Optional.empty();
+	private Optional<List<Point2D.Double>> warps = Optional.empty();
 	private Optional<Set<String>> inputs = Optional.empty();
 	private Optional<Set<String>> outputs = Optional.empty();
 
@@ -56,6 +56,13 @@ public class LogisticGridCell {
 		return transits.get().add(itemName);
 	}
 
+	public void addWarp(Point2D.Double warp) {
+		if (!warps.isPresent()) {
+			warps = Optional.of(new ArrayList<>());
+		}
+		this.warps.get().add(warp);
+	}
+
 	public void addWarpedFrom(Point2D.Double pos) {
 		if (!warpedFrom.isPresent()) {
 			warpedFrom = Optional.of(new ArrayList<>());
@@ -87,16 +94,16 @@ public class LogisticGridCell {
 		return transits;
 	}
 
-	public Optional<Point2D.Double> getWarp() {
-		return warp;
-	}
-
 	public Optional<List<Point2D.Double>> getWarpedFrom() {
 		return warpedFrom;
 	}
 
+	public Optional<List<Point2D.Double>> getWarps() {
+		return warps;
+	}
+
 	public boolean isAccepting() {
-		return move.isPresent() || warp.isPresent() || inputs.isPresent();
+		return move.isPresent() || warps.isPresent() || inputs.isPresent();
 	}
 
 	public boolean isBlockTransit() {
@@ -104,12 +111,12 @@ public class LogisticGridCell {
 	}
 
 	public boolean isTransitEnd() {
-		return getInputs().isPresent() && (getWarpedFrom().map(l -> !l.isEmpty()).isPresent()
-				|| getMovedFrom().map(l -> !l.isEmpty()).isPresent());
+		return inputs.isPresent()
+				&& (warpedFrom.map(l -> !l.isEmpty()).isPresent() || movedFrom.map(l -> !l.isEmpty()).isPresent());
 	}
 
 	public boolean isTransitStart() {
-		return getOutputs().isPresent() && (getWarp().isPresent() || getMove().isPresent());
+		return outputs.isPresent() && (warps.isPresent() || move.isPresent());
 	}
 
 	public void setAcceptFilter(Optional<Direction> acceptFilter) {
@@ -130,10 +137,6 @@ public class LogisticGridCell {
 
 	public void setOutputs(Optional<Set<String>> outputs) {
 		this.outputs = outputs;
-	}
-
-	public void setWarp(Optional<Point2D.Double> warp) {
-		this.warp = warp;
 	}
 
 }

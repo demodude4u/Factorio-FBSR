@@ -122,10 +122,10 @@ public class InserterRendering extends TypeRendererFactory {
 			cellDir = dir.frontRight();
 		}
 
-		setLogisticWarp(map, inPos, dir.frontLeft(), outPos, cellDir);
-		setLogisticWarp(map, inPos, dir.frontRight(), outPos, cellDir);
-		setLogisticWarp(map, inPos, dir.backLeft(), outPos, cellDir);
-		setLogisticWarp(map, inPos, dir.backRight(), outPos, cellDir);
+		addLogisticWarp(map, inPos, dir.frontLeft(), outPos, cellDir);
+		addLogisticWarp(map, inPos, dir.frontRight(), outPos, cellDir);
+		addLogisticWarp(map, inPos, dir.backLeft(), outPos, cellDir);
+		addLogisticWarp(map, inPos, dir.backRight(), outPos, cellDir);
 
 		if (entity.json().has("filters")) {
 			LogisticGridCell cell = map.getOrCreateLogisticGridCell(cellDir.offset(outPos, 0.25));

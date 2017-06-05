@@ -89,8 +89,8 @@ public class UndergroundBeltRendering extends TypeRendererFactory {
 			for (int offset = 1; offset <= maxDistance; offset++) {
 				Point2D.Double targetPos = dir.offset(pos, offset);
 				if (map.isMatchingUndergroundBeltEnding(entity.getName(), targetPos, dir)) {
-					setLogisticWarp(map, pos, dir.frontLeft(), targetPos, dir.backLeft());
-					setLogisticWarp(map, pos, dir.frontRight(), targetPos, dir.backRight());
+					addLogisticWarp(map, pos, dir.frontLeft(), targetPos, dir.backLeft());
+					addLogisticWarp(map, pos, dir.frontRight(), targetPos, dir.backRight());
 					break;
 				}
 			}

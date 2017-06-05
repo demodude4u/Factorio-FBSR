@@ -140,6 +140,11 @@ public class TypeRendererFactory {
 		return byType.getOrDefault(type, DEFAULT);
 	}
 
+	protected void addLogisticWarp(WorldMap map, Double gridPos1, Direction cellDir1, Double gridPos2,
+			Direction cellDir2) {
+		map.getOrCreateLogisticGridCell(cellDir1.offset(gridPos1, 0.25)).addWarp(cellDir2.offset(gridPos2, 0.25));
+	}
+
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
 			EntityPrototype prototype) {
 		try {
@@ -303,12 +308,6 @@ public class TypeRendererFactory {
 		LogisticGridCell cell = map.getOrCreateLogisticGridCell(cellDir.offset(gridPos, 0.25));
 		cell.setMove(Optional.of(moveDir));
 		cell.setAcceptFilter(Optional.of(acceptFilter));
-	}
-
-	protected void setLogisticWarp(WorldMap map, Double gridPos1, Direction cellDir1, Double gridPos2,
-			Direction cellDir2) {
-		map.getOrCreateLogisticGridCell(cellDir1.offset(gridPos1, 0.25))
-				.setWarp(Optional.of(cellDir2.offset(gridPos2, 0.25)));
 	}
 
 }

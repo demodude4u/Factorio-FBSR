@@ -64,10 +64,10 @@ public class SplitterRendering extends TypeRendererFactory {
 		setLogisticMove(map, rightPos, dir.backLeft(), dir);
 		setLogisticMove(map, rightPos, dir.backRight(), dir);
 
-		setLogisticWarp(map, leftPos, dir.backLeft(), rightPos, dir.frontLeft());
-		setLogisticWarp(map, leftPos, dir.backRight(), rightPos, dir.frontRight());
-		setLogisticWarp(map, rightPos, dir.backLeft(), leftPos, dir.frontLeft());
-		setLogisticWarp(map, rightPos, dir.backRight(), leftPos, dir.frontRight());
+		addLogisticWarp(map, leftPos, dir.backLeft(), rightPos, dir.frontLeft());
+		addLogisticWarp(map, leftPos, dir.backRight(), rightPos, dir.frontRight());
+		addLogisticWarp(map, rightPos, dir.backLeft(), leftPos, dir.frontLeft());
+		addLogisticWarp(map, rightPos, dir.backRight(), leftPos, dir.frontRight());
 	}
 
 	@Override

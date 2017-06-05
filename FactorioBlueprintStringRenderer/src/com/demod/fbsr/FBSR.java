@@ -274,8 +274,10 @@ public class FBSR {
 				map.getLogisticGridCell(d.offset(pos, 0.5)).filter(mc -> mc.acceptMoveFrom(d))
 						.ifPresent(mc -> mc.addMovedFrom(d.back()));
 			});
-			cell.getWarp().ifPresent(p -> {
-				map.getLogisticGridCell(p).ifPresent(mc -> mc.addWarpedFrom(pos));
+			cell.getWarps().ifPresent(l -> {
+				for (Point2D.Double p : l) {
+					map.getLogisticGridCell(p).ifPresent(mc -> mc.addWarpedFrom(pos));
+				}
 			});
 		});
 	}
@@ -299,9 +301,11 @@ public class FBSR {
 									.filter(nc -> !nc.isBlockTransit() && nc.acceptMoveFrom(d))
 									.ifPresent(next -> work.add(new Pair<>(nextCellPos, next)));
 						});
-						cell.getWarp().ifPresent(p -> {
-							map.getLogisticGridCell(p).filter(nc -> !nc.isBlockTransit())
-									.ifPresent(next -> work.add(new Pair<>(p, next)));
+						cell.getWarps().ifPresent(l -> {
+							for (Point2D.Double p : l) {
+								map.getLogisticGridCell(p).filter(nc -> !nc.isBlockTransit())
+										.ifPresent(next -> work.add(new Pair<>(p, next)));
+							}
 						});
 					}
 				}
@@ -455,16 +459,7 @@ public class FBSR {
 				});
 				cell.getWarpedFrom().ifPresent(l -> {
 					for (Point2D.Double p : l) {
-						register.accept(new Renderer(Layer.DEBUG_LA2, p) {
-							@Override
-							public void render(Graphics2D g) {
-								Stroke ps = g.getStroke();
-								g.setStroke(new BasicStroke(2 / 32f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-								g.setColor(Color.magenta);
-								g.draw(new Line2D.Double(pos, p));
-								g.setStroke(ps);
-							}
-						});
+						register.accept(RenderUtils.createWireRenderer(p, pos, Color.MAGENTA));
 					}
 				});
 			}
