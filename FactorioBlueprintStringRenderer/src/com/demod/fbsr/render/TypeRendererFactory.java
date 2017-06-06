@@ -6,6 +6,7 @@ import java.awt.Rectangle;
 import java.awt.geom.Point2D;
 import java.awt.geom.Point2D.Double;
 import java.awt.geom.Rectangle2D;
+import java.awt.image.BufferedImage;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -24,6 +25,7 @@ import org.luaj.vm2.LuaValue;
 import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
 import com.demod.factorio.Utils;
+import com.demod.factorio.prototype.DataPrototype;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.factorio.prototype.RecipePrototype;
 import com.demod.fbsr.BlueprintEntity;
@@ -34,6 +36,8 @@ import com.demod.fbsr.Renderer;
 import com.demod.fbsr.Renderer.Layer;
 import com.demod.fbsr.WorldMap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.LinkedHashMultiset;
+import com.google.common.collect.Multiset;
 
 import javafx.util.Pair;
 
@@ -143,6 +147,48 @@ public class TypeRendererFactory {
 	protected void addLogisticWarp(WorldMap map, Double gridPos1, Direction cellDir1, Double gridPos2,
 			Direction cellDir2) {
 		map.getOrCreateLogisticGridCell(cellDir1.offset(gridPos1, 0.25)).addWarp(cellDir2.offset(gridPos2, 0.25));
+	}
+
+	public void createModuleIcons(Consumer<Renderer> register, WorldMap map, DataTable table, BlueprintEntity entity,
+			EntityPrototype prototype) {
+		if (entity.json().has("items")) {
+			Multiset<String> modules = LinkedHashMultiset.create();
+			Utils.forEach(entity.json().getJSONObject("items"), (String itemName, Integer count) -> {
+				modules.add(itemName, count);
+			});
+			register.accept(new Renderer(Layer.OVERLAY3, entity.getPosition()) {
+				final double spacing = 0.7;
+				final double shadow = 0.6;
+				final double size = 0.5;
+				final double vpad = 0.7;
+
+				@Override
+				public void render(Graphics2D g) {
+					Point2D.Double pos = entity.getPosition();
+					Rectangle2D.Double box = prototype.getSelectionBox();
+
+					double startX = pos.x + box.x + box.width / 2.0 - spacing * (modules.size() / 2.0) + spacing / 2.0;
+					double startY = pos.y + box.y + box.height - vpad;
+
+					Rectangle2D.Double shadowBox = new Rectangle2D.Double(startX - shadow / 2.0, startY - shadow / 2.0,
+							shadow, shadow);
+					Rectangle2D.Double spriteBox = new Rectangle2D.Double(startX - size / 2.0, startY - size / 2.0,
+							size, size);
+
+					for (String itemName : modules) {
+						g.setColor(new Color(0, 0, 0, 180));
+						g.fill(shadowBox);
+						DataPrototype protoItem = table.getItem(itemName).get();
+						BufferedImage image = FactorioData.getIcon(protoItem);
+						RenderUtils.drawImageInBounds(image, new Rectangle(0, 0, image.getWidth(), image.getHeight()),
+								spriteBox, g);
+
+						shadowBox.x += spacing;
+						spriteBox.x += spacing;
+					}
+				}
+			});
+		}
 	}
 
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,

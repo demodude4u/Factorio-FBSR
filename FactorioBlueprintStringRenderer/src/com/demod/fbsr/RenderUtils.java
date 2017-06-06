@@ -8,7 +8,6 @@ import java.awt.Stroke;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Path2D;
 import java.awt.geom.Point2D;
-import java.awt.geom.Point2D.Double;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
@@ -30,54 +29,25 @@ public final class RenderUtils {
 		EMPTY_IMAGE.setRGB(0, 0, 0x00000000);
 	}
 
-	public static Color getAverageColor(BufferedImage image) {
-		int[] pixels = image.getRGB(0, 0, image.getWidth(), image.getHeight(), null, 0, image.getWidth());
-		float sumR = 0, sumG = 0, sumB = 0, sumA = 0;
-		for (int pixel : pixels) {
-			float a = (pixel >> 24) & 0xFF;
-			float f = a / 255;
-			sumA += a;
-			sumR += ((pixel >> 16) & 0xFF) * f;
-			sumG += ((pixel >> 8) & 0xFF) * f;
-			sumB += ((pixel) & 0xFF) * f;
-		}
-		return new Color(sumR / sumA, sumG / sumA, sumB / sumA);
-	}
-
-	public static BufferedImage scaleImage(BufferedImage image, int width, int height) {
-		BufferedImage ret = new BufferedImage(width, height, image.getType());
-		Graphics2D g = ret.createGraphics();
-		g.drawImage(image, 0, 0, width, height, null);
-		g.dispose();
-		return ret;
-	}
-
-	public static Color withAlpha(Color color, int alpha) {
-		return new Color(color.getRed(), color.getGreen(), color.getBlue(), alpha);
-	}
-
-	private RenderUtils() {
-	}
-
 	public static Renderer createWireRenderer(Point2D.Double p1, Point2D.Double p2, Color color) {
 		Rectangle2D.Double bounds = new Rectangle2D.Double();
 		bounds.setFrameFromDiagonal(p1, p2);
-	
+
 		return new Renderer(Layer.WIRE, bounds) {
 			final double drop = 0.6;
-	
+
 			@Override
 			public void render(Graphics2D g) {
 				Stroke ps = g.getStroke();
 				g.setStroke(new BasicStroke(1f / 32f));
 				g.setColor(color);
-	
+
 				Path2D.Double path = new Path2D.Double();
 				path.moveTo(p1.x, p1.y);
 				Point2D.Double mid = new Point2D.Double((p1.x + p2.x) / 2, (p1.y + p2.y) / 2 + drop);
 				path.curveTo(mid.x, mid.y, mid.x, mid.y, p2.x, p2.y);
 				g.draw(path);
-	
+
 				g.setStroke(ps);
 			}
 		};
@@ -94,6 +64,20 @@ public final class RenderUtils {
 
 	public static void drawSprite(Sprite sprite, Graphics2D g) {
 		drawImageInBounds(sprite.image, sprite.source, sprite.bounds, g);
+	}
+
+	public static Color getAverageColor(BufferedImage image) {
+		int[] pixels = image.getRGB(0, 0, image.getWidth(), image.getHeight(), null, 0, image.getWidth());
+		float sumR = 0, sumG = 0, sumB = 0, sumA = 0;
+		for (int pixel : pixels) {
+			float a = (pixel >> 24) & 0xFF;
+			float f = a / 255;
+			sumA += a;
+			sumR += ((pixel >> 16) & 0xFF) * f;
+			sumG += ((pixel >> 8) & 0xFF) * f;
+			sumB += ((pixel) & 0xFF) * f;
+		}
+		return new Color(sumR / sumA, sumG / sumA, sumB / sumA);
 	}
 
 	public static Sprite getSpriteFromAnimation(LuaValue lua) {
@@ -135,14 +119,14 @@ public final class RenderUtils {
 		} else {
 			sprites.add(getSpriteFromAnimation(lua));
 		}
-	
+
 		sprites.sort((s1, s2) -> {
 			if (s1.shadow != s2.shadow) {
 				return Boolean.compare(s2.shadow, s1.shadow);
 			}
 			return Integer.compare(s2.order, s1.order);
 		});
-	
+
 		return sprites;
 	}
 
@@ -153,6 +137,14 @@ public final class RenderUtils {
 		} else {
 			return getSpritesFromAnimation(lua);
 		}
+	}
+
+	public static BufferedImage scaleImage(BufferedImage image, int width, int height) {
+		BufferedImage ret = new BufferedImage(width, height, image.getType());
+		Graphics2D g = ret.createGraphics();
+		g.drawImage(image, 0, 0, width, height, null);
+		g.dispose();
+		return ret;
 	}
 
 	public static Renderer spriteRenderer(Layer layer, List<Sprite> sprites, BlueprintEntity entity,
@@ -174,13 +166,13 @@ public final class RenderUtils {
 				long y = Math.round(groundBounds.getCenterY() * 2);
 				long w = Math.round(groundBounds.width * 2);
 				long h = Math.round(groundBounds.height * 2);
-	
+
 				// System.out.println("x=" + x + " y=" + y + " w=" + w + "
 				// h=" + h);
-	
+
 				g.setColor(new Color(255, 255, 255, 64));
 				g.draw(groundBounds);
-	
+
 				if (((w / 2) % 2) == (x % 2)) {
 					g.setColor(new Color(255, 0, 0, 64));
 					g.fill(groundBounds);
@@ -190,7 +182,7 @@ public final class RenderUtils {
 					g.fill(groundBounds);
 				}
 			}
-	
+
 			@Override
 			public void render(Graphics2D g) {
 				for (Sprite sprite : sprites) {
@@ -212,5 +204,12 @@ public final class RenderUtils {
 
 	public static Renderer spriteRenderer(Sprite sprite, BlueprintEntity entity, EntityPrototype prototype) {
 		return spriteRenderer(Layer.ENTITY, sprite, entity, prototype);
+	}
+
+	public static Color withAlpha(Color color, int alpha) {
+		return new Color(color.getRed(), color.getGreen(), color.getBlue(), alpha);
+	}
+
+	private RenderUtils() {
 	}
 }

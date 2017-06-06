@@ -396,6 +396,14 @@ public class FBSR {
 
 		renderingTuples.forEach(t -> {
 			try {
+				t.factory.createModuleIcons(renderers::add, map, table, t.entity, t.prototype);
+			} catch (Exception e) {
+				reporting.addException(e);
+			}
+		});
+
+		renderingTuples.forEach(t -> {
+			try {
 				t.factory.createWireConnections(renderers::add, map, table, t.entity, t.prototype);
 			} catch (Exception e) {
 				reporting.addException(e);
