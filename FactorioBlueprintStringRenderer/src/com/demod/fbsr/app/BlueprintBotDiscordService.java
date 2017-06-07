@@ -2,16 +2,12 @@ package com.demod.fbsr.app;
 
 import java.awt.Color;
 import java.awt.image.BufferedImage;
-import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.Field;
-import java.net.URL;
-import java.net.URLConnection;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -28,11 +24,11 @@ import com.demod.dcba.CommandHandler;
 import com.demod.dcba.DCBA;
 import com.demod.dcba.DiscordBot;
 import com.demod.fbsr.Blueprint;
+import com.demod.fbsr.BlueprintFinder;
 import com.demod.fbsr.BlueprintReporting;
 import com.demod.fbsr.BlueprintStringData;
 import com.demod.fbsr.FBSR;
 import com.demod.fbsr.RenderUtils;
-import com.demod.fbsr.WebUtils;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.WorldMap.Debug;
 import com.google.common.collect.LinkedHashMultiset;
@@ -42,7 +38,6 @@ import com.google.common.util.concurrent.AbstractIdleService;
 
 import net.dv8tion.jda.core.EmbedBuilder;
 import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.Message.Attachment;
 import net.dv8tion.jda.core.entities.MessageEmbed;
 import net.dv8tion.jda.core.entities.PrivateChannel;
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent;
@@ -51,91 +46,13 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 	private static final String USERID_DEMOD = "100075603016814592";
 
-	private static final int BP_MAX_SIZE = 4000000;
-
-	private static final Pattern blueprintPattern = Pattern.compile("([0-9][A-Za-z0-9+\\/=\\r\\n]{90,})");
-
 	private static final Pattern debugPattern = Pattern.compile("DEBUG:([A-Za-z0-9_]+)");
-
-	private static final Pattern pastebinPattern = Pattern.compile("pastebin\\.com/([A-Za-z0-9]+)");
-	private static final Pattern hastebinPattern = Pattern.compile("hastebin\\.com/([A-Za-z0-9]+)");
-	private static final Pattern gistPattern = Pattern.compile("gist\\.github\\.com/([-a-zA-Z0-9@:%_\\+.~#?&//=]+)");
-	private static final Pattern gitlabSnippetPattern = Pattern.compile("gitlab\\.com/snippets/([A-Za-z0-9]+)");
 
 	public static void main(String[] args) {
 		new BlueprintBotDiscordService().startAsync();
 	}
 
 	private DiscordBot bot;
-
-	private void findBlueprints(MessageReceivedEvent event, BlueprintReporting reporting, String content) {
-		Matcher matcher = blueprintPattern.matcher(content);
-		while (matcher.find()) {
-			String blueprintString = matcher.group();
-
-			reporting.addContext(blueprintString);
-
-			try {
-				event.getChannel().sendTyping().complete();
-
-				BlueprintStringData blueprintStringData = new BlueprintStringData(blueprintString);
-				System.out.println("Parsing blueprints: " + blueprintStringData.getBlueprints().size());
-				if (blueprintStringData.getBlueprints().size() == 1) {
-					BufferedImage image = FBSR.renderBlueprint(blueprintStringData.getBlueprints().get(0), reporting);
-					byte[] imageData = generateDiscordFriendlyPNGImage(image);
-					Message message = event.getChannel()
-							.sendFile(new ByteArrayInputStream(imageData), "blueprint.png", null).complete();
-					reporting.addImageURL(message.getAttachments().get(0).getUrl());
-				} else {
-					try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
-							ZipOutputStream zos = new ZipOutputStream(baos)) {
-
-						int counter = 1;
-						for (Blueprint blueprint : blueprintStringData.getBlueprints()) {
-							try {
-								BufferedImage image = FBSR.renderBlueprint(blueprint, reporting);
-								zos.putNextEntry(new ZipEntry("blueprint " + counter + ".png"));
-								ImageIO.write(image, "PNG", zos);
-							} catch (Exception e) {
-								reporting.addException(e);
-							}
-							counter++;
-						}
-
-						zos.close();
-						byte[] zipData = baos.toByteArray();
-						Message message = event.getChannel()
-								.sendFile(new ByteArrayInputStream(zipData), "blueprint book images.zip", null)
-								.complete();
-						reporting.addDownloadURL(message.getAttachments().get(0).getUrl());
-					}
-				}
-			} catch (Exception e) {
-				reporting.addException(e);
-			}
-		}
-	}
-
-	private void findBlueprintsInURL(MessageReceivedEvent event, BlueprintReporting reporting, String url) {
-		StringBuilder contentBuilder = new StringBuilder();
-		reporting.addContext(url);
-		try {
-			URLConnection hc = new URL(url).openConnection();
-			hc.setRequestProperty("User-Agent",
-					"Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.4; en-US; rv:1.9.2.2) Gecko/20100316 Firefox/3.6.2");
-
-			try (BufferedReader br = new BufferedReader(
-					new InputStreamReader(WebUtils.limitMaxBytes(hc.getInputStream(), BP_MAX_SIZE)))) {
-				String line;
-				while ((line = br.readLine()) != null) {
-					contentBuilder.append(line).append('\n');
-				}
-				findBlueprints(event, reporting, contentBuilder.toString());
-			}
-		} catch (IOException e) {
-			reporting.addException(e);
-		}
-	}
 
 	private void findDebugOptions(BlueprintReporting reporting, String content) {
 		Matcher matcher = debugPattern.matcher(content);
@@ -152,45 +69,6 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				reporting.addWarning("Unknown Debug Option: " + fieldName);
 			} catch (SecurityException | IllegalArgumentException | IllegalAccessException e) {
 				reporting.addException(e);
-			}
-		}
-	}
-
-	private void findTextAttachments(MessageReceivedEvent event, BlueprintReporting reporting) {
-		for (Attachment attachment : event.getMessage().getAttachments()) {
-			if (attachment.getSize() < BP_MAX_SIZE) {
-				findBlueprintsInURL(event, reporting, attachment.getUrl());
-			}
-		}
-	}
-
-	private void findTextHostingSites(MessageReceivedEvent event, BlueprintReporting reporting, String content) {
-		{
-			Matcher matcher = pastebinPattern.matcher(content);
-			while (matcher.find()) {
-				String code = matcher.group(1);
-				findBlueprintsInURL(event, reporting, "https://pastebin.com/raw/" + code);
-			}
-		}
-		{
-			Matcher matcher = hastebinPattern.matcher(content);
-			while (matcher.find()) {
-				String code = matcher.group(1);
-				findBlueprintsInURL(event, reporting, "https://hastebin.com/raw/" + code);
-			}
-		}
-		{
-			Matcher matcher = gitlabSnippetPattern.matcher(content);
-			while (matcher.find()) {
-				String code = matcher.group(1);
-				findBlueprintsInURL(event, reporting, "https://gitlab.com/snippets/" + code + "/raw");
-			}
-		}
-		{
-			Matcher matcher = gistPattern.matcher(content);
-			while (matcher.find()) {
-				String code = matcher.group(1);
-				findBlueprintsInURL(event, reporting, "https://gist.githubusercontent.com/" + code + "/raw/");
 			}
 		}
 	}
@@ -214,6 +92,49 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		} else {
 			return event.getGuild().getName() + " / #" + event.getChannel().getName() + " / "
 					+ event.getAuthor().getName();
+		}
+	}
+
+	private void processBlueprints(List<BlueprintStringData> blueprintStrings, MessageReceivedEvent event,
+			BlueprintReporting reporting, String content) {
+		for (BlueprintStringData blueprintString : blueprintStrings) {
+			try {
+				event.getChannel().sendTyping().complete();
+
+				System.out.println("Parsing blueprints: " + blueprintString.getBlueprints().size());
+				if (blueprintString.getBlueprints().size() == 1) {
+					BufferedImage image = FBSR.renderBlueprint(blueprintString.getBlueprints().get(0), reporting);
+					byte[] imageData = generateDiscordFriendlyPNGImage(image);
+					Message message = event.getChannel()
+							.sendFile(new ByteArrayInputStream(imageData), "blueprint.png", null).complete();
+					reporting.addImageURL(message.getAttachments().get(0).getUrl());
+				} else {
+					try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
+							ZipOutputStream zos = new ZipOutputStream(baos)) {
+
+						int counter = 1;
+						for (Blueprint blueprint : blueprintString.getBlueprints()) {
+							try {
+								BufferedImage image = FBSR.renderBlueprint(blueprint, reporting);
+								zos.putNextEntry(new ZipEntry("blueprint " + counter + ".png"));
+								ImageIO.write(image, "PNG", zos);
+							} catch (Exception e) {
+								reporting.addException(e);
+							}
+							counter++;
+						}
+
+						zos.close();
+						byte[] zipData = baos.toByteArray();
+						Message message = event.getChannel()
+								.sendFile(new ByteArrayInputStream(zipData), "blueprint book images.zip", null)
+								.complete();
+						reporting.addDownloadURL(message.getAttachments().get(0).getUrl());
+					}
+				}
+			} catch (Exception e) {
+				reporting.addException(e);
+			}
 		}
 	}
 
@@ -325,13 +246,11 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 					BlueprintReporting reporting = new BlueprintReporting();
 					System.out.println("\n############################################################\n");
 					findDebugOptions(reporting, content);
-					findBlueprints(event, reporting, content);
-					findTextHostingSites(event, reporting, content);
-					findTextAttachments(event, reporting);
+					processBlueprints(BlueprintFinder.search(content, reporting), event, reporting, content);
 					sendReportToDemod(event, reporting);
 				})//
 				.withHelp("Renders an image of the blueprint string provided. Longer blueprints "
-						+ "can be attached as files or linked with pastebin, hastebin, or gist URLs.")//
+						+ "can be attached as files or linked with pastebin, hastebin, gitlab, or gist URLs.")//
 				//
 				.create();
 
