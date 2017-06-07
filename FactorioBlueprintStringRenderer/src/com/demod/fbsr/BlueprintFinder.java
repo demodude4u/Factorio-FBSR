@@ -36,7 +36,7 @@ public final class BlueprintFinder {
 			});
 		}), //
 
-		TEXT_URLS("\\b(?<url>(?:https?|ftp|file)://[-a-zA-Z0-9+&@#/%?=~_|!:,.;]*[-a-zA-Z0-9+&@#/%=~_|])", (m, l) -> {
+		TEXT_URLS("\\b(?<url>(?:https?|ftp)://[-a-zA-Z0-9+&@#/%?=~_|!:,.;]*[-a-zA-Z0-9+&@#/%=~_|])", (m, l) -> {
 			URL url = new URL(m.group("url"));
 			URLConnection connection = url.openConnection();
 			if (connection.getContentType().startsWith("text/plain")) {
