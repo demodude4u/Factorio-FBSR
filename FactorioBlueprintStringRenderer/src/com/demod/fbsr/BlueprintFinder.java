@@ -30,7 +30,7 @@ public final class BlueprintFinder {
 			JSONObject response = WebUtils.readJsonFromURL("https://api.github.com/gists/" + m.group("id"));
 			JSONObject filesJson = response.getJSONObject("files");
 			Utils.<JSONObject>forEach(filesJson, (k, v) -> {
-				if (v.getString("type").equals("text/plain")) {
+				if (v.getString("type").startsWith("text/plain")) {
 					l.addURL(v.getString("raw_url"));
 				}
 			});
