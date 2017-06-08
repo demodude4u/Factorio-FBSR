@@ -39,6 +39,7 @@ import com.demod.factorio.Utils;
 import com.demod.factorio.prototype.DataPrototype;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.factorio.prototype.RecipePrototype;
+import com.demod.fbsr.BlueprintReporting.Level;
 import com.demod.fbsr.Renderer.Layer;
 import com.demod.fbsr.render.TypeRendererFactory;
 import com.google.common.collect.ArrayListMultimap;
@@ -319,6 +320,13 @@ public class FBSR {
 			}
 		}
 
+		Level level = reporting.getLevel();
+		if (level != Level.INFO) {
+			g.setStroke(GRID_STROKE);
+			g.setColor(level.getColor().darker());
+			g.draw(centerBounds);
+		}
+
 		g.dispose();
 		return image;
 	}
@@ -352,7 +360,6 @@ public class FBSR {
 			@Override
 			public void render(Graphics2D g, Rectangle2D.Double bounds)
 					throws JSONException, FileNotFoundException, IOException {
-				System.out.println(bounds);
 				g.setColor(GRID_COLOR);
 				g.setFont(new Font("Monospaced", Font.BOLD, 1).deriveFont(0.4f));
 				String footerMessage;
@@ -394,7 +401,6 @@ public class FBSR {
 					if (itemName.equals(TotalRawCalculator.RAW_TIME)) {
 						image = timeIcon;
 					} else {
-						System.out.println(itemName);
 						Optional<DataPrototype> prototype = table.getItem(itemName);
 						if (!prototype.isPresent()) {
 							prototype = table.getFluid(itemName);

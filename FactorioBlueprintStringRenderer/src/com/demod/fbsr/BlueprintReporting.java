@@ -1,5 +1,6 @@
 package com.demod.fbsr;
 
+import java.awt.Color;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -7,16 +8,25 @@ import java.util.Optional;
 import com.demod.fbsr.WorldMap.Debug;
 
 public class BlueprintReporting {
+	public static enum Level {
+		INFO(Color.gray), WARN(Color.orange), ERROR(Color.red), DEBUG(Color.magenta);
+		private final Color color;
+
+		private Level(Color color) {
+			this.color = color;
+		}
+
+		public Color getColor() {
+			return color;
+		}
+	}
+
 	private Optional<Debug> debug = Optional.empty();
-	private final List<String> contexts = new ArrayList<>();
+	private Optional<String> context = Optional.empty();
 	private final List<String> warnings = new ArrayList<>();
 	private final List<Exception> exceptions = new ArrayList<>();
 	private final List<String> imageUrls = new ArrayList<>();
 	private final List<String> downloadUrls = new ArrayList<>();
-
-	public synchronized void addContext(String context) {
-		contexts.add(context);
-	}
 
 	public void addDownloadURL(String downloadURL) {
 		downloadUrls.add(downloadURL);
@@ -34,8 +44,8 @@ public class BlueprintReporting {
 		warnings.add(warning);
 	}
 
-	public List<String> getContexts() {
-		return contexts;
+	public Optional<String> getContext() {
+		return context;
 	}
 
 	public Optional<Debug> getDebug() {
@@ -54,8 +64,25 @@ public class BlueprintReporting {
 		return imageUrls;
 	}
 
+	public Level getLevel() {
+		if (!warnings.isEmpty()) {
+			return Level.WARN;
+		}
+		if (debug.isPresent()) {
+			return Level.DEBUG;
+		}
+		if (!exceptions.isEmpty()) {
+			return Level.ERROR;
+		}
+		return Level.INFO;
+	}
+
 	public List<String> getWarnings() {
 		return warnings;
+	}
+
+	public synchronized void setContext(String context) {
+		this.context = Optional.of(context);
 	}
 
 	public void setDebug(Optional<Debug> debug) {

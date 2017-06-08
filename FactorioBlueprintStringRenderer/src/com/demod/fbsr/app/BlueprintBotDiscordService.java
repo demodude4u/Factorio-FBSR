@@ -1,6 +1,5 @@
 package com.demod.fbsr.app;
 
-import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -9,7 +8,6 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.Field;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.regex.Matcher;
@@ -26,19 +24,17 @@ import com.demod.dcba.DiscordBot;
 import com.demod.fbsr.Blueprint;
 import com.demod.fbsr.BlueprintFinder;
 import com.demod.fbsr.BlueprintReporting;
+import com.demod.fbsr.BlueprintReporting.Level;
 import com.demod.fbsr.BlueprintStringData;
 import com.demod.fbsr.FBSR;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.WorldMap;
-import com.demod.fbsr.WorldMap.Debug;
 import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.Multiset;
-import com.google.common.collect.Multiset.Entry;
 import com.google.common.util.concurrent.AbstractIdleService;
 
 import net.dv8tion.jda.core.EmbedBuilder;
 import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.MessageEmbed;
 import net.dv8tion.jda.core.entities.PrivateChannel;
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent;
 
@@ -139,8 +135,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 	}
 
 	private void sendReportToDemod(MessageReceivedEvent event, BlueprintReporting reporting) {
-		Optional<Debug> debug = reporting.getDebug();
-		List<String> contexts = reporting.getContexts();
+		Optional<String> context = reporting.getContext();
 		List<Exception> exceptions = reporting.getExceptions();
 		List<String> warnings = reporting.getWarnings();
 		List<String> imageUrls = reporting.getImageURLs();
@@ -161,14 +156,9 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		builder.setAuthor(getReadableAddress(event), null, event.getAuthor().getEffectiveAvatarUrl());
 		builder.setTimestamp(Instant.now());
 
-		if (!warnings.isEmpty()) {
-			builder.setColor(Color.orange);
-		}
-		if (debug.isPresent()) {
-			builder.setColor(Color.magenta);
-		}
-		if (!exceptions.isEmpty()) {
-			builder.setColor(Color.red);
+		Level level = reporting.getLevel();
+		if (level != Level.INFO) {
+			builder.setColor(level.getColor());
 		}
 
 		boolean firstImage = true;
@@ -185,43 +175,47 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			builder.addField("Download", downloadUrl, true);
 		}
 
-		if (!warnings.isEmpty()) {
-			builder.addField("Warnings", warnings.stream().collect(Collectors.joining("\n")), false);
-		}
-
-		Multiset<String> uniqueExceptions = LinkedHashMultiset.create();
-		for (Exception e : exceptions) {
-			try (StringWriter sw = new StringWriter(); PrintWriter pw = new PrintWriter(sw)) {
-				e.printStackTrace();
-				e.printStackTrace(pw);
-				pw.flush();
-				uniqueExceptions.add(e.getClass().getSimpleName() + ": " + e.getMessage() + "#####"
-						+ sw.toString().substring(0, MessageEmbed.VALUE_MAX_LENGTH));
-			} catch (IOException e1) {
-				e1.printStackTrace();
-			}
-		}
-		for (Entry<String> entry : uniqueExceptions.entrySet()) {
-			String message = entry.getElement();
-			String[] split = message.split("#####");
-			builder.addField(split[0] + (entry.getCount() > 1 ? " (" + entry.getCount() + " times)" : ""), split[1],
+		Multiset<String> uniqueWarnings = LinkedHashMultiset.create(warnings);
+		if (!uniqueWarnings.isEmpty()) {
+			builder.addField("Warnings",
+					uniqueWarnings.entrySet().stream()
+							.map(e -> e.getElement() + (e.getCount() > 1 ? " *(**" + e.getCount() + "** times)*" : ""))
+							.collect(Collectors.joining("\n")),
 					false);
 		}
 
-		List<String> contextFiles = new ArrayList<>();
-		for (String context : contexts) {
-			if (context.length() <= MessageEmbed.VALUE_MAX_LENGTH) {
-				builder.addField("Context", context, false);
-			} else {
-				contextFiles.add(context);
+		Multiset<String> uniqueExceptions = LinkedHashMultiset.create();
+		Optional<String> exceptionFile = Optional.empty();
+		if (!exceptions.isEmpty()) {
+			try (StringWriter sw = new StringWriter(); PrintWriter pw = new PrintWriter(sw)) {
+				for (Exception e : exceptions) {
+					if (uniqueExceptions.add(e.getClass().getSimpleName() + ": " + e.getMessage())) {
+						e.printStackTrace();
+						e.printStackTrace(pw);
+						pw.flush();
+					}
+				}
+			} catch (IOException e1) {
+				e1.printStackTrace();// XXX Uh... Houston, we have a problem...
 			}
+		}
+		if (!uniqueExceptions.isEmpty()) {
+			builder.addField("Exceptions",
+					uniqueExceptions.entrySet().stream()
+							.map(e -> e.getElement() + (e.getCount() > 1 ? " *(**" + e.getCount() + "** times)*" : ""))
+							.collect(Collectors.joining("\n")),
+					false);
 		}
 
 		PrivateChannel privateChannel = event.getJDA().getUserById(USERID_DEMOD).openPrivateChannel().complete();
 		privateChannel.sendMessage(builder.build()).complete();
 
-		for (String context : contextFiles) {
-			privateChannel.sendFile(new ByteArrayInputStream(context.getBytes()), "context.txt", null).complete();
+		if (context.isPresent()) {
+			privateChannel.sendFile(new ByteArrayInputStream(context.get().getBytes()), "context.txt", null).complete();
+		}
+		if (exceptionFile.isPresent()) {
+			privateChannel.sendFile(new ByteArrayInputStream(context.get().getBytes()), "exceptions.txt", null)
+					.complete();
 		}
 	}
 
@@ -244,6 +238,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				.addCommand("blueprint", (CommandHandler) event -> {
 					String content = event.getMessage().getStrippedContent();
 					BlueprintReporting reporting = new BlueprintReporting();
+					reporting.setContext(content);
 					System.out.println("\n############################################################\n");
 					findDebugOptions(reporting, content);
 					processBlueprints(BlueprintFinder.search(content, reporting), event, reporting, content);

@@ -76,7 +76,6 @@ public final class BlueprintFinder {
 			String blueprintString;
 			while ((blueprintString = scanner.findWithinHorizon(blueprintPattern, 4000000)) != null) {
 				try {
-					reporting.addContext(blueprintString);
 					results.add(new BlueprintStringData(blueprintString));
 				} catch (Exception e) {
 					reporting.addException(e);
@@ -99,7 +98,6 @@ public final class BlueprintFinder {
 				}
 			}
 			if (results.size() != initialResultCount) {
-				reporting.addContext(content);
 				break;
 			}
 		}
