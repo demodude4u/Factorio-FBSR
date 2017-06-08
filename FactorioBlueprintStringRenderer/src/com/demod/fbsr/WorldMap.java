@@ -139,6 +139,10 @@ public class WorldMap {
 		return wires.get(key);
 	}
 
+	public Map<String, Pair<Point2D.Double, Point2D.Double>> getWires() {
+		return wires;
+	}
+
 	public boolean hasWire(String key) {
 		return wires.containsKey(key);
 	}

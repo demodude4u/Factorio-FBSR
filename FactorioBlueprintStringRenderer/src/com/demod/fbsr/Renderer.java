@@ -35,5 +35,5 @@ public abstract class Renderer {
 		return layer;
 	}
 
-	public abstract void render(Graphics2D g);
+	public abstract void render(Graphics2D g) throws Exception;
 }

@@ -66,7 +66,7 @@ public class AssemblingMachineRendering extends TypeRendererFactory {
 			Renderer delegate = RenderUtils.spriteRenderer(spriteIcon, entity, prototype);
 			register.accept(new Renderer(Layer.OVERLAY2, delegate.getBounds()) {
 				@Override
-				public void render(Graphics2D g) {
+				public void render(Graphics2D g) throws Exception {
 					g.setColor(new Color(0, 0, 0, 180));
 					g.fill(spriteIcon.bounds);
 					delegate.render(g);

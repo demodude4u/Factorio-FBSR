@@ -4,6 +4,7 @@ import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.Graphics2D;
+import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.Stroke;
 import java.awt.geom.AffineTransform;
@@ -18,22 +19,29 @@ import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
+
+import javax.imageio.ImageIO;
 
 import org.json.JSONException;
 
 import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
 import com.demod.factorio.ModInfo;
+import com.demod.factorio.TotalRawCalculator;
 import com.demod.factorio.Utils;
 import com.demod.factorio.prototype.DataPrototype;
 import com.demod.factorio.prototype.EntityPrototype;
+import com.demod.factorio.prototype.RecipePrototype;
 import com.demod.fbsr.Renderer.Layer;
 import com.demod.fbsr.render.TypeRendererFactory;
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Table;
@@ -53,11 +61,24 @@ public class FBSR {
 
 	private static final BasicStroke GRID_STROKE = new BasicStroke((float) (3 / TypeRendererFactory.tileSize));
 
-	private static final double FOOTER_HEIGHT = 0.5;
-
 	private static volatile String version = null;
 
 	private static final Map<String, Color> itemColorCache = new HashMap<>();
+
+	private static BufferedImage timeIcon = null;
+	static {
+		try {
+			timeIcon = ImageIO.read(FBSR.class.getClassLoader().getResourceAsStream("Time_icon.png"));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	private static void addToItemAmount(Map<String, Double> items, String itemName, double add) {
+		double amount = items.getOrDefault(itemName, 0.0);
+		amount += add;
+		items.put(itemName, amount);
+	}
 
 	private static void alignRenderingTuplesToGrid(List<RenderingTuple> renderingTuples) {
 		Multiset<Boolean> xAligned = LinkedHashMultiset.create();
@@ -109,49 +130,89 @@ public class FBSR {
 		}
 	}
 
-	private static BufferedImage applyRendering(BlueprintReporting reporting, int tileSize, List<Renderer> renderers)
+	private static BufferedImage applyRendering(BlueprintReporting reporting, int tileSize, List<Renderer> renderers,
+			ArrayListMultimap<Direction, PanelRenderer> borderPanels)
 			throws JSONException, FileNotFoundException, IOException {
-		Rectangle2D.Double bounds = computeBounds(renderers);
-		bounds.setFrameFromDiagonal(Math.floor(bounds.getMinX()) - 1, Math.floor(bounds.getMinY()) - 1,
-				Math.ceil(bounds.getMaxX()) + 1, Math.ceil(bounds.getMaxY()) + 1 + FOOTER_HEIGHT);
-		BufferedImage image = new BufferedImage((int) (bounds.getWidth() * tileSize),
-				(int) (bounds.getHeight() * tileSize), BufferedImage.TYPE_INT_RGB);
+
+		Rectangle2D.Double worldBounds = computeBounds(renderers);
+		worldBounds.setFrameFromDiagonal(Math.floor(worldBounds.getMinX()) - 1, Math.floor(worldBounds.getMinY()) - 1,
+				Math.ceil(worldBounds.getMaxX()) + 1, Math.ceil(worldBounds.getMaxY()) + 1);
+
+		Rectangle2D.Double centerBounds = new Rectangle2D.Double(worldBounds.x, worldBounds.y, worldBounds.width,
+				worldBounds.height);
+		for (Entry<Direction, PanelRenderer> entry : borderPanels.entries()) {
+			Direction dir = entry.getKey();
+			PanelRenderer panel = entry.getValue();
+			switch (dir) {
+			case NORTH:
+			case SOUTH:
+				centerBounds.width = Math.max(centerBounds.width, panel.minWidth);
+				break;
+			case EAST:
+			case WEST:
+				centerBounds.height = Math.max(centerBounds.height, panel.minHeight);
+				break;
+			default:
+				System.err.println("INVALID BORDER DIRECTION: " + dir);
+				break;
+			}
+		}
+		double borderTop = 0, borderRight = 0, borderBottom = 0, borderLeft = 0;
+		double borderRightBudget = 0;
+		for (Entry<Direction, PanelRenderer> entry : borderPanels.entries()) {
+			Direction dir = entry.getKey();
+			PanelRenderer panel = entry.getValue();
+			switch (dir) {
+			case NORTH:
+				borderTop += panel.minHeight;
+				break;
+			case EAST:
+				if (borderRightBudget + panel.minHeight > centerBounds.height) {
+					borderRightBudget = 0;
+				}
+				if (borderRightBudget == 0) {
+					borderRight += panel.minWidth;
+				}
+				borderRightBudget += panel.minHeight;
+				break;
+			case SOUTH:
+				borderBottom += panel.minHeight;
+				break;
+			case WEST:
+				borderLeft += panel.minWidth;
+				break;
+			default:
+				System.err.println("INVALID BORDER DIRECTION: " + dir);
+				break;
+			}
+		}
+		Rectangle2D.Double totalBounds = new Rectangle2D.Double(centerBounds.x - borderLeft, centerBounds.y - borderTop,
+				centerBounds.width + borderLeft + borderRight, centerBounds.height + borderTop + borderBottom);
+
+		BufferedImage image = new BufferedImage((int) (totalBounds.getWidth() * tileSize),
+				(int) (totalBounds.getHeight() * tileSize), BufferedImage.TYPE_INT_RGB);
 		Graphics2D g = image.createGraphics();
 
 		g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 		g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
 
-		g.scale(image.getWidth() / bounds.getWidth(), image.getHeight() / bounds.getHeight());
-		g.translate(-bounds.getX(), -bounds.getY());
+		g.scale(image.getWidth() / totalBounds.getWidth(), image.getHeight() / totalBounds.getHeight());
+		g.translate(-totalBounds.getX(), -totalBounds.getY());
 		AffineTransform worldXform = g.getTransform();
 
 		// Background
 		g.setColor(GROUND_COLOR);
-		g.fill(bounds);
+		g.fill(totalBounds);
 
 		// Grid Lines
 		g.setStroke(GRID_STROKE);
 		g.setColor(GRID_COLOR);
-		for (double x = Math.round(bounds.getMinX()); x <= bounds.getMaxX(); x++) {
-			g.draw(new Line2D.Double(x, bounds.getMinY(), x, bounds.getMaxY()));
+		for (double x = Math.round(worldBounds.getMinX()); x <= worldBounds.getMaxX(); x++) {
+			g.draw(new Line2D.Double(x, worldBounds.getMinY(), x, worldBounds.getMaxY()));
 		}
-		for (double y = Math.round(bounds.getMinY()); y <= bounds.getMaxY(); y++) {
-			g.draw(new Line2D.Double(bounds.getMinX(), y, bounds.getMaxX(), y));
+		for (double y = Math.round(worldBounds.getMinY()); y <= worldBounds.getMaxY(); y++) {
+			g.draw(new Line2D.Double(worldBounds.getMinX(), y, worldBounds.getMaxX(), y));
 		}
-
-		// Footer
-		g.setColor(GROUND_COLOR);
-		g.fill(new Rectangle2D.Double(bounds.getMinX(),
-				bounds.getMaxY() - FOOTER_HEIGHT + GRID_STROKE.getLineWidth() / 2f, bounds.getWidth(), FOOTER_HEIGHT));
-		g.setColor(GRID_COLOR);
-		g.setFont(new Font("Monospaced", Font.BOLD, 1).deriveFont(0.4f));
-		String footerMessage;
-		if (bounds.getWidth() > 5.5) {
-			footerMessage = "Made by BlueprintBot - Factorio " + getVersion();
-		} else {
-			footerMessage = "BlueprintBot";
-		}
-		g.drawString(footerMessage, (float) (bounds.getMinX() + 0.11), (float) (bounds.getMaxY() - 0.11));
 
 		renderers.stream().sorted((r1, r2) -> {
 			int ret;
@@ -185,28 +246,77 @@ public class FBSR {
 		});
 		g.setTransform(worldXform);
 
-		// g.setColor(Color.cyan);
-		// Rectangle2D.Double dot = new Rectangle2D.Double(0, 0, 0.1, 0.1);
-		// renderers.forEach(r -> {
-		// dot.x = r.getBounds().getCenterX() - dot.width / 2.0;
-		// dot.y = r.getBounds().getCenterY() - dot.height / 2.0;
-		// g.draw(dot);
-		// });
-
 		// Grid Numbers
 		g.setColor(GRID_COLOR);
 		g.setFont(new Font("Monospaced", Font.BOLD, 1).deriveFont(0.6f));
-		for (double x = Math.round(bounds.getMinX()) + 1, i = 1; x <= bounds.getMaxX() - 2; x++, i++) {
+		for (double x = Math.round(worldBounds.getMinX()) + 1, i = 1; x <= worldBounds.getMaxX() - 2; x++, i++) {
 			g.drawString(String.format("%02d", (int) Math.round(i) % 100), (float) x + 0.2f,
-					(float) (bounds.getMaxY() - 1 + 0.65f - FOOTER_HEIGHT));
+					(float) (worldBounds.getMaxY() - 1 + 0.65f));
 			g.drawString(String.format("%02d", (int) Math.round(i) % 100), (float) x + 0.2f,
-					(float) (bounds.getMinY() + 0.65f));
+					(float) (worldBounds.getMinY() + 0.65f));
 		}
-		for (double y = Math.round(bounds.getMinY()) + 1, i = 1; y <= bounds.getMaxY() - 2; y++, i++) {
-			g.drawString(String.format("%02d", (int) Math.round(i) % 100), (float) (bounds.getMaxX() - 1 + 0.2f),
+		for (double y = Math.round(worldBounds.getMinY()) + 1, i = 1; y <= worldBounds.getMaxY() - 2; y++, i++) {
+			g.drawString(String.format("%02d", (int) Math.round(i) % 100), (float) (worldBounds.getMaxX() - 1 + 0.2f),
 					(float) y + 0.65f);
-			g.drawString(String.format("%02d", (int) Math.round(i) % 100), (float) (bounds.getMinX() + 0.2f),
+			g.drawString(String.format("%02d", (int) Math.round(i) % 100), (float) (worldBounds.getMinX() + 0.2f),
 					(float) y + 0.65f);
+		}
+
+		{
+			Rectangle2D.Double bounds = new Rectangle2D.Double(centerBounds.getMinX(), centerBounds.getMinY(), 0, 0);
+			for (PanelRenderer panel : borderPanels.get(Direction.NORTH)) {
+				bounds.y -= panel.minHeight;
+				bounds.width = centerBounds.width;
+				bounds.height = panel.minHeight;
+				try {
+					panel.render(g, bounds);
+				} catch (Exception e) {
+					reporting.addException(e);
+				}
+			}
+		}
+		{
+			Rectangle2D.Double bounds = new Rectangle2D.Double(centerBounds.getMaxX(), centerBounds.getMinY(), 0, 0);
+			for (PanelRenderer panel : borderPanels.get(Direction.EAST)) {
+				if (bounds.y + panel.minHeight > centerBounds.getMaxY()) {
+					bounds.y = centerBounds.getMinY();
+					bounds.x += panel.minWidth;
+				}
+				bounds.width = panel.minWidth;
+				bounds.height = panel.minHeight;
+				try {
+					panel.render(g, bounds);
+				} catch (Exception e) {
+					reporting.addException(e);
+				}
+				bounds.y += panel.minHeight;
+			}
+		}
+		{
+			Rectangle2D.Double bounds = new Rectangle2D.Double(centerBounds.getMinX(), centerBounds.getMaxY(), 0, 0);
+			for (PanelRenderer panel : borderPanels.get(Direction.SOUTH)) {
+				bounds.width = centerBounds.width;
+				bounds.height = panel.minHeight;
+				try {
+					panel.render(g, bounds);
+				} catch (Exception e) {
+					reporting.addException(e);
+				}
+				bounds.y += panel.minHeight;
+			}
+		}
+		{
+			Rectangle2D.Double bounds = new Rectangle2D.Double(centerBounds.getMinX(), centerBounds.getMinY(), 0, 0);
+			for (PanelRenderer panel : borderPanels.get(Direction.WEST)) {
+				bounds.x -= panel.minWidth;
+				bounds.width = panel.minWidth;
+				bounds.height = centerBounds.height;
+				try {
+					panel.render(g, bounds);
+				} catch (Exception e) {
+					reporting.addException(e);
+				}
+			}
 		}
 
 		g.dispose();
@@ -235,6 +345,112 @@ public class FBSR {
 			}
 		}
 		return new Rectangle2D.Double(minX, minY, maxX - minX, maxY - minY);
+	}
+
+	private static PanelRenderer createFooterPanel() {
+		return new PanelRenderer(0, 0.5) {
+			@Override
+			public void render(Graphics2D g, Rectangle2D.Double bounds)
+					throws JSONException, FileNotFoundException, IOException {
+				System.out.println(bounds);
+				g.setColor(GRID_COLOR);
+				g.setFont(new Font("Monospaced", Font.BOLD, 1).deriveFont(0.4f));
+				String footerMessage;
+				if (bounds.width > 5.5) {
+					footerMessage = "Made by BlueprintBot - Factorio " + getVersion();
+				} else {
+					footerMessage = "BlueprintBot";
+				}
+				g.drawString(footerMessage, (float) (bounds.getMinX() + 0.11), (float) (bounds.getMaxY() - 0.11));
+			}
+		};
+	}
+
+	private static PanelRenderer createItemListPanel(DataTable table, String title, Map<String, Double> items) {
+		final double header = 0.8;
+		final double spacing = 0.7;
+		final double iconSize = 0.6;
+		return new PanelRenderer(3.0, header + items.size() * spacing + 0.2) {
+			@Override
+			public void render(Graphics2D g, Rectangle2D.Double bounds) throws Exception {
+				g.setColor(GRID_COLOR);
+				g.setStroke(GRID_STROKE);
+				g.draw(bounds);
+
+				g.setFont(new Font("Monospaced", Font.BOLD, 1).deriveFont(0.6f));
+				g.drawString(title, (float) bounds.x + 0.3f, (float) bounds.y + 0.65f);
+
+				double startX = bounds.x + 0.6;
+				double startY = bounds.y + header + spacing / 2.0;
+				Rectangle2D.Double spriteBox = new Rectangle2D.Double(startX - iconSize / 2.0, startY - iconSize / 2.0,
+						iconSize, iconSize);
+				Point2D.Double textPos = new Point2D.Double(startX + 0.5, startY + 0.18);
+
+				items.entrySet().stream().sorted((e1, e2) -> e1.getKey().compareTo(e2.getKey())).forEach(e -> {
+					String itemName = e.getKey();
+					double amount = e.getValue();
+
+					BufferedImage image;
+					if (itemName.equals(TotalRawCalculator.RAW_TIME)) {
+						image = timeIcon;
+					} else {
+						System.out.println(itemName);
+						Optional<DataPrototype> prototype = table.getItem(itemName);
+						if (!prototype.isPresent()) {
+							prototype = table.getFluid(itemName);
+						}
+						image = FactorioData.getIcon(prototype.get());
+					}
+					RenderUtils.drawImageInBounds(image, new Rectangle(0, 0, image.getWidth(), image.getHeight()),
+							spriteBox, g);
+
+					g.setColor(GRID_COLOR);
+					g.drawString(RenderUtils.fmtDouble(Math.ceil(amount)), (float) textPos.x, (float) textPos.y);
+
+					spriteBox.y += spacing;
+					textPos.y += spacing;
+				});
+			}
+		};
+	}
+
+	private static Map<String, Double> generateTotalItems(DataTable table, WorldMap map, Blueprint blueprint) {
+		Map<String, Double> ret = new LinkedHashMap<>();
+		for (BlueprintEntity entity : blueprint.getEntities()) {
+			String itemName = entity.getName();
+			if (!table.getItem(itemName).isPresent()) {
+				continue;
+			}
+			addToItemAmount(ret, itemName, 1);
+		}
+		for (String key : map.getWires().keySet()) {
+			if (key.contains("red")) {
+				addToItemAmount(ret, "red-wire", 1);
+			} else if (key.contains("green")) {
+				addToItemAmount(ret, "green-wire", 1);
+			}
+		}
+		return ret;
+	}
+
+	private static Map<String, Double> generateTotalRawItems(DataTable table, Map<String, RecipePrototype> recipes,
+			Map<String, Double> totalItems) {
+		Map<String, Double> ret = new LinkedHashMap<>();
+		TotalRawCalculator calculator = new TotalRawCalculator(recipes);
+		for (Entry<String, Double> entry : totalItems.entrySet()) {
+			String recipeName = entry.getKey();
+			double recipeAmount = entry.getValue();
+			table.getRecipe(recipeName).ifPresent(r -> {
+				double multiplier = recipeAmount / r.getOutputs().get(recipeName);
+				Map<String, Double> totalRaw = calculator.compute(r);
+				for (Entry<String, Double> entry2 : totalRaw.entrySet()) {
+					String itemName = entry2.getKey();
+					double itemAmount = entry2.getValue();
+					addToItemAmount(ret, itemName, itemAmount * multiplier);
+				}
+			});
+		}
+		return ret;
 	}
 
 	private static Color getItemLogisticColor(DataTable table, String itemName) {
@@ -412,7 +628,18 @@ public class FBSR {
 
 		showLogisticGrid(renderers::add, table, map);
 
-		return applyRendering(reporting, (int) Math.round(TypeRendererFactory.tileSize), renderers);
+		ArrayListMultimap<Direction, PanelRenderer> borderPanels = ArrayListMultimap.create();
+		borderPanels.put(Direction.SOUTH, createFooterPanel());
+
+		Map<String, Double> totalItems = generateTotalItems(table, map, blueprint);
+		borderPanels.put(Direction.EAST, createItemListPanel(table, "TOTAL", totalItems));
+		borderPanels.put(Direction.EAST,
+				createItemListPanel(table, "RAW", generateTotalRawItems(table, table.getRecipes(), totalItems)));
+		// borderPanels.put(Direction.EAST, createItemListPanel(table, "ExRAW",
+		// generateTotalRawItems(table, table.getExpensiveRecipes(),
+		// totalItems)));
+
+		return applyRendering(reporting, (int) Math.round(TypeRendererFactory.tileSize), renderers, borderPanels);
 	}
 
 	private static void showLogisticGrid(Consumer<Renderer> register, DataTable table, WorldMap map) {

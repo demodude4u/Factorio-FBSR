@@ -66,6 +66,14 @@ public final class RenderUtils {
 		drawImageInBounds(sprite.image, sprite.source, sprite.bounds, g);
 	}
 
+	public static String fmtDouble(double value) {
+		if (value == (long) value) {
+			return String.format("%d", (long) value);
+		} else {
+			return Double.toString(value);// String.format("%f", value);
+		}
+	}
+
 	public static Color getAverageColor(BufferedImage image) {
 		int[] pixels = image.getRGB(0, 0, image.getWidth(), image.getHeight(), null, 0, image.getWidth());
 		float sumR = 0, sumG = 0, sumB = 0, sumA = 0;

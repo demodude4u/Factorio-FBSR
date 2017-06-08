@@ -91,7 +91,7 @@ public class InserterRendering extends TypeRendererFactory {
 				Renderer delegate = RenderUtils.spriteRenderer(spriteIcon, entity, prototype);
 				register.accept(new Renderer(Layer.OVERLAY2, delegate.getBounds()) {
 					@Override
-					public void render(Graphics2D g) {
+					public void render(Graphics2D g) throws Exception {
 						g.setColor(new Color(0, 0, 0, 128));
 						g.fill(spriteIcon.bounds);
 						delegate.render(g);
