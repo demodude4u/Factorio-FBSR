@@ -36,6 +36,8 @@ public final class BlueprintFinder {
 			});
 		}), //
 
+		DROPBOX("\\b(?<url>https://www\\.dropbox\\.com/s/[^\\s?]+)", m -> m.group("url") + "?raw=1"), //
+
 		TEXT_URLS("\\b(?<url>(?:https?|ftp)://[-a-zA-Z0-9+&@#/%?=~_|!:,.;]*[-a-zA-Z0-9+&@#/%=~_|])", (m, l) -> {
 			URL url = new URL(m.group("url"));
 			URLConnection connection = url.openConnection();
