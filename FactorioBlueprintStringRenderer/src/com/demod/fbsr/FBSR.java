@@ -528,32 +528,34 @@ public class FBSR {
 			}
 		});
 
-		logisticGrid.cellSet().stream().filter(c -> c.getValue().isTransitEnd()).forEach(c -> {
-			Set<String> inputs = c.getValue().getInputs().get();
-			for (String item : inputs) {
-				work.add(new Pair<>(map.getLogisticCellPosition(c), c.getValue()));
-				while (!work.isEmpty()) {
-					Pair<Point2D.Double, LogisticGridCell> pair = work.pop();
-					Point2D.Double cellPos = pair.getKey();
-					LogisticGridCell cell = pair.getValue();
-					if (cell.addTransit(item)) {
-						cell.getMovedFrom().ifPresent(l -> {
-							for (Direction d : l) {
-								Point2D.Double nextCellPos = d.offset(cellPos, 0.5);
-								map.getLogisticGridCell(nextCellPos).filter(nc -> !nc.isBlockTransit())
-										.ifPresent(next -> work.add(new Pair<>(nextCellPos, next)));
-							}
-						});
-						cell.getWarpedFrom().ifPresent(l -> {
-							for (Point2D.Double p : l) {
-								map.getLogisticGridCell(p).filter(nc -> !nc.isBlockTransit())
-										.ifPresent(next -> work.add(new Pair<>(p, next)));
-							}
-						});
+		if (map.getDebug().inputs) {
+			logisticGrid.cellSet().stream().filter(c -> c.getValue().isTransitEnd()).forEach(c -> {
+				Set<String> inputs = c.getValue().getInputs().get();
+				for (String item : inputs) {
+					work.add(new Pair<>(map.getLogisticCellPosition(c), c.getValue()));
+					while (!work.isEmpty()) {
+						Pair<Point2D.Double, LogisticGridCell> pair = work.pop();
+						Point2D.Double cellPos = pair.getKey();
+						LogisticGridCell cell = pair.getValue();
+						if (cell.addTransit(item)) {
+							cell.getMovedFrom().ifPresent(l -> {
+								for (Direction d : l) {
+									Point2D.Double nextCellPos = d.offset(cellPos, 0.5);
+									map.getLogisticGridCell(nextCellPos).filter(nc -> !nc.isBlockTransit())
+											.ifPresent(next -> work.add(new Pair<>(nextCellPos, next)));
+								}
+							});
+							cell.getWarpedFrom().ifPresent(l -> {
+								for (Point2D.Double p : l) {
+									map.getLogisticGridCell(p).filter(nc -> !nc.isBlockTransit())
+											.ifPresent(next -> work.add(new Pair<>(p, next)));
+								}
+							});
+						}
 					}
 				}
-			}
-		});
+			});
+		}
 
 	}
 
