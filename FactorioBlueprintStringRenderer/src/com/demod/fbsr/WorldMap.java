@@ -42,6 +42,7 @@ public class WorldMap {
 	}
 
 	public static class Debug {
+		public boolean typeMapping = false;
 		public boolean inputs = false;
 		public boolean logistic = false;
 		public boolean rail = false;

@@ -1,8 +1,10 @@
 package com.demod.fbsr.render;
 
 import java.awt.Color;
+import java.awt.Font;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
+import java.awt.geom.Ellipse2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Point2D.Double;
 import java.awt.geom.Rectangle2D;
@@ -44,28 +46,38 @@ import javafx.util.Pair;
 public class TypeRendererFactory {
 
 	private static List<String> defaultProperties = ImmutableList.of("animation", "off_animation", "structure");
-	protected static final TypeRendererFactory DEFAULT = new TypeRendererFactory() {
-		Set<String> defaultedTypes = new HashSet<>();
+
+	public static final TypeRendererFactory UNKNOWN = new TypeRendererFactory() {
+		Set<String> labeledTypes = new HashSet<>();
 
 		@Override
 		public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
 				BlueprintEntity entity, EntityPrototype prototype) {
-			super.createRenderers(register, map, dataTable, entity, prototype);
-			register.accept(new Renderer(Layer.OVERLAY3, entity.getPosition()) {
+			Point2D.Double pos = entity.getPosition();
+			Rectangle2D.Double bounds = new Rectangle2D.Double(pos.x - 0.5, pos.y - 0.5, 1.0, 1.0);
+			register.accept(new Renderer(Layer.OVERLAY3, bounds) {
 				@Override
 				public void render(Graphics2D g) {
 					g.setColor(RenderUtils.withAlpha(
-							Color.getHSBColor(new Random(prototype.getName().hashCode()).nextFloat(), 1f, 1f), 128));
-					g.fill(new Rectangle2D.Double(bounds.x - 0.5, bounds.y - 0.5, 1, 1));
+							Color.getHSBColor(new Random(entity.getName().hashCode()).nextFloat(), 0.6f, 0.4f), 128));
+					g.fill(new Ellipse2D.Double(bounds.x, bounds.y, bounds.width, bounds.height));
+					g.setColor(Color.gray);
+					g.setFont(new Font("Monospaced", Font.BOLD, 1).deriveFont(1f));
+					g.drawString("?", (float) bounds.getCenterX() - 0.25f, (float) bounds.getCenterY() + 0.3f);
 				}
 			});
-			register.accept(new Renderer(Layer.OVERLAY4, entity.getPosition()) {
+			register.accept(new Renderer(Layer.OVERLAY4, bounds) {
 				@Override
 				public void render(Graphics2D g) {
-					if (defaultedTypes.add(prototype.getType())) {
-						g.setFont(g.getFont().deriveFont(0.5f));
+					if (labeledTypes.add(entity.getName())) {
+						g.setFont(g.getFont().deriveFont(0.4f));
+						float textX = (float) bounds.x;
+						float textY = (float) (bounds.y
+								+ bounds.height * new Random(entity.getName().hashCode()).nextFloat());
+						g.setColor(Color.darkGray);
+						g.drawString(entity.getName(), textX + 0.05f, textY + 0.05f);
 						g.setColor(Color.white);
-						g.drawString(prototype.getType(), (float) bounds.x, (float) bounds.y);
+						g.drawString(entity.getName(), textX, textY);
 					}
 				}
 			});
@@ -74,17 +86,14 @@ public class TypeRendererFactory {
 		@Override
 		public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity,
 				EntityPrototype prototype) {
-			super.populateWorldMap(map, dataTable, entity, prototype);
-
-			if (!defaultedTypes.isEmpty()) {
-				defaultedTypes.clear();
+			if (!labeledTypes.isEmpty()) {
+				labeledTypes.clear();
 			}
 		}
 	};
 
 	private static Map<String, TypeRendererFactory> byType = new HashMap<>();
 	static {
-		byType.put("", DEFAULT);
 		byType.put("accumulator", new AccumulatorRendering());
 		byType.put("ammo-turret", new AmmoTurretRendering());
 		byType.put("arithmetic-combinator", new ArithmeticCombinatorRendering());
@@ -141,7 +150,7 @@ public class TypeRendererFactory {
 	}
 
 	public static TypeRendererFactory forType(String type) {
-		return byType.getOrDefault(type, DEFAULT);
+		return Optional.of(byType.get(type)).orElseThrow(IllegalArgumentException::new);
 	}
 
 	protected void addLogisticWarp(WorldMap map, Double gridPos1, Direction cellDir1, Double gridPos2,

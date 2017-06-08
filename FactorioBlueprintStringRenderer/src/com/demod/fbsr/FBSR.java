@@ -90,8 +90,13 @@ public class FBSR {
 				continue; // XXX
 			}
 
-			Rectangle2D.Double selectionBox = tuple.prototype.getSelectionBox();
 			Point2D.Double position = tuple.entity.getPosition();
+			Rectangle2D.Double selectionBox;
+			if (tuple.prototype != null) {
+				selectionBox = tuple.prototype.getSelectionBox();
+			} else {
+				selectionBox = new Rectangle2D.Double();
+			}
 			Rectangle2D.Double bounds = new Rectangle2D.Double(selectionBox.x + position.x, selectionBox.y + position.y,
 					selectionBox.width, selectionBox.height);
 			// System.out.println(bounds);
@@ -577,13 +582,16 @@ public class FBSR {
 			tuple.entity = entity;
 			Optional<EntityPrototype> prototype = table.getEntity(entity.getName());
 			if (!prototype.isPresent()) {
+				tuple.prototype = null;
+				tuple.factory = TypeRendererFactory.UNKNOWN;
 				reporting.addWarning("Cant find prototype for " + entity.getName());
-				continue;
+			} else {
+				tuple.prototype = prototype.get();
+				tuple.factory = TypeRendererFactory.forType(tuple.prototype.getType());
+				if (map.getDebug().typeMapping) {
+					reporting.addWarning(entity.getName() + " -> " + tuple.factory.getClass().getSimpleName());
+				}
 			}
-			tuple.prototype = prototype.get();
-			tuple.factory = TypeRendererFactory.forType(tuple.prototype.getType());
-			// System.out.println("\t" + entity.getName() + " -> " +
-			// tuple.factory.getClass().getSimpleName());
 			renderingTuples.add(tuple);
 		}
 		alignRenderingTuplesToGrid(renderingTuples);
