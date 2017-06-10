@@ -127,7 +127,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 	}
 
 	private void processBlueprints(List<BlueprintStringData> blueprintStrings, MessageReceivedEvent event,
-			BlueprintReporting reporting, String content) {
+			BlueprintReporting reporting) {
 		for (BlueprintStringData blueprintString : blueprintStrings) {
 			try {
 				event.getChannel().sendTyping().complete();
@@ -280,7 +280,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 					reporting.setContext(content);
 					System.out.println("\n############################################################\n");
 					findDebugOptions(reporting, content);
-					processBlueprints(BlueprintFinder.search(content, reporting), event, reporting, content);
+					processBlueprints(BlueprintFinder.search(content, reporting), event, reporting);
 					sendReportToDemod(event, reporting);
 				})//
 				.withHelp("Renders an image of the blueprint string provided. Longer blueprints "
