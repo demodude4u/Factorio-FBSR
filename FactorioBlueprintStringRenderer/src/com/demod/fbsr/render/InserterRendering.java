@@ -4,6 +4,7 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.geom.AffineTransform;
+import java.awt.geom.Path2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
@@ -38,6 +39,23 @@ public class InserterRendering extends TypeRendererFactory {
 					{ 1, 1, -1 },// West
 			};
 
+	private static final Path2D.Double placeMarkerShape = new Path2D.Double();
+	private static final Path2D.Double grabMarkerShape = new Path2D.Double();
+	static {
+		final double inset = 0.15;
+
+		placeMarkerShape.moveTo(-0.5 + inset, 0.5 - inset);
+		placeMarkerShape.lineTo(0.5 - inset, 0.5 - inset);
+		placeMarkerShape.lineTo(0, 0 + inset);
+		placeMarkerShape.closePath();
+
+		grabMarkerShape.moveTo(-0.5 + inset, -0.5 + inset);
+		grabMarkerShape.lineTo(0.5 - inset, -0.5 + inset);
+		grabMarkerShape.lineTo(0.5 - inset, -0.5 + inset + 0.15);
+		grabMarkerShape.lineTo(-0.5 + inset, -0.5 + inset + 0.15);
+		grabMarkerShape.closePath();
+	}
+
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
 			EntityPrototype prototype) {
@@ -51,6 +69,8 @@ public class InserterRendering extends TypeRendererFactory {
 		// getSpriteFromAnimation(prototype.lua().get("hand_base_picture"));
 		Sprite spriteArmHand = RenderUtils.getSpriteFromAnimation(prototype.lua().get("hand_open_picture"));
 		double armStretch = -prototype.lua().get("pickup_position").get(2).todouble();
+		Point2D.Double inPos = dir.offset(pos, armStretch);
+		Point2D.Double outPos = dir.offset(pos, -armStretch);
 
 		register.accept(RenderUtils.spriteRenderer(sprite, entity, prototype));
 		register.accept(new Renderer(Layer.ENTITY2, sprite.bounds) {
@@ -58,18 +78,54 @@ public class InserterRendering extends TypeRendererFactory {
 			public void render(Graphics2D g) {
 				AffineTransform pat = g.getTransform();
 
-				{
-					Rectangle2D.Double bounds = spriteArmHand.bounds;
-					Rectangle source = spriteArmHand.source;
-					BufferedImage image = spriteArmHand.image;
+				Rectangle2D.Double bounds = spriteArmHand.bounds;
+				Rectangle source = spriteArmHand.source;
+				BufferedImage image = spriteArmHand.image;
 
-					g.translate(pos.x, pos.y);
-					g.rotate(dir.back().ordinal() * Math.PI / 4.0);
-					g.translate(bounds.x, 0);
-					g.scale(bounds.width, armStretch);
-					g.drawImage(image, 0, 1, 1, 0, source.x, source.y, source.x + source.width,
-							source.y + source.height, null);
-				}
+				g.translate(pos.x, pos.y);
+				g.rotate(dir.back().ordinal() * Math.PI / 4.0);
+				g.translate(bounds.x, 0);
+				g.scale(bounds.width, armStretch);
+				g.drawImage(image, 0, 1, 1, 0, source.x, source.y, source.x + source.width, source.y + source.height,
+						null);
+
+				g.setTransform(pat);
+			}
+		});
+		register.accept(new Renderer(Layer.OVERLAY, sprite.bounds) {
+			@Override
+			public void render(Graphics2D g) throws Exception {
+				AffineTransform pat = g.getTransform();
+
+				Color color = Color.yellow;
+				Color shadow = Color.darkGray;
+				double shadowShift = 0.07;
+
+				g.setTransform(pat);
+				g.translate(inPos.x, inPos.y);
+				g.translate(shadowShift, shadowShift);
+				g.rotate(dir.back().ordinal() * Math.PI / 4.0);
+				g.setColor(shadow);
+				g.fill(grabMarkerShape);
+
+				g.setTransform(pat);
+				g.translate(inPos.x, inPos.y);
+				g.rotate(dir.back().ordinal() * Math.PI / 4.0);
+				g.setColor(color);
+				g.fill(grabMarkerShape);
+
+				g.setTransform(pat);
+				g.translate(outPos.x, outPos.y);
+				g.translate(shadowShift, shadowShift);
+				g.rotate(dir.back().ordinal() * Math.PI / 4.0);
+				g.setColor(shadow);
+				g.fill(placeMarkerShape);
+
+				g.setTransform(pat);
+				g.translate(outPos.x, outPos.y);
+				g.rotate(dir.back().ordinal() * Math.PI / 4.0);
+				g.setColor(color);
+				g.fill(placeMarkerShape);
 
 				g.setTransform(pat);
 			}
