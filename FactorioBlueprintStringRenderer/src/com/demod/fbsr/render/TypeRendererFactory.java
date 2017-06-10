@@ -162,9 +162,18 @@ public class TypeRendererFactory {
 			EntityPrototype prototype) {
 		if (entity.json().has("items")) {
 			Multiset<String> modules = LinkedHashMultiset.create();
-			Utils.forEach(entity.json().getJSONObject("items"), (String itemName, Integer count) -> {
-				modules.add(itemName, count);
-			});
+
+			Object itemsJson = entity.json().get("items");
+			if (itemsJson instanceof JSONObject) {
+				Utils.forEach(entity.json().getJSONObject("items"), (String itemName, Integer count) -> {
+					modules.add(itemName, count);
+				});
+			} else if (itemsJson instanceof JSONArray) {
+				Utils.<JSONObject>forEach(entity.json().getJSONArray("items"), j -> {
+					modules.add(j.getString("item"), j.getInt("count"));
+				});
+			}
+
 			register.accept(new Renderer(Layer.OVERLAY3, entity.getPosition()) {
 				final double spacing = 0.7;
 				final double shadow = 0.6;
