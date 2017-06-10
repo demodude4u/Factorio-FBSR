@@ -196,6 +196,11 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			builder.setColor(level.getColor());
 		}
 
+		if (context.isPresent() && context.get().length() <= 200) {
+			builder.addField("Context", context.get(), false);
+			context = Optional.empty();// XXX Being lazy at 5am
+		}
+
 		boolean firstImage = true;
 		for (String imageUrl : imageUrls) {
 			if (firstImage) {
