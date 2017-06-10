@@ -4,12 +4,14 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.Field;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -21,6 +23,10 @@ import javax.imageio.ImageIO;
 import com.demod.dcba.CommandHandler;
 import com.demod.dcba.DCBA;
 import com.demod.dcba.DiscordBot;
+import com.demod.factorio.DataTable;
+import com.demod.factorio.FactorioData;
+import com.demod.factorio.Utils;
+import com.demod.factorio.prototype.DataPrototype;
 import com.demod.fbsr.Blueprint;
 import com.demod.fbsr.BlueprintFinder;
 import com.demod.fbsr.BlueprintReporting;
@@ -49,6 +55,35 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 	}
 
 	private DiscordBot bot;
+
+	private CommandHandler createPrototypeCommandHandler(Function<String, Optional<? extends DataPrototype>> query) {
+		return event -> {
+			String content = event.getMessage().getStrippedContent();
+
+			String[] args = content.split("\\s");
+			if (args.length < 2) {
+				event.getChannel().sendMessage("You didn't specify a prototype name!").complete();
+				return;
+			}
+
+			Optional<? extends DataPrototype> prototype = query.apply(args[1]);
+			if (!prototype.isPresent()) {
+				event.getChannel().sendMessage("I could not find the prototype for `" + args[1] + "`. :frowning:");
+				return;
+			}
+
+			try (ByteArrayOutputStream baos = new ByteArrayOutputStream(); PrintStream ps = new PrintStream(baos)) {
+				ps.println("Lua Data Dump of " + prototype.get().getName() + " for Factorio " + FBSR.getVersion());
+				ps.println();
+				Utils.debugPrintLua(prototype.get().lua(), ps);
+				ps.flush();
+				event.getChannel().sendFile(baos.toByteArray(),
+						prototype.get().getName() + "_dump_" + FBSR.getVersion() + ".txt", null).complete();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		};
+	}
 
 	private void findDebugOptions(BlueprintReporting reporting, String content) {
 		Matcher matcher = debugPattern.matcher(content);
@@ -227,6 +262,9 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 	@Override
 	protected void startUp() throws Exception {
+		DataTable table = FactorioData.getTable();
+		System.out.println("Factorio " + FBSR.getVersion() + " Data Loaded.");
+
 		bot = DCBA.builder()//
 				.withCommandPrefix("-")
 				//
@@ -236,7 +274,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				.withTechnology("FactorioDataWrapper", "Factorio Data Scraper")//
 				.withCredits("Attribution", "Factorio - Made by Wube Software")//
 				//
-				.addCommand("blueprint", (CommandHandler) event -> {
+				.addCommand("blueprint", event -> {
 					String content = event.getMessage().getStrippedContent();
 					BlueprintReporting reporting = new BlueprintReporting();
 					reporting.setContext(content);
@@ -247,6 +285,17 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				})//
 				.withHelp("Renders an image of the blueprint string provided. Longer blueprints "
 						+ "can be attached as files or linked with pastebin, hastebin, gitlab, or gist URLs.")//
+				//
+				.addCommand("prototypeEntity", createPrototypeCommandHandler(table::getEntity))//
+				.withHelp("Provides a dump of the lua data for the specified entity prototype.")//
+				.addCommand("prototypeRecipe", createPrototypeCommandHandler(table::getRecipe))//
+				.withHelp("Provides a dump of the lua data for the specified recipe prototype.")//
+				.addCommand("prototypeFluid", createPrototypeCommandHandler(table::getFluid))//
+				.withHelp("Provides a dump of the lua data for the specified fluid prototype.")//
+				.addCommand("prototypeItem", createPrototypeCommandHandler(table::getItem))//
+				.withHelp("Provides a dump of the lua data for the specified item prototype.")//
+				.addCommand("prototypeTechnology", createPrototypeCommandHandler(table::getTechnology))//
+				.withHelp("Provides a dump of the lua data for the specified technology prototype.")//
 				//
 				.create();
 

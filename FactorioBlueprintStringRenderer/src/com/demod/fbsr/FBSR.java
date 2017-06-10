@@ -483,11 +483,17 @@ public class FBSR {
 		});
 	}
 
-	public static String getVersion() throws JSONException, FileNotFoundException, IOException {
+	public static String getVersion() {
 		if (version == null) {
-			ModInfo baseInfo = new ModInfo(Utils
-					.readJsonFromStream(new FileInputStream(new File(FactorioData.factorio, "data/base/info.json"))));
-			version = baseInfo.getVersion();
+			ModInfo baseInfo;
+			try {
+				baseInfo = new ModInfo(Utils.readJsonFromStream(
+						new FileInputStream(new File(FactorioData.factorio, "data/base/info.json"))));
+				version = baseInfo.getVersion();
+			} catch (JSONException | IOException e) {
+				e.printStackTrace();
+				System.exit(-1);
+			}
 		}
 		return version;
 	}
