@@ -192,9 +192,10 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 					if (uniqueExceptions.add(e.getClass().getSimpleName() + ": " + e.getMessage())) {
 						e.printStackTrace();
 						e.printStackTrace(pw);
-						pw.flush();
 					}
 				}
+				pw.flush();
+				exceptionFile = Optional.of(sw.toString());
 			} catch (IOException e1) {
 				e1.printStackTrace();// XXX Uh... Houston, we have a problem...
 			}
@@ -214,7 +215,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			privateChannel.sendFile(new ByteArrayInputStream(context.get().getBytes()), "context.txt", null).complete();
 		}
 		if (exceptionFile.isPresent()) {
-			privateChannel.sendFile(new ByteArrayInputStream(context.get().getBytes()), "exceptions.txt", null)
+			privateChannel.sendFile(new ByteArrayInputStream(exceptionFile.get().getBytes()), "exceptions.txt", null)
 					.complete();
 		}
 	}
