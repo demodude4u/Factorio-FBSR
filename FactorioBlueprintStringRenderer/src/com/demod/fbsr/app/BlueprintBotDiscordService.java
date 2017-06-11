@@ -20,6 +20,8 @@ import java.util.zip.ZipOutputStream;
 
 import javax.imageio.ImageIO;
 
+import org.luaj.vm2.LuaValue;
+
 import com.demod.dcba.CommandHandler;
 import com.demod.dcba.DCBA;
 import com.demod.dcba.DiscordBot;
@@ -56,6 +58,27 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 	private DiscordBot bot;
 
+	private CommandHandler createDataRawCommandHandler(Function<String, Optional<LuaValue>> query) {
+		return event -> {
+			String content = event.getMessage().getStrippedContent();
+
+			String[] args = content.split("\\s");
+			if (args.length < 2) {
+				event.getChannel().sendMessage("You didn't specify a key!").complete();
+				return;
+			}
+
+			String key = content.substring(args[0].length()).trim();
+			Optional<LuaValue> lua = query.apply(key);
+			if (!lua.isPresent()) {
+				event.getChannel().sendMessage("I could not find a lua table for `" + key + "`. :frowning:").complete();
+				return;
+			}
+
+			sendLuaDumpFile(event, key, lua.get());
+		};
+	}
+
 	private CommandHandler createPrototypeCommandHandler(Function<String, Optional<? extends DataPrototype>> query) {
 		return event -> {
 			String content = event.getMessage().getStrippedContent();
@@ -68,20 +91,12 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 			Optional<? extends DataPrototype> prototype = query.apply(args[1]);
 			if (!prototype.isPresent()) {
-				event.getChannel().sendMessage("I could not find the prototype for `" + args[1] + "`. :frowning:");
+				event.getChannel().sendMessage("I could not find the prototype for `" + args[1] + "`. :frowning:")
+						.complete();
 				return;
 			}
 
-			try (ByteArrayOutputStream baos = new ByteArrayOutputStream(); PrintStream ps = new PrintStream(baos)) {
-				ps.println("Lua Data Dump of " + prototype.get().getName() + " for Factorio " + FBSR.getVersion());
-				ps.println();
-				Utils.debugPrintLua(prototype.get().lua(), ps);
-				ps.flush();
-				event.getChannel().sendFile(baos.toByteArray(),
-						prototype.get().getName() + "_dump_" + FBSR.getVersion() + ".txt", null).complete();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
+			sendLuaDumpFile(event, prototype.get().getName(), prototype.get().lua());
 		};
 	}
 
@@ -166,6 +181,19 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			} catch (Exception e) {
 				reporting.addException(e);
 			}
+		}
+	}
+
+	private void sendLuaDumpFile(MessageReceivedEvent event, String name, LuaValue lua) {
+		try (ByteArrayOutputStream baos = new ByteArrayOutputStream(); PrintStream ps = new PrintStream(baos)) {
+			ps.println("Lua Data Dump of " + name + " for Factorio " + FBSR.getVersion());
+			ps.println();
+			Utils.debugPrintLua(lua, ps);
+			ps.flush();
+			event.getChannel().sendFile(baos.toByteArray(), name + "_dump_" + FBSR.getVersion() + ".txt", null)
+					.complete();
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
 	}
 
@@ -301,6 +329,9 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				.withHelp("Provides a dump of the lua data for the specified item prototype.")//
 				.addCommand("prototypeTechnology", createPrototypeCommandHandler(table::getTechnology))//
 				.withHelp("Provides a dump of the lua data for the specified technology prototype.")//
+				//
+				.addCommand("dataRaw", createDataRawCommandHandler(table::getRaw))//
+				.withHelp("Provides a dump of lua from `data.raw` for the specified key.")//
 				//
 				.create();
 
