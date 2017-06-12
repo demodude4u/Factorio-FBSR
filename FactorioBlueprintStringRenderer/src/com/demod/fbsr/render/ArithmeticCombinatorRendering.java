@@ -20,17 +20,20 @@ public class ArithmeticCombinatorRendering extends TypeRendererFactory {
 		operationSprites.put("/", "divide_symbol_sprites");
 		operationSprites.put("AND", "and_symbol_sprites");
 		operationSprites.put("XOR", "xor_symbol_sprites");
-		operationSprites.put("MOD", "modulo_symbol_sprites");// FIXME
-		operationSprites.put("%", "modulo_symbol_sprites");// FIXME
+		operationSprites.put("MOD", "modulo_symbol_sprites");
+		operationSprites.put("%", "modulo_symbol_sprites");
+		operationSprites.put(">>", "right_shift_symbol_sprites");
+		operationSprites.put("<<", "left_shift_symbol_sprites");
+		operationSprites.put("^", "power_symbol_sprites");
 	}
 
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
 			EntityPrototype prototype) {
 		// prototype.debugPrint();
-		// entity.debugPrint();
-		Sprite sprite = RenderUtils.getSpriteFromAnimation(
-				prototype.lua().get("sprites").get(entity.getDirection().name().toLowerCase()));
+		entity.debugPrint();
+		Sprite sprite = RenderUtils
+				.getSpriteFromAnimation(prototype.lua().get("sprites").get(entity.getDirection().name().toLowerCase()));
 		Sprite operatorSprite = RenderUtils.getSpriteFromAnimation(prototype.lua()
 				.get(operationSprites.get(entity.json().getJSONObject("control_behavior")
 						.getJSONObject("arithmetic_conditions").getString("operation")))
