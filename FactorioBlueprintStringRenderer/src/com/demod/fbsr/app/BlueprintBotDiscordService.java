@@ -42,6 +42,7 @@ import com.google.common.collect.Multiset;
 import com.google.common.util.concurrent.AbstractIdleService;
 
 import net.dv8tion.jda.core.EmbedBuilder;
+import net.dv8tion.jda.core.Permission;
 import net.dv8tion.jda.core.entities.Message;
 import net.dv8tion.jda.core.entities.PrivateChannel;
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent;
@@ -306,7 +307,16 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				.withTechnology("FBSR", "Factorio Blueprint String Renderer")//
 				.withTechnology("FactorioDataWrapper", "Factorio Data Scraper")//
 				.withCredits("Attribution", "Factorio - Made by Wube Software")//
-				//
+				.withInvite(new Permission[] { //
+						Permission.MESSAGE_READ, //
+						Permission.MESSAGE_WRITE, //
+						Permission.MESSAGE_ATTACH_FILES, //
+						Permission.MESSAGE_EXT_EMOJI, //
+						Permission.MESSAGE_EMBED_LINKS, //
+						Permission.MESSAGE_HISTORY, //
+						Permission.MESSAGE_ADD_REACTION,//
+				})//
+					//
 				.addCommand("blueprint", event -> {
 					String content = event.getMessage().getStrippedContent();
 					BlueprintReporting reporting = new BlueprintReporting();
