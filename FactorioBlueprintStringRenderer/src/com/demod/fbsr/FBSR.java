@@ -29,7 +29,9 @@ import java.util.function.Consumer;
 
 import javax.imageio.ImageIO;
 
+import org.json.JSONArray;
 import org.json.JSONException;
+import org.json.JSONObject;
 
 import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
@@ -389,7 +391,10 @@ public class FBSR {
 				g.setStroke(GRID_STROKE);
 				g.draw(bounds);
 
-				g.setFont(new Font("Monospaced", Font.BOLD, 1).deriveFont(0.6f));
+				Font font = new Font("Monospaced", Font.BOLD, 1).deriveFont(0.6f);
+				Font font6Digits = font.deriveFont(0.5f);
+				Font font7Digits = font.deriveFont(0.4f);
+				g.setFont(font);
 				g.drawString(title, (float) bounds.x + 0.3f, (float) bounds.y + 0.65f);
 
 				double startX = bounds.x + 0.6;
@@ -416,6 +421,7 @@ public class FBSR {
 							spriteBox, g);
 
 					g.setColor(GRID_COLOR);
+					g.setFont(amount <= 99999 ? font : amount <= 999999 ? font6Digits : font7Digits);
 					g.drawString(RenderUtils.fmtDouble(Math.ceil(amount)), (float) textPos.x, (float) textPos.y);
 
 					spriteBox.y += spacing;
@@ -433,6 +439,26 @@ public class FBSR {
 				continue;
 			}
 			addToItemAmount(ret, itemName, 1);
+
+			if (entity.json().has("items")) {
+				Object itemsJson = entity.json().get("items");
+				if (itemsJson instanceof JSONObject) {
+					Utils.forEach(entity.json().getJSONObject("items"), (String moduleName, Integer count) -> {
+						if (!table.getItem(moduleName).isPresent()) {
+							return;
+						}
+						addToItemAmount(ret, moduleName, count);
+					});
+				} else if (itemsJson instanceof JSONArray) {
+					Utils.<JSONObject>forEach(entity.json().getJSONArray("items"), j -> {
+						String moduleName = j.getString("item");
+						if (!table.getItem(moduleName).isPresent()) {
+							return;
+						}
+						addToItemAmount(ret, moduleName, j.getInt("count"));
+					});
+				}
+			}
 		}
 		for (String key : map.getWires().keySet()) {
 			if (key.contains("red")) {
