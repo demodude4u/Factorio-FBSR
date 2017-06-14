@@ -121,6 +121,7 @@ public class TypeRendererFactory {
 		byType.put("pipe", new PipeRendering());
 		byType.put("pipe-to-ground", new PipeToGroundRendering());
 		byType.put("power-switch", new PowerSwitchRendering());
+		byType.put("programmable-speaker", new ProgrammableSpeakerRendering());
 		byType.put("pump", new PumpRendering());
 		byType.put("radar", new RadarRendering());
 		byType.put("rail-chain-signal", new RailChainSignalRendering());
