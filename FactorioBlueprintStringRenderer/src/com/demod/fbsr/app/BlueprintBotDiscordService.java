@@ -80,24 +80,27 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		};
 	}
 
-	private CommandHandler createPrototypeCommandHandler(Function<String, Optional<? extends DataPrototype>> query) {
+	private CommandHandler createPrototypeCommandHandler(String category,
+			Function<String, Optional<? extends DataPrototype>> query) {
 		return event -> {
 			String content = event.getMessage().getStrippedContent();
 
 			String[] args = content.split("\\s");
 			if (args.length < 2) {
-				event.getChannel().sendMessage("You didn't specify a prototype name!").complete();
+				event.getChannel().sendMessage("You didn't specify a " + category + " prototype name!").complete();
 				return;
 			}
 
 			Optional<? extends DataPrototype> prototype = query.apply(args[1]);
 			if (!prototype.isPresent()) {
-				event.getChannel().sendMessage("I could not find the prototype for `" + args[1] + "`. :frowning:")
+				event.getChannel()
+						.sendMessage(
+								"I could not find the " + category + " prototype for `" + args[1] + "`. :frowning:")
 						.complete();
 				return;
 			}
 
-			sendLuaDumpFile(event, prototype.get().getName(), prototype.get().lua());
+			sendLuaDumpFile(event, category + "_" + prototype.get().getName(), prototype.get().lua());
 		};
 	}
 
@@ -329,15 +332,15 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				.withHelp("Renders an image of the blueprint string provided. Longer blueprints "
 						+ "can be attached as files or linked with pastebin, hastebin, gitlab, or gist URLs.")//
 				//
-				.addCommand("prototypeEntity", createPrototypeCommandHandler(table::getEntity))//
+				.addCommand("prototypeEntity", createPrototypeCommandHandler("entity", table::getEntity))//
 				.withHelp("Provides a dump of the lua data for the specified entity prototype.")//
-				.addCommand("prototypeRecipe", createPrototypeCommandHandler(table::getRecipe))//
+				.addCommand("prototypeRecipe", createPrototypeCommandHandler("recipe", table::getRecipe))//
 				.withHelp("Provides a dump of the lua data for the specified recipe prototype.")//
-				.addCommand("prototypeFluid", createPrototypeCommandHandler(table::getFluid))//
+				.addCommand("prototypeFluid", createPrototypeCommandHandler("fluid", table::getFluid))//
 				.withHelp("Provides a dump of the lua data for the specified fluid prototype.")//
-				.addCommand("prototypeItem", createPrototypeCommandHandler(table::getItem))//
+				.addCommand("prototypeItem", createPrototypeCommandHandler("item", table::getItem))//
 				.withHelp("Provides a dump of the lua data for the specified item prototype.")//
-				.addCommand("prototypeTechnology", createPrototypeCommandHandler(table::getTechnology))//
+				.addCommand("prototypeTechnology", createPrototypeCommandHandler("technology", table::getTechnology))//
 				.withHelp("Provides a dump of the lua data for the specified technology prototype.")//
 				//
 				.addCommand("dataRaw", createDataRawCommandHandler(table::getRaw))//
