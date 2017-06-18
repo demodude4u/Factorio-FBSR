@@ -298,56 +298,63 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 	}
 
 	@Override
-	protected void startUp() throws Exception {
-		DataTable table = FactorioData.getTable();
-		System.out.println("Factorio " + FBSR.getVersion() + " Data Loaded.");
+	protected void startUp() {
+		try {
 
-		bot = DCBA.builder()//
-				.withCommandPrefix("-")
-				//
-				.setInfo("Blueprint Bot")//
-				.withSupport("Find Demod and complain to him!")//
-				.withTechnology("FBSR", "Factorio Blueprint String Renderer")//
-				.withTechnology("FactorioDataWrapper", "Factorio Data Scraper")//
-				.withCredits("Attribution", "Factorio - Made by Wube Software")//
-				.withInvite(new Permission[] { //
-						Permission.MESSAGE_READ, //
-						Permission.MESSAGE_WRITE, //
-						Permission.MESSAGE_ATTACH_FILES, //
-						Permission.MESSAGE_EXT_EMOJI, //
-						Permission.MESSAGE_EMBED_LINKS, //
-						Permission.MESSAGE_HISTORY, //
-						Permission.MESSAGE_ADD_REACTION,//
-				})//
+			DataTable table = FactorioData.getTable();
+			System.out.println("Factorio " + FBSR.getVersion() + " Data Loaded.");
+
+			bot = DCBA.builder()//
+					.withCommandPrefix("-")
 					//
-				.addCommand("blueprint", event -> {
-					String content = event.getMessage().getStrippedContent();
-					BlueprintReporting reporting = new BlueprintReporting();
-					reporting.setContext(content);
-					System.out.println("\n############################################################\n");
-					findDebugOptions(reporting, content);
-					processBlueprints(BlueprintFinder.search(content, reporting), event, reporting);
-					sendReportToDemod(event, reporting);
-				})//
-				.withHelp("Renders an image of the blueprint string provided. Longer blueprints "
-						+ "can be attached as files or linked with pastebin, hastebin, gitlab, or gist URLs.")//
-				//
-				.addCommand("prototypeEntity", createPrototypeCommandHandler("entity", table::getEntity))//
-				.withHelp("Provides a dump of the lua data for the specified entity prototype.")//
-				.addCommand("prototypeRecipe", createPrototypeCommandHandler("recipe", table::getRecipe))//
-				.withHelp("Provides a dump of the lua data for the specified recipe prototype.")//
-				.addCommand("prototypeFluid", createPrototypeCommandHandler("fluid", table::getFluid))//
-				.withHelp("Provides a dump of the lua data for the specified fluid prototype.")//
-				.addCommand("prototypeItem", createPrototypeCommandHandler("item", table::getItem))//
-				.withHelp("Provides a dump of the lua data for the specified item prototype.")//
-				.addCommand("prototypeTechnology", createPrototypeCommandHandler("technology", table::getTechnology))//
-				.withHelp("Provides a dump of the lua data for the specified technology prototype.")//
-				//
-				.addCommand("dataRaw", createDataRawCommandHandler(table::getRaw))//
-				.withHelp("Provides a dump of lua from `data.raw` for the specified key.")//
-				//
-				.create();
+					.setInfo("Blueprint Bot")//
+					.withSupport("Find Demod and complain to him!")//
+					.withTechnology("FBSR", "Factorio Blueprint String Renderer")//
+					.withTechnology("FactorioDataWrapper", "Factorio Data Scraper")//
+					.withCredits("Attribution", "Factorio - Made by Wube Software")//
+					.withInvite(new Permission[] { //
+							Permission.MESSAGE_READ, //
+							Permission.MESSAGE_WRITE, //
+							Permission.MESSAGE_ATTACH_FILES, //
+							Permission.MESSAGE_EXT_EMOJI, //
+							Permission.MESSAGE_EMBED_LINKS, //
+							Permission.MESSAGE_HISTORY, //
+							Permission.MESSAGE_ADD_REACTION,//
+					})//
+						//
+					.addCommand("blueprint", event -> {
+						String content = event.getMessage().getStrippedContent();
+						BlueprintReporting reporting = new BlueprintReporting();
+						reporting.setContext(content);
+						System.out.println("\n############################################################\n");
+						findDebugOptions(reporting, content);
+						processBlueprints(BlueprintFinder.search(content, reporting), event, reporting);
+						sendReportToDemod(event, reporting);
+					})//
+					.withHelp("Renders an image of the blueprint string provided. Longer blueprints "
+							+ "can be attached as files or linked with pastebin, hastebin, gitlab, or gist URLs.")//
+					//
+					.addCommand("prototypeEntity", createPrototypeCommandHandler("entity", table::getEntity))//
+					.withHelp("Provides a dump of the lua data for the specified entity prototype.")//
+					.addCommand("prototypeRecipe", createPrototypeCommandHandler("recipe", table::getRecipe))//
+					.withHelp("Provides a dump of the lua data for the specified recipe prototype.")//
+					.addCommand("prototypeFluid", createPrototypeCommandHandler("fluid", table::getFluid))//
+					.withHelp("Provides a dump of the lua data for the specified fluid prototype.")//
+					.addCommand("prototypeItem", createPrototypeCommandHandler("item", table::getItem))//
+					.withHelp("Provides a dump of the lua data for the specified item prototype.")//
+					.addCommand("prototypeTechnology",
+							createPrototypeCommandHandler("technology", table::getTechnology))//
+					.withHelp("Provides a dump of the lua data for the specified technology prototype.")//
+					//
+					.addCommand("dataRaw", createDataRawCommandHandler(table::getRaw))//
+					.withHelp("Provides a dump of lua from `data.raw` for the specified key.")//
+					//
+					.create();
 
-		bot.startAsync().awaitRunning();
+			bot.startAsync().awaitRunning();
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 }
