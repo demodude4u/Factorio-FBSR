@@ -19,9 +19,8 @@ import org.luaj.vm2.LuaValue;
 import com.demod.factorio.FactorioData;
 import com.demod.factorio.Utils;
 import com.demod.factorio.prototype.EntityPrototype;
+import com.demod.factorio.prototype.TilePrototype;
 import com.demod.fbsr.Renderer.Layer;
-import com.demod.fbsr.render.Sprite;
-import com.demod.fbsr.render.TypeRendererFactory;
 import com.google.common.collect.ImmutableList;
 
 public final class RenderUtils {
@@ -107,9 +106,9 @@ public final class RenderUtils {
 		int srcX = lua.get("x").optint(0);
 		int srcY = lua.get("y").optint(0);
 		int srcWidth = lua.get("width").checkint();
-		double width = srcWidth / TypeRendererFactory.tileSize;
+		double width = srcWidth / FBSR.tileSize;
 		int srcHeight = lua.get("height").checkint();
-		double height = srcHeight / TypeRendererFactory.tileSize;
+		double height = srcHeight / FBSR.tileSize;
 		Point2D.Double shift = Utils.parsePoint2D(lua.get("shift"));
 		ret.source = new Rectangle(srcX, srcY, srcWidth, srcHeight);
 		ret.bounds = new Rectangle2D.Double(shift.x - width / 2.0, shift.y - height / 2.0, width, height);
@@ -210,6 +209,43 @@ public final class RenderUtils {
 	public static Renderer spriteRenderer(Layer layer, Sprite sprite, BlueprintEntity entity,
 			EntityPrototype prototype) {
 		return spriteRenderer(layer, ImmutableList.of(sprite), entity, prototype);
+	}
+
+	public static Renderer spriteRenderer(Layer layer, Sprite sprite, BlueprintTile tile, TilePrototype prototype) {
+		Point2D.Double pos = tile.getPosition();
+		sprite.bounds.x += pos.x;
+		sprite.bounds.y += pos.y;
+
+		return new Renderer(layer, new Rectangle2D.Double(pos.x - 0.5, pos.y - 0.5, 1.0, 1.0)) {
+			@SuppressWarnings("unused")
+			private void debugShowBounds(Rectangle2D.Double groundBounds, Graphics2D g) {
+				long x = Math.round(groundBounds.getCenterX() * 2);
+				long y = Math.round(groundBounds.getCenterY() * 2);
+				long w = Math.round(groundBounds.width * 2);
+				long h = Math.round(groundBounds.height * 2);
+
+				// System.out.println("x=" + x + " y=" + y + " w=" + w + "
+				// h=" + h);
+
+				g.setColor(new Color(255, 255, 255, 64));
+				g.draw(groundBounds);
+
+				if (((w / 2) % 2) == (x % 2)) {
+					g.setColor(new Color(255, 0, 0, 64));
+					g.fill(groundBounds);
+				}
+				if (((h / 2) % 2) == (y % 2)) {
+					g.setColor(new Color(0, 255, 0, 64));
+					g.fill(groundBounds);
+				}
+			}
+
+			@Override
+			public void render(Graphics2D g) {
+				drawSprite(sprite, g);
+				// debugShowBounds(groundBounds, g);
+			}
+		};
 	}
 
 	public static Renderer spriteRenderer(List<Sprite> sprites, BlueprintEntity entity, EntityPrototype prototype) {

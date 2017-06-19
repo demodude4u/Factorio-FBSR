@@ -55,5 +55,10 @@
 			<artifactId>DiscordCoreBotApple</artifactId>
 			<version>0.0.1-SNAPSHOT</version>
 		</dependency>
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-text</artifactId>
+			<version>1.1</version>
+		</dependency>
 	</dependencies>
 </project>

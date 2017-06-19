@@ -42,9 +42,9 @@ import com.demod.factorio.Utils;
 import com.demod.factorio.prototype.DataPrototype;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.factorio.prototype.RecipePrototype;
-import com.demod.fbsr.TaskReporting.Level;
+import com.demod.factorio.prototype.TilePrototype;
 import com.demod.fbsr.Renderer.Layer;
-import com.demod.fbsr.render.TypeRendererFactory;
+import com.demod.fbsr.TaskReporting.Level;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.Multiset;
@@ -54,16 +54,22 @@ import javafx.util.Pair;
 
 public class FBSR {
 
-	private static class RenderingTuple {
+	private static class EntityRenderingTuple {
 		BlueprintEntity entity;
 		EntityPrototype prototype;
-		TypeRendererFactory factory;
+		EntityRendererFactory factory;
+	}
+
+	private static class TileRenderingTuple {
+		BlueprintTile tile;
+		TilePrototype prototype;
+		TileRendererFactory factory;
 	}
 
 	private static final Color GROUND_COLOR = new Color(40, 40, 40);
 	private static final Color GRID_COLOR = new Color(60, 60, 60);
 
-	private static final BasicStroke GRID_STROKE = new BasicStroke((float) (3 / TypeRendererFactory.tileSize));
+	private static final BasicStroke GRID_STROKE = new BasicStroke((float) (3 / FBSR.tileSize));
 
 	private static volatile String version = null;
 
@@ -78,31 +84,33 @@ public class FBSR {
 		}
 	}
 
+	public static final double tileSize = 32.0;
+
 	private static void addToItemAmount(Map<String, Double> items, String itemName, double add) {
 		double amount = items.getOrDefault(itemName, 0.0);
 		amount += add;
 		items.put(itemName, amount);
 	}
 
-	private static void alignRenderingTuplesToGrid(List<RenderingTuple> renderingTuples) {
+	private static void alignRenderingTuplesToGrid(List<EntityRenderingTuple> entityRenderingTuples,
+			List<TileRenderingTuple> tileRenderingTuples) {
 		Multiset<Boolean> xAligned = LinkedHashMultiset.create();
 		Multiset<Boolean> yAligned = LinkedHashMultiset.create();
 
-		for (RenderingTuple tuple : renderingTuples) {
+		for (EntityRenderingTuple tuple : entityRenderingTuples) {
 			if (tuple.entity.getName().equals("straight-rail") || tuple.entity.getName().equals("curved-rail")) {
 				continue; // XXX
 			}
 
-			Point2D.Double position = tuple.entity.getPosition();
+			Point2D.Double pos = tuple.entity.getPosition();
 			Rectangle2D selectionBox;
 			if (tuple.prototype != null) {
 				selectionBox = tuple.entity.getDirection().rotateBounds(tuple.prototype.getSelectionBox());
 			} else {
 				selectionBox = new Rectangle2D.Double();
 			}
-			Rectangle2D.Double bounds = new Rectangle2D.Double(selectionBox.getX() + position.x,
-					selectionBox.getY() + position.y, selectionBox.getWidth(), selectionBox.getHeight());
-			// System.out.println(bounds);
+			Rectangle2D.Double bounds = new Rectangle2D.Double(selectionBox.getX() + pos.x, selectionBox.getY() + pos.y,
+					selectionBox.getWidth(), selectionBox.getHeight());
 
 			// Everything is doubled and rounded to the closest original 0.5
 			// increment
@@ -111,9 +119,20 @@ public class FBSR {
 			long w = Math.round(bounds.width * 2);
 			long h = Math.round(bounds.height * 2);
 
-			// System.out.println("x=" + x + " y=" + y + " w=" + w + " h=" + h +
-			// " alignX=" + (((w / 2) % 2) == (x % 2))
-			// + " alignY=" + (((h / 2) % 2 == 0) == (y % 2 == 0)));
+			// If size/2 is odd, pos should be odd, and vice versa
+			xAligned.add(((w / 2) % 2 == 0) == (x % 2 == 0));
+			yAligned.add(((h / 2) % 2 == 0) == (y % 2 == 0));
+		}
+		for (TileRenderingTuple tuple : tileRenderingTuples) {
+			Point2D.Double pos = tuple.tile.getPosition();
+			Rectangle2D.Double bounds = new Rectangle2D.Double(pos.x - 0.5, pos.y - 0.5, 1.0, 1.0);
+
+			// Everything is doubled and rounded to the closest original 0.5
+			// increment
+			long x = Math.round(bounds.getCenterX() * 2);
+			long y = Math.round(bounds.getCenterY() * 2);
+			long w = Math.round(bounds.width * 2);
+			long h = Math.round(bounds.height * 2);
 
 			// If size/2 is odd, pos should be odd, and vice versa
 			xAligned.add(((w / 2) % 2 == 0) == (x % 2 == 0));
@@ -127,8 +146,17 @@ public class FBSR {
 		boolean shiftY = yAligned.count(true) < yAligned.count(false);
 		if (shiftX || shiftY) {
 			System.out.println("SHIFTING!");
-			for (RenderingTuple tuple : renderingTuples) {
+			for (EntityRenderingTuple tuple : entityRenderingTuples) {
 				Point2D.Double position = tuple.entity.getPosition();
+				if (shiftX) {
+					position.x += 0.5;
+				}
+				if (shiftY) {
+					position.y += 0.5;
+				}
+			}
+			for (TileRenderingTuple tuple : tileRenderingTuples) {
+				Point2D.Double position = tuple.tile.getPosition();
 				if (shiftX) {
 					position.x += 0.5;
 				}
@@ -461,6 +489,13 @@ public class FBSR {
 				}
 			}
 		}
+		for (BlueprintTile tile : blueprint.getTiles()) {
+			String itemName = tile.getName();
+			if (!table.getItem(itemName).isPresent()) {
+				continue;
+			}
+			addToItemAmount(ret, itemName, 1);
+		}
 		for (String key : map.getWires().keySet()) {
 			if (key.contains("red")) {
 				addToItemAmount(ret, "red-wire", 1);
@@ -609,35 +644,62 @@ public class FBSR {
 		WorldMap map = new WorldMap();
 		reporting.getDebug().ifPresent(map::setDebug);
 
-		List<RenderingTuple> renderingTuples = new ArrayList<RenderingTuple>();
+		List<EntityRenderingTuple> entityRenderingTuples = new ArrayList<EntityRenderingTuple>();
+		List<TileRenderingTuple> tileRenderingTuples = new ArrayList<TileRenderingTuple>();
+
 		for (BlueprintEntity entity : blueprint.getEntities()) {
-			RenderingTuple tuple = new RenderingTuple();
+			EntityRenderingTuple tuple = new EntityRenderingTuple();
 			tuple.entity = entity;
 			Optional<EntityPrototype> prototype = table.getEntity(entity.getName());
 			if (!prototype.isPresent()) {
 				tuple.prototype = null;
-				tuple.factory = TypeRendererFactory.UNKNOWN;
+				tuple.factory = EntityRendererFactory.UNKNOWN;
 				reporting.addWarning("Cant find prototype for " + entity.getName());
 			} else {
 				tuple.prototype = prototype.get();
-				tuple.factory = TypeRendererFactory.forType(tuple.prototype.getType());
+				tuple.factory = EntityRendererFactory.forType(tuple.prototype.getType());
 				if (map.getDebug().typeMapping) {
 					reporting.addWarning(entity.getName() + " -> " + tuple.factory.getClass().getSimpleName());
 				}
 			}
-			renderingTuples.add(tuple);
+			entityRenderingTuples.add(tuple);
 		}
-		alignRenderingTuplesToGrid(renderingTuples);
+		for (BlueprintTile tile : blueprint.getTiles()) {
+			TileRenderingTuple tuple = new TileRenderingTuple();
+			tuple.tile = tile;
+			Optional<TilePrototype> prototype = table.getTile(tile.getName());
+			if (!prototype.isPresent()) {
+				tuple.prototype = null;
+				tuple.factory = TileRendererFactory.UNKNOWN;
+				reporting.addWarning("Cant find prototype for " + tile.getName());
+			} else {
+				tuple.prototype = prototype.get();
+				tuple.factory = TileRendererFactory.forType(tuple.prototype.getType());
+				if (map.getDebug().typeMapping) {
+					reporting.addWarning(tile.getName() + " -> " + tuple.factory.getClass().getSimpleName());
+				}
+			}
+			tileRenderingTuples.add(tuple);
+		}
 
-		renderingTuples.forEach(t -> {
+		alignRenderingTuplesToGrid(entityRenderingTuples, tileRenderingTuples);
+
+		entityRenderingTuples.forEach(t -> {
 			try {
 				t.factory.populateWorldMap(map, table, t.entity, t.prototype);
 			} catch (Exception e) {
 				reporting.addException(e);
 			}
 		});
+		tileRenderingTuples.forEach(t -> {
+			try {
+				t.factory.populateWorldMap(map, table, t.tile, t.prototype);
+			} catch (Exception e) {
+				reporting.addException(e);
+			}
+		});
 
-		renderingTuples.forEach(t -> {
+		entityRenderingTuples.forEach(t -> {
 			try {
 				t.factory.populateLogistics(map, table, t.entity, t.prototype);
 			} catch (Exception e) {
@@ -651,15 +713,22 @@ public class FBSR {
 
 		List<Renderer> renderers = new ArrayList<>();
 
-		renderingTuples.forEach(t -> {
+		entityRenderingTuples.forEach(t -> {
 			try {
 				t.factory.createRenderers(renderers::add, map, table, t.entity, t.prototype);
 			} catch (Exception e) {
 				reporting.addException(e);
 			}
 		});
+		tileRenderingTuples.forEach(t -> {
+			try {
+				t.factory.createRenderers(renderers::add, map, table, t.tile, t.prototype);
+			} catch (Exception e) {
+				reporting.addException(e);
+			}
+		});
 
-		renderingTuples.forEach(t -> {
+		entityRenderingTuples.forEach(t -> {
 			try {
 				t.factory.createModuleIcons(renderers::add, map, table, t.entity, t.prototype);
 			} catch (Exception e) {
@@ -667,7 +736,7 @@ public class FBSR {
 			}
 		});
 
-		renderingTuples.forEach(t -> {
+		entityRenderingTuples.forEach(t -> {
 			try {
 				t.factory.createWireConnections(renderers::add, map, table, t.entity, t.prototype);
 			} catch (Exception e) {
@@ -684,12 +753,9 @@ public class FBSR {
 		borderPanels.put(Direction.EAST, createItemListPanel(table, "TOTAL", totalItems));
 		borderPanels.put(Direction.EAST,
 				createItemListPanel(table, "RAW", generateTotalRawItems(table, table.getRecipes(), totalItems)));
-		// borderPanels.put(Direction.EAST, createItemListPanel(table, "ExRAW",
-		// generateTotalRawItems(table, table.getExpensiveRecipes(),
-		// totalItems)));
 
 		if (map.getDebug().placement) {
-			renderingTuples.forEach(t -> {
+			entityRenderingTuples.forEach(t -> {
 				Point2D.Double pos = t.entity.getPosition();
 				renderers.add(new Renderer(Layer.DEBUG_P, pos) {
 					@Override
@@ -704,9 +770,19 @@ public class FBSR {
 					}
 				});
 			});
+			tileRenderingTuples.forEach(t -> {
+				Point2D.Double pos = t.tile.getPosition();
+				renderers.add(new Renderer(Layer.DEBUG_P, pos) {
+					@Override
+					public void render(Graphics2D g) throws Exception {
+						g.setColor(Color.cyan);
+						g.fill(new Ellipse2D.Double(pos.x - 0.1, pos.y - 0.1, 0.2, 0.2));
+					}
+				});
+			});
 		}
 
-		return applyRendering(reporting, (int) Math.round(TypeRendererFactory.tileSize), renderers, borderPanels);
+		return applyRendering(reporting, (int) Math.round(tileSize), renderers, borderPanels);
 	}
 
 	private static void showLogisticGrid(Consumer<Renderer> register, DataTable table, WorldMap map) {
