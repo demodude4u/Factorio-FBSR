@@ -11,7 +11,7 @@ public abstract class Renderer {
 		OVERLAY, OVERLAY2, OVERLAY3, OVERLAY4, //
 		LOGISTICS_WARP, //
 		WIRE, //
-		DEBUG_RA, DEBUG_LA1, DEBUG_LA2, //
+		DEBUG_RA, DEBUG_LA1, DEBUG_LA2, DEBUG_P //
 		;
 	}
 

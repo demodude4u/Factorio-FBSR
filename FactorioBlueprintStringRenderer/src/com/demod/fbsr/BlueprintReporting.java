@@ -65,14 +65,14 @@ public class BlueprintReporting {
 	}
 
 	public Level getLevel() {
+		if (debug.isPresent()) {
+			return Level.DEBUG;
+		}
 		if (!exceptions.isEmpty()) {
 			return Level.ERROR;
 		}
 		if (!warnings.isEmpty()) {
 			return Level.WARN;
-		}
-		if (debug.isPresent()) {
-			return Level.DEBUG;
 		}
 		return Level.INFO;
 	}

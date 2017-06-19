@@ -46,6 +46,7 @@ public class WorldMap {
 		public boolean inputs = false;
 		public boolean logistic = false;
 		public boolean rail = false;
+		public boolean placement = false;
 	}
 
 	// XXX Hash-based tables are not the most efficient here

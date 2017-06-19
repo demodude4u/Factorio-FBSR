@@ -1,10 +1,12 @@
 package com.demod.fbsr.render;
 
+import java.awt.geom.Point2D;
 import java.util.function.Consumer;
 
 import com.demod.factorio.DataTable;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.BlueprintEntity;
+import com.demod.fbsr.Direction;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
 import com.demod.fbsr.WorldMap;
@@ -20,6 +22,10 @@ public class PumpRendering extends TypeRendererFactory {
 
 	@Override
 	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity, EntityPrototype prototype) {
-		map.setPipe(entity.getPosition(), entity.getDirection(), entity.getDirection().back());
+		Point2D.Double pos = entity.getPosition();
+		Direction dir = entity.getDirection();
+
+		map.setPipe(dir.offset(pos, 0.5), dir);
+		map.setPipe(dir.back().offset(pos, 0.5), dir.back());
 	}
 }

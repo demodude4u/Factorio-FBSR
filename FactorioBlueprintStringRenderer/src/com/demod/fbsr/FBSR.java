@@ -8,6 +8,7 @@ import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.Stroke;
 import java.awt.geom.AffineTransform;
+import java.awt.geom.Ellipse2D;
 import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
@@ -686,6 +687,24 @@ public class FBSR {
 		// borderPanels.put(Direction.EAST, createItemListPanel(table, "ExRAW",
 		// generateTotalRawItems(table, table.getExpensiveRecipes(),
 		// totalItems)));
+
+		if (map.getDebug().placement) {
+			renderingTuples.forEach(t -> {
+				Point2D.Double pos = t.entity.getPosition();
+				renderers.add(new Renderer(Layer.DEBUG_P, pos) {
+					@Override
+					public void render(Graphics2D g) throws Exception {
+						g.setColor(Color.cyan);
+						g.fill(new Ellipse2D.Double(pos.x - 0.1, pos.y - 0.1, 0.2, 0.2));
+						Stroke ps = g.getStroke();
+						g.setStroke(new BasicStroke(3f / 32f));
+						g.setColor(Color.green);
+						g.draw(new Line2D.Double(pos, t.entity.getDirection().offset(pos, 0.3)));
+						g.setStroke(ps);
+					}
+				});
+			});
+		}
 
 		return applyRendering(reporting, (int) Math.round(TypeRendererFactory.tileSize), renderers, borderPanels);
 	}
