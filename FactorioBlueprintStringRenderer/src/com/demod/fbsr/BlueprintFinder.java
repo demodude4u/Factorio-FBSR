@@ -43,7 +43,6 @@ public final class BlueprintFinder {
 			URL url = new URL(m.group("url"));
 			URLConnection connection = WebUtils.openConnectionWithFakeUserAgent(url);
 			if (connection.getContentType().startsWith("text/plain")) {
-				System.out.println("!!!");
 				l.handleConnection(connection);
 			}
 		}), //
