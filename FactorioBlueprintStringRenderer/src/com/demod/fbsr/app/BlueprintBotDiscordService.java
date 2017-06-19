@@ -31,11 +31,11 @@ import com.demod.factorio.Utils;
 import com.demod.factorio.prototype.DataPrototype;
 import com.demod.fbsr.Blueprint;
 import com.demod.fbsr.BlueprintFinder;
-import com.demod.fbsr.BlueprintReporting;
-import com.demod.fbsr.BlueprintReporting.Level;
 import com.demod.fbsr.BlueprintStringData;
 import com.demod.fbsr.FBSR;
 import com.demod.fbsr.RenderUtils;
+import com.demod.fbsr.TaskReporting;
+import com.demod.fbsr.TaskReporting.Level;
 import com.demod.fbsr.WorldMap;
 import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.Multiset;
@@ -62,21 +62,28 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 	private CommandHandler createDataRawCommandHandler(Function<String, Optional<LuaValue>> query) {
 		return event -> {
 			String content = event.getMessage().getStrippedContent();
+			TaskReporting reporting = new TaskReporting();
+			reporting.setContext(content);
 
-			String[] args = content.split("\\s");
-			if (args.length < 2) {
-				event.getChannel().sendMessage("You didn't specify a key!").complete();
-				return;
+			try {
+				String[] args = content.split("\\s");
+				if (args.length < 2) {
+					event.getChannel().sendMessage("You didn't specify a key!").complete();
+					return;
+				}
+
+				String key = content.substring(args[0].length()).trim();
+				Optional<LuaValue> lua = query.apply(key);
+				if (!lua.isPresent()) {
+					event.getChannel().sendMessage("I could not find a lua table for `" + key + "`. :frowning:")
+							.complete();
+					return;
+				}
+				sendLuaDumpFile(event, key, lua.get(), reporting);
+			} catch (Exception e) {
+				reporting.addException(e);
 			}
-
-			String key = content.substring(args[0].length()).trim();
-			Optional<LuaValue> lua = query.apply(key);
-			if (!lua.isPresent()) {
-				event.getChannel().sendMessage("I could not find a lua table for `" + key + "`. :frowning:").complete();
-				return;
-			}
-
-			sendLuaDumpFile(event, key, lua.get());
+			sendReportToDemod(event, reporting);
 		};
 	}
 
@@ -84,27 +91,34 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			Function<String, Optional<? extends DataPrototype>> query) {
 		return event -> {
 			String content = event.getMessage().getStrippedContent();
+			TaskReporting reporting = new TaskReporting();
+			reporting.setContext(content);
 
-			String[] args = content.split("\\s");
-			if (args.length < 2) {
-				event.getChannel().sendMessage("You didn't specify a " + category + " prototype name!").complete();
-				return;
+			try {
+				String[] args = content.split("\\s");
+				if (args.length < 2) {
+					event.getChannel().sendMessage("You didn't specify a " + category + " prototype name!").complete();
+					return;
+				}
+
+				Optional<? extends DataPrototype> prototype = query.apply(args[1]);
+				if (!prototype.isPresent()) {
+					event.getChannel()
+							.sendMessage(
+									"I could not find the " + category + " prototype for `" + args[1] + "`. :frowning:")
+							.complete();
+					return;
+				}
+
+				sendLuaDumpFile(event, category + "_" + prototype.get().getName(), prototype.get().lua(), reporting);
+			} catch (Exception e) {
+				reporting.addException(e);
 			}
-
-			Optional<? extends DataPrototype> prototype = query.apply(args[1]);
-			if (!prototype.isPresent()) {
-				event.getChannel()
-						.sendMessage(
-								"I could not find the " + category + " prototype for `" + args[1] + "`. :frowning:")
-						.complete();
-				return;
-			}
-
-			sendLuaDumpFile(event, category + "_" + prototype.get().getName(), prototype.get().lua());
+			sendReportToDemod(event, reporting);
 		};
 	}
 
-	private void findDebugOptions(BlueprintReporting reporting, String content) {
+	private void findDebugOptions(TaskReporting reporting, String content) {
 		Matcher matcher = debugPattern.matcher(content);
 		while (matcher.find()) {
 			String fieldName = matcher.group(1);
@@ -147,7 +161,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 	private void handleBlueprintCommand(MessageReceivedEvent event) {
 		String content = event.getMessage().getStrippedContent();
-		BlueprintReporting reporting = new BlueprintReporting();
+		TaskReporting reporting = new TaskReporting();
 		reporting.setContext(content);
 		System.out.println("\n############################################################\n");
 		findDebugOptions(reporting, content);
@@ -157,12 +171,16 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		} else {
 			processBlueprints(BlueprintFinder.search(content, reporting), event, reporting);
 		}
+
+		if (reporting.getImageURLs().isEmpty() && reporting.getDownloadURLs().isEmpty()) {
+			event.getChannel().sendMessage("I can't seem to find any blueprints. :frowning:").complete();
+		}
 		sendReportToDemod(event, reporting);
 	}
 
 	private void handleBlueprintRawCommand(MessageReceivedEvent event) {
 		String content = event.getMessage().getStrippedContent();
-		BlueprintReporting reporting = new BlueprintReporting();
+		TaskReporting reporting = new TaskReporting();
 		reporting.setContext(content);
 		List<String> results = BlueprintFinder.searchRaw(content, reporting);
 		if (!results.isEmpty()) {
@@ -197,11 +215,15 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				reporting.addException(e);
 			}
 		}
+
+		if (reporting.getImageURLs().isEmpty() && reporting.getDownloadURLs().isEmpty()) {
+			event.getChannel().sendMessage("I can't seem to find any blueprints. :frowning:").complete();
+		}
 		sendReportToDemod(event, reporting);
 	}
 
 	private void processBlueprints(List<BlueprintStringData> blueprintStrings, MessageReceivedEvent event,
-			BlueprintReporting reporting) {
+			TaskReporting reporting) {
 		for (BlueprintStringData blueprintString : blueprintStrings) {
 			try {
 				event.getChannel().sendTyping().complete();
@@ -243,20 +265,20 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		}
 	}
 
-	private void sendLuaDumpFile(MessageReceivedEvent event, String name, LuaValue lua) {
+	private void sendLuaDumpFile(MessageReceivedEvent event, String name, LuaValue lua, TaskReporting reporting)
+			throws IOException {
 		try (ByteArrayOutputStream baos = new ByteArrayOutputStream(); PrintStream ps = new PrintStream(baos)) {
 			ps.println("Lua Data Dump of " + name + " for Factorio " + FBSR.getVersion());
 			ps.println();
 			Utils.debugPrintLua(lua, ps);
 			ps.flush();
-			event.getChannel().sendFile(baos.toByteArray(), name + "_dump_" + FBSR.getVersion() + ".txt", null)
-					.complete();
-		} catch (IOException e) {
-			e.printStackTrace();
+			Message response = event.getChannel()
+					.sendFile(baos.toByteArray(), name + "_dump_" + FBSR.getVersion() + ".txt", null).complete();
+			reporting.addDownloadURL(response.getAttachments().get(0).getUrl());
 		}
 	}
 
-	private void sendReportToDemod(MessageReceivedEvent event, BlueprintReporting reporting) {
+	private void sendReportToDemod(MessageReceivedEvent event, TaskReporting reporting) {
 		Optional<String> context = reporting.getContext();
 		List<Exception> exceptions = reporting.getExceptions();
 		List<String> warnings = reporting.getWarnings();
@@ -268,10 +290,6 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 					.sendMessage(
 							"There was a problem completing your request. I have contacted my programmer to fix it for you!")
 					.complete();
-		}
-
-		if (imageUrls.isEmpty() && downloadUrls.isEmpty()) {
-			event.getChannel().sendMessage("I can't seem to find any blueprints. :frowning:").complete();
 		}
 
 		EmbedBuilder builder = new EmbedBuilder();

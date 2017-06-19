@@ -77,7 +77,7 @@ public final class BlueprintFinder {
 
 	private static final Pattern blueprintPattern = Pattern.compile("([0-9][A-Za-z0-9+\\/=\\r\\n]{90,})");
 
-	private static void findBlueprints(InputStream in, BlueprintReporting reporting, List<String> results) {
+	private static void findBlueprints(InputStream in, TaskReporting reporting, List<String> results) {
 		try (Scanner scanner = new Scanner(in)) {
 			String blueprintString;
 			while ((blueprintString = scanner.findWithinHorizon(blueprintPattern, 4000000)) != null) {
@@ -90,7 +90,7 @@ public final class BlueprintFinder {
 		}
 	}
 
-	private static void findProviders(String content, BlueprintReporting reporting, List<String> results) {
+	private static void findProviders(String content, TaskReporting reporting, List<String> results) {
 		int initialResultCount = results.size();
 		for (Provider provider : Provider.values()) {
 			Matcher matcher = provider.pattern.matcher(content);
@@ -113,7 +113,7 @@ public final class BlueprintFinder {
 		}
 	}
 
-	public static List<BlueprintStringData> search(String content, BlueprintReporting reporting) {
+	public static List<BlueprintStringData> search(String content, TaskReporting reporting) {
 		List<BlueprintStringData> results = new ArrayList<>();
 		for (String blueprintString : searchRaw(content, reporting)) {
 			try {
@@ -125,7 +125,7 @@ public final class BlueprintFinder {
 		return results;
 	}
 
-	public static List<String> searchRaw(String content, BlueprintReporting reporting) {
+	public static List<String> searchRaw(String content, TaskReporting reporting) {
 		List<String> results = new ArrayList<>();
 		findBlueprints(new ByteArrayInputStream(content.getBytes()), reporting, results);
 		findProviders(content, reporting, results);

@@ -42,7 +42,7 @@ import com.demod.factorio.Utils;
 import com.demod.factorio.prototype.DataPrototype;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.factorio.prototype.RecipePrototype;
-import com.demod.fbsr.BlueprintReporting.Level;
+import com.demod.fbsr.TaskReporting.Level;
 import com.demod.fbsr.Renderer.Layer;
 import com.demod.fbsr.render.TypeRendererFactory;
 import com.google.common.collect.ArrayListMultimap;
@@ -139,7 +139,7 @@ public class FBSR {
 		}
 	}
 
-	private static BufferedImage applyRendering(BlueprintReporting reporting, int tileSize, List<Renderer> renderers,
+	private static BufferedImage applyRendering(TaskReporting reporting, int tileSize, List<Renderer> renderers,
 			ArrayListMultimap<Direction, PanelRenderer> borderPanels)
 			throws JSONException, FileNotFoundException, IOException {
 
@@ -603,7 +603,7 @@ public class FBSR {
 
 	}
 
-	public static BufferedImage renderBlueprint(Blueprint blueprint, BlueprintReporting reporting)
+	public static BufferedImage renderBlueprint(Blueprint blueprint, TaskReporting reporting)
 			throws JSONException, IOException {
 		DataTable table = FactorioData.getTable();
 		WorldMap map = new WorldMap();

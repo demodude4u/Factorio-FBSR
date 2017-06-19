@@ -7,7 +7,7 @@ import java.util.Optional;
 
 import com.demod.fbsr.WorldMap.Debug;
 
-public class BlueprintReporting {
+public class TaskReporting {
 	public static enum Level {
 		INFO(Color.gray), WARN(Color.orange), ERROR(Color.red), DEBUG(Color.magenta);
 		private final Color color;
