@@ -45,7 +45,7 @@ public class AssemblingMachineRendering extends TypeRendererFactory {
 			RecipePrototype protoRecipe = dataTable.getRecipe(recipe).get();
 			LuaValue iconLua = protoRecipe.lua().get("icon");
 			if (!iconLua.isnil()) {
-				spriteIcon.image = FactorioData.getModImage(iconLua.tojstring());
+				spriteIcon.image = FactorioData.getIcon(protoRecipe);
 			} else {
 				String name;
 				if (protoRecipe.lua().get("results") != LuaValue.NIL) {
@@ -57,7 +57,7 @@ public class AssemblingMachineRendering extends TypeRendererFactory {
 				if (!protoProduct.isPresent()) {
 					protoProduct = dataTable.getFluid(name);
 				}
-				spriteIcon.image = FactorioData.getModImage(protoProduct.get().lua().get("icon").tojstring());
+				spriteIcon.image = FactorioData.getIcon(protoProduct.get());
 			}
 
 			spriteIcon.source = new Rectangle(0, 0, spriteIcon.image.getWidth(), spriteIcon.image.getHeight());

@@ -140,9 +140,7 @@ public class InserterRendering extends TypeRendererFactory {
 			if (!items.isEmpty()) {
 				String itemName = items.get(0);
 				Sprite spriteIcon = new Sprite();
-				dataTable.getItem(itemName).get().debugPrint();
-				spriteIcon.image = FactorioData
-						.getModImage(dataTable.getItem(itemName).get().lua().get("icon").tojstring());
+				spriteIcon.image = FactorioData.getIcon(dataTable.getItem(itemName).get());
 				spriteIcon.source = new Rectangle(0, 0, spriteIcon.image.getWidth(), spriteIcon.image.getHeight());
 				spriteIcon.bounds = new Rectangle2D.Double(-0.3, -0.3, 0.6, 0.6);
 
