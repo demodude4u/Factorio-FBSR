@@ -350,6 +350,8 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 					.addCommand("prototypeTechnology",
 							createPrototypeCommandHandler("technology", table::getTechnology))//
 					.withHelp("Provides a dump of the lua data for the specified technology prototype.")//
+					.addCommand("prototypeEquipment", createPrototypeCommandHandler("equipment", table::getEquipment))//
+					.withHelp("Provides a dump of the lua data for the specified equipment prototype.")//
 					//
 					.addCommand("dataRaw", createDataRawCommandHandler(table::getRaw))//
 					.withHelp("Provides a dump of lua from `data.raw` for the specified key.")//
