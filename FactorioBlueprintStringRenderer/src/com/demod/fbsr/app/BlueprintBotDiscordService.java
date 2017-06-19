@@ -328,7 +328,13 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 						reporting.setContext(content);
 						System.out.println("\n############################################################\n");
 						findDebugOptions(reporting, content);
-						processBlueprints(BlueprintFinder.search(content, reporting), event, reporting);
+						if (!event.getMessage().getAttachments().isEmpty()) {
+							String url = event.getMessage().getAttachments().get(0).getUrl();
+							System.out.println(url);
+							processBlueprints(BlueprintFinder.search(url, reporting), event, reporting);
+						} else {
+							processBlueprints(BlueprintFinder.search(content, reporting), event, reporting);
+						}
 						sendReportToDemod(event, reporting);
 					})//
 					.withHelp("Renders an image of the blueprint string provided. Longer blueprints "

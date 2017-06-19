@@ -1,6 +1,7 @@
 package com.demod.fbsr;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.net.URLConnection;
@@ -31,7 +32,7 @@ public final class BlueprintFinder {
 			JSONObject filesJson = response.getJSONObject("files");
 			Utils.<JSONObject>forEach(filesJson, (k, v) -> {
 				if (v.getString("type").startsWith("text/plain")) {
-					l.addURL(v.getString("raw_url"));
+					l.handleURL(v.getString("raw_url"));
 				}
 			});
 		}), //
@@ -40,16 +41,21 @@ public final class BlueprintFinder {
 
 		TEXT_URLS("\\b(?<url>(?:https?|ftp)://[-a-zA-Z0-9+&@#/%?=~_|!:,.;]*[-a-zA-Z0-9+&@#/%=~_|])", (m, l) -> {
 			URL url = new URL(m.group("url"));
-			URLConnection connection = url.openConnection();
+			URLConnection connection = WebUtils.openConnectionWithFakeUserAgent(url);
 			if (connection.getContentType().startsWith("text/plain")) {
-				l.addURL(m.group("url"));
+				System.out.println("!!!");
+				l.handleConnection(connection);
 			}
 		}), //
 
 		;
 		@FunctionalInterface
 		private interface Listener {
-			void addURL(String url) throws Exception;
+			void handleConnection(URLConnection connection);
+
+			default void handleURL(String url) throws Exception {
+				handleConnection(WebUtils.openConnectionWithFakeUserAgent(new URL(url)));
+			}
 		}
 
 		@FunctionalInterface
@@ -61,7 +67,7 @@ public final class BlueprintFinder {
 		private final Mapper mapper;
 
 		private Provider(String regex, Function<Matcher, String> simpleMapper) {
-			this(regex, (m, l) -> l.addURL(simpleMapper.apply(m)));
+			this(regex, (m, l) -> l.handleURL(simpleMapper.apply(m)));
 		}
 
 		private Provider(String regex, Mapper mapper) {
@@ -93,7 +99,11 @@ public final class BlueprintFinder {
 			if (matcher.find()) {
 				try {
 					provider.mapper.matched(matcher, in -> {
-						findBlueprints(new URL(in).openStream(), reporting, results);
+						try {
+							findBlueprints(in.getInputStream(), reporting, results);
+						} catch (IOException e) {
+							reporting.addException(e);
+						}
 					});
 				} catch (Exception e) {
 					reporting.addException(e);

@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLConnection;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -36,6 +37,13 @@ public final class WebUtils {
 				return readBytes;
 			}
 		};
+	}
+
+	public static URLConnection openConnectionWithFakeUserAgent(URL url) throws IOException {
+		URLConnection hc = url.openConnection();
+		hc.setRequestProperty("User-Agent",
+				"Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.4; en-US; rv:1.9.2.2) Gecko/20100316 Firefox/3.6.2");
+		return hc;
 	}
 
 	public static JSONObject readJsonFromURL(String url) throws JSONException, MalformedURLException, IOException {
