@@ -9,7 +9,9 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.Field;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.regex.Matcher;
@@ -20,6 +22,7 @@ import java.util.zip.ZipOutputStream;
 
 import javax.imageio.ImageIO;
 
+import org.apache.commons.text.similarity.LevenshteinDistance;
 import org.luaj.vm2.LuaValue;
 
 import com.demod.dcba.CommandHandler;
@@ -41,6 +44,7 @@ import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.Multiset;
 import com.google.common.util.concurrent.AbstractIdleService;
 
+import javafx.util.Pair;
 import net.dv8tion.jda.core.EmbedBuilder;
 import net.dv8tion.jda.core.Permission;
 import net.dv8tion.jda.core.entities.Message;
@@ -87,8 +91,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		};
 	}
 
-	private CommandHandler createPrototypeCommandHandler(String category,
-			Function<String, Optional<? extends DataPrototype>> query) {
+	private CommandHandler createPrototypeCommandHandler(String category, Map<String, ? extends DataPrototype> map) {
 		return event -> {
 			String content = event.getMessage().getStrippedContent();
 			TaskReporting reporting = new TaskReporting();
@@ -101,11 +104,19 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 					return;
 				}
 
-				Optional<? extends DataPrototype> prototype = query.apply(args[1]);
+				String search = Arrays.asList(args).stream().skip(1).collect(Collectors.joining(" "));
+				Optional<? extends DataPrototype> prototype = Optional.ofNullable(map.get(search));
 				if (!prototype.isPresent()) {
+					LevenshteinDistance levenshteinDistance = LevenshteinDistance.getDefaultInstance();
+					List<String> suggestions = map.keySet().stream()
+							.map(k -> new Pair<>(k, levenshteinDistance.apply(search, k)))
+							.sorted((p1, p2) -> Integer.compare(p1.getValue(), p2.getValue())).limit(5)
+							.map(p -> p.getKey()).collect(Collectors.toList());
 					event.getChannel()
 							.sendMessage(
-									"I could not find the " + category + " prototype for `" + args[1] + "`. :frowning:")
+									"I could not find the " + category + " prototype for `" + search
+											+ "`. :frowning:\nDid you mean:\n" + suggestions.stream()
+													.map(s -> "\t - " + s).collect(Collectors.joining("\n")))
 							.complete();
 					return;
 				}
@@ -400,18 +411,18 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 					.addCommand("blueprintRaw", event -> handleBlueprintRawCommand(event))//
 					.withHelp("Provides a dump of the json data in the specified blueprint string.")//
 					//
-					.addCommand("prototypeEntity", createPrototypeCommandHandler("entity", table::getEntity))//
+					.addCommand("prototypeEntity", createPrototypeCommandHandler("entity", table.getEntities()))//
 					.withHelp("Provides a dump of the lua data for the specified entity prototype.")//
-					.addCommand("prototypeRecipe", createPrototypeCommandHandler("recipe", table::getRecipe))//
+					.addCommand("prototypeRecipe", createPrototypeCommandHandler("recipe", table.getRecipes()))//
 					.withHelp("Provides a dump of the lua data for the specified recipe prototype.")//
-					.addCommand("prototypeFluid", createPrototypeCommandHandler("fluid", table::getFluid))//
+					.addCommand("prototypeFluid", createPrototypeCommandHandler("fluid", table.getFluids()))//
 					.withHelp("Provides a dump of the lua data for the specified fluid prototype.")//
-					.addCommand("prototypeItem", createPrototypeCommandHandler("item", table::getItem))//
+					.addCommand("prototypeItem", createPrototypeCommandHandler("item", table.getItems()))//
 					.withHelp("Provides a dump of the lua data for the specified item prototype.")//
 					.addCommand("prototypeTechnology",
-							createPrototypeCommandHandler("technology", table::getTechnology))//
+							createPrototypeCommandHandler("technology", table.getTechnologies()))//
 					.withHelp("Provides a dump of the lua data for the specified technology prototype.")//
-					.addCommand("prototypeEquipment", createPrototypeCommandHandler("equipment", table::getEquipment))//
+					.addCommand("prototypeEquipment", createPrototypeCommandHandler("equipment", table.getEquipments()))//
 					.withHelp("Provides a dump of the lua data for the specified equipment prototype.")//
 					//
 					.addCommand("dataRaw", createDataRawCommandHandler(table::getRaw))//
