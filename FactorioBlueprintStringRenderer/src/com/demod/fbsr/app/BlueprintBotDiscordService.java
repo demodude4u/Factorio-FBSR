@@ -145,6 +145,61 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		}
 	}
 
+	private void handleBlueprintCommand(MessageReceivedEvent event) {
+		String content = event.getMessage().getStrippedContent();
+		BlueprintReporting reporting = new BlueprintReporting();
+		reporting.setContext(content);
+		System.out.println("\n############################################################\n");
+		findDebugOptions(reporting, content);
+		if (!event.getMessage().getAttachments().isEmpty()) {
+			String url = event.getMessage().getAttachments().get(0).getUrl();
+			processBlueprints(BlueprintFinder.search(url, reporting), event, reporting);
+		} else {
+			processBlueprints(BlueprintFinder.search(content, reporting), event, reporting);
+		}
+		sendReportToDemod(event, reporting);
+	}
+
+	private void handleBlueprintRawCommand(MessageReceivedEvent event) {
+		String content = event.getMessage().getStrippedContent();
+		BlueprintReporting reporting = new BlueprintReporting();
+		reporting.setContext(content);
+		List<String> results = BlueprintFinder.searchRaw(content, reporting);
+		if (!results.isEmpty()) {
+			try {
+				byte[] bytes = BlueprintStringData.extractJSON(results.get(0)).toString(2).getBytes();
+				if (results.size() == 1 && bytes.length < 8000000) {
+					Message response = event.getChannel()
+							.sendFile(new ByteArrayInputStream(bytes), "blueprint.json", null).complete();
+					reporting.addDownloadURL(response.getAttachments().get(0).getUrl());
+				} else {
+					try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
+							ZipOutputStream zos = new ZipOutputStream(baos)) {
+						for (int i = 0; i < results.size(); i++) {
+							try {
+								String blueprintString = results.get(i);
+								zos.putNextEntry(new ZipEntry("blueprint " + (i + 1) + ".json"));
+								zos.write(BlueprintStringData.extractJSON(blueprintString).toString(2).getBytes());
+							} catch (Exception e) {
+								reporting.addException(e);
+							}
+						}
+						zos.close();
+						byte[] zipData = baos.toByteArray();
+						Message response = event.getChannel().sendFile(zipData, "blueprint JSON files.zip", null)
+								.complete();
+						reporting.addDownloadURL(response.getAttachments().get(0).getUrl());
+					} catch (IOException e) {
+						reporting.addException(e);
+					}
+				}
+			} catch (Exception e) {
+				reporting.addException(e);
+			}
+		}
+		sendReportToDemod(event, reporting);
+	}
+
 	private void processBlueprints(List<BlueprintStringData> blueprintStrings, MessageReceivedEvent event,
 			BlueprintReporting reporting) {
 		for (BlueprintStringData blueprintString : blueprintStrings) {
@@ -300,7 +355,6 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 	@Override
 	protected void startUp() {
 		try {
-
 			DataTable table = FactorioData.getTable();
 			System.out.println("Factorio " + FBSR.getVersion() + " Data Loaded.");
 
@@ -322,22 +376,11 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 							Permission.MESSAGE_ADD_REACTION,//
 					})//
 						//
-					.addCommand("blueprint", event -> {
-						String content = event.getMessage().getStrippedContent();
-						BlueprintReporting reporting = new BlueprintReporting();
-						reporting.setContext(content);
-						System.out.println("\n############################################################\n");
-						findDebugOptions(reporting, content);
-						if (!event.getMessage().getAttachments().isEmpty()) {
-							String url = event.getMessage().getAttachments().get(0).getUrl();
-							processBlueprints(BlueprintFinder.search(url, reporting), event, reporting);
-						} else {
-							processBlueprints(BlueprintFinder.search(content, reporting), event, reporting);
-						}
-						sendReportToDemod(event, reporting);
-					})//
+					.addCommand("blueprint", event -> handleBlueprintCommand(event))//
 					.withHelp("Renders an image of the blueprint string provided. Longer blueprints "
 							+ "can be attached as files or linked with pastebin, hastebin, gitlab, or gist URLs.")//
+					.addCommand("blueprintRaw", event -> handleBlueprintRawCommand(event))//
+					.withHelp("Provides a dump of the json data in the specified blueprint string.")//
 					//
 					.addCommand("prototypeEntity", createPrototypeCommandHandler("entity", table::getEntity))//
 					.withHelp("Provides a dump of the lua data for the specified entity prototype.")//

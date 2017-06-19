@@ -22,18 +22,8 @@ public class BlueprintStringData {
 		return blueprintString;
 	}
 
-	private final List<Blueprint> blueprints = new ArrayList<>();
-
-	private final int version;
-
-	public BlueprintStringData(String blueprintString) throws IllegalArgumentException, IOException {
+	public static JSONObject extractJSON(String blueprintString) throws IOException {
 		blueprintString = cleanupBlueprintString(blueprintString);
-		String versionChar = blueprintString.substring(0, 1);
-		try {
-			version = Integer.parseInt(versionChar);
-		} catch (NumberFormatException e) {
-			throw new IllegalArgumentException("Version is not valid! (" + versionChar + ")");
-		}
 		byte[] decoded = Base64.decodeBase64(blueprintString.substring(1));
 		JSONObject json;
 		try (BufferedReader br = new BufferedReader(
@@ -45,6 +35,21 @@ public class BlueprintStringData {
 			}
 			json = new JSONObject(jsonBuilder.toString());
 		}
+		return json;
+	}
+
+	private final List<Blueprint> blueprints = new ArrayList<>();
+
+	private final int version;
+
+	public BlueprintStringData(String blueprintString) throws IllegalArgumentException, IOException {
+		String versionChar = blueprintString.substring(0, 1);
+		try {
+			version = Integer.parseInt(versionChar);
+		} catch (NumberFormatException e) {
+			throw new IllegalArgumentException("Version is not valid! (" + versionChar + ")");
+		}
+		JSONObject json = extractJSON(blueprintString);
 		if (json.has("blueprint")) {
 			blueprints.add(new Blueprint(json));
 		} else {
