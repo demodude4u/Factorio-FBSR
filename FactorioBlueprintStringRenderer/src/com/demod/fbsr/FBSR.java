@@ -93,14 +93,14 @@ public class FBSR {
 			}
 
 			Point2D.Double position = tuple.entity.getPosition();
-			Rectangle2D.Double selectionBox;
+			Rectangle2D selectionBox;
 			if (tuple.prototype != null) {
-				selectionBox = tuple.prototype.getSelectionBox();
+				selectionBox = tuple.entity.getDirection().rotateBounds(tuple.prototype.getSelectionBox());
 			} else {
 				selectionBox = new Rectangle2D.Double();
 			}
-			Rectangle2D.Double bounds = new Rectangle2D.Double(selectionBox.x + position.x, selectionBox.y + position.y,
-					selectionBox.width, selectionBox.height);
+			Rectangle2D.Double bounds = new Rectangle2D.Double(selectionBox.getX() + position.x,
+					selectionBox.getY() + position.y, selectionBox.getWidth(), selectionBox.getHeight());
 			// System.out.println(bounds);
 
 			// Everything is doubled and rounded to the closest original 0.5

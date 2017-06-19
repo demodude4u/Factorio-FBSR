@@ -1,5 +1,6 @@
 package com.demod.fbsr;
 
+import java.awt.geom.AffineTransform;
 import java.awt.geom.Point2D;
 import java.awt.geom.Point2D.Double;
 import java.awt.geom.Rectangle2D;
@@ -85,5 +86,11 @@ public enum Direction {
 	public Direction rotate(int deltaIndex) {
 		Direction[] values = values();
 		return values[(((ordinal() + deltaIndex) % values.length) + values.length) % values.length];
+	}
+
+	public Rectangle2D rotateBounds(Rectangle2D bounds) {
+		AffineTransform at = new AffineTransform();
+		at.rotate(Math.PI * 2.0 * ordinal() / 8.0);
+		return at.createTransformedShape(bounds).getBounds2D();
 	}
 }
