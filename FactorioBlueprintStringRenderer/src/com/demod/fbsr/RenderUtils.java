@@ -13,6 +13,7 @@ import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.json.JSONObject;
 import org.luaj.vm2.LuaValue;
 
 import com.demod.factorio.FactorioData;
@@ -145,6 +146,11 @@ public final class RenderUtils {
 		} else {
 			return getSpritesFromAnimation(lua);
 		}
+	}
+
+	public static Color parseColor(JSONObject json) {
+		return new Color((float) json.getDouble("r"), (float) json.getDouble("g"), (float) json.getDouble("b"),
+				(float) json.getDouble("a"));
 	}
 
 	public static BufferedImage scaleImage(BufferedImage image, int width, int height) {
