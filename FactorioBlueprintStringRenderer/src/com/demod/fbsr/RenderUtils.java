@@ -90,14 +90,14 @@ public final class RenderUtils {
 
 	public static Sprite getSpriteFromAnimation(LuaValue lua) {
 		Sprite ret = new Sprite();
-		LuaValue filenameLua = lua.get("filename");
+		String imagePath = lua.get("filename").tojstring();
 		boolean drawAsShadow = lua.get("draw_as_shadow").optboolean(false);
 		ret.shadow = drawAsShadow;
 		drawAsShadow = false;// FIXME shadows need a special mask layer
 		if (drawAsShadow) {
-			ret.image = FactorioData.getModImage(filenameLua, new Color(255, 255, 255, 128));
+			ret.image = FactorioData.getModImage(imagePath, new Color(255, 255, 255, 128));
 		} else {
-			ret.image = FactorioData.getModImage(filenameLua);
+			ret.image = FactorioData.getModImage(imagePath);
 		}
 		String blendMode = lua.get("blend_mode").optjstring("normal");
 		if (!blendMode.equals("normal")) { // FIXME blending will take effort

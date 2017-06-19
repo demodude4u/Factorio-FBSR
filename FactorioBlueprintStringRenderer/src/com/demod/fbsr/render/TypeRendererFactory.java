@@ -229,7 +229,7 @@ public class TypeRendererFactory {
 				sprites = RenderUtils.getSpritesFromAnimation(spriteLua, entity.getDirection());
 			} else {
 				Sprite sprite = new Sprite();
-				sprite.image = FactorioData.getModImage(prototype.lua().get("icon"));
+				sprite.image = FactorioData.getModImage(prototype.lua().get("icon").tojstring());
 				sprite.source = new Rectangle(0, 0, sprite.image.getWidth(), sprite.image.getHeight());
 				sprite.bounds = (Rectangle2D.Double) prototype.getSelectionBox().clone();
 				sprites = ImmutableList.of(sprite);

@@ -498,7 +498,7 @@ public class FBSR {
 				return Color.MAGENTA;
 			}
 			DataPrototype prototype = optProto.get();
-			BufferedImage image = FactorioData.getModImage(prototype.lua().get("icon"));
+			BufferedImage image = FactorioData.getModImage(prototype.lua().get("icon").tojstring());
 			Color color = RenderUtils.getAverageColor(image);
 			// return new Color(color.getRGB() | 0xA0A0A0);
 			// return color.brighter().brighter();

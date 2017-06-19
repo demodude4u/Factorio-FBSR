@@ -40,7 +40,8 @@ public class LogisticContainerRendering extends TypeRendererFactory {
 			if (!items.isEmpty()) {
 				String itemName = items.get(0);
 				Sprite spriteIcon = new Sprite();
-				spriteIcon.image = FactorioData.getModImage(dataTable.getItem(itemName).get().lua().get("icon"));
+				spriteIcon.image = FactorioData
+						.getModImage(dataTable.getItem(itemName).get().lua().get("icon").tojstring());
 				spriteIcon.source = new Rectangle(0, 0, spriteIcon.image.getWidth(), spriteIcon.image.getHeight());
 				spriteIcon.bounds = new Rectangle2D.Double(-0.3, -0.3, 0.6, 0.6);
 
