@@ -8,6 +8,7 @@ import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.Field;
+import java.net.URL;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
@@ -39,6 +40,7 @@ import com.demod.fbsr.FBSR;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.TaskReporting;
 import com.demod.fbsr.TaskReporting.Level;
+import com.demod.fbsr.WebUtils;
 import com.demod.fbsr.WorldMap;
 import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.Multiset;
@@ -83,7 +85,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 							.complete();
 					return;
 				}
-				sendLuaDumpFile(event, key, lua.get(), reporting);
+				sendLuaDumpFile(event, "raw", key, lua.get(), reporting);
 			} catch (Exception e) {
 				reporting.addException(e);
 			}
@@ -121,7 +123,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 					return;
 				}
 
-				sendLuaDumpFile(event, category + "_" + prototype.get().getName(), prototype.get().lua(), reporting);
+				sendLuaDumpFile(event, category, prototype.get().getName(), prototype.get().lua(), reporting);
 			} catch (Exception e) {
 				reporting.addException(e);
 			}
@@ -197,10 +199,10 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		if (!results.isEmpty()) {
 			try {
 				byte[] bytes = BlueprintStringData.extractJSON(results.get(0)).toString(2).getBytes();
-				if (results.size() == 1 && bytes.length < 8000000) {
-					Message response = event.getChannel()
-							.sendFile(new ByteArrayInputStream(bytes), "blueprint.json", null).complete();
-					reporting.addDownloadURL(response.getAttachments().get(0).getUrl());
+				if (results.size() == 1) {
+					URL url = WebUtils.uploadToHostingService("blueprint.json", bytes);
+					event.getChannel().sendMessage("Blueprint JSON: " + url.toString()).complete();
+					reporting.addDownloadURL(url.toString());
 				} else {
 					try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
 							ZipOutputStream zos = new ZipOutputStream(baos)) {
@@ -276,16 +278,17 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		}
 	}
 
-	private void sendLuaDumpFile(MessageReceivedEvent event, String name, LuaValue lua, TaskReporting reporting)
-			throws IOException {
+	private void sendLuaDumpFile(MessageReceivedEvent event, String category, String name, LuaValue lua,
+			TaskReporting reporting) throws IOException {
 		try (ByteArrayOutputStream baos = new ByteArrayOutputStream(); PrintStream ps = new PrintStream(baos)) {
-			ps.println("Lua Data Dump of " + name + " for Factorio " + FBSR.getVersion());
+			ps.println("Lua Data Dump of " + category + " " + name + " for Factorio " + FBSR.getVersion());
 			ps.println();
 			Utils.debugPrintLua(lua, ps);
 			ps.flush();
-			Message response = event.getChannel()
-					.sendFile(baos.toByteArray(), name + "_dump_" + FBSR.getVersion() + ".txt", null).complete();
-			reporting.addDownloadURL(response.getAttachments().get(0).getUrl());
+			URL url = WebUtils.uploadToHostingService(category + "_" + name + "_dump_" + FBSR.getVersion() + ".txt",
+					baos.toByteArray());
+			event.getChannel().sendMessage(category + " " + name + " lua dump: " + url.toString()).complete();
+			reporting.addDownloadURL(url.toString());
 		}
 	}
 

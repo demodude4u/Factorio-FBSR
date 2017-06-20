@@ -1,5 +1,6 @@
 package com.demod.fbsr;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
@@ -48,6 +49,21 @@ public final class WebUtils {
 
 	public static JSONObject readJsonFromURL(String url) throws JSONException, MalformedURLException, IOException {
 		return Utils.readJsonFromStream(new URL(url).openStream());
+	}
+
+	public static URL uploadToHostingService(String fileName, byte[] fileData) throws IOException {
+		try (ByteArrayInputStream bais = new ByteArrayInputStream(fileData)) {
+			return uploadToNyaIs(fileName, bais);
+		}
+	}
+
+	private static URL uploadToNyaIs(String fileName, InputStream inputStream) throws IOException {
+		// XXX You can get a copy of the MultipartUtility from
+		// http://www.codejava.net/java-se/networking/upload-files-by-sending-multipart-request-programmatically
+		MultipartUtility utility = new MultipartUtility("https://nya.is/upload", "UTF-8");
+		utility.addFormField("name", fileName);
+		utility.addFilePart("files[]", fileName, inputStream);
+		return new URL(new JSONObject(utility.finish().get(0)).getJSONArray("files").getJSONObject(0).getString("url"));
 	}
 
 	private WebUtils() {

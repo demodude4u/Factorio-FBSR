@@ -60,5 +60,10 @@
 			<artifactId>commons-text</artifactId>
 			<version>1.1</version>
 		</dependency>
+		<dependency>
+			<groupId>org.apache.httpcomponents</groupId>
+			<artifactId>fluent-hc</artifactId>
+			<version>4.5.3</version>
+		</dependency>
 	</dependencies>
 </project>
