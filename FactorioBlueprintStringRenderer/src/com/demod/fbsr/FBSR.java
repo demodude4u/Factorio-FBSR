@@ -447,9 +447,6 @@ public class FBSR {
 				g.draw(new Rectangle2D.Double(0, 0, width, height));
 
 				Font font = new Font("Monospaced", Font.BOLD, 1).deriveFont(0.6f);
-				Font font6Digits = font.deriveFont(0.5f);
-				// Font font7Digits = font.deriveFont(0.4f);
-				// Font font8Digits = font.deriveFont(0.3f);
 
 				g.setFont(font);
 				g.drawString(title, 0.3f, 0.65f);
@@ -488,9 +485,6 @@ public class FBSR {
 						g.setColor(GRID_COLOR.brighter().brighter());
 						amountStr = RenderUtils.fmtDouble(Math.ceil(amount / 1000000)) + "M";
 					}
-					// g.setFont(amount <= 99999 ? font
-					// : amount <= 999999 ? font6Digits : amount <= 9999999 ?
-					// font7Digits : font8Digits);
 					g.setFont(font);
 					g.drawString(amountStr, (float) textPos.x, (float) textPos.y);
 
