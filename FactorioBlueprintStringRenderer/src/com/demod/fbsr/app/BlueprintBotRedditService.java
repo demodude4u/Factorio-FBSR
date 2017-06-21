@@ -61,14 +61,24 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 	private AccountManager account;
 	private Credentials credentials;
 	private OAuthData authData;
-	private long authExpireMillis;
+	private long authExpireMillis = 0;
 
-	private void ensureValidAccessToken() throws NetworkException, OAuthException {
+	private void ensureConnectedToReddit() throws NetworkException, OAuthException, InterruptedException {
 		if (System.currentTimeMillis() + 60000 > authExpireMillis) {
-			authData = reddit.getOAuthHelper().refreshToken(credentials);
-			authExpireMillis = authData.getExpirationDate().getTime();
-			reddit.authenticate(authData);
-			System.out.println("Refreshed Reddit Token!");
+			for (int wait = 4000; true; wait = Math.max(wait * 2, (5) * 60 * 1000)) {
+				try {
+					System.out.println("Connecting to Reddit...");
+					authData = reddit.getOAuthHelper().easyAuth(credentials);
+					authExpireMillis = authData.getExpirationDate().getTime();
+					reddit.authenticate(authData);
+					System.out.println("Reconnected to Reddit!");
+					break;
+				} catch (Exception e) {
+					System.out.println("[Waiting " + TimeUnit.MILLISECONDS.convert(wait, TimeUnit.SECONDS)
+							+ " seconds] Connection Failure [" + e.getClass().getSimpleName() + "]: " + e.getMessage());
+					Thread.sleep(wait);
+				}
+			}
 		}
 	}
 
@@ -299,7 +309,7 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 			JSONObject cacheJson = getOrCreateCache();
 			boolean cacheUpdated = false;
 
-			ensureValidAccessToken();
+			ensureConnectedToReddit();
 			cacheUpdated |= processNewSubmissions(cacheJson, subreddit, ageLimitMillis);
 			cacheUpdated |= processNewComments(cacheJson, subreddit, ageLimitMillis);
 			cacheUpdated |= processNewMessages(cacheJson, ageLimitMillis);
@@ -307,6 +317,9 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 			if (cacheUpdated) {
 				saveCache(cacheJson);
 			}
+		} catch (NetworkException e) {
+			System.out.println("Network Problem [" + e.getClass().getSimpleName() + "]: " + e.getMessage());
+			authExpireMillis = 0;
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -345,13 +358,8 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 					redditCredentialsJson.getString("client_id"), //
 					redditCredentialsJson.getString("client_secret") //
 			);
-			authData = reddit.getOAuthHelper().easyAuth(credentials);
-			authExpireMillis = authData.getExpirationDate().getTime();
-			reddit.authenticate(authData);
 
 			myUserName = redditCredentialsJson.getString("username");
-
-			System.out.println("Reddit Authenticated!");
 
 			ServiceFinder.addService(this);
 		} catch (Exception e) {
