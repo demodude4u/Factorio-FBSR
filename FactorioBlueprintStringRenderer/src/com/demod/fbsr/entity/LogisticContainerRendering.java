@@ -17,8 +17,8 @@ import org.json.JSONObject;
 import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
 import com.demod.factorio.Utils;
-import com.demod.factorio.prototype.DataPrototype;
 import com.demod.factorio.prototype.EntityPrototype;
+import com.demod.factorio.prototype.ItemPrototype;
 import com.demod.fbsr.BlueprintEntity;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.EntityRendererFactory;
@@ -42,7 +42,7 @@ public class LogisticContainerRendering extends EntityRendererFactory {
 
 			if (!items.isEmpty()) {
 				String itemName = items.get(0);
-				Optional<DataPrototype> optItem = dataTable.getItem(itemName);
+				Optional<ItemPrototype> optItem = dataTable.getItem(itemName);
 				if (optItem.isPresent()) {
 					Sprite spriteIcon = new Sprite();
 					spriteIcon.image = FactorioData.getIcon(optItem.get());

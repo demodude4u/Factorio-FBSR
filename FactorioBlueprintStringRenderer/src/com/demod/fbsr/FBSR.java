@@ -41,6 +41,7 @@ import com.demod.factorio.TotalRawCalculator;
 import com.demod.factorio.Utils;
 import com.demod.factorio.prototype.DataPrototype;
 import com.demod.factorio.prototype.EntityPrototype;
+import com.demod.factorio.prototype.ItemPrototype;
 import com.demod.factorio.prototype.RecipePrototype;
 import com.demod.factorio.prototype.TilePrototype;
 import com.demod.fbsr.Renderer.Layer;
@@ -466,7 +467,7 @@ public class FBSR {
 					if (itemName.equals(TotalRawCalculator.RAW_TIME)) {
 						image = timeIcon;
 					} else {
-						Optional<DataPrototype> prototype = table.getItem(itemName);
+						Optional<? extends DataPrototype> prototype = table.getItem(itemName);
 						if (!prototype.isPresent()) {
 							prototype = table.getFluid(itemName);
 						}
@@ -496,14 +497,17 @@ public class FBSR {
 		};
 	}
 
-	private static Map<String, Double> generateTotalItems(DataTable table, WorldMap map, Blueprint blueprint) {
+	private static Map<String, Double> generateTotalItems(DataTable table, WorldMap map, Blueprint blueprint,
+			TaskReporting reporting) {
 		Map<String, Double> ret = new LinkedHashMap<>();
 		for (BlueprintEntity entity : blueprint.getEntities()) {
-			String itemName = entity.getName();
-			if (!table.getItem(itemName).isPresent()) {
+			String entityName = entity.getName();
+			Optional<ItemPrototype> item = table.getItemForEntity(entityName);
+			if (!item.isPresent()) {
+				reporting.addWarning("Cannot find item for entity: " + entity.getName());
 				continue;
 			}
-			addToItemAmount(ret, itemName, 1);
+			addToItemAmount(ret, item.get().getName(), 1);
 
 			if (entity.json().has("items")) {
 				Object itemsJson = entity.json().get("items");
@@ -564,7 +568,7 @@ public class FBSR {
 
 	private static Color getItemLogisticColor(DataTable table, String itemName) {
 		return itemColorCache.computeIfAbsent(itemName, k -> {
-			Optional<DataPrototype> optProto = table.getItem(k);
+			Optional<ItemPrototype> optProto = table.getItem(k);
 			if (!optProto.isPresent()) {
 				System.err.println("ITEM MISSING FOR LOGISTICS: " + k);
 				return Color.MAGENTA;
@@ -785,7 +789,7 @@ public class FBSR {
 		ArrayListMultimap<Direction, PanelRenderer> borderPanels = ArrayListMultimap.create();
 		borderPanels.put(Direction.SOUTH, createFooterPanel());
 
-		Map<String, Double> totalItems = generateTotalItems(table, map, blueprint);
+		Map<String, Double> totalItems = generateTotalItems(table, map, blueprint, reporting);
 		borderPanels.put(Direction.EAST, createItemListPanel(table, "TOTAL", totalItems));
 		borderPanels.put(Direction.EAST,
 				createItemListPanel(table, "RAW", generateTotalRawItems(table, table.getRecipes(), totalItems)));

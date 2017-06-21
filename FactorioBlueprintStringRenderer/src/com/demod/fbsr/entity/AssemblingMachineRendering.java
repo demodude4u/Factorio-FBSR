@@ -57,7 +57,7 @@ public class AssemblingMachineRendering extends EntityRendererFactory {
 					} else {
 						name = protoRecipe.lua().get("result").toString();
 					}
-					Optional<DataPrototype> protoProduct = dataTable.getItem(name);
+					Optional<? extends DataPrototype> protoProduct = dataTable.getItem(name);
 					if (!protoProduct.isPresent()) {
 						protoProduct = dataTable.getFluid(name);
 					}
