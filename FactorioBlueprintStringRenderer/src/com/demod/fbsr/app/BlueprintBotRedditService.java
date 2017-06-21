@@ -29,6 +29,7 @@ import com.demod.fbsr.TaskReporting;
 import com.demod.fbsr.WebUtils;
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.AbstractScheduledService;
+import com.google.common.util.concurrent.Uninterruptibles;
 
 import javafx.util.Pair;
 import net.dean.jraw.ApiException;
@@ -190,7 +191,19 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 		}
 		for (Pair<Comment, String> pair : pendingReplies) {
 			System.out.println("IM TRYING TO REPLY TO A COMMENT!");
-			account.reply(pair.getKey(), pair.getValue());
+			while (true) {
+				try {
+					account.reply(pair.getKey(), pair.getValue());
+					break;
+				} catch (ApiException e) {
+					if (e.getReason().equals("RATELIMIT")) {
+						System.out.println("RATE LIMITED! WAITING 6 MINUTES...");
+						Uninterruptibles.sleepUninterruptibly(6, TimeUnit.MINUTES);
+					} else {
+						throw e;
+					}
+				}
+			}
 		}
 
 		if (processedCount > 0) {
@@ -250,7 +263,19 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 		}
 		for (Pair<Submission, String> pair : pendingReplies) {
 			System.out.println("IM TRYING TO REPLY TO A SUBMISSION!");
-			account.reply(pair.getKey(), pair.getValue());
+			while (true) {
+				try {
+					account.reply(pair.getKey(), pair.getValue());
+					break;
+				} catch (ApiException e) {
+					if (e.getReason().equals("RATELIMIT")) {
+						System.out.println("RATE LIMITED! WAITING 6 MINUTES...");
+						Uninterruptibles.sleepUninterruptibly(6, TimeUnit.MINUTES);
+					} else {
+						throw e;
+					}
+				}
+			}
 		}
 
 		if (processedCount > 0) {
