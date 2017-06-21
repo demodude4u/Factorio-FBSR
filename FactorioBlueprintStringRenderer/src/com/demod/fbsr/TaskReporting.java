@@ -25,19 +25,24 @@ public class TaskReporting {
 	private Optional<String> context = Optional.empty();
 	private final List<String> warnings = new ArrayList<>();
 	private final List<Exception> exceptions = new ArrayList<>();
-	private final List<String> imageUrls = new ArrayList<>();
-	private final List<String> downloadUrls = new ArrayList<>();
+	private final List<String> images = new ArrayList<>();
+	private final List<String> downloads = new ArrayList<>();
+	private final List<String> links = new ArrayList<>();
 
-	public void addDownloadURL(String downloadURL) {
-		downloadUrls.add(downloadURL);
+	public void addDownload(String url) {
+		downloads.add(url);
 	}
 
 	public synchronized void addException(Exception e) {
 		exceptions.add(e);
 	}
 
-	public void addImageURL(String imageURL) {
-		imageUrls.add(imageURL);
+	public void addImage(String url) {
+		images.add(url);
+	}
+
+	public void addLink(String url) {
+		links.add(url);
 	}
 
 	public void addWarning(String warning) {
@@ -52,16 +57,16 @@ public class TaskReporting {
 		return debug;
 	}
 
-	public List<String> getDownloadURLs() {
-		return downloadUrls;
+	public List<String> getDownloads() {
+		return downloads;
 	}
 
 	public List<Exception> getExceptions() {
 		return exceptions;
 	}
 
-	public List<String> getImageURLs() {
-		return imageUrls;
+	public List<String> getImages() {
+		return images;
 	}
 
 	public Level getLevel() {
@@ -75,6 +80,10 @@ public class TaskReporting {
 			return Level.WARN;
 		}
 		return Level.INFO;
+	}
+
+	public List<String> getLinks() {
+		return links;
 	}
 
 	public List<String> getWarnings() {

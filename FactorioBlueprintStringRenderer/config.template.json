@@ -1,7 +1,16 @@
 {
     "discord_bot_token": "",
-    "pastebin_developer_api_key": "",
-    "factorio": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Factorio",
-    "type_schema": "https://raw.githubusercontent.com/demodude4u/factorio-tools/master/schema.json",
-    "__type_schema": "https://raw.githubusercontent.com/jcranmer/factorio-tools/master/schema.json"
+    "reddit": {
+        "credentials": {
+            "username": "",
+            "password": "",
+            "client_id": "",
+            "client_secret": ""
+        },
+        "subreddit": "",
+        "summon_keyword": "!blueprint",
+        "refresh_seconds": 20,
+        "age_limit_hours": 24
+    },
+    "factorio": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Factorio"
 }

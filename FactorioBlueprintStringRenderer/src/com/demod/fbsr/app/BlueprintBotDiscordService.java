@@ -55,13 +55,11 @@ import net.dv8tion.jda.core.events.message.MessageReceivedEvent;
 
 public class BlueprintBotDiscordService extends AbstractIdleService {
 
+	private static final int MADEUP_NUMBER_FROM_AROUND_5_IN_THE_MORNING = 200;
+
 	private static final String USERID_DEMOD = "100075603016814592";
 
 	private static final Pattern debugPattern = Pattern.compile("DEBUG:([A-Za-z0-9_]+)");
-
-	public static void main(String[] args) {
-		new BlueprintBotDiscordService().startAsync();
-	}
 
 	private DiscordBot bot;
 
@@ -185,7 +183,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			processBlueprints(BlueprintFinder.search(content, reporting), event, reporting);
 		}
 
-		if (reporting.getImageURLs().isEmpty() && reporting.getDownloadURLs().isEmpty()) {
+		if (reporting.getImages().isEmpty() && reporting.getDownloads().isEmpty()) {
 			event.getChannel().sendMessage("I can't seem to find any blueprints. :frowning:").complete();
 		}
 		sendReportToDemod(event, reporting);
@@ -202,7 +200,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				if (results.size() == 1) {
 					URL url = WebUtils.uploadToHostingService("blueprint.json", bytes);
 					event.getChannel().sendMessage("Blueprint JSON: " + url.toString()).complete();
-					reporting.addDownloadURL(url.toString());
+					reporting.addLink(url.toString());
 				} else {
 					try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
 							ZipOutputStream zos = new ZipOutputStream(baos)) {
@@ -219,7 +217,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 						byte[] zipData = baos.toByteArray();
 						Message response = event.getChannel().sendFile(zipData, "blueprint JSON files.zip", null)
 								.complete();
-						reporting.addDownloadURL(response.getAttachments().get(0).getUrl());
+						reporting.addDownload(response.getAttachments().get(0).getUrl());
 					} catch (IOException e) {
 						reporting.addException(e);
 					}
@@ -229,7 +227,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			}
 		}
 
-		if (reporting.getImageURLs().isEmpty() && reporting.getDownloadURLs().isEmpty()) {
+		if (reporting.getImages().isEmpty() && reporting.getDownloads().isEmpty()) {
 			event.getChannel().sendMessage("I can't seem to find any blueprints. :frowning:").complete();
 		}
 		sendReportToDemod(event, reporting);
@@ -247,7 +245,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 					byte[] imageData = generateDiscordFriendlyPNGImage(image);
 					Message message = event.getChannel()
 							.sendFile(new ByteArrayInputStream(imageData), "blueprint.png", null).complete();
-					reporting.addImageURL(message.getAttachments().get(0).getUrl());
+					reporting.addImage(message.getAttachments().get(0).getUrl());
 				} else {
 					try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
 							ZipOutputStream zos = new ZipOutputStream(baos)) {
@@ -269,7 +267,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 						Message message = event.getChannel()
 								.sendFile(new ByteArrayInputStream(zipData), "blueprint book images.zip", null)
 								.complete();
-						reporting.addDownloadURL(message.getAttachments().get(0).getUrl());
+						reporting.addDownload(message.getAttachments().get(0).getUrl());
 					}
 				}
 			} catch (Exception e) {
@@ -288,26 +286,31 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			URL url = WebUtils.uploadToHostingService(category + "_" + name + "_dump_" + FBSR.getVersion() + ".txt",
 					baos.toByteArray());
 			event.getChannel().sendMessage(category + " " + name + " lua dump: " + url.toString()).complete();
-			reporting.addDownloadURL(url.toString());
+			reporting.addLink(url.toString());
 		}
 	}
 
-	private void sendReportToDemod(MessageReceivedEvent event, TaskReporting reporting) {
-		Optional<String> context = reporting.getContext();
-		List<Exception> exceptions = reporting.getExceptions();
-		List<String> warnings = reporting.getWarnings();
-		List<String> imageUrls = reporting.getImageURLs();
-		List<String> downloadUrls = reporting.getDownloadURLs();
-
-		if (!exceptions.isEmpty()) {
+	public void sendReportToDemod(MessageReceivedEvent event, TaskReporting reporting) {
+		if (!reporting.getExceptions().isEmpty()) {
 			event.getChannel()
 					.sendMessage(
 							"There was a problem completing your request. I have contacted my programmer to fix it for you!")
 					.complete();
 		}
 
+		sendReportToDemod(getReadableAddress(event), event.getAuthor().getEffectiveAvatarUrl(), reporting);
+	}
+
+	public void sendReportToDemod(String author, String authorURL, TaskReporting reporting) {
+		Optional<String> context = reporting.getContext();
+		List<Exception> exceptions = reporting.getExceptions();
+		List<String> warnings = reporting.getWarnings();
+		List<String> images = reporting.getImages();
+		List<String> links = reporting.getLinks();
+		List<String> downloads = reporting.getDownloads();
+
 		EmbedBuilder builder = new EmbedBuilder();
-		builder.setAuthor(getReadableAddress(event), null, event.getAuthor().getEffectiveAvatarUrl());
+		builder.setAuthor(author, null, authorURL);
 		builder.setTimestamp(Instant.now());
 
 		Level level = reporting.getLevel();
@@ -315,23 +318,24 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			builder.setColor(level.getColor());
 		}
 
-		if (context.isPresent() && context.get().length() <= 200) {
+		if (context.isPresent() && context.get().length() <= MADEUP_NUMBER_FROM_AROUND_5_IN_THE_MORNING) {
 			builder.addField("Context", context.get(), false);
 			context = Optional.empty();// XXX Being lazy at 5am
 		}
 
-		boolean firstImage = true;
-		for (String imageUrl : imageUrls) {
-			if (firstImage) {
-				firstImage = false;
-				builder.setImage(imageUrl);
-			} else {
-				builder.addField("Additional Image", imageUrl, true);
-			}
+		if (!links.isEmpty()) {
+			builder.addField("Link(s)", links.stream().collect(Collectors.joining("\n")), false);
 		}
 
-		for (String downloadUrl : downloadUrls) {
-			builder.addField("Download", downloadUrl, true);
+		if (!images.isEmpty()) {
+			builder.setImage(images.get(0));
+		}
+		if (images.size() > 1) {
+			builder.addField("Additional Image(s)", images.stream().skip(1).collect(Collectors.joining("\n")), false);
+		}
+
+		if (!downloads.isEmpty()) {
+			builder.addField("Download(s)", downloads.stream().collect(Collectors.joining("\n")), false);
 		}
 
 		Multiset<String> uniqueWarnings = LinkedHashMultiset.create(warnings);
@@ -367,7 +371,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 					false);
 		}
 
-		PrivateChannel privateChannel = event.getJDA().getUserById(USERID_DEMOD).openPrivateChannel().complete();
+		PrivateChannel privateChannel = bot.getJDA().getUserById(USERID_DEMOD).openPrivateChannel().complete();
 		privateChannel.sendMessage(builder.build()).complete();
 
 		if (context.isPresent()) {
@@ -381,6 +385,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 	@Override
 	protected void shutDown() throws Exception {
+		ServiceFinder.removeService(this);
 		bot.stopAsync().awaitTerminated();
 	}
 
@@ -437,6 +442,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 			bot.startAsync().awaitRunning();
 
+			ServiceFinder.addService(this);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
