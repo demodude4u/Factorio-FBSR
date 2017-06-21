@@ -384,6 +384,7 @@ public class FBSR {
 
 		Level level = reporting.getLevel();
 		if (level != Level.INFO) {
+			g.setTransform(worldXform);
 			g.setStroke(GRID_STROKE);
 			g.setColor(level.getColor().darker());
 			g.draw(centerBounds);
