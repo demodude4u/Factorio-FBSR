@@ -23,8 +23,8 @@ import com.demod.fbsr.Direction;
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
-import com.demod.fbsr.Sprite;
 import com.demod.fbsr.Renderer.Layer;
+import com.demod.fbsr.Sprite;
 import com.demod.fbsr.WorldMap;
 
 public class AssemblingMachineRendering extends EntityRendererFactory {
@@ -44,37 +44,39 @@ public class AssemblingMachineRendering extends EntityRendererFactory {
 
 		String recipe = entity.json().optString("recipe", null);
 		if (recipe != null) {
-			RecipePrototype protoRecipe = dataTable.getRecipe(recipe).get();
-			LuaValue iconLua = protoRecipe.lua().get("icon");
-			if (!iconLua.isnil()) {
-				spriteIcon.image = FactorioData.getIcon(protoRecipe);
-			} else {
-				String name;
-				if (protoRecipe.lua().get("results") != LuaValue.NIL) {
-					name = protoRecipe.lua().get("results").get(1).get("name").toString();
+			Optional<RecipePrototype> optRecipe = dataTable.getRecipe(recipe);
+			if (optRecipe.isPresent()) {
+				RecipePrototype protoRecipe = optRecipe.get();
+				LuaValue iconLua = protoRecipe.lua().get("icon");
+				if (!iconLua.isnil()) {
+					spriteIcon.image = FactorioData.getIcon(protoRecipe);
 				} else {
-					name = protoRecipe.lua().get("result").toString();
+					String name;
+					if (protoRecipe.lua().get("results") != LuaValue.NIL) {
+						name = protoRecipe.lua().get("results").get(1).get("name").toString();
+					} else {
+						name = protoRecipe.lua().get("result").toString();
+					}
+					Optional<DataPrototype> protoProduct = dataTable.getItem(name);
+					if (!protoProduct.isPresent()) {
+						protoProduct = dataTable.getFluid(name);
+					}
+					spriteIcon.image = FactorioData.getIcon(protoProduct.get());
 				}
-				Optional<DataPrototype> protoProduct = dataTable.getItem(name);
-				if (!protoProduct.isPresent()) {
-					protoProduct = dataTable.getFluid(name);
-				}
-				spriteIcon.image = FactorioData.getIcon(protoProduct.get());
+
+				spriteIcon.source = new Rectangle(0, 0, spriteIcon.image.getWidth(), spriteIcon.image.getHeight());
+				spriteIcon.bounds = new Rectangle2D.Double(-0.7, -1.0, 1.4, 1.4);
+
+				Renderer delegate = RenderUtils.spriteRenderer(spriteIcon, entity, prototype);
+				register.accept(new Renderer(Layer.OVERLAY2, delegate.getBounds()) {
+					@Override
+					public void render(Graphics2D g) throws Exception {
+						g.setColor(new Color(0, 0, 0, 180));
+						g.fill(spriteIcon.bounds);
+						delegate.render(g);
+					}
+				});
 			}
-
-			spriteIcon.source = new Rectangle(0, 0, spriteIcon.image.getWidth(), spriteIcon.image.getHeight());
-			spriteIcon.bounds = new Rectangle2D.Double(-0.7, -1.0, 1.4, 1.4);
-
-			Renderer delegate = RenderUtils.spriteRenderer(spriteIcon, entity, prototype);
-			register.accept(new Renderer(Layer.OVERLAY2, delegate.getBounds()) {
-				@Override
-				public void render(Graphics2D g) throws Exception {
-					g.setColor(new Color(0, 0, 0, 180));
-					g.fill(spriteIcon.bounds);
-					delegate.render(g);
-				}
-			});
-
 		}
 	}
 
@@ -83,8 +85,11 @@ public class AssemblingMachineRendering extends EntityRendererFactory {
 			EntityPrototype prototype) {
 		String recipeName = entity.json().optString("recipe", null);
 		if (recipeName != null) {
-			RecipePrototype protoRecipe = dataTable.getRecipe(recipeName).get();
-			setLogisticMachine(map, dataTable, entity, prototype, protoRecipe);
+			Optional<RecipePrototype> optRecipe = dataTable.getRecipe(recipeName);
+			if (optRecipe.isPresent()) {
+				RecipePrototype protoRecipe = optRecipe.get();
+				setLogisticMachine(map, dataTable, entity, prototype, protoRecipe);
+			}
 		}
 	}
 
@@ -93,18 +98,21 @@ public class AssemblingMachineRendering extends EntityRendererFactory {
 		String recipeName = entity.json().optString("recipe", null);
 		boolean hasFluid = false;
 		if (recipeName != null) {
-			RecipePrototype protoRecipe = dataTable.getRecipe(recipeName).get();
+			Optional<RecipePrototype> optRecipe = dataTable.getRecipe(recipeName);
+			if (optRecipe.isPresent()) {
+				RecipePrototype protoRecipe = optRecipe.get();
 
-			List<LuaValue> items = new ArrayList<>();
-			Utils.forEach(protoRecipe.lua().get("ingredients"), (Consumer<LuaValue>) items::add);
-			LuaValue resultsLua = protoRecipe.lua().get("results");
-			if (resultsLua != LuaValue.NIL) {
-				items.add(resultsLua);
+				List<LuaValue> items = new ArrayList<>();
+				Utils.forEach(protoRecipe.lua().get("ingredients"), (Consumer<LuaValue>) items::add);
+				LuaValue resultsLua = protoRecipe.lua().get("results");
+				if (resultsLua != LuaValue.NIL) {
+					items.add(resultsLua);
+				}
+				hasFluid = items.stream().anyMatch(lua -> {
+					LuaValue typeLua = lua.get("type");
+					return typeLua != LuaValue.NIL && typeLua.toString().equals("fluid");
+				});
 			}
-			hasFluid = items.stream().anyMatch(lua -> {
-				LuaValue typeLua = lua.get("type");
-				return typeLua != LuaValue.NIL && typeLua.toString().equals("fluid");
-			});
 		}
 
 		LuaValue fluidBoxesLua = prototype.lua().get("fluid_boxes");

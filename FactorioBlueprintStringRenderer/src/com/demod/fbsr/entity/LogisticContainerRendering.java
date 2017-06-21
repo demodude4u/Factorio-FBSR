@@ -17,14 +17,15 @@ import org.json.JSONObject;
 import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
 import com.demod.factorio.Utils;
+import com.demod.factorio.prototype.DataPrototype;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.BlueprintEntity;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
-import com.demod.fbsr.Sprite;
 import com.demod.fbsr.Renderer.Layer;
+import com.demod.fbsr.Sprite;
 import com.demod.fbsr.WorldMap;
 
 public class LogisticContainerRendering extends EntityRendererFactory {
@@ -41,21 +42,23 @@ public class LogisticContainerRendering extends EntityRendererFactory {
 
 			if (!items.isEmpty()) {
 				String itemName = items.get(0);
-				Sprite spriteIcon = new Sprite();
-				spriteIcon.image = FactorioData
-						.getModImage(dataTable.getItem(itemName).get().lua().get("icon").tojstring());
-				spriteIcon.source = new Rectangle(0, 0, spriteIcon.image.getWidth(), spriteIcon.image.getHeight());
-				spriteIcon.bounds = new Rectangle2D.Double(-0.3, -0.3, 0.6, 0.6);
+				Optional<DataPrototype> optItem = dataTable.getItem(itemName);
+				if (optItem.isPresent()) {
+					Sprite spriteIcon = new Sprite();
+					spriteIcon.image = FactorioData.getIcon(optItem.get());
+					spriteIcon.source = new Rectangle(0, 0, spriteIcon.image.getWidth(), spriteIcon.image.getHeight());
+					spriteIcon.bounds = new Rectangle2D.Double(-0.3, -0.3, 0.6, 0.6);
 
-				Renderer delegate = RenderUtils.spriteRenderer(spriteIcon, entity, prototype);
-				register.accept(new Renderer(Layer.OVERLAY2, delegate.getBounds()) {
-					@Override
-					public void render(Graphics2D g) throws Exception {
-						g.setColor(new Color(0, 0, 0, 128));
-						g.fill(spriteIcon.bounds);
-						delegate.render(g);
-					}
-				});
+					Renderer delegate = RenderUtils.spriteRenderer(spriteIcon, entity, prototype);
+					register.accept(new Renderer(Layer.OVERLAY2, delegate.getBounds()) {
+						@Override
+						public void render(Graphics2D g) throws Exception {
+							g.setColor(new Color(0, 0, 0, 128));
+							g.fill(spriteIcon.bounds);
+							delegate.render(g);
+						}
+					});
+				}
 			}
 		}
 	}

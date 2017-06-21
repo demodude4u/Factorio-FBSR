@@ -66,6 +66,8 @@ public class FBSR {
 		TileRendererFactory factory;
 	}
 
+	private static final int MAX_WORLD_RENDER_PIXELS = 10000 * 10000;
+
 	private static final Color GROUND_COLOR = new Color(40, 40, 40);
 	private static final Color GRID_COLOR = new Color(60, 60, 60);
 
@@ -194,6 +196,12 @@ public class FBSR {
 				break;
 			}
 		}
+		float worldRenderScale = 1;
+		while (((long) (centerBounds.getWidth() * worldRenderScale * tileSize)
+				* (long) (centerBounds.getHeight() * worldRenderScale * tileSize)) > MAX_WORLD_RENDER_PIXELS) {
+			worldRenderScale /= 2;
+		}
+
 		double borderTop = 0, borderRight = 0, borderBottom = 0, borderLeft = 0;
 		double borderRightBudget = 0;
 		for (Entry<Direction, PanelRenderer> entry : borderPanels.entries()) {
@@ -223,11 +231,17 @@ public class FBSR {
 				break;
 			}
 		}
-		Rectangle2D.Double totalBounds = new Rectangle2D.Double(centerBounds.x - borderLeft, centerBounds.y - borderTop,
-				centerBounds.width + borderLeft + borderRight, centerBounds.height + borderTop + borderBottom);
+		Rectangle2D.Double totalBounds = new Rectangle2D.Double(centerBounds.x - borderLeft / worldRenderScale,
+				centerBounds.y - borderTop / worldRenderScale,
+				centerBounds.width + borderLeft / worldRenderScale + borderRight / worldRenderScale,
+				centerBounds.height + borderTop / worldRenderScale + borderBottom / worldRenderScale);
 
-		BufferedImage image = new BufferedImage((int) (totalBounds.getWidth() * tileSize),
-				(int) (totalBounds.getHeight() * tileSize), BufferedImage.TYPE_INT_RGB);
+		System.out.println("IMAGE SCALE: " + worldRenderScale);
+		System.out.println("IMAGE DIM: " + (int) (totalBounds.getWidth() * worldRenderScale * tileSize) + ","
+				+ (int) (totalBounds.getHeight() * worldRenderScale * tileSize));
+
+		BufferedImage image = new BufferedImage((int) (totalBounds.getWidth() * worldRenderScale * tileSize),
+				(int) (totalBounds.getHeight() * worldRenderScale * tileSize), BufferedImage.TYPE_INT_RGB);
 		Graphics2D g = image.createGraphics();
 
 		g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -302,11 +316,14 @@ public class FBSR {
 		{
 			Rectangle2D.Double bounds = new Rectangle2D.Double(centerBounds.getMinX(), centerBounds.getMinY(), 0, 0);
 			for (PanelRenderer panel : borderPanels.get(Direction.NORTH)) {
+				g.setTransform(worldXform);
 				bounds.y -= panel.minHeight;
 				bounds.width = centerBounds.width;
 				bounds.height = panel.minHeight;
+				g.translate(bounds.x, bounds.y);
+				g.scale(1 / worldRenderScale, 1 / worldRenderScale);
 				try {
-					panel.render(g, bounds);
+					panel.render(g, bounds.width / worldRenderScale, bounds.height / worldRenderScale);
 				} catch (Exception e) {
 					reporting.addException(e);
 				}
@@ -315,41 +332,50 @@ public class FBSR {
 		{
 			Rectangle2D.Double bounds = new Rectangle2D.Double(centerBounds.getMaxX(), centerBounds.getMinY(), 0, 0);
 			for (PanelRenderer panel : borderPanels.get(Direction.EAST)) {
+				g.setTransform(worldXform);
 				if (bounds.y + panel.minHeight > centerBounds.getMaxY()) {
 					bounds.y = centerBounds.getMinY();
 					bounds.x += panel.minWidth;
 				}
 				bounds.width = panel.minWidth;
 				bounds.height = panel.minHeight;
+				g.translate(bounds.x, bounds.y);
+				g.scale(1 / worldRenderScale, 1 / worldRenderScale);
 				try {
-					panel.render(g, bounds);
+					panel.render(g, bounds.width / worldRenderScale, bounds.height / worldRenderScale);
 				} catch (Exception e) {
 					reporting.addException(e);
 				}
-				bounds.y += panel.minHeight;
+				bounds.y += panel.minHeight / worldRenderScale;
 			}
 		}
 		{
 			Rectangle2D.Double bounds = new Rectangle2D.Double(centerBounds.getMinX(), centerBounds.getMaxY(), 0, 0);
 			for (PanelRenderer panel : borderPanels.get(Direction.SOUTH)) {
+				g.setTransform(worldXform);
 				bounds.width = centerBounds.width;
 				bounds.height = panel.minHeight;
+				g.translate(bounds.x, bounds.y);
+				g.scale(1 / worldRenderScale, 1 / worldRenderScale);
 				try {
-					panel.render(g, bounds);
+					panel.render(g, bounds.width / worldRenderScale, bounds.height / worldRenderScale);
 				} catch (Exception e) {
 					reporting.addException(e);
 				}
-				bounds.y += panel.minHeight;
+				bounds.y += panel.minHeight / worldRenderScale;
 			}
 		}
 		{
 			Rectangle2D.Double bounds = new Rectangle2D.Double(centerBounds.getMinX(), centerBounds.getMinY(), 0, 0);
 			for (PanelRenderer panel : borderPanels.get(Direction.WEST)) {
+				g.setTransform(worldXform);
 				bounds.x -= panel.minWidth;
 				bounds.width = panel.minWidth;
 				bounds.height = centerBounds.height;
+				g.translate(bounds.x, bounds.y);
+				g.scale(1 / worldRenderScale, 1 / worldRenderScale);
 				try {
-					panel.render(g, bounds);
+					panel.render(g, bounds.width / worldRenderScale, bounds.height / worldRenderScale);
 				} catch (Exception e) {
 					reporting.addException(e);
 				}
@@ -394,17 +420,17 @@ public class FBSR {
 	private static PanelRenderer createFooterPanel() {
 		return new PanelRenderer(0, 0.5) {
 			@Override
-			public void render(Graphics2D g, Rectangle2D.Double bounds)
+			public void render(Graphics2D g, double width, double height)
 					throws JSONException, FileNotFoundException, IOException {
 				g.setColor(GRID_COLOR);
 				g.setFont(new Font("Monospaced", Font.BOLD, 1).deriveFont(0.4f));
 				String footerMessage;
-				if (bounds.width > 5.5) {
+				if (width > 5.5) {
 					footerMessage = "Made by BlueprintBot - Factorio " + getVersion();
 				} else {
 					footerMessage = "BlueprintBot";
 				}
-				g.drawString(footerMessage, (float) (bounds.getMinX() + 0.11), (float) (bounds.getMaxY() - 0.11));
+				g.drawString(footerMessage, (float) (0.11), (float) (height - 0.11));
 			}
 		};
 	}
@@ -415,19 +441,21 @@ public class FBSR {
 		final double iconSize = 0.6;
 		return new PanelRenderer(3.0, header + items.size() * spacing + 0.2) {
 			@Override
-			public void render(Graphics2D g, Rectangle2D.Double bounds) throws Exception {
+			public void render(Graphics2D g, double width, double height) throws Exception {
 				g.setColor(GRID_COLOR);
 				g.setStroke(GRID_STROKE);
-				g.draw(bounds);
+				g.draw(new Rectangle2D.Double(0, 0, width, height));
 
 				Font font = new Font("Monospaced", Font.BOLD, 1).deriveFont(0.6f);
 				Font font6Digits = font.deriveFont(0.5f);
-				Font font7Digits = font.deriveFont(0.4f);
-				g.setFont(font);
-				g.drawString(title, (float) bounds.x + 0.3f, (float) bounds.y + 0.65f);
+				// Font font7Digits = font.deriveFont(0.4f);
+				// Font font8Digits = font.deriveFont(0.3f);
 
-				double startX = bounds.x + 0.6;
-				double startY = bounds.y + header + spacing / 2.0;
+				g.setFont(font);
+				g.drawString(title, 0.3f, 0.65f);
+
+				double startX = 0.6;
+				double startY = header + spacing / 2.0;
 				Rectangle2D.Double spriteBox = new Rectangle2D.Double(startX - iconSize / 2.0, startY - iconSize / 2.0,
 						iconSize, iconSize);
 				Point2D.Double textPos = new Point2D.Double(startX + 0.5, startY + 0.18);
@@ -449,9 +477,22 @@ public class FBSR {
 					RenderUtils.drawImageInBounds(image, new Rectangle(0, 0, image.getWidth(), image.getHeight()),
 							spriteBox, g);
 
-					g.setColor(GRID_COLOR);
-					g.setFont(amount <= 99999 ? font : amount <= 999999 ? font6Digits : font7Digits);
-					g.drawString(RenderUtils.fmtDouble(Math.ceil(amount)), (float) textPos.x, (float) textPos.y);
+					String amountStr;
+					if (amount < 99999) {
+						g.setColor(GRID_COLOR);
+						amountStr = RenderUtils.fmtDouble(Math.ceil(amount));
+					} else if (amount < 9999999) {
+						g.setColor(GRID_COLOR.brighter());
+						amountStr = RenderUtils.fmtDouble(Math.ceil(amount / 1000)) + "k";
+					} else {
+						g.setColor(GRID_COLOR.brighter().brighter());
+						amountStr = RenderUtils.fmtDouble(Math.ceil(amount / 1000000)) + "M";
+					}
+					// g.setFont(amount <= 99999 ? font
+					// : amount <= 999999 ? font6Digits : amount <= 9999999 ?
+					// font7Digits : font8Digits);
+					g.setFont(font);
+					g.drawString(amountStr, (float) textPos.x, (float) textPos.y);
 
 					spriteBox.y += spacing;
 					textPos.y += spacing;
@@ -534,7 +575,7 @@ public class FBSR {
 				return Color.MAGENTA;
 			}
 			DataPrototype prototype = optProto.get();
-			BufferedImage image = FactorioData.getModImage(prototype.lua().get("icon").tojstring());
+			BufferedImage image = FactorioData.getIcon(prototype);
 			Color color = RenderUtils.getAverageColor(image);
 			// return new Color(color.getRGB() | 0xA0A0A0);
 			// return color.brighter().brighter();

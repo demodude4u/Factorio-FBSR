@@ -1,7 +1,6 @@
 package com.demod.fbsr;
 
 import java.awt.Graphics2D;
-import java.awt.geom.Rectangle2D;
 
 public abstract class PanelRenderer {
 	protected double minWidth;
@@ -20,5 +19,5 @@ public abstract class PanelRenderer {
 		return minWidth;
 	}
 
-	public abstract void render(Graphics2D g, Rectangle2D.Double bounds) throws Exception;
+	public abstract void render(Graphics2D g, double width, double height) throws Exception;
 }
