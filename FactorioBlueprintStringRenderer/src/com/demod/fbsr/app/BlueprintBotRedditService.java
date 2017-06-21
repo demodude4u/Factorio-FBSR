@@ -61,11 +61,14 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 	private AccountManager account;
 	private Credentials credentials;
 	private OAuthData authData;
+	private long authExpireMillis;
 
 	private void ensureValidAccessToken() throws NetworkException, OAuthException {
-		if (System.currentTimeMillis() > authData.getExpirationDate().getTime()) {
+		if (System.currentTimeMillis() + 60000 > authExpireMillis) {
 			authData = reddit.getOAuthHelper().refreshToken(credentials);
+			authExpireMillis = authData.getExpirationDate().getTime();
 			reddit.authenticate(authData);
+			System.out.println("Refreshed Reddit Token!");
 		}
 	}
 
@@ -343,6 +346,7 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 					redditCredentialsJson.getString("client_secret") //
 			);
 			authData = reddit.getOAuthHelper().easyAuth(credentials);
+			authExpireMillis = authData.getExpirationDate().getTime();
 			reddit.authenticate(authData);
 
 			myUserName = redditCredentialsJson.getString("username");
