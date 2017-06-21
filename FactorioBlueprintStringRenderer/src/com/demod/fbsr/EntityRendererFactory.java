@@ -88,6 +88,11 @@ public class EntityRendererFactory {
 		Set<String> labeledTypes = new HashSet<>();
 
 		@Override
+		public void createModuleIcons(Consumer<Renderer> register, WorldMap map, DataTable table,
+				BlueprintEntity entity, EntityPrototype prototype) {
+		}
+
+		@Override
 		public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
 				BlueprintEntity entity, EntityPrototype prototype) {
 			Point2D.Double pos = entity.getPosition();
@@ -118,6 +123,16 @@ public class EntityRendererFactory {
 					}
 				}
 			});
+		}
+
+		@Override
+		public void createWireConnections(Consumer<Renderer> register, WorldMap map, DataTable table,
+				BlueprintEntity entity, EntityPrototype prototype) {
+		}
+
+		@Override
+		public void populateLogistics(WorldMap map, DataTable dataTable, BlueprintEntity entity,
+				EntityPrototype prototype) {
 		}
 
 		@Override
