@@ -502,12 +502,14 @@ public class FBSR {
 		Map<String, Double> ret = new LinkedHashMap<>();
 		for (BlueprintEntity entity : blueprint.getEntities()) {
 			String entityName = entity.getName();
-			Optional<ItemPrototype> item = table.getItemForEntity(entityName);
-			if (!item.isPresent()) {
-				reporting.addWarning("Cannot find item for entity: " + entity.getName());
+			List<ItemPrototype> items = table.getItemsForEntity(entityName);
+			if (items.isEmpty()) {
+				reporting.addWarning("Cannot find items for entity: " + entity.getName());
 				continue;
 			}
-			addToItemAmount(ret, item.get().getName(), 1);
+			items.forEach(i -> {
+				addToItemAmount(ret, i.getName(), 1);
+			});
 
 			if (entity.json().has("items")) {
 				Object itemsJson = entity.json().get("items");
