@@ -11,6 +11,7 @@ import java.util.Scanner;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.zip.ZipException;
 
 import org.json.JSONObject;
 
@@ -118,6 +119,8 @@ public final class BlueprintFinder {
 		for (String blueprintString : searchRaw(content, reporting)) {
 			try {
 				results.add(new BlueprintStringData(blueprintString));
+			} catch (ZipException e) {
+				reporting.addInfo("Sorry, but I can't read those kind of blueprints just yet.");
 			} catch (IllegalArgumentException | IOException e) {
 				reporting.addException(e);
 			}

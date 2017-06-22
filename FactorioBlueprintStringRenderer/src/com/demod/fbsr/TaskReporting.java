@@ -2,8 +2,10 @@ package com.demod.fbsr;
 
 import java.awt.Color;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import com.demod.fbsr.WorldMap.Debug;
 
@@ -28,6 +30,7 @@ public class TaskReporting {
 	private final List<String> images = new ArrayList<>();
 	private final List<String> downloads = new ArrayList<>();
 	private final List<String> links = new ArrayList<>();
+	private final Set<String> info = new LinkedHashSet<>();
 
 	public void addDownload(String url) {
 		downloads.add(url);
@@ -39,6 +42,10 @@ public class TaskReporting {
 
 	public void addImage(String url) {
 		images.add(url);
+	}
+
+	public void addInfo(String info) {
+		this.info.add(info);
 	}
 
 	public void addLink(String url) {
@@ -67,6 +74,10 @@ public class TaskReporting {
 
 	public List<String> getImages() {
 		return images;
+	}
+
+	public Set<String> getInfo() {
+		return info;
 	}
 
 	public Level getLevel() {

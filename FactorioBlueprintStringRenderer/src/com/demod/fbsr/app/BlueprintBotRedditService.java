@@ -164,7 +164,7 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 		}
 
 		ServiceFinder.findService(BlueprintBotDiscordService.class).ifPresent(
-				s -> s.sendReportToDemod("Reddit / " + subreddit + " / " + author, REDDIT_AUTHOR_URL, reporting));
+				s -> s.sendReport("Reddit / " + subreddit + " / " + author, REDDIT_AUTHOR_URL, reporting));
 
 		return Optional.of(lines.stream().collect(Collectors.joining("\n\n")));
 	}

@@ -504,7 +504,8 @@ public class FBSR {
 			String entityName = entity.getName();
 			List<ItemPrototype> items = table.getItemsForEntity(entityName);
 			if (items.isEmpty()) {
-				reporting.addWarning("Cannot find items for entity: " + entity.getName());
+				// reporting.addWarning("Cannot find items for entity: " +
+				// entity.getName());
 				continue;
 			}
 			items.forEach(i -> {
@@ -696,7 +697,9 @@ public class FBSR {
 			if (!prototype.isPresent()) {
 				tuple.prototype = null;
 				tuple.factory = EntityRendererFactory.UNKNOWN;
-				reporting.addWarning("Cant find prototype for " + entity.getName());
+				// reporting.addWarning("Cant find prototype for " +
+				// entity.getName());
+				reporting.addInfo("(Modded features are shown as question marks)");
 			} else {
 				tuple.prototype = prototype.get();
 				tuple.factory = EntityRendererFactory.forType(tuple.prototype.getType());
@@ -713,7 +716,9 @@ public class FBSR {
 			if (!prototype.isPresent()) {
 				tuple.prototype = null;
 				tuple.factory = TileRendererFactory.UNKNOWN;
-				reporting.addWarning("Cant find prototype for " + tile.getName());
+				// reporting.addWarning("Cant find prototype for " +
+				// tile.getName());
+				reporting.addInfo("(Modded features are shown as question marks)");
 			} else {
 				tuple.prototype = prototype.get();
 				tuple.factory = TileRendererFactory.forType(tuple.prototype.getType());

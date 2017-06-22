@@ -14,6 +14,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -29,6 +30,7 @@ import org.luaj.vm2.LuaValue;
 import com.demod.dcba.CommandHandler;
 import com.demod.dcba.DCBA;
 import com.demod.dcba.DiscordBot;
+import com.demod.factorio.Config;
 import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
 import com.demod.factorio.Utils;
@@ -57,11 +59,11 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 	private static final int MADEUP_NUMBER_FROM_AROUND_5_IN_THE_MORNING = 200;
 
-	private static final String USERID_DEMOD = "100075603016814592";
-
 	private static final Pattern debugPattern = Pattern.compile("DEBUG:([A-Za-z0-9_]+)");
 
 	private DiscordBot bot;
+
+	private String reportingUserID;
 
 	private CommandHandler createDataRawCommandHandler(Function<String, Optional<LuaValue>> query) {
 		return event -> {
@@ -87,7 +89,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			} catch (Exception e) {
 				reporting.addException(e);
 			}
-			sendReportToDemod(event, reporting);
+			sendReport(event, reporting);
 		};
 	}
 
@@ -125,7 +127,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			} catch (Exception e) {
 				reporting.addException(e);
 			}
-			sendReportToDemod(event, reporting);
+			sendReport(event, reporting);
 		};
 	}
 
@@ -184,10 +186,20 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		}
 
 		if (reporting.getImages().isEmpty() && reporting.getDownloads().isEmpty() && reporting.getWarnings().isEmpty()
-				&& reporting.getExceptions().isEmpty()) {
-			event.getChannel().sendMessage("I can't seem to find any blueprints. :frowning:").complete();
+				&& reporting.getExceptions().isEmpty() && reporting.getInfo().isEmpty()) {
+			if (content.split("\\s").length == 1) {
+				reporting.addInfo("Give me blueprint strings and I'll create images for you!");
+				reporting.addInfo("Include a link to a text file to get started.");
+			} else {
+				reporting.addInfo("I can't seem to find any blueprints. :frowning:");
+			}
 		}
-		sendReportToDemod(event, reporting);
+
+		if (!reporting.getInfo().isEmpty()) {
+			event.getChannel().sendMessage(reporting.getInfo().stream().collect(Collectors.joining("\n"))).complete();
+		}
+
+		sendReport(event, reporting);
 	}
 
 	private void handleBlueprintRawCommand(MessageReceivedEvent event) {
@@ -216,9 +228,14 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 						}
 						zos.close();
 						byte[] zipData = baos.toByteArray();
-						Message response = event.getChannel().sendFile(zipData, "blueprint JSON files.zip", null)
-								.complete();
-						reporting.addDownload(response.getAttachments().get(0).getUrl());
+						try {
+							Message response = event.getChannel().sendFile(zipData, "blueprint JSON files.zip", null)
+									.complete();
+							reporting.addDownload(response.getAttachments().get(0).getUrl());
+						} catch (Exception e) {
+							reporting.addInfo("Blueprint JSON Files: "
+									+ WebUtils.uploadToHostingService("blueprint JSON files.zip", zipData));
+						}
 					} catch (IOException e) {
 						reporting.addException(e);
 					}
@@ -231,15 +248,13 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		if (reporting.getImages().isEmpty() && reporting.getDownloads().isEmpty()) {
 			event.getChannel().sendMessage("I can't seem to find any blueprints. :frowning:").complete();
 		}
-		sendReportToDemod(event, reporting);
+		sendReport(event, reporting);
 	}
 
 	private void processBlueprints(List<BlueprintStringData> blueprintStrings, MessageReceivedEvent event,
 			TaskReporting reporting) {
 		for (BlueprintStringData blueprintString : blueprintStrings) {
 			try {
-				event.getChannel().sendTyping().complete();
-
 				System.out.println("Parsing blueprints: " + blueprintString.getBlueprints().size());
 				if (blueprintString.getBlueprints().size() == 1) {
 					BufferedImage image = FBSR.renderBlueprint(blueprintString.getBlueprints().get(0), reporting);
@@ -265,10 +280,15 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 						zos.close();
 						byte[] zipData = baos.toByteArray();
-						Message message = event.getChannel()
-								.sendFile(new ByteArrayInputStream(zipData), "blueprint book images.zip", null)
-								.complete();
-						reporting.addDownload(message.getAttachments().get(0).getUrl());
+						try {
+							Message message = event.getChannel()
+									.sendFile(new ByteArrayInputStream(zipData), "blueprint book images.zip", null)
+									.complete();
+							reporting.addDownload(message.getAttachments().get(0).getUrl());
+						} catch (Exception e) {
+							reporting.addInfo("Blueprint Book Images: "
+									+ WebUtils.uploadToHostingService("blueprint book images.zip", zipData));
+						}
 					}
 				}
 			} catch (Exception e) {
@@ -291,7 +311,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		}
 	}
 
-	public void sendReportToDemod(MessageReceivedEvent event, TaskReporting reporting) {
+	public void sendReport(MessageReceivedEvent event, TaskReporting reporting) {
 		if (!reporting.getExceptions().isEmpty()) {
 			event.getChannel()
 					.sendMessage(
@@ -299,16 +319,17 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 					.complete();
 		}
 
-		sendReportToDemod(getReadableAddress(event), event.getAuthor().getEffectiveAvatarUrl(), reporting);
+		sendReport(getReadableAddress(event), event.getAuthor().getEffectiveAvatarUrl(), reporting);
 	}
 
-	public void sendReportToDemod(String author, String authorURL, TaskReporting reporting) {
+	public void sendReport(String author, String authorURL, TaskReporting reporting) {
 		Optional<String> context = reporting.getContext();
 		List<Exception> exceptions = reporting.getExceptions();
 		List<String> warnings = reporting.getWarnings();
 		List<String> images = reporting.getImages();
 		List<String> links = reporting.getLinks();
 		List<String> downloads = reporting.getDownloads();
+		Set<String> info = reporting.getInfo();
 
 		EmbedBuilder builder = new EmbedBuilder();
 		builder.setAuthor(author, null, authorURL);
@@ -321,7 +342,13 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 		if (context.isPresent() && context.get().length() <= MADEUP_NUMBER_FROM_AROUND_5_IN_THE_MORNING) {
 			builder.addField("Context", context.get(), false);
-			context = Optional.empty();// XXX Being lazy at 5am
+		} else if (context.isPresent()) {
+			try {
+				builder.addField("Context Link",
+						WebUtils.uploadToHostingService("context.txt", context.get().getBytes()).toString(), false);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
 
 		if (!links.isEmpty()) {
@@ -337,6 +364,10 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 		if (!downloads.isEmpty()) {
 			builder.addField("Download(s)", downloads.stream().collect(Collectors.joining("\n")), false);
+		}
+
+		if (!info.isEmpty()) {
+			builder.addField("Info", info.stream().collect(Collectors.joining("\n")), false);
 		}
 
 		Multiset<String> uniqueWarnings = LinkedHashMultiset.create(warnings);
@@ -361,7 +392,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				pw.flush();
 				exceptionFile = Optional.of(sw.toString());
 			} catch (IOException e1) {
-				e1.printStackTrace();// XXX Uh... Houston, we have a problem...
+				e1.printStackTrace();
 			}
 		}
 		if (!uniqueExceptions.isEmpty()) {
@@ -371,17 +402,19 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 							.collect(Collectors.joining("\n")),
 					false);
 		}
+		if (exceptionFile.isPresent()) {
+			try {
+				builder.addField("Stack Trace(s)",
+						WebUtils.uploadToHostingService("exceptions.txt", exceptionFile.get().getBytes()).toString(),
+						false);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
 
-		PrivateChannel privateChannel = bot.getJDA().getUserById(USERID_DEMOD).openPrivateChannel().complete();
+		PrivateChannel privateChannel = bot.getJDA().getUserById(reportingUserID).openPrivateChannel().complete();
 		privateChannel.sendMessage(builder.build()).complete();
 
-		if (context.isPresent()) {
-			privateChannel.sendFile(new ByteArrayInputStream(context.get().getBytes()), "context.txt", null).complete();
-		}
-		if (exceptionFile.isPresent()) {
-			privateChannel.sendFile(new ByteArrayInputStream(exceptionFile.get().getBytes()), "exceptions.txt", null)
-					.complete();
-		}
 	}
 
 	@Override
@@ -442,6 +475,8 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 					.create();
 
 			bot.startAsync().awaitRunning();
+
+			reportingUserID = Config.get().getString("discord_reporting_user_id");
 
 			ServiceFinder.addService(this);
 		} catch (Exception e) {
