@@ -155,6 +155,10 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 			lines.add("[Blueprint Image](" + images.get(0) + ")");
 		}
 
+		for (String info : reporting.getInfo()) {
+			lines.add("    " + info);
+		}
+
 		if (images.isEmpty()) {
 			lines.add("    I can't seem to find any blueprints...");
 		}

@@ -498,4 +498,10 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			e.printStackTrace();
 		}
 	}
+
+	public URL useDiscordForFileHosting(String fileName, byte[] fileData) throws IOException {
+		PrivateChannel privateChannel = bot.getJDA().getUserById(reportingUserID).openPrivateChannel().complete();
+		Message message = privateChannel.sendFile(fileData, fileName, null).complete();
+		return new URL(message.getAttachments().get(0).getUrl());
+	}
 }

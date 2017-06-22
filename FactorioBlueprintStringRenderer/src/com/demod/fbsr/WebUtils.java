@@ -6,11 +6,14 @@ import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.Optional;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import com.demod.factorio.Utils;
+import com.demod.fbsr.app.BlueprintBotDiscordService;
+import com.demod.fbsr.app.ServiceFinder;
 
 public final class WebUtils {
 	public static InputStream limitMaxBytes(InputStream delegate, int maxBytes) {
@@ -54,6 +57,16 @@ public final class WebUtils {
 	public static URL uploadToHostingService(String fileName, byte[] fileData) throws IOException {
 		try (ByteArrayInputStream bais = new ByteArrayInputStream(fileData)) {
 			return uploadToNyaIs(fileName, bais);
+		} catch (Exception e) {
+			Optional<BlueprintBotDiscordService> discordService = ServiceFinder
+					.findService(BlueprintBotDiscordService.class);
+			if (discordService.isPresent()) {
+				try {
+					return discordService.get().useDiscordForFileHosting(fileName, fileData);
+				} catch (Exception e2) {
+				}
+			}
+			throw new IOException("File hosting failed!");
 		}
 	}
 
