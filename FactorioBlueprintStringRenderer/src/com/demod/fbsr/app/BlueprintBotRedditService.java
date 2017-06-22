@@ -56,16 +56,19 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 
 	private JSONObject configJson;
 	private String myUserName;
+	private String subreddit;
+	private long ageLimitMillis;
+	private Credentials credentials;
 
 	private RedditClient reddit;
 	private AccountManager account;
-	private Credentials credentials;
 	private OAuthData authData;
+
 	private long authExpireMillis = 0;
 
 	private void ensureConnectedToReddit() throws NetworkException, OAuthException, InterruptedException {
 		if (System.currentTimeMillis() + 60000 > authExpireMillis) {
-			for (int wait = 4000; true; wait = Math.max(wait * 2, (5) * 60 * 1000)) {
+			for (int wait = 4000; true; wait = Math.min(wait * 2, (5) * 60 * 1000)) {
 				try {
 					System.out.println("Connecting to Reddit...");
 					authData = reddit.getOAuthHelper().easyAuth(credentials);
@@ -74,7 +77,7 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 					System.out.println("Reconnected to Reddit!");
 					break;
 				} catch (Exception e) {
-					System.out.println("[Waiting " + TimeUnit.MILLISECONDS.convert(wait, TimeUnit.SECONDS)
+					System.out.println("[Waiting " + TimeUnit.MILLISECONDS.toSeconds(wait)
 							+ " seconds] Connection Failure [" + e.getClass().getSimpleName() + "]: " + e.getMessage());
 					Thread.sleep(wait);
 				}
@@ -303,9 +306,6 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 	@Override
 	protected void runOneIteration() throws Exception {
 		try {
-			String subreddit = configJson.getString("subreddit");
-			final long ageLimitMillis = configJson.getInt("age_limit_hours") * 60 * 60 * 1000;
-
 			JSONObject cacheJson = getOrCreateCache();
 			boolean cacheUpdated = false;
 
@@ -350,6 +350,8 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 			account = new AccountManager(reddit);
 
 			configJson = Config.get().getJSONObject("reddit");
+			subreddit = configJson.getString("subreddit");
+			ageLimitMillis = configJson.getInt("age_limit_hours") * 60 * 60 * 1000;
 
 			JSONObject redditCredentialsJson = configJson.getJSONObject("credentials");
 			credentials = Credentials.script( //
