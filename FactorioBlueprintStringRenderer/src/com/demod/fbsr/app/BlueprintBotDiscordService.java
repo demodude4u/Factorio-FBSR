@@ -432,8 +432,6 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			System.out.println("Factorio " + FBSR.getVersion() + " Data Loaded.");
 
 			bot = DCBA.builder()//
-					.withCommandPrefix("-")
-					//
 					.setInfo("Blueprint Bot")//
 					.withSupport("Find Demod and complain to him!")//
 					.withTechnology("FBSR", "Factorio Blueprint String Renderer")//
