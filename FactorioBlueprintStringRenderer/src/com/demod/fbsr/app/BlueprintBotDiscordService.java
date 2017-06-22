@@ -44,6 +44,7 @@ import com.demod.fbsr.TaskReporting;
 import com.demod.fbsr.TaskReporting.Level;
 import com.demod.fbsr.WebUtils;
 import com.demod.fbsr.WorldMap;
+import com.demod.fbsr.app.WatchdogService.WatchdogReporter;
 import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.Multiset;
 import com.google.common.util.concurrent.AbstractIdleService;
@@ -420,6 +421,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 	@Override
 	protected void shutDown() throws Exception {
 		ServiceFinder.removeService(this);
+		ServiceFinder.removeService(WatchdogReporter.class);
 		bot.stopAsync().awaitTerminated();
 	}
 
@@ -479,6 +481,21 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			reportingUserID = Config.get().getString("discord_reporting_user_id");
 
 			ServiceFinder.addService(this);
+			ServiceFinder.addService(WatchdogReporter.class, new WatchdogReporter() {
+				@Override
+				public void notifyInactive(String label) {
+					TaskReporting reporting = new TaskReporting();
+					reporting.addWarning(label + " has gone inactive!");
+					sendReport("Watchdog", null, reporting);
+				}
+
+				@Override
+				public void notifyReactive(String label) {
+					TaskReporting reporting = new TaskReporting();
+					reporting.addInfo(label + " is now active again!");
+					sendReport("Watchdog", null, reporting);
+				}
+			});
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

@@ -13,5 +13,6 @@
         "refresh_seconds": 20,
         "age_limit_hours": 24
     },
+    "watchdog_interval_minutes": 1,
     "factorio": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Factorio"
 }

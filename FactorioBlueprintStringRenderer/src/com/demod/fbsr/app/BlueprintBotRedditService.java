@@ -163,8 +163,8 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 					"    There was a problem completing your request. I have contacted my programmer to fix it for you!");
 		}
 
-		ServiceFinder.findService(BlueprintBotDiscordService.class).ifPresent(
-				s -> s.sendReport("Reddit / " + subreddit + " / " + author, REDDIT_AUTHOR_URL, reporting));
+		ServiceFinder.findService(BlueprintBotDiscordService.class)
+				.ifPresent(s -> s.sendReport("Reddit / " + subreddit + " / " + author, REDDIT_AUTHOR_URL, reporting));
 
 		return Optional.of(lines.stream().collect(Collectors.joining("\n\n")));
 	}
@@ -317,6 +317,10 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 			if (cacheUpdated) {
 				saveCache(cacheJson);
 			}
+
+			ServiceFinder.findService(WatchdogService.class).ifPresent(watchdog -> {
+				watchdog.notifyActive("Reddit Bot");
+			});
 		} catch (NetworkException e) {
 			System.out.println("Network Problem [" + e.getClass().getSimpleName() + "]: " + e.getMessage());
 			authExpireMillis = 0;

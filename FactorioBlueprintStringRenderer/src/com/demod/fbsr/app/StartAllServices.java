@@ -10,7 +10,8 @@ public class StartAllServices {
 	public static void main(String[] args) {
 		ServiceManager manager = new ServiceManager(Arrays.asList(new Service[] { //
 				new BlueprintBotDiscordService(), //
-				new BlueprintBotRedditService(),//
+				new BlueprintBotRedditService(), //
+				new WatchdogService(),//
 		}));
 
 		manager.startAsync();

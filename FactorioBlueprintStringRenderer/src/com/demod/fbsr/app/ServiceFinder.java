@@ -7,6 +7,10 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ServiceFinder {
 	private static final Map<Class<?>, Object> registry = new ConcurrentHashMap<>();
 
+	public static <T, S extends T> void addService(Class<T> clazz, S service) {
+		registry.put(clazz, service);
+	}
+
 	public static void addService(Object service) {
 		registry.put(service.getClass(), service);
 	}
@@ -16,7 +20,11 @@ public class ServiceFinder {
 		return Optional.ofNullable((T) registry.get(clazz));
 	}
 
+	public static void removeService(Class<?> clazz) {
+		registry.remove(clazz);
+	}
+
 	public static void removeService(Object service) {
-		registry.remove(service.getClass());
+		removeService(service.getClass());
 	}
 }
