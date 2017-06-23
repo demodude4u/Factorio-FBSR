@@ -181,6 +181,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		findDebugOptions(reporting, content);
 		if (!event.getMessage().getAttachments().isEmpty()) {
 			String url = event.getMessage().getAttachments().get(0).getUrl();
+			reporting.addLink(url);
 			processBlueprints(BlueprintFinder.search(url, reporting), event, reporting);
 		} else {
 			processBlueprints(BlueprintFinder.search(content, reporting), event, reporting);
