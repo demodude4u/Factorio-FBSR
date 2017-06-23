@@ -117,6 +117,15 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 		}
 	}
 
+	private String getPermaLink(Comment comment) {
+		try {
+			return "http://www.reddit.com/r/" + comment.getSubredditName() + "/comments/"
+					+ comment.getSubmissionId().split("_")[1] + "/_/" + comment.getId();
+		} catch (Exception e) {
+			return "!!! Failed to create permalink! " + comment.getSubmissionId() + " !!!";
+		}
+	}
+
 	private Optional<String> processContent(String content, String link, String subreddit, String author) {
 		if (!content.contains(configJson.getString("summon_keyword"))) {
 			return Optional.empty();
@@ -202,7 +211,7 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 					continue;
 				}
 
-				Optional<String> response = processContent(comment.getBody(), comment.getUrl(),
+				Optional<String> response = processContent(comment.getBody(), getPermaLink(comment),
 						comment.getSubredditName(), comment.getAuthor());
 				if (response.isPresent()) {
 					pendingReplies.add(new Pair<>(comment, response.get()));
