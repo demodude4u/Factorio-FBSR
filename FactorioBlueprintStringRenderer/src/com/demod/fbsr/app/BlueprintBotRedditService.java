@@ -40,11 +40,14 @@ import net.dean.jraw.http.oauth.Credentials;
 import net.dean.jraw.http.oauth.OAuthData;
 import net.dean.jraw.http.oauth.OAuthException;
 import net.dean.jraw.managers.AccountManager;
+import net.dean.jraw.managers.InboxManager;
 import net.dean.jraw.models.Comment;
 import net.dean.jraw.models.CommentNode;
 import net.dean.jraw.models.Listing;
+import net.dean.jraw.models.Message;
 import net.dean.jraw.models.Submission;
 import net.dean.jraw.paginators.CommentStream;
+import net.dean.jraw.paginators.InboxPaginator;
 import net.dean.jraw.paginators.Sorting;
 import net.dean.jraw.paginators.SubredditPaginator;
 import net.dean.jraw.paginators.TimePeriod;
@@ -65,6 +68,7 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 	private OAuthData authData;
 
 	private long authExpireMillis = 0;
+	private boolean processMessages;
 
 	private void ensureConnectedToReddit() throws NetworkException, OAuthException, InterruptedException {
 		if (System.currentTimeMillis() + 60000 > authExpireMillis) {
@@ -126,7 +130,11 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 		}
 	}
 
-	private Optional<String> processContent(String content, String link, String subreddit, String author) {
+	private String getPermaLink(Message message) {
+		return "https://www.reddit.com/message/messages/" + message.getId();
+	}
+
+	private Optional<String> processContent(String content, String link, String category, String author) {
 		if (!content.contains(configJson.getString("summon_keyword"))) {
 			return Optional.empty();
 		}
@@ -177,13 +185,13 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 		}
 
 		ServiceFinder.findService(BlueprintBotDiscordService.class)
-				.ifPresent(s -> s.sendReport("Reddit / " + subreddit + " / " + author, REDDIT_AUTHOR_URL, reporting));
+				.ifPresent(s -> s.sendReport("Reddit / " + category + " / " + author, REDDIT_AUTHOR_URL, reporting));
 
 		return Optional.of(lines.stream().collect(Collectors.joining("\n\n")));
 	}
 
 	private boolean processNewComments(JSONObject cacheJson, String subreddit, long ageLimitMillis)
-			throws NetworkException, ApiException {
+			throws ApiException {
 		long lastProcessedMillis = cacheJson.getLong("lastProcessedCommentMillis");
 
 		CommentStream commentStream = new CommentStream(reddit, subreddit);
@@ -244,9 +252,71 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 		}
 	}
 
-	private boolean processNewMessages(JSONObject cacheJson, long ageLimitMillis) {
-		// TODO Auto-generated method stub
-		return false;
+	private boolean processNewMessages(JSONObject cacheJson, long ageLimitMillis) throws ApiException {
+
+		long lastProcessedMillis = cacheJson.getLong("lastProcessedMessageMillis");
+
+		InboxPaginator paginator = new InboxPaginator(reddit, "messages");
+		paginator.setTimePeriod(TimePeriod.ALL);
+		paginator.setSorting(Sorting.NEW);
+
+		int processedCount = 0;
+		long newestMillis = lastProcessedMillis;
+		List<Pair<Message, String>> pendingReplies = new LinkedList<>();
+		List<Message> processedMessages = new LinkedList<>();
+		paginate: for (Listing<Message> listing : paginator) {
+			for (Message message : listing) {
+				if (message.isRead()) {
+					break paginate;
+				}
+
+				long createMillis = message.getCreated().getTime();
+				if (createMillis <= lastProcessedMillis
+						|| (System.currentTimeMillis() - createMillis > ageLimitMillis)) {
+					break paginate;
+				}
+
+				processedCount++;
+				newestMillis = Math.max(newestMillis, createMillis);
+				processedMessages.add(message);
+
+				Optional<String> response = processContent(message.getBody(), getPermaLink(message), "(Private)",
+						message.getAuthor());
+				if (response.isPresent()) {
+					pendingReplies.add(new Pair<>(message, response.get()));
+				}
+			}
+		}
+
+		if (!processedMessages.isEmpty()) {
+			new InboxManager(reddit).setRead(true, processedMessages.get(0),
+					processedMessages.stream().skip(1).toArray(Message[]::new));
+		}
+
+		for (Pair<Message, String> pair : pendingReplies) {
+			System.out.println("IM TRYING TO REPLY TO A MESSAGE!");
+			while (true) {
+				try {
+					account.reply(pair.getKey(), pair.getValue());
+					break;
+				} catch (ApiException e) {
+					if (e.getReason().equals("RATELIMIT")) {
+						System.out.println("RATE LIMITED! WAITING 6 MINUTES...");
+						Uninterruptibles.sleepUninterruptibly(6, TimeUnit.MINUTES);
+					} else {
+						throw e;
+					}
+				}
+			}
+		}
+
+		if (processedCount > 0) {
+			System.out.println("Processed " + processedCount + " message(s)");
+			cacheJson.put("lastProcessedMessageMillis", newestMillis);
+			return true;
+		} else {
+			return false;
+		}
 	}
 
 	private boolean processNewSubmissions(JSONObject cacheJson, String subreddit, long ageLimitMillis)
@@ -325,7 +395,9 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 			ensureConnectedToReddit();
 			cacheUpdated |= processNewSubmissions(cacheJson, subreddit, ageLimitMillis);
 			cacheUpdated |= processNewComments(cacheJson, subreddit, ageLimitMillis);
-			cacheUpdated |= processNewMessages(cacheJson, ageLimitMillis);
+			if (processMessages) {
+				cacheUpdated |= processNewMessages(cacheJson, ageLimitMillis);
+			}
 
 			if (cacheUpdated) {
 				saveCache(cacheJson);
@@ -369,6 +441,7 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 			configJson = Config.get().getJSONObject("reddit");
 			subreddit = configJson.getString("subreddit");
 			ageLimitMillis = configJson.getInt("age_limit_hours") * 60 * 60 * 1000;
+			processMessages = configJson.getBoolean("process_messages");
 
 			JSONObject redditCredentialsJson = configJson.getJSONObject("credentials");
 			credentials = Credentials.script( //

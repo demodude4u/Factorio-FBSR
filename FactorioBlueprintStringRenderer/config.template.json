@@ -12,7 +12,8 @@
         "subreddit": "",
         "summon_keyword": "!blueprint",
         "refresh_seconds": 20,
-        "age_limit_hours": 24
+        "age_limit_hours": 24,
+        "process_messages": true
     },
     "watchdog_interval_minutes": 1,
     "factorio": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Factorio"
