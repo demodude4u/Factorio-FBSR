@@ -92,10 +92,9 @@ public final class BlueprintFinder {
 	}
 
 	private static void findProviders(String content, TaskReporting reporting, List<String> results) {
-		int initialResultCount = results.size();
 		for (Provider provider : Provider.values()) {
 			Matcher matcher = provider.pattern.matcher(content);
-			if (matcher.find()) {
+			while (matcher.find()) {
 				try {
 					provider.mapper.matched(matcher, in -> {
 						try {
@@ -107,9 +106,6 @@ public final class BlueprintFinder {
 				} catch (Exception e) {
 					reporting.addException(e);
 				}
-			}
-			if (results.size() != initialResultCount) {
-				break;
 			}
 		}
 	}
