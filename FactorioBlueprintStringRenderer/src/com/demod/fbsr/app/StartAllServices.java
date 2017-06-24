@@ -14,7 +14,9 @@ public class StartAllServices {
 				new WatchdogService(),//
 		}));
 
-		manager.startAsync();
+		manager.startAsync().awaitHealthy();
+
+		Runtime.getRuntime().addShutdownHook(new Thread(() -> manager.stopAsync().awaitStopped()));
 	}
 
 }
