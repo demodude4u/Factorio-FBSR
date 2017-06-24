@@ -15,7 +15,20 @@ import com.demod.factorio.Utils;
 import com.demod.fbsr.app.BlueprintBotDiscordService;
 import com.demod.fbsr.app.ServiceFinder;
 
+import net.dv8tion.jda.core.EmbedBuilder;
+import net.dv8tion.jda.core.entities.MessageEmbed;
+
 public final class WebUtils {
+	public static void addPossiblyLargeEmbedField(EmbedBuilder builder, String name, String value, boolean inline)
+			throws IOException {
+		if (value.length() <= MessageEmbed.VALUE_MAX_LENGTH) {
+			builder.addField(name, value, inline);
+		} else {
+			builder.addField(name + " Link", uploadToHostingService(name + ".txt", value.getBytes()).toString(),
+					inline);
+		}
+	}
+
 	public static InputStream limitMaxBytes(InputStream delegate, int maxBytes) {
 		return new InputStream() {
 			int byteCount = 0;

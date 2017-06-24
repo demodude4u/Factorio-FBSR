@@ -325,98 +325,102 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 	}
 
 	public void sendReport(String author, String authorURL, TaskReporting reporting) {
-		Optional<String> context = reporting.getContext();
-		List<Exception> exceptions = reporting.getExceptions();
-		List<String> warnings = reporting.getWarnings();
-		List<String> images = reporting.getImages();
-		List<String> links = reporting.getLinks();
-		List<String> downloads = reporting.getDownloads();
-		Set<String> info = reporting.getInfo();
+		try {
+			Optional<String> context = reporting.getContext();
+			List<Exception> exceptions = reporting.getExceptions();
+			List<String> warnings = reporting.getWarnings();
+			List<String> images = reporting.getImages();
+			List<String> links = reporting.getLinks();
+			List<String> downloads = reporting.getDownloads();
+			Set<String> info = reporting.getInfo();
 
-		EmbedBuilder builder = new EmbedBuilder();
-		builder.setAuthor(author, null, authorURL);
-		builder.setTimestamp(Instant.now());
+			EmbedBuilder builder = new EmbedBuilder();
+			builder.setAuthor(author, null, authorURL);
+			builder.setTimestamp(Instant.now());
 
-		Level level = reporting.getLevel();
-		if (level != Level.INFO) {
-			builder.setColor(level.getColor());
-		}
+			Level level = reporting.getLevel();
+			if (level != Level.INFO) {
+				builder.setColor(level.getColor());
+			}
 
-		if (context.isPresent() && context.get().length() <= MADEUP_NUMBER_FROM_AROUND_5_IN_THE_MORNING) {
-			builder.addField("Context", context.get(), false);
-		} else if (context.isPresent()) {
-			try {
+			if (context.isPresent() && context.get().length() <= MADEUP_NUMBER_FROM_AROUND_5_IN_THE_MORNING) {
+				builder.addField("Context", context.get(), false);
+			} else if (context.isPresent()) {
 				builder.addField("Context Link",
 						WebUtils.uploadToHostingService("context.txt", context.get().getBytes()).toString(), false);
-			} catch (IOException e) {
-				e.printStackTrace();
 			}
-		}
 
-		if (!links.isEmpty()) {
-			builder.addField("Link(s)", links.stream().collect(Collectors.joining("\n")), false);
-		}
+			if (!links.isEmpty()) {
+				builder.addField("Link(s)", links.stream().collect(Collectors.joining("\n")), false);
+			}
 
-		if (!images.isEmpty()) {
-			builder.setImage(images.get(0));
-		}
-		if (images.size() > 1) {
-			builder.addField("Additional Image(s)", images.stream().skip(1).collect(Collectors.joining("\n")), false);
-		}
+			if (!images.isEmpty()) {
+				builder.setImage(images.get(0));
+			}
+			if (images.size() > 1) {
+				WebUtils.addPossiblyLargeEmbedField(builder, "Additional Image(s)",
+						images.stream().skip(1).collect(Collectors.joining("\n")), false);
+			}
 
-		if (!downloads.isEmpty()) {
-			builder.addField("Download(s)", downloads.stream().collect(Collectors.joining("\n")), false);
-		}
+			if (!downloads.isEmpty()) {
+				builder.addField("Download(s)", downloads.stream().collect(Collectors.joining("\n")), false);
+			}
 
-		if (!info.isEmpty()) {
-			builder.addField("Info", info.stream().collect(Collectors.joining("\n")), false);
-		}
+			if (!info.isEmpty()) {
+				builder.addField("Info", info.stream().collect(Collectors.joining("\n")), false);
+			}
 
-		Multiset<String> uniqueWarnings = LinkedHashMultiset.create(warnings);
-		if (!uniqueWarnings.isEmpty()) {
-			builder.addField("Warnings",
-					uniqueWarnings.entrySet().stream()
-							.map(e -> e.getElement() + (e.getCount() > 1 ? " *(**" + e.getCount() + "** times)*" : ""))
-							.collect(Collectors.joining("\n")),
-					false);
-		}
+			Multiset<String> uniqueWarnings = LinkedHashMultiset.create(warnings);
+			if (!uniqueWarnings.isEmpty()) {
+				builder.addField("Warnings",
+						uniqueWarnings.entrySet().stream().map(
+								e -> e.getElement() + (e.getCount() > 1 ? " *(**" + e.getCount() + "** times)*" : ""))
+								.collect(Collectors.joining("\n")),
+						false);
+			}
 
-		Multiset<String> uniqueExceptions = LinkedHashMultiset.create();
-		Optional<String> exceptionFile = Optional.empty();
-		if (!exceptions.isEmpty()) {
-			try (StringWriter sw = new StringWriter(); PrintWriter pw = new PrintWriter(sw)) {
-				for (Exception e : exceptions) {
-					if (uniqueExceptions.add(e.getClass().getSimpleName() + ": " + e.getMessage())) {
-						e.printStackTrace();
-						e.printStackTrace(pw);
+			Multiset<String> uniqueExceptions = LinkedHashMultiset.create();
+			Optional<String> exceptionFile = Optional.empty();
+			if (!exceptions.isEmpty()) {
+				try (StringWriter sw = new StringWriter(); PrintWriter pw = new PrintWriter(sw)) {
+					for (Exception e : exceptions) {
+						if (uniqueExceptions.add(e.getClass().getSimpleName() + ": " + e.getMessage())) {
+							e.printStackTrace();
+							e.printStackTrace(pw);
+						}
 					}
+					pw.flush();
+					exceptionFile = Optional.of(sw.toString());
 				}
+			}
+			if (!uniqueExceptions.isEmpty()) {
+				builder.addField("Exceptions",
+						uniqueExceptions.entrySet().stream().map(
+								e -> e.getElement() + (e.getCount() > 1 ? " *(**" + e.getCount() + "** times)*" : ""))
+								.collect(Collectors.joining("\n")),
+						false);
+			}
+			if (exceptionFile.isPresent()) {
+				builder.addField("Stack Trace(s)",
+						WebUtils.uploadToHostingService("exceptions.txt", exceptionFile.get().getBytes()).toString(),
+						false);
+			}
+
+			PrivateChannel privateChannel = bot.getJDA().getUserById(reportingUserID).openPrivateChannel().complete();
+			privateChannel.sendMessage(builder.build()).complete();
+
+		} catch (Exception e) {
+			PrivateChannel privateChannel = bot.getJDA().getUserById(reportingUserID).openPrivateChannel().complete();
+			privateChannel.sendMessage("Failed to create report!").complete();
+			try (StringWriter sw = new StringWriter(); PrintWriter pw = new PrintWriter(sw)) {
+				e.printStackTrace();
+				e.printStackTrace(pw);
 				pw.flush();
-				exceptionFile = Optional.of(sw.toString());
+				privateChannel.sendFile(sw.toString().getBytes(), "Exception.txt", null).complete();
 			} catch (IOException e1) {
 				e1.printStackTrace();
 			}
 		}
-		if (!uniqueExceptions.isEmpty()) {
-			builder.addField("Exceptions",
-					uniqueExceptions.entrySet().stream()
-							.map(e -> e.getElement() + (e.getCount() > 1 ? " *(**" + e.getCount() + "** times)*" : ""))
-							.collect(Collectors.joining("\n")),
-					false);
-		}
-		if (exceptionFile.isPresent()) {
-			try {
-				builder.addField("Stack Trace(s)",
-						WebUtils.uploadToHostingService("exceptions.txt", exceptionFile.get().getBytes()).toString(),
-						false);
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
-
-		PrivateChannel privateChannel = bot.getJDA().getUserById(reportingUserID).openPrivateChannel().complete();
-		privateChannel.sendMessage(builder.build()).complete();
-
 	}
 
 	@Override
