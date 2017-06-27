@@ -8,6 +8,7 @@ import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
@@ -46,6 +47,7 @@ import net.dean.jraw.models.CommentNode;
 import net.dean.jraw.models.Listing;
 import net.dean.jraw.models.Message;
 import net.dean.jraw.models.Submission;
+import net.dean.jraw.models.Thing;
 import net.dean.jraw.paginators.CommentStream;
 import net.dean.jraw.paginators.InboxPaginator;
 import net.dean.jraw.paginators.Sorting;
@@ -389,6 +391,31 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 			return true;
 		} else {
 			return false;
+		}
+	}
+
+	public void processRequest(String... ids) throws NetworkException, ApiException {
+		System.out.println("REQUESTED: " + Arrays.toString(ids));
+		Listing<Thing> listing = reddit.get(ids);
+		System.out.println("REQUESTED RESULT = " + listing.size());
+		for (Thing thing : listing) {
+			if (thing instanceof Comment) {
+				System.out.println("REQUESTED COMMENT!");
+				Comment comment = (Comment) thing;
+				Optional<String> response = processContent(comment.getBody(), getPermaLink(comment),
+						comment.getSubredditName(), comment.getAuthor());
+				if (response.isPresent()) {
+					account.reply(comment, response.get());
+				}
+			} else if (thing instanceof Submission) {
+				System.out.println("REQUESTED SUBMISSION!");
+				Submission submission = (Submission) thing;
+				Optional<String> response = processContent(submission.getSelftext(), submission.getUrl(),
+						submission.getSubredditName(), submission.getAuthor());
+				if (response.isPresent()) {
+					account.reply(submission, response.get());
+				}
+			}
 		}
 	}
 

@@ -255,6 +255,33 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		sendReport(event, reporting);
 	}
 
+	private void handleRedditCheckThingsCommand(MessageReceivedEvent event) {
+		String content = event.getMessage().getContent();
+		TaskReporting reporting = new TaskReporting();
+		reporting.setContext(content);
+
+		try {
+			String[] args = content.split("\\s");
+			if (args.length < 2) {
+				event.getChannel().sendMessage("You didn't specify anything!").complete();
+				return;
+			}
+
+			String[] ids = Arrays.asList(args).stream().skip(1).toArray(String[]::new);
+			ServiceFinder.findService(BlueprintBotRedditService.class).ifPresent(s -> {
+				try {
+					s.processRequest(ids);
+					reporting.addInfo("Request successful!");
+				} catch (Exception e) {
+					reporting.addException(e);
+				}
+			});
+		} catch (Exception e) {
+			reporting.addException(e);
+		}
+		sendReport(event, reporting);
+	}
+
 	private void processBlueprints(List<BlueprintStringData> blueprintStrings, MessageReceivedEvent event,
 			TaskReporting reporting) {
 		for (BlueprintStringData blueprintString : blueprintStrings) {
@@ -481,6 +508,8 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 					//
 					.addCommand("dataRaw", createDataRawCommandHandler(table::getRaw))//
 					.withHelp("Provides a dump of lua from `data.raw` for the specified key.")//
+					//
+					.addCommand("redditCheckThings", event -> handleRedditCheckThingsCommand(event))
 					//
 					.create();
 
