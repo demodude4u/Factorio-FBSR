@@ -151,7 +151,7 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 			for (Blueprint blueprint : blueprints) {
 				try {
 					BufferedImage image = FBSR.renderBlueprint(blueprint, reporting);
-					reporting.addImage(WebUtils
+					reporting.addImage(blueprint.getLabel(), WebUtils
 							.uploadToHostingService("blueprint.png", generateRedditFriendlyPNGImage(image)).toString());
 				} catch (Exception e) {
 					reporting.addException(e);
@@ -162,14 +162,20 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 		}
 
 		List<String> lines = new ArrayList<>();
-		List<String> images = reporting.getImages();
+		List<Pair<Optional<String>, String>> images = reporting.getImages();
 		if (images.size() > 1) {
 			int id = 1;
-			for (String url : images) {
-				lines.add("[Blueprint Image " + (id++) + "](" + url + ")");
+			lines.add("Blueprint Images:");
+			for (Pair<Optional<String>, String> pair : images) {
+				Optional<String> label = pair.getKey();
+				String url = pair.getValue();
+				lines.add("[" + (id++) + ": " + label.orElse("Blueprint") + "](" + url + ")");
 			}
 		} else if (!images.isEmpty()) {
-			lines.add("[Blueprint Image](" + images.get(0) + ")");
+			Pair<Optional<String>, String> pair = images.get(0);
+			Optional<String> label = pair.getKey();
+			String url = pair.getValue();
+			lines.add("[Blueprint Image" + label.map(s -> " (" + s + ")").orElse("") + "](" + url + ")");
 		}
 
 		for (String info : reporting.getInfo()) {

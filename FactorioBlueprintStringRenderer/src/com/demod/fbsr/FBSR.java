@@ -318,7 +318,7 @@ public class FBSR {
 			Rectangle2D.Double bounds = new Rectangle2D.Double(centerBounds.getMinX(), centerBounds.getMinY(), 0, 0);
 			for (PanelRenderer panel : borderPanels.get(Direction.NORTH)) {
 				g.setTransform(worldXform);
-				bounds.y -= panel.minHeight;
+				bounds.y -= panel.minHeight / worldRenderScale;
 				bounds.width = centerBounds.width;
 				bounds.height = panel.minHeight;
 				g.translate(bounds.x, bounds.y);
@@ -370,7 +370,7 @@ public class FBSR {
 			Rectangle2D.Double bounds = new Rectangle2D.Double(centerBounds.getMinX(), centerBounds.getMinY(), 0, 0);
 			for (PanelRenderer panel : borderPanels.get(Direction.WEST)) {
 				g.setTransform(worldXform);
-				bounds.x -= panel.minWidth;
+				bounds.x -= panel.minWidth / worldRenderScale;
 				bounds.width = panel.minWidth;
 				bounds.height = centerBounds.height;
 				g.translate(bounds.x, bounds.y);
@@ -433,6 +433,17 @@ public class FBSR {
 					footerMessage = "BlueprintBot";
 				}
 				g.drawString(footerMessage, (float) (0.11), (float) (height - 0.11));
+			}
+		};
+	}
+
+	private static PanelRenderer createHeaderPanel(String label) {
+		return new PanelRenderer(0, 0.75) {
+			@Override
+			public void render(Graphics2D g, double width, double height) {
+				g.setColor(GRID_COLOR.brighter());
+				g.setFont(new Font("Monospaced", Font.BOLD, 1).deriveFont(0.5f));
+				g.drawString(label, (float) (0.21), (float) (height - 0.21));
 			}
 		};
 	}
@@ -794,6 +805,9 @@ public class FBSR {
 		showLogisticGrid(renderers::add, table, map);
 
 		ArrayListMultimap<Direction, PanelRenderer> borderPanels = ArrayListMultimap.create();
+		blueprint.getLabel().ifPresent(label -> {
+			borderPanels.put(Direction.NORTH, createHeaderPanel(label));
+		});
 		borderPanels.put(Direction.SOUTH, createFooterPanel());
 
 		Map<String, Double> totalItems = generateTotalItems(table, map, blueprint, reporting);

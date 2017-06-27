@@ -9,6 +9,8 @@ import java.util.Set;
 
 import com.demod.fbsr.WorldMap.Debug;
 
+import javafx.util.Pair;
+
 public class TaskReporting {
 	public static enum Level {
 		INFO(Color.gray), WARN(Color.orange), ERROR(Color.red), DEBUG(Color.magenta);
@@ -27,7 +29,7 @@ public class TaskReporting {
 	private Optional<String> context = Optional.empty();
 	private final List<String> warnings = new ArrayList<>();
 	private final List<Exception> exceptions = new ArrayList<>();
-	private final List<String> images = new ArrayList<>();
+	private final List<Pair<Optional<String>, String>> images = new ArrayList<>();
 	private final List<String> downloads = new ArrayList<>();
 	private final List<String> links = new ArrayList<>();
 	private final Set<String> info = new LinkedHashSet<>();
@@ -40,8 +42,8 @@ public class TaskReporting {
 		exceptions.add(e);
 	}
 
-	public void addImage(String url) {
-		images.add(url);
+	public void addImage(Optional<String> label, String url) {
+		images.add(new Pair<>(label, url));
 	}
 
 	public void addInfo(String info) {
@@ -72,7 +74,7 @@ public class TaskReporting {
 		return exceptions;
 	}
 
-	public List<String> getImages() {
+	public List<Pair<Optional<String>, String>> getImages() {
 		return images;
 	}
 

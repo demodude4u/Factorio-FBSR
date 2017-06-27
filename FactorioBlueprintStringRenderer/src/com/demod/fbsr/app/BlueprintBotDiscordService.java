@@ -25,6 +25,7 @@ import java.util.zip.ZipOutputStream;
 import javax.imageio.ImageIO;
 
 import org.apache.commons.text.similarity.LevenshteinDistance;
+import org.json.JSONObject;
 import org.luaj.vm2.LuaValue;
 
 import com.demod.dcba.CommandHandler;
@@ -65,6 +66,8 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 	private DiscordBot bot;
 
 	private String reportingUserID;
+
+	private JSONObject configJson;
 
 	private CommandHandler createDataRawCommandHandler(Function<String, Optional<LuaValue>> query) {
 		return event -> {
@@ -259,11 +262,12 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			try {
 				System.out.println("Parsing blueprints: " + blueprintString.getBlueprints().size());
 				if (blueprintString.getBlueprints().size() == 1) {
-					BufferedImage image = FBSR.renderBlueprint(blueprintString.getBlueprints().get(0), reporting);
+					Blueprint blueprint = blueprintString.getBlueprints().get(0);
+					BufferedImage image = FBSR.renderBlueprint(blueprint, reporting);
 					byte[] imageData = generateDiscordFriendlyPNGImage(image);
 					Message message = event.getChannel()
 							.sendFile(new ByteArrayInputStream(imageData), "blueprint.png", null).complete();
-					reporting.addImage(message.getAttachments().get(0).getUrl());
+					reporting.addImage(blueprint.getLabel(), message.getAttachments().get(0).getUrl());
 				} else {
 					try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
 							ZipOutputStream zos = new ZipOutputStream(baos)) {
@@ -329,7 +333,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			Optional<String> context = reporting.getContext();
 			List<Exception> exceptions = reporting.getExceptions();
 			List<String> warnings = reporting.getWarnings();
-			List<String> images = reporting.getImages();
+			List<Pair<Optional<String>, String>> images = reporting.getImages();
 			List<String> links = reporting.getLinks();
 			List<String> downloads = reporting.getDownloads();
 			Set<String> info = reporting.getInfo();
@@ -355,11 +359,11 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			}
 
 			if (!images.isEmpty()) {
-				builder.setImage(images.get(0));
+				builder.setImage(images.get(0).getValue());
 			}
 			if (images.size() > 1) {
 				WebUtils.addPossiblyLargeEmbedField(builder, "Additional Image(s)",
-						images.stream().skip(1).collect(Collectors.joining("\n")), false);
+						images.stream().skip(1).map(Pair::getValue).collect(Collectors.joining("\n")), false);
 			}
 
 			if (!downloads.isEmpty()) {
@@ -433,6 +437,8 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 	@Override
 	protected void startUp() {
 		try {
+			configJson = Config.get().getJSONObject("discord");
+
 			DataTable table = FactorioData.getTable();
 			System.out.println("Factorio " + FBSR.getVersion() + " Data Loaded.");
 
@@ -481,7 +487,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 			bot.startAsync().awaitRunning();
 
-			reportingUserID = Config.get().getString("discord_reporting_user_id");
+			reportingUserID = configJson.getString("reporting_user_id");
 
 			ServiceFinder.addService(this);
 			ServiceFinder.addService(WatchdogReporter.class, new WatchdogReporter() {
