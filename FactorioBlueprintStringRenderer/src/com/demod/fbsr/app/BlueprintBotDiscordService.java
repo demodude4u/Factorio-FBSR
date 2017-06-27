@@ -4,7 +4,6 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.Field;
@@ -305,16 +304,16 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 	private void sendLuaDumpFile(MessageReceivedEvent event, String category, String name, LuaValue lua,
 			TaskReporting reporting) throws IOException {
-		try (ByteArrayOutputStream baos = new ByteArrayOutputStream(); PrintStream ps = new PrintStream(baos)) {
-			ps.println("Lua Data Dump of " + category + " " + name + " for Factorio " + FBSR.getVersion());
-			ps.println();
-			Utils.debugPrintLua(lua, ps);
-			ps.flush();
-			URL url = WebUtils.uploadToHostingService(category + "_" + name + "_dump_" + FBSR.getVersion() + ".txt",
-					baos.toByteArray());
-			event.getChannel().sendMessage(category + " " + name + " lua dump: " + url.toString()).complete();
-			reporting.addLink(url.toString());
-		}
+		JSONObject json = new JSONObject();
+		Utils.terribleHackToHaveOrderedJSONObject(json);
+		json.put("name", name);
+		json.put("category", category);
+		json.put("version", FBSR.getVersion());
+		json.put("data", Utils.<JSONObject>convertLuaToJson(lua));
+		URL url = WebUtils.uploadToHostingService(category + "_" + name + "_dump_" + FBSR.getVersion() + ".json",
+				json.toString(2).getBytes());
+		event.getChannel().sendMessage(category + " " + name + " lua dump: " + url.toString()).complete();
+		reporting.addLink(url.toString());
 	}
 
 	public void sendReport(MessageReceivedEvent event, TaskReporting reporting) {
