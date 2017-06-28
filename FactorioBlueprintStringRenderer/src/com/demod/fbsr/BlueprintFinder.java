@@ -8,6 +8,7 @@ import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -16,6 +17,7 @@ import java.util.zip.ZipException;
 import org.json.JSONObject;
 
 import com.demod.factorio.Utils;
+import com.google.common.util.concurrent.Uninterruptibles;
 
 public final class BlueprintFinder {
 
@@ -98,7 +100,24 @@ public final class BlueprintFinder {
 				try {
 					provider.mapper.matched(matcher, in -> {
 						try {
-							findBlueprints(in.getInputStream(), reporting, results);
+							List<IOException> tryExceptions = null;
+							for (int tries = 6; tries >= 0; tries--) {
+								try {
+									findBlueprints(in.getInputStream(), reporting, results);
+									break;
+								} catch (IOException e) {
+									if (tryExceptions == null) {
+										tryExceptions = new ArrayList<>();
+									}
+									tryExceptions.add(e);
+								}
+								if (tries > 1) {
+									Uninterruptibles.sleepUninterruptibly(10, TimeUnit.SECONDS);
+									in = WebUtils.openConnectionWithFakeUserAgent(in.getURL());
+								} else {
+									tryExceptions.forEach(e -> reporting.addException(e));
+								}
+							}
 						} catch (IOException e) {
 							reporting.addException(e);
 						}
