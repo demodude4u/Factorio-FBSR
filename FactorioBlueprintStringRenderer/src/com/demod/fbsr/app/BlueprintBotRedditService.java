@@ -185,12 +185,11 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 			lines.add("    " + info);
 		}
 
-		if (images.isEmpty()) {
-			lines.add("    I can't seem to find any blueprints...");
-		}
 		if (!reporting.getExceptions().isEmpty()) {
 			lines.add(
 					"    There was a problem completing your request. I have contacted my programmer to fix it for you!");
+		} else if (images.isEmpty()) {
+			lines.add("    I can't seem to find any blueprints...");
 		}
 
 		ServiceFinder.findService(BlueprintBotDiscordService.class)
