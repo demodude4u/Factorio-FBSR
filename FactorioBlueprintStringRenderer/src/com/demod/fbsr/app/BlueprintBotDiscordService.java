@@ -53,7 +53,9 @@ import javafx.util.Pair;
 import net.dv8tion.jda.core.EmbedBuilder;
 import net.dv8tion.jda.core.Permission;
 import net.dv8tion.jda.core.entities.Message;
+import net.dv8tion.jda.core.entities.MessageEmbed;
 import net.dv8tion.jda.core.entities.PrivateChannel;
+import net.dv8tion.jda.core.entities.TextChannel;
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent;
 
 public class BlueprintBotDiscordService extends AbstractIdleService {
@@ -67,6 +69,8 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 	private String reportingUserID;
 
 	private JSONObject configJson;
+
+	private String reportingChannelID;
 
 	private CommandHandler createDataRawCommandHandler(Function<String, Optional<LuaValue>> query) {
 		return event -> {
@@ -188,6 +192,8 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		} else {
 			processBlueprints(BlueprintFinder.search(content, reporting), event, reporting);
 		}
+
+		reporting.addException(new Exception("I can't believe its not butter!"));
 
 		if (reporting.getImages().isEmpty() && reporting.getDownloads().isEmpty() && reporting.getWarnings().isEmpty()
 				&& reporting.getExceptions().isEmpty() && reporting.getInfo().isEmpty()) {
@@ -436,8 +442,15 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 						false);
 			}
 
+			MessageEmbed embed = builder.build();
 			PrivateChannel privateChannel = bot.getJDA().getUserById(reportingUserID).openPrivateChannel().complete();
-			privateChannel.sendMessage(builder.build()).complete();
+			privateChannel.sendMessage(embed).complete();
+			if (!exceptions.isEmpty()) {
+				TextChannel textChannel = bot.getJDA().getTextChannelById(reportingChannelID);
+				if (textChannel != null) {
+					textChannel.sendMessage(embed).complete();
+				}
+			}
 
 		} catch (Exception e) {
 			PrivateChannel privateChannel = bot.getJDA().getUserById(reportingUserID).openPrivateChannel().complete();
@@ -516,6 +529,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			bot.startAsync().awaitRunning();
 
 			reportingUserID = configJson.getString("reporting_user_id");
+			reportingChannelID = configJson.getString("reporting_channel_id");
 
 			ServiceFinder.addService(this);
 			ServiceFinder.addService(WatchdogReporter.class, new WatchdogReporter() {
