@@ -71,6 +71,7 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 
 	private long authExpireMillis = 0;
 	private boolean processMessages;
+	private String summonKeyword;
 
 	private void ensureConnectedToReddit() throws NetworkException, OAuthException, InterruptedException {
 		if (System.currentTimeMillis() + 60000 > authExpireMillis) {
@@ -137,7 +138,7 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 	}
 
 	private Optional<String> processContent(String content, String link, String category, String author) {
-		if (!content.contains(configJson.getString("summon_keyword"))) {
+		if (!content.toLowerCase().contains(summonKeyword)) {
 			return Optional.empty();
 		}
 
@@ -475,6 +476,7 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 			subreddit = configJson.getString("subreddit");
 			ageLimitMillis = configJson.getInt("age_limit_hours") * 60 * 60 * 1000;
 			processMessages = configJson.getBoolean("process_messages");
+			summonKeyword = configJson.getString("summon_keyword").toLowerCase();
 
 			JSONObject redditCredentialsJson = configJson.getJSONObject("credentials");
 			credentials = Credentials.script( //
