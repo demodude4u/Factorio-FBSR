@@ -100,15 +100,12 @@ public final class BlueprintFinder {
 				try {
 					provider.mapper.matched(matcher, in -> {
 						try {
-							List<IOException> tryExceptions = null;
+							List<IOException> tryExceptions = new ArrayList<>();
 							for (int tries = 6; tries >= 0; tries--) {
 								try {
 									findBlueprints(in.getInputStream(), reporting, results);
 									break;
 								} catch (IOException e) {
-									if (tryExceptions == null) {
-										tryExceptions = new ArrayList<>();
-									}
 									tryExceptions.add(e);
 								}
 								if (tries > 1) {
