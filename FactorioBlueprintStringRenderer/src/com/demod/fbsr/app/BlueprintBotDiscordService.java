@@ -115,24 +115,26 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 					return;
 				}
 
-				String search = Arrays.asList(args).stream().skip(1).collect(Collectors.joining(" "));
-				Optional<? extends DataPrototype> prototype = Optional.ofNullable(map.get(search));
-				if (!prototype.isPresent()) {
-					LevenshteinDistance levenshteinDistance = LevenshteinDistance.getDefaultInstance();
-					List<String> suggestions = map.keySet().stream()
-							.map(k -> new Pair<>(k, levenshteinDistance.apply(search, k)))
-							.sorted((p1, p2) -> Integer.compare(p1.getValue(), p2.getValue())).limit(5)
-							.map(p -> p.getKey()).collect(Collectors.toList());
-					event.getChannel()
-							.sendMessage(
-									"I could not find the " + category + " prototype for `" + search
-											+ "`. :frowning:\nDid you mean:\n" + suggestions.stream()
-													.map(s -> "\t - " + s).collect(Collectors.joining("\n")))
-							.complete();
-					return;
-				}
+				List<String> searches = Arrays.asList(args).stream().skip(1).collect(Collectors.toList());
+				for (String search : searches) {
+					Optional<? extends DataPrototype> prototype = Optional.ofNullable(map.get(search));
+					if (!prototype.isPresent()) {
+						LevenshteinDistance levenshteinDistance = LevenshteinDistance.getDefaultInstance();
+						List<String> suggestions = map.keySet().stream()
+								.map(k -> new Pair<>(k, levenshteinDistance.apply(search, k)))
+								.sorted((p1, p2) -> Integer.compare(p1.getValue(), p2.getValue())).limit(5)
+								.map(p -> p.getKey()).collect(Collectors.toList());
+						event.getChannel()
+								.sendMessage(
+										"I could not find the " + category + " prototype for `" + search
+												+ "`. :frowning:\nDid you mean:\n" + suggestions.stream()
+														.map(s -> "\t - " + s).collect(Collectors.joining("\n")))
+								.complete();
+						return;
+					}
 
-				sendLuaDumpFile(event, category, prototype.get().getName(), prototype.get().lua(), reporting);
+					sendLuaDumpFile(event, category, prototype.get().getName(), prototype.get().lua(), reporting);
+				}
 			} catch (Exception e) {
 				reporting.addException(e);
 			}
