@@ -193,8 +193,6 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			processBlueprints(BlueprintFinder.search(content, reporting), event, reporting);
 		}
 
-		reporting.addException(new Exception("I can't believe its not butter!"));
-
 		if (reporting.getImages().isEmpty() && reporting.getDownloads().isEmpty() && reporting.getWarnings().isEmpty()
 				&& reporting.getExceptions().isEmpty() && reporting.getInfo().isEmpty()) {
 			if (content.split("\\s").length == 1) {
