@@ -324,7 +324,7 @@ public class FBSR {
 				g.translate(bounds.x, bounds.y);
 				g.scale(1 / worldRenderScale, 1 / worldRenderScale);
 				try {
-					panel.render(g, bounds.width / worldRenderScale, bounds.height / worldRenderScale);
+					panel.render(g, bounds.width, bounds.height);
 				} catch (Exception e) {
 					reporting.addException(e);
 				}
@@ -343,7 +343,7 @@ public class FBSR {
 				g.translate(bounds.x, bounds.y);
 				g.scale(1 / worldRenderScale, 1 / worldRenderScale);
 				try {
-					panel.render(g, bounds.width / worldRenderScale, bounds.height / worldRenderScale);
+					panel.render(g, bounds.width, bounds.height);
 				} catch (Exception e) {
 					reporting.addException(e);
 				}
@@ -359,7 +359,7 @@ public class FBSR {
 				g.translate(bounds.x, bounds.y);
 				g.scale(1 / worldRenderScale, 1 / worldRenderScale);
 				try {
-					panel.render(g, bounds.width / worldRenderScale, bounds.height / worldRenderScale);
+					panel.render(g, bounds.width, bounds.height);
 				} catch (Exception e) {
 					reporting.addException(e);
 				}
@@ -376,7 +376,7 @@ public class FBSR {
 				g.translate(bounds.x, bounds.y);
 				g.scale(1 / worldRenderScale, 1 / worldRenderScale);
 				try {
-					panel.render(g, bounds.width / worldRenderScale, bounds.height / worldRenderScale);
+					panel.render(g, bounds.width, bounds.height);
 				} catch (Exception e) {
 					reporting.addException(e);
 				}
