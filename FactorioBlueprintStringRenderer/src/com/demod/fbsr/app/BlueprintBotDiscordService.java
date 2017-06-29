@@ -72,23 +72,25 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 	private String reportingChannelID;
 
-	private CommandHandler createDataRawCommandHandler(Function<String, Optional<LuaValue>> query) {
+	private CommandHandler createDataRawCommandHandler(Function<String[], Optional<LuaValue>> query) {
 		return event -> {
-			String content = event.getMessage().getStrippedContent();
+			String content = event.getMessage().getContent();
 			TaskReporting reporting = new TaskReporting();
 			reporting.setContext(content);
 
 			try {
 				String[] args = content.split("\\s");
 				if (args.length < 2) {
-					event.getChannel().sendMessage("You didn't specify a key!").complete();
+					event.getChannel().sendMessage("You didn't specify a path!").complete();
 					return;
 				}
-
 				String key = content.substring(args[0].length()).trim();
-				Optional<LuaValue> lua = query.apply(key);
+				String[] path = key.split(".");
+				Optional<LuaValue> lua = query.apply(path);
 				if (!lua.isPresent()) {
-					event.getChannel().sendMessage("I could not find a lua table for `" + key + "`. :frowning:")
+					event.getChannel()
+							.sendMessage("I could not find a lua table for the path [`"
+									+ Arrays.asList(path).stream().collect(Collectors.joining(", ")) + "`] :frowning:")
 							.complete();
 					return;
 				}
