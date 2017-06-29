@@ -50,7 +50,7 @@ public class LogisticContainerRendering extends EntityRendererFactory {
 					spriteIcon.bounds = new Rectangle2D.Double(-0.3, -0.3, 0.6, 0.6);
 
 					Renderer delegate = RenderUtils.spriteRenderer(spriteIcon, entity, prototype);
-					register.accept(new Renderer(Layer.OVERLAY2, delegate.getBounds()) {
+					register.accept(new Renderer(Layer.OVERLAY4, delegate.getBounds()) {
 						@Override
 						public void render(Graphics2D g) throws Exception {
 							g.setColor(new Color(0, 0, 0, 128));

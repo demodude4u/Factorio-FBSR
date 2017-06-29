@@ -25,8 +25,8 @@ import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.LogisticGridCell;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
-import com.demod.fbsr.Sprite;
 import com.demod.fbsr.Renderer.Layer;
+import com.demod.fbsr.Sprite;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.WorldMap.BeltBend;
 import com.demod.fbsr.WorldMap.BeltCell;
@@ -94,7 +94,7 @@ public class InserterRendering extends EntityRendererFactory {
 				g.setTransform(pat);
 			}
 		});
-		register.accept(new Renderer(Layer.OVERLAY, sprite.bounds) {
+		register.accept(new Renderer(Layer.OVERLAY3, sprite.bounds) {
 			@Override
 			public void render(Graphics2D g) throws Exception {
 				AffineTransform pat = g.getTransform();
