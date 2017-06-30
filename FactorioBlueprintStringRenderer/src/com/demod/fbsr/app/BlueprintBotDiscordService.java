@@ -257,7 +257,8 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			}
 		}
 
-		if (reporting.getImages().isEmpty() && reporting.getDownloads().isEmpty()) {
+		if (reporting.getImages().isEmpty() && reporting.getDownloads().isEmpty() && reporting.getWarnings().isEmpty()
+				&& reporting.getExceptions().isEmpty() && reporting.getInfo().isEmpty()) {
 			event.getChannel().sendMessage("I can't seem to find any blueprints. :frowning:").complete();
 		}
 		sendReport(event, reporting);
