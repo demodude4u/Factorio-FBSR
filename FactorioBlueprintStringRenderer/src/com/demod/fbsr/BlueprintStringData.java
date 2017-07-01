@@ -2,10 +2,12 @@ package com.demod.fbsr;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
 
 import org.apache.commons.codec.binary.Base64;
@@ -22,7 +24,7 @@ public class BlueprintStringData {
 		return blueprintString;
 	}
 
-	public static JSONObject extractJSON(String blueprintString) throws IOException {
+	public static JSONObject decode(String blueprintString) throws IOException {
 		blueprintString = cleanupBlueprintString(blueprintString);
 		byte[] decoded = Base64.decodeBase64(blueprintString.substring(1));
 		JSONObject json;
@@ -38,9 +40,20 @@ public class BlueprintStringData {
 		return json;
 	}
 
+	public static String encode(JSONObject json) throws IOException {
+		try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
+				DeflaterOutputStream dos = new DeflaterOutputStream(baos)) {
+			dos.write(json.toString().getBytes());
+			dos.close();
+			return "0" + Base64.encodeBase64String(baos.toByteArray());
+		}
+	}
+
 	private final List<Blueprint> blueprints = new ArrayList<>();
 
 	private final int version;
+
+	private final JSONObject json;
 
 	public BlueprintStringData(String blueprintString) throws IllegalArgumentException, IOException {
 		String versionChar = blueprintString.substring(0, 1);
@@ -49,7 +62,7 @@ public class BlueprintStringData {
 		} catch (NumberFormatException e) {
 			throw new IllegalArgumentException("Version is not valid! (" + versionChar + ")");
 		}
-		JSONObject json = extractJSON(blueprintString);
+		json = decode(blueprintString);
 		if (json.has("blueprint")) {
 			blueprints.add(new Blueprint(json));
 		} else {
@@ -67,5 +80,9 @@ public class BlueprintStringData {
 
 	public int getVersion() {
 		return version;
+	}
+
+	public JSONObject json() {
+		return json;
 	}
 }

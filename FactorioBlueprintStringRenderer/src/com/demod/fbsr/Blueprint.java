@@ -14,8 +14,8 @@ public class Blueprint {
 
 	private final List<BlueprintEntity> entities = new ArrayList<>();
 	private final List<BlueprintTile> tiles = new ArrayList<>();
-	private final Optional<String> label;
-	private final Optional<JSONArray> icons;
+	private Optional<String> label;
+	private Optional<JSONArray> icons;
 
 	public Blueprint(JSONObject json) throws IllegalArgumentException, IOException {
 		JSONObject blueprintJson = json.getJSONObject("blueprint");
@@ -59,6 +59,14 @@ public class Blueprint {
 
 	public List<BlueprintTile> getTiles() {
 		return tiles;
+	}
+
+	public void setIcons(Optional<JSONArray> icons) {
+		this.icons = icons;
+	}
+
+	public void setLabel(Optional<String> label) {
+		this.label = label;
 	}
 
 }

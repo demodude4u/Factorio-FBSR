@@ -10,6 +10,7 @@ import java.lang.reflect.Field;
 import java.net.URL;
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +38,7 @@ import com.demod.factorio.FactorioData;
 import com.demod.factorio.Utils;
 import com.demod.factorio.prototype.DataPrototype;
 import com.demod.fbsr.Blueprint;
+import com.demod.fbsr.BlueprintEntity;
 import com.demod.fbsr.BlueprintFinder;
 import com.demod.fbsr.BlueprintStringData;
 import com.demod.fbsr.FBSR;
@@ -64,6 +66,16 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 	private static final int MADEUP_NUMBER_FROM_AROUND_5_IN_THE_MORNING = 200;
 
 	private static final Pattern debugPattern = Pattern.compile("DEBUG:([A-Za-z0-9_]+)");
+
+	private static final Map<String, String> upgradeBeltsEntityMapping = new HashMap<>();
+	static {
+		upgradeBeltsEntityMapping.put("transport-belt", "fast-transport-belt");
+		upgradeBeltsEntityMapping.put("underground-belt", "fast-underground-belt");
+		upgradeBeltsEntityMapping.put("splitter", "fast-splitter");
+		upgradeBeltsEntityMapping.put("fast-transport-belt", "express-transport-belt");
+		upgradeBeltsEntityMapping.put("fast-underground-belt", "express-underground-belt");
+		upgradeBeltsEntityMapping.put("fast-splitter", "express-splitter");
+	}
 
 	private DiscordBot bot;
 
@@ -222,7 +234,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		List<String> results = BlueprintFinder.searchRaw(content, reporting);
 		if (!results.isEmpty()) {
 			try {
-				byte[] bytes = BlueprintStringData.extractJSON(results.get(0)).toString(2).getBytes();
+				byte[] bytes = BlueprintStringData.decode(results.get(0)).toString(2).getBytes();
 				if (results.size() == 1) {
 					URL url = WebUtils.uploadToHostingService("blueprint.json", bytes);
 					event.getChannel().sendMessage("Blueprint JSON: " + url.toString()).complete();
@@ -234,7 +246,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 							try {
 								String blueprintString = results.get(i);
 								zos.putNextEntry(new ZipEntry("blueprint " + (i + 1) + ".json"));
-								zos.write(BlueprintStringData.extractJSON(blueprintString).toString(2).getBytes());
+								zos.write(BlueprintStringData.decode(blueprintString).toString(2).getBytes());
 							} catch (Exception e) {
 								reporting.addException(e);
 							}
@@ -262,6 +274,67 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				&& reporting.getExceptions().isEmpty() && reporting.getInfo().isEmpty()) {
 			event.getChannel().sendMessage("I can't seem to find any blueprints. :frowning:").complete();
 		}
+		sendReport(event, reporting);
+	}
+
+	private void handleBlueprintUpgradeBeltsCommand(MessageReceivedEvent event) {
+		String content = event.getMessage().getStrippedContent();
+		TaskReporting reporting = new TaskReporting();
+		reporting.setContext(content);
+
+		List<BlueprintStringData> blueprintStringDatas;
+		if (!event.getMessage().getAttachments().isEmpty()) {
+			String url = event.getMessage().getAttachments().get(0).getUrl();
+			reporting.addLink(url);
+			blueprintStringDatas = BlueprintFinder.search(url, reporting);
+		} else {
+			blueprintStringDatas = BlueprintFinder.search(content, reporting);
+		}
+
+		int upgradedCount = 0;
+		for (BlueprintStringData blueprintStringData : blueprintStringDatas) {
+			for (Blueprint blueprint : blueprintStringData.getBlueprints()) {
+				for (BlueprintEntity blueprintEntity : blueprint.getEntities()) {
+					String upgradeName = upgradeBeltsEntityMapping.get(blueprintEntity.getName());
+					if (upgradeName != null) {
+						blueprintEntity.json().put("name", upgradeName);
+						upgradedCount++;
+					}
+				}
+			}
+		}
+
+		if (upgradedCount > 0) {
+			reporting.addInfo("Upgraded " + upgradedCount + " entities.");
+			for (BlueprintStringData blueprintStringData : blueprintStringDatas) {
+				try {
+					reporting
+							.addInfo(WebUtils
+									.uploadToHostingService("blueprint.txt",
+											BlueprintStringData.encode(blueprintStringData.json()).getBytes())
+									.toString());
+				} catch (IOException e) {
+					reporting.addException(e);
+				}
+			}
+		} else {
+			reporting.addInfo("I couldn't find anything to upgrade!");
+		}
+
+		if (reporting.getImages().isEmpty() && reporting.getDownloads().isEmpty() && reporting.getWarnings().isEmpty()
+				&& reporting.getExceptions().isEmpty() && reporting.getInfo().isEmpty()) {
+			if (content.split("\\s").length == 1) {
+				reporting.addInfo("Give me blueprint strings and I'll create upgrade the belts for you!");
+				reporting.addInfo("Include a link to a text file to get started.");
+			} else {
+				reporting.addInfo("I can't seem to find any blueprints. :frowning:");
+			}
+		}
+
+		if (!reporting.getInfo().isEmpty()) {
+			event.getChannel().sendMessage(reporting.getInfo().stream().collect(Collectors.joining("\n"))).complete();
+		}
+
 		sendReport(event, reporting);
 	}
 
@@ -517,6 +590,8 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 							+ "can be attached as files or linked with pastebin, hastebin, gitlab, or gist URLs.")//
 					.addCommand("blueprintRaw", event -> handleBlueprintRawCommand(event))//
 					.withHelp("Provides a dump of the json data in the specified blueprint string.")//
+					.addCommand("blueprintUpgradeBelts", event -> handleBlueprintUpgradeBeltsCommand(event))//
+					.withHelp("Converts all yellow belts into red belts, and all red belts into blue belts.")//
 					//
 					.addCommand("prototypeEntity", createPrototypeCommandHandler("entity", table.getEntities()))//
 					.withHelp("Provides a dump of the lua data for the specified entity prototype.")//
