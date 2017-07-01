@@ -10,6 +10,7 @@ import java.lang.reflect.Field;
 import java.net.URL;
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -308,10 +309,21 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 							ZipOutputStream zos = new ZipOutputStream(baos)) {
 
 						int counter = 1;
+						Set<String> uniqueLabels = new HashSet<>();
 						for (Blueprint blueprint : blueprintString.getBlueprints()) {
 							try {
 								BufferedImage image = FBSR.renderBlueprint(blueprint, reporting);
-								zos.putNextEntry(new ZipEntry("blueprint " + counter + ".png"));
+								String filename = blueprint.getLabel().orElse("Blueprint " + counter);
+								if (uniqueLabels.contains(filename)) {
+									for (int i = 1;; i++) {
+										String altFilename = filename + " (" + i + ")";
+										if (!uniqueLabels.contains(altFilename)) {
+											filename = altFilename;
+											break;
+										}
+									}
+								}
+								zos.putNextEntry(new ZipEntry(filename + ".png"));
 								ImageIO.write(image, "PNG", zos);
 							} catch (Exception e) {
 								reporting.addException(e);
