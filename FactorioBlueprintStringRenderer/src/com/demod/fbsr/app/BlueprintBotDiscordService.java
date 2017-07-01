@@ -396,6 +396,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 										}
 									}
 								}
+								uniqueLabels.add(filename);
 								zos.putNextEntry(new ZipEntry(filename + ".png"));
 								ImageIO.write(image, "PNG", zos);
 							} catch (Exception e) {
