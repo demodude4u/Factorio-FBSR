@@ -72,6 +72,7 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 	private long authExpireMillis = 0;
 	private boolean processMessages;
 	private String summonKeyword;
+	private String myUserNameMention;
 
 	private void ensureConnectedToReddit() throws NetworkException, OAuthException, InterruptedException {
 		if (System.currentTimeMillis() + 60000 > authExpireMillis) {
@@ -138,7 +139,8 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 	}
 
 	private Optional<String> processContent(String content, String link, String category, String author) {
-		if (!content.toLowerCase().contains(summonKeyword)) {
+		String contentLowerCase = content.toLowerCase();
+		if (!contentLowerCase.contains(summonKeyword) && !contentLowerCase.contains(myUserNameMention)) {
 			return Optional.empty();
 		}
 
@@ -188,14 +190,16 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 		if (!reporting.getExceptions().isEmpty()) {
 			lines.add(
 					"    There was a problem completing your request. I have contacted my programmer to fix it for you!");
-		} else if (images.isEmpty()) {
-			lines.add("    I can't seem to find any blueprints...");
 		}
 
 		ServiceFinder.findService(BlueprintBotDiscordService.class)
 				.ifPresent(s -> s.sendReport("Reddit / " + category + " / " + author, REDDIT_AUTHOR_URL, reporting));
 
-		return Optional.of(lines.stream().collect(Collectors.joining("\n\n")));
+		if (!lines.isEmpty()) {
+			return Optional.of(lines.stream().collect(Collectors.joining("\n\n")));
+		} else {
+			return Optional.empty();
+		}
 	}
 
 	private boolean processNewComments(JSONObject cacheJson, String subreddit, long ageLimitMillis)
@@ -486,6 +490,7 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 			);
 
 			myUserName = redditCredentialsJson.getString("username");
+			myUserNameMention = ("u/" + myUserName).toLowerCase();
 
 			ServiceFinder.addService(this);
 		} catch (Exception e) {
