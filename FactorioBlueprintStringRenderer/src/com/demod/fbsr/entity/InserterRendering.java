@@ -19,6 +19,7 @@ import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
 import com.demod.factorio.Utils;
 import com.demod.factorio.prototype.EntityPrototype;
+import com.demod.factorio.prototype.ItemPrototype;
 import com.demod.fbsr.BlueprintEntity;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.EntityRendererFactory;
@@ -142,19 +143,22 @@ public class InserterRendering extends EntityRendererFactory {
 			if (!items.isEmpty()) {
 				String itemName = items.get(0);
 				Sprite spriteIcon = new Sprite();
-				spriteIcon.image = FactorioData.getIcon(dataTable.getItem(itemName).get());
-				spriteIcon.source = new Rectangle(0, 0, spriteIcon.image.getWidth(), spriteIcon.image.getHeight());
-				spriteIcon.bounds = new Rectangle2D.Double(-0.3, -0.3, 0.6, 0.6);
+				Optional<ItemPrototype> optItem = dataTable.getItem(itemName);
+				if (optItem.isPresent()) {
+					spriteIcon.image = FactorioData.getIcon(optItem.get());
+					spriteIcon.source = new Rectangle(0, 0, spriteIcon.image.getWidth(), spriteIcon.image.getHeight());
+					spriteIcon.bounds = new Rectangle2D.Double(-0.3, -0.3, 0.6, 0.6);
 
-				Renderer delegate = RenderUtils.spriteRenderer(spriteIcon, entity, prototype);
-				register.accept(new Renderer(Layer.OVERLAY2, delegate.getBounds()) {
-					@Override
-					public void render(Graphics2D g) throws Exception {
-						g.setColor(new Color(0, 0, 0, 128));
-						g.fill(spriteIcon.bounds);
-						delegate.render(g);
-					}
-				});
+					Renderer delegate = RenderUtils.spriteRenderer(spriteIcon, entity, prototype);
+					register.accept(new Renderer(Layer.OVERLAY2, delegate.getBounds()) {
+						@Override
+						public void render(Graphics2D g) throws Exception {
+							g.setColor(new Color(0, 0, 0, 128));
+							g.fill(spriteIcon.bounds);
+							delegate.render(g);
+						}
+					});
+				}
 			}
 		}
 	}
