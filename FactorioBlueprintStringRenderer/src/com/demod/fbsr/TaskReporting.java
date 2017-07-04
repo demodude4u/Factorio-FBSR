@@ -25,6 +25,7 @@ public class TaskReporting {
 		}
 	}
 
+	private final List<String> blueprintStrings = new ArrayList<>();
 	private Optional<Debug> debug = Optional.empty();
 	private Optional<String> context = Optional.empty();
 	private final List<String> warnings = new ArrayList<>();
@@ -33,6 +34,10 @@ public class TaskReporting {
 	private final List<String> downloads = new ArrayList<>();
 	private final List<String> links = new ArrayList<>();
 	private final Set<String> info = new LinkedHashSet<>();
+
+	public void addBlueprintString(String blueprintString) {
+		blueprintStrings.add(blueprintString);
+	}
 
 	public void addDownload(String url) {
 		downloads.add(url);
@@ -56,6 +61,10 @@ public class TaskReporting {
 
 	public void addWarning(String warning) {
 		warnings.add(warning);
+	}
+
+	public List<String> getBlueprintStrings() {
+		return blueprintStrings;
 	}
 
 	public Optional<String> getContext() {
@@ -110,4 +119,5 @@ public class TaskReporting {
 	public void setDebug(Optional<Debug> debug) {
 		this.debug = debug;
 	}
+
 }

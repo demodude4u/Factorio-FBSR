@@ -210,14 +210,9 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			processBlueprints(BlueprintFinder.search(content, reporting), event, reporting);
 		}
 
-		if (reporting.getImages().isEmpty() && reporting.getDownloads().isEmpty() && reporting.getWarnings().isEmpty()
-				&& reporting.getExceptions().isEmpty() && reporting.getInfo().isEmpty()) {
-			if (content.split("\\s").length == 1) {
-				reporting.addInfo("Give me blueprint strings and I'll create images for you!");
-				reporting.addInfo("Include a link to a text file to get started.");
-			} else {
-				reporting.addInfo("I can't seem to find any blueprints. :frowning:");
-			}
+		if (reporting.getBlueprintStrings().isEmpty()) {
+			reporting.addInfo("Give me blueprint strings and I'll create images for you!");
+			reporting.addInfo("Include a link to a text file to get started.");
 		}
 
 		if (!reporting.getInfo().isEmpty()) {
@@ -270,8 +265,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			}
 		}
 
-		if (reporting.getImages().isEmpty() && reporting.getDownloads().isEmpty() && reporting.getWarnings().isEmpty()
-				&& reporting.getExceptions().isEmpty() && reporting.getInfo().isEmpty()) {
+		if (reporting.getBlueprintStrings().isEmpty()) {
 			event.getChannel().sendMessage("I can't seem to find any blueprints. :frowning:").complete();
 		}
 		sendReport(event, reporting);
