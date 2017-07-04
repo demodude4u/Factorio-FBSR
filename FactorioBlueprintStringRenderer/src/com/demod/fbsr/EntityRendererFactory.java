@@ -298,51 +298,54 @@ public class EntityRendererFactory {
 
 		JSONObject connectionsJson = entity.json().optJSONObject("connections");
 		if (connectionsJson != null) {
-			Utils.forEach(connectionsJson, (String circuitIdStr, JSONObject connectionJson) -> {
-				int circuitId = Integer.parseInt(circuitIdStr);
-				Utils.forEach(connectionJson, (String colorName, JSONArray wiresJson) -> {
-					Utils.forEach(wiresJson, (JSONObject wireJson) -> {
-						int targetCircuitId = wireJson.optInt("circuit_id", 1);
-						int targetEntityId = wireJson.getInt("entity_id");
+			Utils.forEach(connectionsJson, (String circuitIdStr, Object connection) -> {
+				if (connection instanceof JSONObject) {
+					JSONObject connectionJson = (JSONObject) connection;
+					int circuitId = Integer.parseInt(circuitIdStr);
+					Utils.forEach(connectionJson, (String colorName, JSONArray wiresJson) -> {
+						Utils.forEach(wiresJson, (JSONObject wireJson) -> {
+							int targetCircuitId = wireJson.optInt("circuit_id", 1);
+							int targetEntityId = wireJson.getInt("entity_id");
 
-						String key;
-						if (entityId < targetEntityId) {
-							key = entityId + "|" + circuitId + "|" + targetEntityId + "|" + targetCircuitId + "|"
-									+ colorName;
-						} else {
-							key = targetEntityId + "|" + targetCircuitId + "|" + entityId + "|" + circuitId + "|"
-									+ colorName;
-						}
-
-						if (!map.hasWire(key)) {
-							map.setWire(key, new Pair<>(getWirePositionFor(entity, prototype, colorName, circuitId),
-									new Point2D.Double()));
-
-						} else {
-							Pair<Double, Double> pair = map.getWire(key);
-
-							Double p1 = pair.getKey();
-							Double p2 = pair.getValue();
-							p2.setLocation(getWirePositionFor(entity, prototype, colorName, circuitId));
-
-							Color color;
-							switch (colorName) {
-							case "red":
-								color = Color.red.darker();
-								break;
-							case "green":
-								color = Color.green.darker();
-								break;
-							default:
-								System.err.println("UNKNOWN COLOR NAME: " + colorName);
-								color = Color.magenta;
-								break;
+							String key;
+							if (entityId < targetEntityId) {
+								key = entityId + "|" + circuitId + "|" + targetEntityId + "|" + targetCircuitId + "|"
+										+ colorName;
+							} else {
+								key = targetEntityId + "|" + targetCircuitId + "|" + entityId + "|" + circuitId + "|"
+										+ colorName;
 							}
 
-							register.accept(RenderUtils.createWireRenderer(p1, p2, color));
-						}
+							if (!map.hasWire(key)) {
+								map.setWire(key, new Pair<>(getWirePositionFor(entity, prototype, colorName, circuitId),
+										new Point2D.Double()));
+
+							} else {
+								Pair<Double, Double> pair = map.getWire(key);
+
+								Double p1 = pair.getKey();
+								Double p2 = pair.getValue();
+								p2.setLocation(getWirePositionFor(entity, prototype, colorName, circuitId));
+
+								Color color;
+								switch (colorName) {
+								case "red":
+									color = Color.red.darker();
+									break;
+								case "green":
+									color = Color.green.darker();
+									break;
+								default:
+									System.err.println("UNKNOWN COLOR NAME: " + colorName);
+									color = Color.magenta;
+									break;
+								}
+
+								register.accept(RenderUtils.createWireRenderer(p1, p2, color));
+							}
+						});
 					});
-				});
+				}
 			});
 		}
 	}
