@@ -559,10 +559,13 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 			bot = DCBA.builder()//
 					.setInfo("Blueprint Bot")//
-					.withSupport("Find Demod and complain to him!")//
-					.withTechnology("FBSR", "Factorio Blueprint String Renderer")//
-					.withTechnology("FactorioDataWrapper", "Factorio Data Scraper")//
-					.withCredits("Attribution", "Factorio - Made by Wube Software")//
+					.withSupport(
+							"Find Demod and complain to him!\nYou can find him over in the [Factorio Discord.](https://discord.gg/aUEuvK2)")//
+					.withTechnology("[FBSR](https://github.com/demodude4u/Factorio-FBSR)",
+							"Factorio Blueprint String Renderer")//
+					.withTechnology("[FactorioDataWrapper](https://github.com/demodude4u/Java-Factorio-Data-Wrapper)",
+							"Factorio Data Scraper")//
+					.withCredits("Attribution", "[Factorio](https://www.factorio.com/) - Made by Wube Software")//
 					.withInvite(new Permission[] { //
 							Permission.MESSAGE_READ, //
 							Permission.MESSAGE_WRITE, //
