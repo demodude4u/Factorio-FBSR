@@ -1,7 +1,10 @@
 {
-    "discord_bot_token": "",
-    "discord_command_prefix": "!",
-    "discord_reporting_user_id": "",
+    "discord": {
+        "bot_token": "",
+        "command_prefix": "!",
+        "reporting_user_id": "",
+        "reporting_channel_id": ""
+    },
     "reddit": {
         "credentials": {
             "username": "",
