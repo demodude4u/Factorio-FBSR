@@ -27,7 +27,6 @@ import org.luaj.vm2.LuaValue;
 import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
 import com.demod.factorio.Utils;
-import com.demod.factorio.prototype.DataPrototype;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.factorio.prototype.RecipePrototype;
 import com.demod.fbsr.Renderer.Layer;
@@ -247,8 +246,8 @@ public class EntityRendererFactory {
 					for (String itemName : modules) {
 						g.setColor(new Color(0, 0, 0, 180));
 						g.fill(shadowBox);
-						DataPrototype protoItem = table.getItem(itemName).get();
-						BufferedImage image = FactorioData.getIcon(protoItem);
+						BufferedImage image = table.getItem(itemName).map(FactorioData::getIcon)
+								.orElse(RenderUtils.EMPTY_IMAGE);
 						RenderUtils.drawImageInBounds(image, new Rectangle(0, 0, image.getWidth(), image.getHeight()),
 								spriteBox, g);
 

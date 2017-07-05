@@ -61,7 +61,7 @@ public class AssemblingMachineRendering extends EntityRendererFactory {
 					if (!protoProduct.isPresent()) {
 						protoProduct = dataTable.getFluid(name);
 					}
-					spriteIcon.image = FactorioData.getIcon(protoProduct.get());
+					spriteIcon.image = protoProduct.map(FactorioData::getIcon).orElse(RenderUtils.EMPTY_IMAGE);
 				}
 
 				spriteIcon.source = new Rectangle(0, 0, spriteIcon.image.getWidth(), spriteIcon.image.getHeight());

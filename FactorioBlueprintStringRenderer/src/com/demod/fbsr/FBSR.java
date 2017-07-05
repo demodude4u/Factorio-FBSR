@@ -474,18 +474,20 @@ public class FBSR {
 					String itemName = e.getKey();
 					double amount = e.getValue();
 
-					BufferedImage image;
+					Optional<BufferedImage> image = Optional.empty();
 					if (itemName.equals(TotalRawCalculator.RAW_TIME)) {
-						image = timeIcon;
+						image = Optional.of(timeIcon);
 					} else {
 						Optional<? extends DataPrototype> prototype = table.getItem(itemName);
 						if (!prototype.isPresent()) {
 							prototype = table.getFluid(itemName);
 						}
-						image = FactorioData.getIcon(prototype.get());
+						image = prototype.map(FactorioData::getIcon);
 					}
-					RenderUtils.drawImageInBounds(image, new Rectangle(0, 0, image.getWidth(), image.getHeight()),
-							spriteBox, g);
+					image.ifPresent(i -> {
+						RenderUtils.drawImageInBounds(i, new Rectangle(0, 0, i.getWidth(), i.getHeight()), spriteBox,
+								g);
+					});
 
 					String amountStr;
 					if (amount < 99999) {
