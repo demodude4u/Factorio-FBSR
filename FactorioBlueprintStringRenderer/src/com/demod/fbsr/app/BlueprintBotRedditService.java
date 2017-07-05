@@ -115,14 +115,16 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 		if (CACHE_FILE.exists()) {
 			try (FileInputStream fis = new FileInputStream(CACHE_FILE)) {
 				return Utils.readJsonFromStream(fis);
+			} catch (Exception e) {
+				// No worries if anything went wrong with the file.
 			}
-		} else {
-			JSONObject cache = new JSONObject();
-			cache.put("lastProcessedSubmissionMillis", 0L);
-			cache.put("lastProcessedCommentMillis", 0L);
-			cache.put("lastProcessedMessageMillis", 0L);
-			return cache;
 		}
+
+		JSONObject cache = new JSONObject();
+		cache.put("lastProcessedSubmissionMillis", 0L);
+		cache.put("lastProcessedCommentMillis", 0L);
+		cache.put("lastProcessedMessageMillis", 0L);
+		return cache;
 	}
 
 	private String getPermaLink(Comment comment) {
@@ -425,6 +427,11 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 
 	@Override
 	protected void runOneIteration() throws Exception {
+		Optional<WatchdogService> watchdogOpt = ServiceFinder.findService(WatchdogService.class);
+		watchdogOpt.ifPresent(watchdog -> {
+			watchdog.notifyKnown("Reddit Bot");
+		});
+
 		try {
 			JSONObject cacheJson = getOrCreateCache();
 			boolean cacheUpdated = false;
@@ -440,7 +447,7 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 				saveCache(cacheJson);
 			}
 
-			ServiceFinder.findService(WatchdogService.class).ifPresent(watchdog -> {
+			watchdogOpt.ifPresent(watchdog -> {
 				watchdog.notifyActive("Reddit Bot");
 			});
 		} catch (NetworkException e) {

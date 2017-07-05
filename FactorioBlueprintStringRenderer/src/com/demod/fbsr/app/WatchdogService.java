@@ -29,6 +29,12 @@ public class WatchdogService extends AbstractScheduledService {
 		}
 	}
 
+	public synchronized void notifyKnown(String label) {
+		if (known.add(label)) {
+			active.add(label);
+		}
+	}
+
 	@Override
 	protected synchronized void runOneIteration() throws Exception {
 		for (String label : known) {
