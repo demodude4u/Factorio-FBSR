@@ -171,11 +171,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 	}
 
 	private byte[] generateDiscordFriendlyPNGImage(BufferedImage image) throws IOException {
-		byte[] imageData;
-		try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-			ImageIO.write(image, "PNG", baos);
-			imageData = baos.toByteArray();
-		}
+		byte[] imageData = WebUtils.getImageData(image);
 		if (imageData.length > 8000000) {
 			return generateDiscordFriendlyPNGImage(
 					RenderUtils.scaleImage(image, image.getWidth() / 2, image.getHeight() / 2));
@@ -361,10 +357,13 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				if (blueprintString.getBlueprints().size() == 1) {
 					Blueprint blueprint = blueprintString.getBlueprints().get(0);
 					BufferedImage image = FBSR.renderBlueprint(blueprint, reporting);
-					byte[] imageData = generateDiscordFriendlyPNGImage(image);
-					Message message = event.getChannel()
-							.sendFile(new ByteArrayInputStream(imageData), "blueprint.png", null).complete();
-					reporting.addImage(blueprint.getLabel(), message.getAttachments().get(0).getUrl());
+					try {
+						Message message = event.getChannel()
+								.sendFile(WebUtils.getImageData(image), "blueprint.png", null).complete();
+						reporting.addImage(blueprint.getLabel(), message.getAttachments().get(0).getUrl());
+					} catch (Exception e) {
+						reporting.addInfo(WebUtils.uploadToHostingService("blueprint.png", image).toString());
+					}
 				} else {
 					try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
 							ZipOutputStream zos = new ZipOutputStream(baos)) {
@@ -634,6 +633,12 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 	public URL useDiscordForFileHosting(String fileName, byte[] fileData) throws IOException {
 		PrivateChannel privateChannel = bot.getJDA().getUserById(reportingUserID).openPrivateChannel().complete();
 		Message message = privateChannel.sendFile(fileData, fileName, null).complete();
+		return new URL(message.getAttachments().get(0).getUrl());
+	}
+
+	public URL useDiscordForImageHosting(String fileName, BufferedImage image) throws IOException {
+		PrivateChannel privateChannel = bot.getJDA().getUserById(reportingUserID).openPrivateChannel().complete();
+		Message message = privateChannel.sendFile(generateDiscordFriendlyPNGImage(image), fileName, null).complete();
 		return new URL(message.getAttachments().get(0).getUrl());
 	}
 }

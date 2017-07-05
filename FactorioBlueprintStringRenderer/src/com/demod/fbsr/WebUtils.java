@@ -1,12 +1,16 @@
 package com.demod.fbsr;
 
+import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.Optional;
+
+import javax.imageio.ImageIO;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -26,6 +30,16 @@ public final class WebUtils {
 		} else {
 			builder.addField(name + " Link", uploadToHostingService(name + ".txt", value.getBytes()).toString(),
 					inline);
+		}
+	}
+
+	public static byte[] getImageData(BufferedImage image) {
+		try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+			ImageIO.write(image, "PNG", baos);
+			return baos.toByteArray();
+		} catch (IOException e) {
+			e.printStackTrace();
+			throw new InternalError(e);
 		}
 	}
 
@@ -65,6 +79,22 @@ public final class WebUtils {
 
 	public static JSONObject readJsonFromURL(String url) throws JSONException, MalformedURLException, IOException {
 		return Utils.readJsonFromStream(new URL(url).openStream());
+	}
+
+	public static URL uploadToHostingService(String fileName, BufferedImage image) throws IOException {
+		try (ByteArrayInputStream bais = new ByteArrayInputStream(getImageData(image))) {
+			return uploadToNyaIs(fileName, bais);
+		} catch (Exception e) {
+			Optional<BlueprintBotDiscordService> discordService = ServiceFinder
+					.findService(BlueprintBotDiscordService.class);
+			if (discordService.isPresent()) {
+				try {
+					return discordService.get().useDiscordForImageHosting(fileName, image);
+				} catch (Exception e2) {
+				}
+			}
+			throw new IOException("Image hosting failed!");
+		}
 	}
 
 	public static URL uploadToHostingService(String fileName, byte[] fileData) throws IOException {

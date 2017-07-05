@@ -1,7 +1,6 @@
 package com.demod.fbsr.app;
 
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -15,8 +14,6 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import javax.imageio.ImageIO;
-
 import org.json.JSONObject;
 
 import com.demod.factorio.Config;
@@ -25,7 +22,6 @@ import com.demod.fbsr.Blueprint;
 import com.demod.fbsr.BlueprintFinder;
 import com.demod.fbsr.BlueprintStringData;
 import com.demod.fbsr.FBSR;
-import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.TaskReporting;
 import com.demod.fbsr.WebUtils;
 import com.google.common.base.Throwables;
@@ -93,19 +89,6 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 		}
 	}
 
-	private byte[] generateRedditFriendlyPNGImage(BufferedImage image) throws IOException {
-		byte[] imageData;
-		try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-			ImageIO.write(image, "PNG", baos);
-			imageData = baos.toByteArray();
-		}
-		if (imageData.length > 10000000) {
-			return generateRedditFriendlyPNGImage(
-					RenderUtils.scaleImage(image, image.getWidth() / 2, image.getHeight() / 2));
-		}
-		return imageData;
-	}
-
 	private Optional<Comment> getMyReply(CommentNode comments) {
 		return comments.getChildren().stream().map(c -> c.getComment()).filter(c -> c.getAuthor().equals(myUserName))
 				.findAny();
@@ -158,8 +141,8 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 			for (Blueprint blueprint : blueprints) {
 				try {
 					BufferedImage image = FBSR.renderBlueprint(blueprint, reporting);
-					reporting.addImage(blueprint.getLabel(), WebUtils
-							.uploadToHostingService("blueprint.png", generateRedditFriendlyPNGImage(image)).toString());
+					reporting.addImage(blueprint.getLabel(),
+							WebUtils.uploadToHostingService("blueprint.png", image).toString());
 				} catch (Exception e) {
 					reporting.addException(e);
 				}
