@@ -86,18 +86,16 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 	private String reportingChannelID;
 
 	private CommandHandler createDataRawCommandHandler(Function<String[], Optional<LuaValue>> query) {
-		return event -> {
-			String content = event.getMessage().getContent();
+		return (event, args) -> {
 			TaskReporting reporting = new TaskReporting();
-			reporting.setContext(content);
+			reporting.setContext(event.getMessage().getContent());
 
 			try {
-				String[] args = content.split("\\s");
-				if (args.length < 2) {
+				if (args.length < 1) {
 					event.getChannel().sendMessage("You didn't specify a path!").complete();
 					return;
 				}
-				String key = content.substring(args[0].length()).trim();
+				String key = Arrays.asList(args).stream().collect(Collectors.joining());
 				String[] path = key.split(".");
 				Optional<LuaValue> lua = query.apply(path);
 				if (!lua.isPresent()) {
@@ -116,20 +114,18 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 	}
 
 	private CommandHandler createPrototypeCommandHandler(String category, Map<String, ? extends DataPrototype> map) {
-		return event -> {
-			String content = event.getMessage().getStrippedContent();
+		return (event, args) -> {
+			String content = event.getMessage().getContent();
 			TaskReporting reporting = new TaskReporting();
 			reporting.setContext(content);
 
 			try {
-				String[] args = content.split("\\s");
-				if (args.length < 2) {
+				if (args.length < 1) {
 					event.getChannel().sendMessage("You didn't specify a " + category + " prototype name!").complete();
 					return;
 				}
 
-				List<String> searches = Arrays.asList(args).stream().skip(1).collect(Collectors.toList());
-				for (String search : searches) {
+				for (String search : args) {
 					Optional<? extends DataPrototype> prototype = Optional.ofNullable(map.get(search));
 					if (!prototype.isPresent()) {
 						LevenshteinDistance levenshteinDistance = LevenshteinDistance.getDefaultInstance();
@@ -332,22 +328,20 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		sendReport(event, reporting);
 	}
 
-	private void handleRedditCheckThingsCommand(MessageReceivedEvent event) {
+	private void handleRedditCheckThingsCommand(MessageReceivedEvent event, String[] args) {
 		String content = event.getMessage().getContent();
 		TaskReporting reporting = new TaskReporting();
 		reporting.setContext(content);
 
 		try {
-			String[] args = content.split("\\s");
-			if (args.length < 2) {
+			if (args.length < 1) {
 				event.getChannel().sendMessage("You didn't specify anything!").complete();
 				return;
 			}
 
-			String[] ids = Arrays.asList(args).stream().skip(1).toArray(String[]::new);
 			ServiceFinder.findService(BlueprintBotRedditService.class).ifPresent(s -> {
 				try {
-					s.processRequest(ids);
+					s.processRequest(args);
 					reporting.addInfo("Request successful!");
 				} catch (Exception e) {
 					reporting.addException(e);
@@ -607,7 +601,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 					.addCommand("dataRaw", createDataRawCommandHandler(table::getRaw))//
 					.withHelp("Provides a dump of lua from `data.raw` for the specified key.")//
 					//
-					.addCommand("redditCheckThings", event -> handleRedditCheckThingsCommand(event))
+					.addCommand("redditCheckThings", (event, args) -> handleRedditCheckThingsCommand(event, args))
 					//
 					.create();
 
