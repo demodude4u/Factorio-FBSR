@@ -7,6 +7,7 @@ import java.util.function.Supplier;
 import org.json.JSONObject;
 
 import com.demod.factorio.Config;
+import com.demod.fbsr.app.PluginFinder.Plugin;
 import com.google.common.util.concurrent.Service;
 import com.google.common.util.concurrent.ServiceManager;
 
@@ -29,6 +30,8 @@ public class StartAllServices {
 		ServiceManager manager = new ServiceManager(services);
 		manager.startAsync().awaitHealthy();
 		Runtime.getRuntime().addShutdownHook(new Thread(() -> manager.stopAsync().awaitStopped()));
+
+		PluginFinder.loadPlugins().forEach(Plugin::run);
 	}
 
 }
