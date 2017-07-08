@@ -1,24 +1,32 @@
 package com.demod.fbsr;
 
 import java.awt.image.BufferedImage;
+import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 import javax.imageio.ImageIO;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import com.demod.factorio.Utils;
 import com.demod.fbsr.app.BlueprintBotDiscordService;
 import com.demod.fbsr.app.ServiceFinder;
+import com.google.common.util.concurrent.Uninterruptibles;
 
+import javafx.util.Pair;
 import net.dv8tion.jda.core.EmbedBuilder;
 import net.dv8tion.jda.core.entities.MessageEmbed;
 
@@ -79,6 +87,40 @@ public final class WebUtils {
 
 	public static JSONObject readJsonFromURL(String url) throws JSONException, MalformedURLException, IOException {
 		return Utils.readJsonFromStream(new URL(url).openStream());
+	}
+
+	public static URL uploadToBundly(String title, String description, List<Pair<URL, String>> links)
+			throws IOException {
+		JSONObject request = new JSONObject();
+		request.put("title", title);
+		request.put("desc", description);
+
+		JSONArray items = new JSONArray();
+		for (Pair<URL, String> pair : links) {
+			JSONObject item = new JSONObject();
+			item.put("url", pair.getKey().toString());
+			item.put("id", Long.toString(System.currentTimeMillis()));
+			item.put("caption", pair.getValue());
+			items.put(item);
+
+			// XXX Lazy approach to make sure id is unique...
+			Uninterruptibles.sleepUninterruptibly(1, TimeUnit.MILLISECONDS);
+		}
+		request.put("items", items);
+
+		URL url = new URL("http://bundly.io/createBundle");
+		URLConnection connection = url.openConnection();
+		connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+		connection.setDoOutput(true);
+		connection.getOutputStream().write(request.toString().getBytes(StandardCharsets.UTF_8));
+		connection.getOutputStream().flush();
+		try (BufferedReader br = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
+			String line = br.readLine();
+			if (line == null || line.length() > 8) {
+				throw new IOException("Bundly.io returned an invalid response: " + line);
+			}
+			return new URL("http://bundly.io/" + line);
+		}
 	}
 
 	public static URL uploadToHostingService(String fileName, BufferedImage image) throws IOException {

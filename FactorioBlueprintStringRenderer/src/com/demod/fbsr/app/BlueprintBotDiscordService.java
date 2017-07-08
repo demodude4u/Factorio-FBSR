@@ -1,7 +1,6 @@
 package com.demod.fbsr.app;
 
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -9,9 +8,9 @@ import java.io.StringWriter;
 import java.lang.reflect.Field;
 import java.net.URL;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -22,8 +21,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
-
-import javax.imageio.ImageIO;
 
 import org.apache.commons.text.similarity.LevenshteinDistance;
 import org.json.JSONObject;
@@ -365,45 +362,15 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 						reporting.addInfo(WebUtils.uploadToHostingService("blueprint.png", image).toString());
 					}
 				} else {
-					try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
-							ZipOutputStream zos = new ZipOutputStream(baos)) {
-
-						int counter = 1;
-						Set<String> uniqueLabels = new HashSet<>();
-						for (Blueprint blueprint : blueprintString.getBlueprints()) {
-							try {
-								BufferedImage image = FBSR.renderBlueprint(blueprint, reporting);
-								String filename = blueprint.getLabel().orElse("Blueprint " + counter);
-								if (uniqueLabels.contains(filename)) {
-									for (int i = 1;; i++) {
-										String altFilename = filename + " (" + i + ")";
-										if (!uniqueLabels.contains(altFilename)) {
-											filename = altFilename;
-											break;
-										}
-									}
-								}
-								uniqueLabels.add(filename);
-								zos.putNextEntry(new ZipEntry(filename + ".png"));
-								ImageIO.write(image, "PNG", zos);
-							} catch (Exception e) {
-								reporting.addException(e);
-							}
-							counter++;
-						}
-
-						zos.close();
-						byte[] zipData = baos.toByteArray();
-						try {
-							Message message = event.getChannel()
-									.sendFile(new ByteArrayInputStream(zipData), "blueprint book images.zip", null)
-									.complete();
-							reporting.addDownload(message.getAttachments().get(0).getUrl());
-						} catch (Exception e) {
-							reporting.addInfo("Blueprint Book Images: "
-									+ WebUtils.uploadToHostingService("blueprint book images.zip", zipData));
-						}
+					List<Pair<URL, String>> links = new ArrayList<>();
+					for (Blueprint blueprint : blueprintString.getBlueprints()) {
+						BufferedImage image = FBSR.renderBlueprint(blueprint, reporting);
+						links.add(new Pair<>(WebUtils.uploadToHostingService("blueprint.png", image),
+								blueprint.getLabel().orElse("")));
 					}
+					reporting.addInfo("Blueprint Book Images: "
+							+ WebUtils.uploadToBundly("Blueprint Book", "Renderings provided by Blueprint Bot", links)
+									.toString());
 				}
 			} catch (Exception e) {
 				reporting.addException(e);
