@@ -3,7 +3,8 @@
         "bot_token": "",
         "command_prefix": "!",
         "reporting_user_id": "",
-        "reporting_channel_id": ""
+        "reporting_channel_id": "",
+        "hosting_channel_id": ""
     },
     "reddit": {
         "credentials": {

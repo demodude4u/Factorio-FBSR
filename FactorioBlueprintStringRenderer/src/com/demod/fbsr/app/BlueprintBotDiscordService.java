@@ -76,11 +76,11 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 	private DiscordBot bot;
 
-	private String reportingUserID;
-
 	private JSONObject configJson;
 
+	private String reportingUserID;
 	private String reportingChannelID;
+	private String hostingChannelID;
 
 	private CommandHandler createDataRawCommandHandler(Function<String[], Optional<LuaValue>> query) {
 		return (event, args) -> {
@@ -578,6 +578,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 			reportingUserID = configJson.getString("reporting_user_id");
 			reportingChannelID = configJson.getString("reporting_channel_id");
+			hostingChannelID = configJson.getString("hosting_channel_id");
 
 			ServiceFinder.addService(this);
 			ServiceFinder.addService(WatchdogReporter.class, new WatchdogReporter() {
@@ -601,15 +602,15 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 	}
 
 	public URL useDiscordForFileHosting(String fileName, byte[] fileData) throws IOException {
-		PrivateChannel privateChannel = bot.getJDA().getUserById(reportingUserID).openPrivateChannel().complete();
-		Message message = privateChannel.sendFile(fileData, fileName, null).complete();
+		TextChannel channel = bot.getJDA().getTextChannelById(hostingChannelID);
+		Message message = channel.sendFile(fileData, fileName, null).complete();
 		return new URL(message.getAttachments().get(0).getUrl());
 	}
 
 	public URL useDiscordForImageHosting(String fileName, BufferedImage image, boolean downscaleIfNeeded)
 			throws IOException {
-		PrivateChannel privateChannel = bot.getJDA().getUserById(reportingUserID).openPrivateChannel().complete();
-		Message message = privateChannel
+		TextChannel channel = bot.getJDA().getTextChannelById(hostingChannelID);
+		Message message = channel
 				.sendFile(downscaleIfNeeded ? generateDiscordFriendlyPNGImage(image) : WebUtils.getImageData(image),
 						fileName, null)
 				.complete();

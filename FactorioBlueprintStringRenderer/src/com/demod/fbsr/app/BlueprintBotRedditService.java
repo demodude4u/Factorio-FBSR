@@ -52,6 +52,8 @@ import net.dean.jraw.paginators.TimePeriod;
 
 public class BlueprintBotRedditService extends AbstractScheduledService {
 
+	private static final String WATCHDOG_LABEL = "Reddit Bot";
+
 	private static final File CACHE_FILE = new File("redditCache.json");
 	private static final String REDDIT_AUTHOR_URL = "https://upload.wikimedia.org/wikipedia/commons/thumb/4/43/Reddit.svg/64px-Reddit.svg.png";
 
@@ -123,7 +125,8 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 		return "https://www.reddit.com/message/messages/" + message.getId();
 	}
 
-	private Optional<String> processContent(String content, String link, String category, String author) {
+	private Optional<String> processContent(String content, String link, String category, String author,
+			Optional<WatchdogService> watchdog) {
 		String contentLowerCase = content.toLowerCase();
 		if (!contentLowerCase.contains(summonKeyword) && !contentLowerCase.contains(myUserNameMention)) {
 			return Optional.empty();
@@ -139,6 +142,7 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 					.collect(Collectors.toList());
 
 			for (Blueprint blueprint : blueprints) {
+				watchdog.ifPresent(w -> w.notifyActive(WATCHDOG_LABEL));
 				try {
 					BufferedImage image = FBSR.renderBlueprint(blueprint, reporting);
 					reporting.addImage(blueprint.getLabel(),
@@ -187,8 +191,8 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 		}
 	}
 
-	private boolean processNewComments(JSONObject cacheJson, String subreddit, long ageLimitMillis)
-			throws ApiException {
+	private boolean processNewComments(JSONObject cacheJson, String subreddit, long ageLimitMillis,
+			Optional<WatchdogService> watchdog) throws ApiException {
 		long lastProcessedMillis = cacheJson.getLong("lastProcessedCommentMillis");
 
 		CommentStream commentStream = new CommentStream(reddit, subreddit);
@@ -217,7 +221,7 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 				}
 
 				Optional<String> response = processContent(comment.getBody(), getPermaLink(comment),
-						comment.getSubredditName(), comment.getAuthor());
+						comment.getSubredditName(), comment.getAuthor(), watchdog);
 				if (response.isPresent()) {
 					pendingReplies.add(new Pair<>(comment, response.get()));
 				}
@@ -249,7 +253,8 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 		}
 	}
 
-	private boolean processNewMessages(JSONObject cacheJson, long ageLimitMillis) throws ApiException {
+	private boolean processNewMessages(JSONObject cacheJson, long ageLimitMillis, Optional<WatchdogService> watchdog)
+			throws ApiException {
 
 		long lastProcessedMillis = cacheJson.getLong("lastProcessedMessageMillis");
 
@@ -278,7 +283,7 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 				processedMessages.add(message);
 
 				Optional<String> response = processContent(message.getBody(), getPermaLink(message), "(Private)",
-						message.getAuthor());
+						message.getAuthor(), watchdog);
 				if (response.isPresent()) {
 					pendingReplies.add(new Pair<>(message, response.get()));
 				}
@@ -316,8 +321,8 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 		}
 	}
 
-	private boolean processNewSubmissions(JSONObject cacheJson, String subreddit, long ageLimitMillis)
-			throws NetworkException, ApiException {
+	private boolean processNewSubmissions(JSONObject cacheJson, String subreddit, long ageLimitMillis,
+			Optional<WatchdogService> watchdog) throws NetworkException, ApiException {
 		long lastProcessedMillis = cacheJson.getLong("lastProcessedSubmissionMillis");
 
 		SubredditPaginator paginator = new SubredditPaginator(reddit, subreddit);
@@ -351,7 +356,7 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 				}
 
 				Optional<String> response = processContent(submission.getSelftext(), submission.getUrl(),
-						submission.getSubredditName(), submission.getAuthor());
+						submission.getSubredditName(), submission.getAuthor(), watchdog);
 				if (response.isPresent()) {
 					pendingReplies.add(new Pair<>(submission, response.get()));
 				}
@@ -392,7 +397,7 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 				System.out.println("REQUESTED COMMENT!");
 				Comment comment = (Comment) thing;
 				Optional<String> response = processContent(comment.getBody(), getPermaLink(comment),
-						comment.getSubredditName(), comment.getAuthor());
+						comment.getSubredditName(), comment.getAuthor(), Optional.empty());
 				if (response.isPresent()) {
 					account.reply(comment, response.get());
 				}
@@ -400,7 +405,7 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 				System.out.println("REQUESTED SUBMISSION!");
 				Submission submission = (Submission) thing;
 				Optional<String> response = processContent(submission.getSelftext(), submission.getUrl(),
-						submission.getSubredditName(), submission.getAuthor());
+						submission.getSubredditName(), submission.getAuthor(), Optional.empty());
 				if (response.isPresent()) {
 					account.reply(submission, response.get());
 				}
@@ -410,29 +415,25 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 
 	@Override
 	protected void runOneIteration() throws Exception {
-		Optional<WatchdogService> watchdogOpt = ServiceFinder.findService(WatchdogService.class);
-		watchdogOpt.ifPresent(watchdog -> {
-			watchdog.notifyKnown("Reddit Bot");
-		});
+		Optional<WatchdogService> watchdog = ServiceFinder.findService(WatchdogService.class);
+		watchdog.ifPresent(w -> w.notifyKnown(WATCHDOG_LABEL));
 
 		try {
 			JSONObject cacheJson = getOrCreateCache();
 			boolean cacheUpdated = false;
 
 			ensureConnectedToReddit();
-			cacheUpdated |= processNewSubmissions(cacheJson, subreddit, ageLimitMillis);
-			cacheUpdated |= processNewComments(cacheJson, subreddit, ageLimitMillis);
+			cacheUpdated |= processNewSubmissions(cacheJson, subreddit, ageLimitMillis, watchdog);
+			cacheUpdated |= processNewComments(cacheJson, subreddit, ageLimitMillis, watchdog);
 			if (processMessages) {
-				cacheUpdated |= processNewMessages(cacheJson, ageLimitMillis);
+				cacheUpdated |= processNewMessages(cacheJson, ageLimitMillis, watchdog);
 			}
 
 			if (cacheUpdated) {
 				saveCache(cacheJson);
 			}
 
-			watchdogOpt.ifPresent(watchdog -> {
-				watchdog.notifyActive("Reddit Bot");
-			});
+			watchdog.ifPresent(w -> w.notifyActive(WATCHDOG_LABEL));
 		} catch (NetworkException e) {
 			System.out.println("Network Problem [" + e.getClass().getSimpleName() + "]: " + e.getMessage());
 			authExpireMillis = 0;
