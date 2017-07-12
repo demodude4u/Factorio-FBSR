@@ -606,9 +606,13 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		return new URL(message.getAttachments().get(0).getUrl());
 	}
 
-	public URL useDiscordForImageHosting(String fileName, BufferedImage image) throws IOException {
+	public URL useDiscordForImageHosting(String fileName, BufferedImage image, boolean downscaleIfNeeded)
+			throws IOException {
 		PrivateChannel privateChannel = bot.getJDA().getUserById(reportingUserID).openPrivateChannel().complete();
-		Message message = privateChannel.sendFile(generateDiscordFriendlyPNGImage(image), fileName, null).complete();
+		Message message = privateChannel
+				.sendFile(downscaleIfNeeded ? generateDiscordFriendlyPNGImage(image) : WebUtils.getImageData(image),
+						fileName, null)
+				.complete();
 		return new URL(message.getAttachments().get(0).getUrl());
 	}
 }

@@ -124,24 +124,28 @@ public final class WebUtils {
 	}
 
 	public static URL uploadToHostingService(String fileName, BufferedImage image) throws IOException {
-		try (ByteArrayInputStream bais = new ByteArrayInputStream(getImageData(image))) {
-			return uploadToNyaIs(fileName, bais);
-		} catch (Exception e) {
-			Optional<BlueprintBotDiscordService> discordService = ServiceFinder
-					.findService(BlueprintBotDiscordService.class);
-			if (discordService.isPresent()) {
+		Optional<BlueprintBotDiscordService> discordService = ServiceFinder
+				.findService(BlueprintBotDiscordService.class);
+
+		if (discordService.isPresent()) {
+			// Discord original -> nya.is -> Discord scaled
+			try {
+				return discordService.get().useDiscordForImageHosting(fileName, image, false);
+			} catch (Exception e) {
 				try {
-					return discordService.get().useDiscordForImageHosting(fileName, image);
-				} catch (Exception e2) {
+					return uploadToNyaIs(fileName, getImageData(image));
+				} catch (Exception e1) {
+					return discordService.get().useDiscordForImageHosting(fileName, image, true);
 				}
 			}
-			throw new IOException("Image hosting failed!");
+		} else {
+			return uploadToNyaIs(fileName, getImageData(image));
 		}
 	}
 
 	public static URL uploadToHostingService(String fileName, byte[] fileData) throws IOException {
-		try (ByteArrayInputStream bais = new ByteArrayInputStream(fileData)) {
-			return uploadToNyaIs(fileName, bais);
+		try {
+			return uploadToNyaIs(fileName, fileData);
 		} catch (Exception e) {
 			Optional<BlueprintBotDiscordService> discordService = ServiceFinder
 					.findService(BlueprintBotDiscordService.class);
@@ -155,13 +159,16 @@ public final class WebUtils {
 		}
 	}
 
-	private static URL uploadToNyaIs(String fileName, InputStream inputStream) throws IOException {
-		// XXX You can get a copy of the MultipartUtility from
-		// http://www.codejava.net/java-se/networking/upload-files-by-sending-multipart-request-programmatically
-		MultipartUtility utility = new MultipartUtility("https://nya.is/upload", "UTF-8");
-		utility.addFormField("name", fileName);
-		utility.addFilePart("files[]", fileName, inputStream);
-		return new URL(new JSONObject(utility.finish().get(0)).getJSONArray("files").getJSONObject(0).getString("url"));
+	private static URL uploadToNyaIs(String fileName, byte[] fileData) throws IOException {
+		try (ByteArrayInputStream bais = new ByteArrayInputStream(fileData)) {
+			// XXX You can get a copy of the MultipartUtility from
+			// http://www.codejava.net/java-se/networking/upload-files-by-sending-multipart-request-programmatically
+			MultipartUtility utility = new MultipartUtility("https://nya.is/upload", "UTF-8");
+			utility.addFormField("name", fileName);
+			utility.addFilePart("files[]", fileName, bais);
+			return new URL(
+					new JSONObject(utility.finish().get(0)).getJSONArray("files").getJSONObject(0).getString("url"));
+		}
 	}
 
 	private WebUtils() {
