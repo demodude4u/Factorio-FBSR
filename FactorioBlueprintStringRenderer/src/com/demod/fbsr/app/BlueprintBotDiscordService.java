@@ -110,6 +110,59 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		};
 	}
 
+	private MessageEmbed createExceptionReportEmbed(String author, String authorURL, TaskReporting reporting)
+			throws IOException {
+		List<Exception> exceptions = reporting.getExceptions();
+		List<String> warnings = reporting.getWarnings();
+
+		EmbedBuilder builder = new EmbedBuilder();
+		builder.setAuthor(author, null, authorURL);
+		builder.setTimestamp(Instant.now());
+
+		Level level = reporting.getLevel();
+		if (level != Level.INFO) {
+			builder.setColor(level.getColor());
+		}
+
+		Multiset<String> uniqueWarnings = LinkedHashMultiset.create(warnings);
+		if (!uniqueWarnings.isEmpty()) {
+			builder.addField("Warnings",
+					uniqueWarnings.entrySet().stream()
+							.map(e -> e.getElement() + (e.getCount() > 1 ? " *(**" + e.getCount() + "** times)*" : ""))
+							.collect(Collectors.joining("\n")),
+					false);
+		}
+
+		Multiset<String> uniqueExceptions = LinkedHashMultiset.create();
+		Optional<String> exceptionFile = Optional.empty();
+		if (!exceptions.isEmpty()) {
+			try (StringWriter sw = new StringWriter(); PrintWriter pw = new PrintWriter(sw)) {
+				for (Exception e : exceptions) {
+					if (uniqueExceptions.add(e.getClass().getSimpleName() + ": " + e.getMessage())) {
+						e.printStackTrace();
+						e.printStackTrace(pw);
+					}
+				}
+				pw.flush();
+				exceptionFile = Optional.of(sw.toString());
+			}
+		}
+		if (!uniqueExceptions.isEmpty()) {
+			builder.addField("Exceptions",
+					uniqueExceptions.entrySet().stream()
+							.map(e -> e.getElement() + (e.getCount() > 1 ? " *(**" + e.getCount() + "** times)*" : ""))
+							.collect(Collectors.joining("\n")),
+					false);
+		}
+		if (exceptionFile.isPresent()) {
+			builder.addField("Stack Trace(s)",
+					WebUtils.uploadToHostingService("exceptions.txt", exceptionFile.get().getBytes()).toString(),
+					false);
+		}
+
+		return builder.build();
+	}
+
 	private CommandHandler createPrototypeCommandHandler(String category, Map<String, ? extends DataPrototype> map) {
 		return (event, args) -> {
 			String content = event.getMessage().getContent();
@@ -146,6 +199,91 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			}
 			sendReport(event, reporting);
 		};
+	}
+
+	private MessageEmbed createReportEmbed(String author, String authorURL, TaskReporting reporting)
+			throws IOException {
+		Optional<String> context = reporting.getContext();
+		List<Exception> exceptions = reporting.getExceptions();
+		List<String> warnings = reporting.getWarnings();
+		List<Pair<Optional<String>, String>> images = reporting.getImages();
+		List<String> links = reporting.getLinks();
+		List<String> downloads = reporting.getDownloads();
+		Set<String> info = reporting.getInfo();
+
+		EmbedBuilder builder = new EmbedBuilder();
+		builder.setAuthor(author, null, authorURL);
+		builder.setTimestamp(Instant.now());
+
+		Level level = reporting.getLevel();
+		if (level != Level.INFO) {
+			builder.setColor(level.getColor());
+		}
+
+		if (context.isPresent() && context.get().length() <= MADEUP_NUMBER_FROM_AROUND_5_IN_THE_MORNING) {
+			builder.addField("Context", context.get(), false);
+		} else if (context.isPresent()) {
+			builder.addField("Context Link",
+					WebUtils.uploadToHostingService("context.txt", context.get().getBytes()).toString(), false);
+		}
+
+		if (!links.isEmpty()) {
+			builder.addField("Link(s)", links.stream().collect(Collectors.joining("\n")), false);
+		}
+
+		if (!images.isEmpty()) {
+			builder.setImage(images.get(0).getValue());
+		}
+		if (images.size() > 1) {
+			WebUtils.addPossiblyLargeEmbedField(builder, "Additional Image(s)",
+					images.stream().skip(1).map(Pair::getValue).collect(Collectors.joining("\n")), false);
+		}
+
+		if (!downloads.isEmpty()) {
+			builder.addField("Download(s)", downloads.stream().collect(Collectors.joining("\n")), false);
+		}
+
+		if (!info.isEmpty()) {
+			builder.addField("Info", info.stream().collect(Collectors.joining("\n")), false);
+		}
+
+		Multiset<String> uniqueWarnings = LinkedHashMultiset.create(warnings);
+		if (!uniqueWarnings.isEmpty()) {
+			builder.addField("Warnings",
+					uniqueWarnings.entrySet().stream()
+							.map(e -> e.getElement() + (e.getCount() > 1 ? " *(**" + e.getCount() + "** times)*" : ""))
+							.collect(Collectors.joining("\n")),
+					false);
+		}
+
+		Multiset<String> uniqueExceptions = LinkedHashMultiset.create();
+		Optional<String> exceptionFile = Optional.empty();
+		if (!exceptions.isEmpty()) {
+			try (StringWriter sw = new StringWriter(); PrintWriter pw = new PrintWriter(sw)) {
+				for (Exception e : exceptions) {
+					if (uniqueExceptions.add(e.getClass().getSimpleName() + ": " + e.getMessage())) {
+						e.printStackTrace();
+						e.printStackTrace(pw);
+					}
+				}
+				pw.flush();
+				exceptionFile = Optional.of(sw.toString());
+			}
+		}
+		if (!uniqueExceptions.isEmpty()) {
+			builder.addField("Exceptions",
+					uniqueExceptions.entrySet().stream()
+							.map(e -> e.getElement() + (e.getCount() > 1 ? " *(**" + e.getCount() + "** times)*" : ""))
+							.collect(Collectors.joining("\n")),
+					false);
+		}
+		if (exceptionFile.isPresent()) {
+			builder.addField("Stack Trace(s)",
+					WebUtils.uploadToHostingService("exceptions.txt", exceptionFile.get().getBytes()).toString(),
+					false);
+		}
+
+		return builder.build();
 	}
 
 	private void findDebugOptions(TaskReporting reporting, String content) {
@@ -405,93 +543,12 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 	public void sendReport(String author, String authorURL, TaskReporting reporting) {
 		try {
-			Optional<String> context = reporting.getContext();
-			List<Exception> exceptions = reporting.getExceptions();
-			List<String> warnings = reporting.getWarnings();
-			List<Pair<Optional<String>, String>> images = reporting.getImages();
-			List<String> links = reporting.getLinks();
-			List<String> downloads = reporting.getDownloads();
-			Set<String> info = reporting.getInfo();
-
-			EmbedBuilder builder = new EmbedBuilder();
-			builder.setAuthor(author, null, authorURL);
-			builder.setTimestamp(Instant.now());
-
-			Level level = reporting.getLevel();
-			if (level != Level.INFO) {
-				builder.setColor(level.getColor());
-			}
-
-			if (context.isPresent() && context.get().length() <= MADEUP_NUMBER_FROM_AROUND_5_IN_THE_MORNING) {
-				builder.addField("Context", context.get(), false);
-			} else if (context.isPresent()) {
-				builder.addField("Context Link",
-						WebUtils.uploadToHostingService("context.txt", context.get().getBytes()).toString(), false);
-			}
-
-			if (!links.isEmpty()) {
-				builder.addField("Link(s)", links.stream().collect(Collectors.joining("\n")), false);
-			}
-
-			if (!images.isEmpty()) {
-				builder.setImage(images.get(0).getValue());
-			}
-			if (images.size() > 1) {
-				WebUtils.addPossiblyLargeEmbedField(builder, "Additional Image(s)",
-						images.stream().skip(1).map(Pair::getValue).collect(Collectors.joining("\n")), false);
-			}
-
-			if (!downloads.isEmpty()) {
-				builder.addField("Download(s)", downloads.stream().collect(Collectors.joining("\n")), false);
-			}
-
-			if (!info.isEmpty()) {
-				builder.addField("Info", info.stream().collect(Collectors.joining("\n")), false);
-			}
-
-			Multiset<String> uniqueWarnings = LinkedHashMultiset.create(warnings);
-			if (!uniqueWarnings.isEmpty()) {
-				builder.addField("Warnings",
-						uniqueWarnings.entrySet().stream().map(
-								e -> e.getElement() + (e.getCount() > 1 ? " *(**" + e.getCount() + "** times)*" : ""))
-								.collect(Collectors.joining("\n")),
-						false);
-			}
-
-			Multiset<String> uniqueExceptions = LinkedHashMultiset.create();
-			Optional<String> exceptionFile = Optional.empty();
-			if (!exceptions.isEmpty()) {
-				try (StringWriter sw = new StringWriter(); PrintWriter pw = new PrintWriter(sw)) {
-					for (Exception e : exceptions) {
-						if (uniqueExceptions.add(e.getClass().getSimpleName() + ": " + e.getMessage())) {
-							e.printStackTrace();
-							e.printStackTrace(pw);
-						}
-					}
-					pw.flush();
-					exceptionFile = Optional.of(sw.toString());
-				}
-			}
-			if (!uniqueExceptions.isEmpty()) {
-				builder.addField("Exceptions",
-						uniqueExceptions.entrySet().stream().map(
-								e -> e.getElement() + (e.getCount() > 1 ? " *(**" + e.getCount() + "** times)*" : ""))
-								.collect(Collectors.joining("\n")),
-						false);
-			}
-			if (exceptionFile.isPresent()) {
-				builder.addField("Stack Trace(s)",
-						WebUtils.uploadToHostingService("exceptions.txt", exceptionFile.get().getBytes()).toString(),
-						false);
-			}
-
-			MessageEmbed embed = builder.build();
 			PrivateChannel privateChannel = bot.getJDA().getUserById(reportingUserID).openPrivateChannel().complete();
-			privateChannel.sendMessage(embed).complete();
-			if (!exceptions.isEmpty()) {
+			privateChannel.sendMessage(createReportEmbed(author, authorURL, reporting)).complete();
+			if (!reporting.getExceptions().isEmpty()) {
 				TextChannel textChannel = bot.getJDA().getTextChannelById(reportingChannelID);
 				if (textChannel != null) {
-					textChannel.sendMessage(embed).complete();
+					textChannel.sendMessage(createExceptionReportEmbed(author, authorURL, reporting)).complete();
 				}
 			}
 
