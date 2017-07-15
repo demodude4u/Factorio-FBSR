@@ -19,6 +19,10 @@
         "age_limit_hours": 24,
         "process_messages": true
     },
+    "webapi": {
+        "bind": "0.0.0.0",
+        "port": 80
+    },
     "watchdog_interval_minutes": 1,
     "factorio": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Factorio"
 }

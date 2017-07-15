@@ -10,6 +10,7 @@ import com.demod.factorio.Config;
 import com.demod.fbsr.app.PluginFinder.Plugin;
 import com.google.common.util.concurrent.Service;
 import com.google.common.util.concurrent.ServiceManager;
+import com.google.common.util.concurrent.ServiceManager.Listener;
 
 public class StartAllServices {
 
@@ -25,9 +26,28 @@ public class StartAllServices {
 		List<Service> services = new ArrayList<>();
 		addServiceIfEnabled(services, "discord", BlueprintBotDiscordService::new);
 		addServiceIfEnabled(services, "reddit", BlueprintBotRedditService::new);
+		addServiceIfEnabled(services, "webapi", WebAPIService::new);
 		services.add(new WatchdogService());
 
 		ServiceManager manager = new ServiceManager(services);
+		manager.addListener(new Listener() {
+			@Override
+			public void failure(Service service) {
+				System.out.println("SERVICE FAILURE: " + service.getClass().getSimpleName());
+				service.failureCause().printStackTrace();
+			}
+
+			@Override
+			public void healthy() {
+				System.out.println("ALL SERVICES ARE HEALTHY!");
+			}
+
+			@Override
+			public void stopped() {
+				System.out.println("ALL SERVICES HAVE STOPPED!");
+			}
+		});
+
 		manager.startAsync().awaitHealthy();
 		Runtime.getRuntime().addShutdownHook(new Thread(() -> manager.stopAsync().awaitStopped()));
 
