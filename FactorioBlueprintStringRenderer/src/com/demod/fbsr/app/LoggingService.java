@@ -19,7 +19,6 @@ public class LoggingService extends AbstractIdleService {
 			JSONObject configJson = Config.get().getJSONObject("logging");
 
 			File file = new File(configJson.getString("file"));
-			file.mkdirs();
 			PrintStream fout = new PrintStream(new FileOutputStream(file), true);
 			System.setOut(fout);
 			System.setErr(fout);
