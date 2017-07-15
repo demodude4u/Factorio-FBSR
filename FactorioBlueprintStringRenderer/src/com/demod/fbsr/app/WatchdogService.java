@@ -3,6 +3,8 @@ package com.demod.fbsr.app;
 import java.util.LinkedHashSet;
 import java.util.concurrent.TimeUnit;
 
+import org.json.JSONObject;
+
 import com.demod.factorio.Config;
 import com.google.common.util.concurrent.AbstractScheduledService;
 
@@ -17,6 +19,7 @@ public class WatchdogService extends AbstractScheduledService {
 	private final LinkedHashSet<String> known = new LinkedHashSet<>();
 	private final LinkedHashSet<String> active = new LinkedHashSet<>();
 	private final LinkedHashSet<String> alarmed = new LinkedHashSet<>();
+	private JSONObject configJson;
 
 	public synchronized void notifyActive(String label) {
 		known.add(label);
@@ -51,7 +54,7 @@ public class WatchdogService extends AbstractScheduledService {
 
 	@Override
 	protected Scheduler scheduler() {
-		return Scheduler.newFixedDelaySchedule(0, Config.get().getInt("watchdog_interval_minutes"), TimeUnit.MINUTES);
+		return Scheduler.newFixedDelaySchedule(0, configJson.getInt("interval_minutes"), TimeUnit.MINUTES);
 	}
 
 	@Override
@@ -62,6 +65,8 @@ public class WatchdogService extends AbstractScheduledService {
 	@Override
 	protected void startUp() throws Exception {
 		ServiceFinder.addService(this);
+
+		configJson = Config.get().getJSONObject("watchdog");
 	}
 
 }

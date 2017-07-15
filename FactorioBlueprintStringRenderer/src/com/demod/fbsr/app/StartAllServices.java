@@ -27,7 +27,8 @@ public class StartAllServices {
 		addServiceIfEnabled(services, "discord", BlueprintBotDiscordService::new);
 		addServiceIfEnabled(services, "reddit", BlueprintBotRedditService::new);
 		addServiceIfEnabled(services, "webapi", WebAPIService::new);
-		services.add(new WatchdogService());
+		addServiceIfEnabled(services, "watchdog", WatchdogService::new);
+		addServiceIfEnabled(services, "logging", LoggingService::new);
 
 		ServiceManager manager = new ServiceManager(services);
 		manager.addListener(new Listener() {
