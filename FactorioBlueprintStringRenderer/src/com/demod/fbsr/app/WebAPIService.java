@@ -47,7 +47,7 @@ public class WebAPIService extends AbstractIdleService {
 		On.post("/blueprint").serve((req, resp) -> {
 			TaskReporting reporting = new TaskReporting();
 			try {
-				String content = new String(req.body());
+				String content = Optional.ofNullable(req.body()).map(String::new).orElse("");
 				reporting.setContext(content);
 
 				List<BlueprintStringData> blueprintStrings = BlueprintFinder.search(content, reporting);
