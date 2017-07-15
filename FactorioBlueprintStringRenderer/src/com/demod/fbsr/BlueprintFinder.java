@@ -8,6 +8,7 @@ import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -79,15 +80,20 @@ public final class BlueprintFinder {
 
 		DROPBOX("\\b(?<url>https://www\\.dropbox\\.com/s/[^\\s?]+)", m -> m.group("url") + "?raw=1"), //
 
+		FACTORIOPRINTS("factorioprints\\.com/view/(?<id>[-_A-Za-z0-9]+)",
+				m -> "https://facorio-blueprints.firebaseio.com/blueprints/" + m.group("id") + ".json"), //
+
 		TEXT_URLS("\\b(?<url>(?:https?|ftp)://[-a-zA-Z0-9+&@#/%?=~_|!:,.;]*[-a-zA-Z0-9+&@#/%=~_|])", (m, l) -> {
 			URL url = new URL(m.group("url"));
 			URLConnection connection = WebUtils.openConnectionWithFakeUserAgent(url);
-			if (connection.getContentType().startsWith("text/plain")) {
+			Optional<String> contentType = Optional.ofNullable(connection.getContentType());
+			if (contentType.isPresent() && contentType.get().startsWith("text/plain")) {
 				l.handleConnection(connection);
 			}
 		}), //
 
 		;
+
 		private Pattern pattern;
 		private final Mapper mapper;
 
