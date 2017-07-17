@@ -21,6 +21,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -52,6 +53,7 @@ import com.demod.fbsr.TaskReporting.Level;
 import com.demod.fbsr.WorldMap.RailEdge;
 import com.demod.fbsr.WorldMap.RailNode;
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Table;
@@ -939,10 +941,7 @@ public class FBSR {
 		});
 
 		showLogisticGrid(renderers::add, table, map);
-
-		if (map.getDebug().rail) {
-			showRailLogistics(renderers::add, table, map);
-		}
+		showRailLogistics(renderers::add, table, map);
 
 		ArrayListMultimap<Direction, PanelRenderer> borderPanels = ArrayListMultimap.create();
 		blueprint.getLabel().ifPresent(label -> {
@@ -1081,86 +1080,81 @@ public class FBSR {
 				});
 			}
 
-			// for (RailEdge edge : ImmutableList.of(pair.getKey(),
-			// pair.getValue())) {
-			// if (edge.isBlocked()) {
-			// continue;
-			// }
-			//
-			// Point2D.Double p1 = edge.getStartPos();
-			// Direction d1 = edge.getStartDir();
-			// Point2D.Double p2 = edge.getEndPos();
-			// Direction d2 = edge.getEndDir();
-			//
-			// register.accept(new Renderer(Layer.LOGISTICS_RAIL_IO,
-			// edge.getStartPos()) {
-			// @Override
-			// public void render(Graphics2D g) throws Exception {
-			// Stroke ps = g.getStroke();
-			// g.setStroke(new BasicStroke(2 / 32f, BasicStroke.CAP_BUTT,
-			// BasicStroke.JOIN_ROUND));
-			// g.setColor(RenderUtils.withAlpha(Color.green, 92));
-			// g.draw(new Line2D.Double(d1.right().offset(p1),
-			// d2.left().offset(p2)));
-			// g.setStroke(ps);
-			// }
-			// });
-			// }
+			if (map.getDebug().rail) {
+				for (RailEdge edge : ImmutableList.of(pair.getKey(), pair.getValue())) {
+					if (edge.isBlocked()) {
+						continue;
+					}
+
+					Point2D.Double p1 = edge.getStartPos();
+					Direction d1 = edge.getStartDir();
+					Point2D.Double p2 = edge.getEndPos();
+					Direction d2 = edge.getEndDir();
+
+					register.accept(new Renderer(Layer.LOGISTICS_RAIL_IO, edge.getStartPos()) {
+						@Override
+						public void render(Graphics2D g) throws Exception {
+							Stroke ps = g.getStroke();
+							g.setStroke(new BasicStroke(2 / 32f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_ROUND));
+							g.setColor(RenderUtils.withAlpha(Color.green, 92));
+							g.draw(new Line2D.Double(d1.right().offset(p1), d2.left().offset(p2)));
+							g.setStroke(ps);
+						}
+					});
+				}
+			}
 		}
 
-		// map.getRailNodes().cellSet().forEach(c -> {
-		// Point2D.Double pos = new Point2D.Double(c.getRowKey() / 2.0,
-		// c.getColumnKey() / 2.0);
-		// RailNode node = c.getValue();
-		//
-		// register.accept(new Renderer(Layer.DEBUG_RA1, pos) {
-		// @Override
-		// public void render(Graphics2D g) throws Exception {
-		// Stroke ps = g.getStroke();
-		// g.setStroke(new BasicStroke(1 / 32f, BasicStroke.CAP_BUTT,
-		// BasicStroke.JOIN_ROUND));
-		//
-		// g.setColor(Color.cyan);
-		// g.setFont(new Font("Courier New", Font.PLAIN, 1));
-		// for (Direction dir : Direction.values()) {
-		// Collection<RailEdge> edges = node.getIncomingEdges(dir);
-		// if (!edges.isEmpty()) {
-		// Point2D.Double p1 = dir.right().offset(pos, 0.25);
-		// Point2D.Double p2 = dir.offset(p1, 0.5);
-		// g.draw(new Line2D.Double(p1, p2));
-		// g.drawString("" + edges.size(), (float) p2.x - 0.1f, (float) p2.y -
-		// 0.2f);
-		// }
-		// }
-		//
-		// g.setStroke(ps);
-		// }
-		// });
-		//
-		// register.accept(new Renderer(Layer.DEBUG_RA2, pos) {
-		// @Override
-		// public void render(Graphics2D g) throws Exception {
-		// Stroke ps = g.getStroke();
-		// g.setStroke(new BasicStroke(1 / 32f, BasicStroke.CAP_BUTT,
-		// BasicStroke.JOIN_ROUND));
-		//
-		// g.setColor(Color.magenta);
-		// g.setFont(new Font("Courier New", Font.PLAIN, 1));
-		// for (Direction dir : Direction.values()) {
-		// Collection<RailEdge> edges = node.getOutgoingEdges(dir);
-		// if (!edges.isEmpty()) {
-		// Point2D.Double p1 = dir.left().offset(pos, 0.25);
-		// Point2D.Double p2 = dir.offset(p1, 0.5);
-		// g.draw(new Line2D.Double(p1, p2));
-		// g.drawString("" + edges.size(), (float) p2.x - 0.1f, (float) p2.y -
-		// 0.2f);
-		// }
-		// }
-		//
-		// g.setStroke(ps);
-		// }
-		// });
-		//
-		// });
+		if (map.getDebug().rail) {
+			map.getRailNodes().cellSet().forEach(c -> {
+				Point2D.Double pos = new Point2D.Double(c.getRowKey() / 2.0, c.getColumnKey() / 2.0);
+				RailNode node = c.getValue();
+
+				register.accept(new Renderer(Layer.DEBUG_RA1, pos) {
+					@Override
+					public void render(Graphics2D g) throws Exception {
+						Stroke ps = g.getStroke();
+						g.setStroke(new BasicStroke(1 / 32f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_ROUND));
+
+						g.setColor(Color.cyan);
+						g.setFont(new Font("Courier New", Font.PLAIN, 1));
+						for (Direction dir : Direction.values()) {
+							Collection<RailEdge> edges = node.getIncomingEdges(dir);
+							if (!edges.isEmpty()) {
+								Point2D.Double p1 = dir.right().offset(pos, 0.25);
+								Point2D.Double p2 = dir.offset(p1, 0.5);
+								g.draw(new Line2D.Double(p1, p2));
+								g.drawString("" + edges.size(), (float) p2.x - 0.1f, (float) p2.y - 0.2f);
+							}
+						}
+
+						g.setStroke(ps);
+					}
+				});
+
+				register.accept(new Renderer(Layer.DEBUG_RA2, pos) {
+					@Override
+					public void render(Graphics2D g) throws Exception {
+						Stroke ps = g.getStroke();
+						g.setStroke(new BasicStroke(1 / 32f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_ROUND));
+
+						g.setColor(Color.magenta);
+						g.setFont(new Font("Courier New", Font.PLAIN, 1));
+						for (Direction dir : Direction.values()) {
+							Collection<RailEdge> edges = node.getOutgoingEdges(dir);
+							if (!edges.isEmpty()) {
+								Point2D.Double p1 = dir.left().offset(pos, 0.25);
+								Point2D.Double p2 = dir.offset(p1, 0.5);
+								g.draw(new Line2D.Double(p1, p2));
+								g.drawString("" + edges.size(), (float) p2.x - 0.1f, (float) p2.y - 0.2f);
+							}
+						}
+
+						g.setStroke(ps);
+					}
+				});
+
+			});
+		}
 	}
 }
