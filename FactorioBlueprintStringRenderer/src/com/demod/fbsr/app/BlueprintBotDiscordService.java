@@ -325,10 +325,8 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 	private void handleBlueprintCommand(MessageReceivedEvent event) {
 		String content = event.getMessage().getContent();
-		System.out.println("CONTENT: " + content);
 		TaskReporting reporting = new TaskReporting();
 		reporting.setContext(content);
-		System.out.println("\n############################################################\n");
 		findDebugOptions(reporting, content);
 		if (!event.getMessage().getAttachments().isEmpty()) {
 			String url = event.getMessage().getAttachments().get(0).getUrl();
