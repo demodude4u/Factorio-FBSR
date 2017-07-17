@@ -1,11 +1,21 @@
 package com.demod.fbsr;
 
 import java.awt.geom.Point2D;
+import java.awt.geom.Point2D.Double;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.LinkedHashMultimap;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Table;
 import com.google.common.collect.Table.Cell;
 
@@ -49,6 +59,174 @@ public class WorldMap {
 		public boolean placement = false;
 	}
 
+	public static class RailEdge {
+		private final Point2D.Double startPos;
+		private final Direction startDir;
+		private final Point2D.Double endPos;
+		private final Direction endDir;
+		private final boolean curved;
+
+		private boolean blocked = false;
+		private boolean input = false;
+		private boolean output = false;
+
+		public RailEdge(Point2D.Double startPos, Direction startDir, Point2D.Double endPos, Direction endDir,
+				boolean curved) {
+			this.startPos = startPos;
+			this.startDir = startDir;
+			this.endPos = endPos;
+			this.endDir = endDir;
+			this.curved = curved;
+		}
+
+		public Direction getEndDir() {
+			return endDir;
+		}
+
+		public Point2D.Double getEndPos() {
+			return endPos;
+		}
+
+		public Direction getStartDir() {
+			return startDir;
+		}
+
+		public Point2D.Double getStartPos() {
+			return startPos;
+		}
+
+		public boolean isBlocked() {
+			return blocked;
+		}
+
+		public boolean isCurved() {
+			return curved;
+		}
+
+		public boolean isInput() {
+			return input;
+		}
+
+		public boolean isOutput() {
+			return output;
+		}
+
+		public void setBlocked(boolean blocked) {
+			this.blocked = blocked;
+		}
+
+		public void setInput(boolean input) {
+			this.input = input;
+		}
+
+		public void setOutput(boolean output) {
+			this.output = output;
+		}
+
+	}
+
+	public static class RailNode {
+		private static class EdgeMap {
+			private Optional<EdgePair> edgePair = Optional.empty();
+			private Optional<Multimap<Direction, RailEdge>> edgeIntersection = Optional.empty();
+
+			public void addEdge(Direction dir, RailEdge edge) {
+				if (!edgeIntersection.isPresent() && !edgePair.isPresent()) {
+					edgePair = Optional.of(new EdgePair(dir, edge));
+				} else if (edgePair.isPresent() && (dir == edgePair.get().dir.back())
+						&& !edgePair.get().rev.isPresent()) {
+					edgePair.get().rev = Optional.of(edge);
+				} else {
+					if (!edgeIntersection.isPresent()) {
+						EdgePair old = edgePair.get();
+						edgePair = Optional.empty();
+						LinkedHashMultimap<Direction, RailEdge> map = LinkedHashMultimap.create();
+						edgeIntersection = Optional.of(map);
+						map.put(old.dir, old.fwd);
+						old.rev.ifPresent(e -> map.put(old.dir.back(), e));
+					}
+					edgeIntersection.get().put(dir, edge);
+				}
+			}
+
+			public Collection<RailEdge> getEdges(Direction dir) {
+				if (edgePair.isPresent()) {
+					EdgePair p = edgePair.get();
+					if (p.dir == dir) {
+						return ImmutableList.of(p.fwd);
+					} else if (p.rev.isPresent() && dir == p.dir.back()) {
+						return ImmutableList.of(p.rev.get());
+					} else {
+						return ImmutableList.of();
+					}
+				} else if (edgeIntersection.isPresent()) {
+					return edgeIntersection.get().get(dir);
+				} else {
+					return ImmutableList.of();
+				}
+			}
+		}
+
+		private static class EdgePair {
+			private final Direction dir;
+			private final RailEdge fwd;
+			private Optional<RailEdge> rev = Optional.empty();
+
+			public EdgePair(Direction dir, RailEdge fwd) {
+				this.dir = dir;
+				this.fwd = fwd;
+			}
+		}
+
+		private final EdgeMap outgoingEdgeMap = new EdgeMap();
+		private final EdgeMap incomingEdgeMap = new EdgeMap();
+		private Optional<Set<Direction>> signals = Optional.empty();
+		private Optional<Direction> station = Optional.empty();
+
+		public void addIncomingEdge(RailEdge edge) {
+			incomingEdgeMap.addEdge(edge.getEndDir(), edge);
+		}
+
+		public void addOutgoingEdge(RailEdge edge) {
+			outgoingEdgeMap.addEdge(edge.getStartDir(), edge);
+		}
+
+		public Collection<RailEdge> getIncomingEdges(Direction dir) {
+			return incomingEdgeMap.getEdges(dir);
+		}
+
+		public Collection<RailEdge> getOutgoingEdges(Direction dir) {
+			return outgoingEdgeMap.getEdges(dir);
+		}
+
+		public Set<Direction> getSignals() {
+			return signals.orElse(ImmutableSet.of());
+		}
+
+		public Optional<Direction> getStation() {
+			return station;
+		}
+
+		public boolean hasSignals() {
+			return signals.isPresent();
+		}
+
+		public boolean isSignal(Direction dir) {
+			return signals.map(s -> s.contains(dir)).orElse(false);
+		}
+
+		public void setSignal(Direction dir) {
+			if (!signals.isPresent()) {
+				signals = Optional.of(new LinkedHashSet<>());
+			}
+			signals.get().add(dir);
+		}
+
+		public void setStation(Direction dir) {
+			station = Optional.of(dir);
+		}
+	}
+
 	// XXX Hash-based tables are not the most efficient here
 	// Row: X
 	// Column: Y
@@ -62,9 +240,12 @@ public class WorldMap {
 	// Row: X*2
 	// Column: Y*2
 	private final Table<Integer, Integer, LogisticGridCell> logisticGrid = HashBasedTable.create();
+	private final Table<Integer, Integer, RailNode> railNodes = HashBasedTable.create();
 
 	// Key: "eid1|cid1|eid2|cid2|color"
 	private final Map<String, Pair<Point2D.Double, Point2D.Double>> wires = new LinkedHashMap<>();
+
+	private final List<Pair<RailEdge, RailEdge>> railEdges = new ArrayList<>();
 
 	private Debug debug = new Debug();
 
@@ -136,6 +317,30 @@ public class WorldMap {
 			logisticGrid.put(kr, kc, ret = new LogisticGridCell());
 		}
 		return ret;
+	}
+
+	public RailNode getOrCreateRailNode(Point2D.Double pos) {
+		int kr = (int) Math.round(pos.x * 2);
+		int kc = (int) Math.round(pos.y * 2);
+		RailNode ret = railNodes.get(kr, kc);
+		if (ret == null) {
+			railNodes.put(kr, kc, ret = new RailNode());
+		}
+		return ret;
+	}
+
+	public List<Pair<RailEdge, RailEdge>> getRailEdges() {
+		return railEdges;
+	}
+
+	public Optional<RailNode> getRailNode(Point2D.Double pos) {
+		int kr = (int) Math.round(pos.x * 2);
+		int kc = (int) Math.round(pos.y * 2);
+		return Optional.ofNullable(railNodes.get(kr, kc));
+	}
+
+	public Table<Integer, Integer, RailNode> getRailNodes() {
+		return railNodes;
 	}
 
 	public Pair<Point2D.Double, Point2D.Double> getWire(String key) {
@@ -234,6 +439,18 @@ public class WorldMap {
 			}
 		}
 		pipes.put(kr, kc, flags);
+	}
+
+	public void setRailEdge(Double p1, Direction d1, Double p2, Direction d2, boolean curved) {
+		RailNode node1 = getOrCreateRailNode(p1);
+		RailNode node2 = getOrCreateRailNode(p2);
+		RailEdge edge1 = new RailEdge(p1, d1, p2, d2, curved);
+		node1.addOutgoingEdge(edge1);
+		node2.addIncomingEdge(edge1);
+		RailEdge edge2 = new RailEdge(p2, d2, p1, d1, curved);
+		node2.addOutgoingEdge(edge2);
+		node1.addIncomingEdge(edge2);
+		railEdges.add(new Pair<>(edge1, edge2));
 	}
 
 	public void setUndergroundBeltEnding(String name, Point2D.Double pos, Direction dir) {

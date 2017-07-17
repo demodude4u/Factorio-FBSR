@@ -59,6 +59,10 @@ public enum Direction {
 		return dy;
 	}
 
+	public boolean isCardinal() {
+		return (ordinal() % 2) == 0;
+	}
+
 	public Direction left() {
 		return rotate(-2);
 	}

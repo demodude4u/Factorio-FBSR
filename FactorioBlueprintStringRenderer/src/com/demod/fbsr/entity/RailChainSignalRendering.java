@@ -1,5 +1,6 @@
 package com.demod.fbsr.entity;
 
+import java.awt.geom.Point2D;
 import java.util.function.Consumer;
 
 import com.demod.factorio.DataTable;
@@ -25,18 +26,25 @@ public class RailChainSignalRendering extends EntityRendererFactory {
 
 		// XXX This is a straight up hack
 		Direction shiftDir = entity.getDirection().right();
-		double shiftX = shiftDir.getDx();
-		double shiftY = shiftDir.getDy();
+		Point2D.Double shift = new Point2D.Double(shiftDir.getDx(), shiftDir.getDy());
 		if (entity.getDirection() == Direction.WEST || entity.getDirection() == Direction.SOUTH) {
-			shiftX *= 2;
-			shiftY *= 2;
+			shift.x *= 2;
+			shift.y *= 2;
 		}
-		railSprite.bounds.x += shiftX;
-		railSprite.bounds.y += shiftY;
-		sprite.bounds.x += shiftX;
-		sprite.bounds.y += shiftY;
+		railSprite.bounds.x += shift.x;
+		railSprite.bounds.y += shift.y;
+		sprite.bounds.x += shift.x;
+		sprite.bounds.y += shift.y;
 
 		register.accept(RenderUtils.spriteRenderer(railSprite, entity, prototype));
 		register.accept(RenderUtils.spriteRenderer(sprite, entity, prototype));
+	}
+
+	@Override
+	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity, EntityPrototype prototype) {
+		Point2D.Double pos = entity.getPosition();
+		Direction dir = entity.getDirection();
+
+		map.getOrCreateRailNode(dir.right().offset(pos, dir.isCardinal() ? 1.5 : 1.0)).setSignal(dir.back());
 	}
 }

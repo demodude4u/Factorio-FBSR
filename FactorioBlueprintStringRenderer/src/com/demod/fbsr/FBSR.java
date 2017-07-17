@@ -6,8 +6,10 @@ import java.awt.Font;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
+import java.awt.Shape;
 import java.awt.Stroke;
 import java.awt.geom.AffineTransform;
+import java.awt.geom.CubicCurve2D;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
@@ -25,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.Queue;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -46,6 +49,8 @@ import com.demod.factorio.prototype.RecipePrototype;
 import com.demod.factorio.prototype.TilePrototype;
 import com.demod.fbsr.Renderer.Layer;
 import com.demod.fbsr.TaskReporting.Level;
+import com.demod.fbsr.WorldMap.RailEdge;
+import com.demod.fbsr.WorldMap.RailNode;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.Multiset;
@@ -616,6 +621,133 @@ public class FBSR {
 		return version;
 	}
 
+	private static void populateRailBlocking(WorldMap map) {
+		map.getRailNodes().cellSet().stream().filter(c -> c.getValue().hasSignals()).forEach(c -> {
+			RailNode blockingNode = c.getValue();
+			Set<Direction> signals = blockingNode.getSignals();
+			for (Direction signalDir : signals) {
+				Direction blockingDir = signalDir.back();
+				if (signals.contains(blockingDir)) {
+					continue;
+				}
+
+				{
+					Queue<RailEdge> work = new ArrayDeque<>();
+					work.addAll(blockingNode.getOutgoingEdges(blockingDir));
+					while (!work.isEmpty()) {
+						RailEdge edge = work.poll();
+						if (edge.isBlocked()) {
+							continue;
+						}
+						edge.setBlocked(true);
+						RailNode node = map.getRailNode(edge.getEndPos()).get();
+						if (node.hasSignals()) {
+							continue;
+						}
+						if (node.getIncomingEdges(edge.getEndDir()).stream().allMatch(e -> e.isBlocked())) {
+							work.addAll(node.getOutgoingEdges(edge.getEndDir().back()));
+						}
+					}
+				}
+
+				{
+					Queue<RailEdge> work = new ArrayDeque<>();
+					work.addAll(blockingNode.getIncomingEdges(blockingDir.back()));
+					while (!work.isEmpty()) {
+						RailEdge edge = work.poll();
+						if (edge.isBlocked()) {
+							continue;
+						}
+						edge.setBlocked(true);
+						RailNode node = map.getRailNode(edge.getStartPos()).get();
+						if (node.hasSignals()) {
+							continue;
+						}
+						if (node.getOutgoingEdges(edge.getStartDir()).stream().allMatch(e -> e.isBlocked())) {
+							work.addAll(node.getIncomingEdges(edge.getStartDir().back()));
+						}
+					}
+				}
+
+				// for (RailEdge startEdge :
+				// blockingNode.getOutgoingEdges(blockingDir)) {
+				// startEdge.setBlocked(true);
+				// RailNode node = map.getRailNode(startEdge.getEndPos()).get();
+				// Direction dir = startEdge.getEndDir();
+				// Collection<RailEdge> edges;
+				// while (!node.hasSignals() && ((edges =
+				// node.getOutgoingEdges(dir)).size() == 1)) {
+				// RailEdge edge = edges.iterator().next();
+				// if (edge.isBlocked()) {
+				// break;
+				// }
+				// edge.setBlocked(true);
+				// node = map.getRailNode(edge.getEndPos()).get();
+				// dir = edge.getEndDir();
+				// }
+				// }
+				//
+				// for (RailEdge startEdge :
+				// blockingNode.getIncomingEdges(blockingDir)) {
+				// startEdge.setBlocked(true);
+				// RailNode node = map.getRailNode(startEdge.getEndPos()).get();
+				// Direction dir = startEdge.getEndDir();
+				// Collection<RailEdge> edges;
+				// while (!node.hasSignals() && ((edges =
+				// node.getIncomingEdges(dir)).size() == 1)) {
+				// RailEdge edge = edges.iterator().next();
+				// if (edge.isBlocked()) {
+				// break;
+				// }
+				// edge.setBlocked(true);
+				// node = map.getRailNode(edge.getEndPos()).get();
+				// dir = edge.getEndDir();
+				// }
+				// }
+			}
+		});
+	}
+
+	private static void populateRailStationLogistics(WorldMap map) {
+		map.getRailNodes().cellSet().stream().filter(c -> c.getValue().getStation().isPresent()).forEach(c -> {
+			RailNode stationNode = c.getValue();
+			Direction stationDir = stationNode.getStation().get();
+
+			{
+				Queue<RailEdge> work = new ArrayDeque<>();
+				work.addAll(stationNode.getOutgoingEdges(stationDir));
+				work.addAll(stationNode.getOutgoingEdges(stationDir.back()));
+				while (!work.isEmpty()) {
+					RailEdge edge = work.poll();
+					if (edge.isBlocked() || edge.isOutput()) {
+						continue;
+					}
+					edge.setOutput(true);
+					RailNode node = map.getRailNode(edge.getEndPos()).get();
+					if (node.getIncomingEdges(edge.getEndDir()).stream().allMatch(e -> e.isOutput())) {
+						work.addAll(node.getOutgoingEdges(edge.getEndDir().back()));
+					}
+				}
+			}
+
+			{
+				Queue<RailEdge> work = new ArrayDeque<>();
+				work.addAll(stationNode.getIncomingEdges(stationDir.back()));
+				while (!work.isEmpty()) {
+					RailEdge edge = work.poll();
+					if (edge.isBlocked() || edge.isInput()) {
+						continue;
+					}
+					edge.setInput(true);
+					RailNode node = map.getRailNode(edge.getStartPos()).get();
+					if (node.getOutgoingEdges(edge.getStartDir()).stream().allMatch(e -> e.isInput())) {
+						work.addAll(node.getIncomingEdges(edge.getStartDir().back()));
+					}
+				}
+			}
+		});
+	}
+
 	private static void populateReverseLogistics(WorldMap map) {
 		Table<Integer, Integer, LogisticGridCell> logisticGrid = map.getLogisticGrid();
 		logisticGrid.cellSet().forEach(c -> {
@@ -768,8 +900,10 @@ public class FBSR {
 		});
 
 		populateReverseLogistics(map);
-
 		populateTransitLogistics(map);
+
+		populateRailBlocking(map);
+		populateRailStationLogistics(map);
 
 		List<Renderer> renderers = new ArrayList<>();
 
@@ -805,6 +939,10 @@ public class FBSR {
 		});
 
 		showLogisticGrid(renderers::add, table, map);
+
+		if (map.getDebug().rail) {
+			showRailLogistics(renderers::add, table, map);
+		}
 
 		ArrayListMultimap<Direction, PanelRenderer> borderPanels = ArrayListMultimap.create();
 		blueprint.getLabel().ifPresent(label -> {
@@ -905,5 +1043,124 @@ public class FBSR {
 				});
 			}
 		});
+	}
+
+	private static void showRailLogistics(Consumer<Renderer> register, DataTable table, WorldMap map) {
+		for (Pair<RailEdge, RailEdge> pair : map.getRailEdges()) {
+			boolean input = pair.getKey().isInput() || pair.getValue().isInput();
+			boolean output = pair.getKey().isOutput() || pair.getValue().isOutput();
+
+			if (input || output) {
+				RailEdge edge = pair.getKey();
+				Point2D.Double p1 = edge.getStartPos();
+				Direction d1 = edge.getStartDir();
+				Point2D.Double p2 = edge.getEndPos();
+				Direction d2 = edge.getEndDir();
+
+				register.accept(new Renderer(Layer.LOGISTICS_RAIL_IO, edge.getStartPos()) {
+					@Override
+					public void render(Graphics2D g) throws Exception {
+						Shape path;
+						if (edge.isCurved()) {
+							double control = 1.7;
+							Point2D.Double cc1 = d1.offset(p1, control);
+							Point2D.Double cc2 = d2.offset(p2, control);
+							path = new CubicCurve2D.Double(p1.x, p1.y, cc1.x, cc1.y, cc2.x, cc2.y, p2.x, p2.y);
+						} else {
+							path = new Line2D.Double(p1, p2);
+						}
+
+						Color color = (input && output) ? Color.yellow : input ? Color.green : Color.red;
+
+						Stroke ps = g.getStroke();
+						g.setStroke(new BasicStroke(32 / 32f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_ROUND));
+						g.setColor(RenderUtils.withAlpha(color, 32));
+						g.draw(path);
+						g.setStroke(ps);
+					}
+				});
+			}
+
+			// for (RailEdge edge : ImmutableList.of(pair.getKey(),
+			// pair.getValue())) {
+			// if (edge.isBlocked()) {
+			// continue;
+			// }
+			//
+			// Point2D.Double p1 = edge.getStartPos();
+			// Direction d1 = edge.getStartDir();
+			// Point2D.Double p2 = edge.getEndPos();
+			// Direction d2 = edge.getEndDir();
+			//
+			// register.accept(new Renderer(Layer.LOGISTICS_RAIL_IO,
+			// edge.getStartPos()) {
+			// @Override
+			// public void render(Graphics2D g) throws Exception {
+			// Stroke ps = g.getStroke();
+			// g.setStroke(new BasicStroke(2 / 32f, BasicStroke.CAP_BUTT,
+			// BasicStroke.JOIN_ROUND));
+			// g.setColor(RenderUtils.withAlpha(Color.green, 92));
+			// g.draw(new Line2D.Double(d1.right().offset(p1),
+			// d2.left().offset(p2)));
+			// g.setStroke(ps);
+			// }
+			// });
+			// }
+		}
+
+		// map.getRailNodes().cellSet().forEach(c -> {
+		// Point2D.Double pos = new Point2D.Double(c.getRowKey() / 2.0,
+		// c.getColumnKey() / 2.0);
+		// RailNode node = c.getValue();
+		//
+		// register.accept(new Renderer(Layer.DEBUG_RA1, pos) {
+		// @Override
+		// public void render(Graphics2D g) throws Exception {
+		// Stroke ps = g.getStroke();
+		// g.setStroke(new BasicStroke(1 / 32f, BasicStroke.CAP_BUTT,
+		// BasicStroke.JOIN_ROUND));
+		//
+		// g.setColor(Color.cyan);
+		// g.setFont(new Font("Courier New", Font.PLAIN, 1));
+		// for (Direction dir : Direction.values()) {
+		// Collection<RailEdge> edges = node.getIncomingEdges(dir);
+		// if (!edges.isEmpty()) {
+		// Point2D.Double p1 = dir.right().offset(pos, 0.25);
+		// Point2D.Double p2 = dir.offset(p1, 0.5);
+		// g.draw(new Line2D.Double(p1, p2));
+		// g.drawString("" + edges.size(), (float) p2.x - 0.1f, (float) p2.y -
+		// 0.2f);
+		// }
+		// }
+		//
+		// g.setStroke(ps);
+		// }
+		// });
+		//
+		// register.accept(new Renderer(Layer.DEBUG_RA2, pos) {
+		// @Override
+		// public void render(Graphics2D g) throws Exception {
+		// Stroke ps = g.getStroke();
+		// g.setStroke(new BasicStroke(1 / 32f, BasicStroke.CAP_BUTT,
+		// BasicStroke.JOIN_ROUND));
+		//
+		// g.setColor(Color.magenta);
+		// g.setFont(new Font("Courier New", Font.PLAIN, 1));
+		// for (Direction dir : Direction.values()) {
+		// Collection<RailEdge> edges = node.getOutgoingEdges(dir);
+		// if (!edges.isEmpty()) {
+		// Point2D.Double p1 = dir.left().offset(pos, 0.25);
+		// Point2D.Double p2 = dir.offset(p1, 0.5);
+		// g.draw(new Line2D.Double(p1, p2));
+		// g.drawString("" + edges.size(), (float) p2.x - 0.1f, (float) p2.y -
+		// 0.2f);
+		// }
+		// }
+		//
+		// g.setStroke(ps);
+		// }
+		// });
+		//
+		// });
 	}
 }
