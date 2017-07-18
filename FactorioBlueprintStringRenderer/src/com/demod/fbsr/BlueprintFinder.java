@@ -83,6 +83,9 @@ public final class BlueprintFinder {
 		FACTORIOPRINTS("factorioprints\\.com/view/(?<id>[-_A-Za-z0-9]+)",
 				m -> "https://facorio-blueprints.firebaseio.com/blueprints/" + m.group("id") + ".json"), //
 
+		GOOGLEDOCS("docs\\.google\\.com/document/d/(?<id>[-_A-Za-z0-9]+)",
+				m -> "https://docs.google.com/document/d/" + m.group("id") + "/export?format=txt"), //
+
 		TEXT_URLS("\\b(?<url>(?:https?|ftp)://[-a-zA-Z0-9+&@#/%?=~_|!:,.;]*[-a-zA-Z0-9+&@#/%=~_|])", (m, l) -> {
 			URL url = new URL(m.group("url"));
 			URLConnection connection = WebUtils.openConnectionWithFakeUserAgent(url);
