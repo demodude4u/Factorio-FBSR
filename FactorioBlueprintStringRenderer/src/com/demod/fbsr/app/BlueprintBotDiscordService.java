@@ -23,6 +23,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 import org.apache.commons.text.similarity.LevenshteinDistance;
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.luaj.vm2.LuaValue;
 
@@ -573,88 +574,83 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 	}
 
 	@Override
-	protected void startUp() {
-		try {
-			configJson = Config.get().getJSONObject("discord");
+	protected void startUp() throws JSONException, IOException {
+		configJson = Config.get().getJSONObject("discord");
 
-			DataTable table = FactorioData.getTable();
-			System.out.println("Factorio " + FBSR.getVersion() + " Data Loaded.");
+		DataTable table = FactorioData.getTable();
+		System.out.println("Factorio " + FBSR.getVersion() + " Data Loaded.");
 
-			bot = DCBA.builder()//
-					.setInfo("Blueprint Bot")//
-					.withSupport(
-							"Find Demod and complain to him!\nYou can find him over in the [Factorio Discord.](https://discord.gg/aUEuvK2)")//
-					.withTechnology("[FBSR](https://github.com/demodude4u/Factorio-FBSR)",
-							"Factorio Blueprint String Renderer")//
-					.withTechnology("[FactorioDataWrapper](https://github.com/demodude4u/Java-Factorio-Data-Wrapper)",
-							"Factorio Data Scraper")//
-					.withCredits("Attribution", "[Factorio](https://www.factorio.com/) - Made by Wube Software")//
-					.withInvite(new Permission[] { //
-							Permission.MESSAGE_READ, //
-							Permission.MESSAGE_WRITE, //
-							Permission.MESSAGE_ATTACH_FILES, //
-							Permission.MESSAGE_EXT_EMOJI, //
-							Permission.MESSAGE_EMBED_LINKS, //
-							Permission.MESSAGE_HISTORY, //
-							Permission.MESSAGE_ADD_REACTION,//
-					})//
-						//
-					.addCommand("blueprint", event -> handleBlueprintCommand(event))//
-					.withHelp("Renders an image of the blueprint string provided. Longer blueprints "
-							+ "can be attached as files or linked with pastebin, hastebin, gitlab, or gist URLs.")//
-					.addCommand("blueprintRaw", event -> handleBlueprintRawCommand(event))//
-					.withHelp("Provides a dump of the json data in the specified blueprint string.")//
-					.addCommand("blueprintUpgradeBelts", event -> handleBlueprintUpgradeBeltsCommand(event))//
-					.withHelp("Converts all yellow belts into red belts, and all red belts into blue belts.")//
+		bot = DCBA.builder()//
+				.setInfo("Blueprint Bot")//
+				.withSupport(
+						"Find Demod and complain to him!\nYou can find him over in the [Factorio Discord.](https://discord.gg/aUEuvK2)")//
+				.withTechnology("[FBSR](https://github.com/demodude4u/Factorio-FBSR)",
+						"Factorio Blueprint String Renderer")//
+				.withTechnology("[FactorioDataWrapper](https://github.com/demodude4u/Java-Factorio-Data-Wrapper)",
+						"Factorio Data Scraper")//
+				.withCredits("Attribution", "[Factorio](https://www.factorio.com/) - Made by Wube Software")//
+				.withInvite(new Permission[] { //
+						Permission.MESSAGE_READ, //
+						Permission.MESSAGE_WRITE, //
+						Permission.MESSAGE_ATTACH_FILES, //
+						Permission.MESSAGE_EXT_EMOJI, //
+						Permission.MESSAGE_EMBED_LINKS, //
+						Permission.MESSAGE_HISTORY, //
+						Permission.MESSAGE_ADD_REACTION,//
+				})//
 					//
-					.addCommand("prototypeEntity", createPrototypeCommandHandler("entity", table.getEntities()))//
-					.withHelp("Provides a dump of the lua data for the specified entity prototype.")//
-					.addCommand("prototypeRecipe", createPrototypeCommandHandler("recipe", table.getRecipes()))//
-					.withHelp("Provides a dump of the lua data for the specified recipe prototype.")//
-					.addCommand("prototypeFluid", createPrototypeCommandHandler("fluid", table.getFluids()))//
-					.withHelp("Provides a dump of the lua data for the specified fluid prototype.")//
-					.addCommand("prototypeItem", createPrototypeCommandHandler("item", table.getItems()))//
-					.withHelp("Provides a dump of the lua data for the specified item prototype.")//
-					.addCommand("prototypeTechnology",
-							createPrototypeCommandHandler("technology", table.getTechnologies()))//
-					.withHelp("Provides a dump of the lua data for the specified technology prototype.")//
-					.addCommand("prototypeEquipment", createPrototypeCommandHandler("equipment", table.getEquipments()))//
-					.withHelp("Provides a dump of the lua data for the specified equipment prototype.")//
-					.addCommand("prototypeTile", createPrototypeCommandHandler("tile", table.getTiles()))//
-					.withHelp("Provides a dump of the lua data for the specified tile prototype.")//
-					//
-					.addCommand("dataRaw", createDataRawCommandHandler(table::getRaw))//
-					.withHelp("Provides a dump of lua from `data.raw` for the specified key.")//
-					//
-					.addCommand("redditCheckThings", (event, args) -> handleRedditCheckThingsCommand(event, args))
-					//
-					.create();
+				.addCommand("blueprint", event -> handleBlueprintCommand(event))//
+				.withHelp("Renders an image of the blueprint string provided. Longer blueprints "
+						+ "can be attached as files or linked with pastebin, hastebin, gitlab, or gist URLs.")//
+				.addCommand("blueprintRaw", event -> handleBlueprintRawCommand(event))//
+				.withHelp("Provides a dump of the json data in the specified blueprint string.")//
+				.addCommand("blueprintUpgradeBelts", event -> handleBlueprintUpgradeBeltsCommand(event))//
+				.withHelp("Converts all yellow belts into red belts, and all red belts into blue belts.")//
+				//
+				.addCommand("prototypeEntity", createPrototypeCommandHandler("entity", table.getEntities()))//
+				.withHelp("Provides a dump of the lua data for the specified entity prototype.")//
+				.addCommand("prototypeRecipe", createPrototypeCommandHandler("recipe", table.getRecipes()))//
+				.withHelp("Provides a dump of the lua data for the specified recipe prototype.")//
+				.addCommand("prototypeFluid", createPrototypeCommandHandler("fluid", table.getFluids()))//
+				.withHelp("Provides a dump of the lua data for the specified fluid prototype.")//
+				.addCommand("prototypeItem", createPrototypeCommandHandler("item", table.getItems()))//
+				.withHelp("Provides a dump of the lua data for the specified item prototype.")//
+				.addCommand("prototypeTechnology", createPrototypeCommandHandler("technology", table.getTechnologies()))//
+				.withHelp("Provides a dump of the lua data for the specified technology prototype.")//
+				.addCommand("prototypeEquipment", createPrototypeCommandHandler("equipment", table.getEquipments()))//
+				.withHelp("Provides a dump of the lua data for the specified equipment prototype.")//
+				.addCommand("prototypeTile", createPrototypeCommandHandler("tile", table.getTiles()))//
+				.withHelp("Provides a dump of the lua data for the specified tile prototype.")//
+				//
+				.addCommand("dataRaw", createDataRawCommandHandler(table::getRaw))//
+				.withHelp("Provides a dump of lua from `data.raw` for the specified key.")//
+				//
+				.addCommand("redditCheckThings", (event, args) -> handleRedditCheckThingsCommand(event, args))
+				//
+				.create();
 
-			bot.startAsync().awaitRunning();
+		bot.startAsync().awaitRunning();
 
-			reportingUserID = configJson.getString("reporting_user_id");
-			reportingChannelID = configJson.getString("reporting_channel_id");
-			hostingChannelID = configJson.getString("hosting_channel_id");
+		reportingUserID = configJson.getString("reporting_user_id");
+		reportingChannelID = configJson.getString("reporting_channel_id");
+		hostingChannelID = configJson.getString("hosting_channel_id");
 
-			ServiceFinder.addService(this);
-			ServiceFinder.addService(WatchdogReporter.class, new WatchdogReporter() {
-				@Override
-				public void notifyInactive(String label) {
-					TaskReporting reporting = new TaskReporting();
-					reporting.addWarning(label + " has gone inactive!");
-					sendReport("Watchdog", null, reporting);
-				}
+		ServiceFinder.addService(this);
+		ServiceFinder.addService(WatchdogReporter.class, new WatchdogReporter() {
+			@Override
+			public void notifyInactive(String label) {
+				TaskReporting reporting = new TaskReporting();
+				reporting.addWarning(label + " has gone inactive!");
+				sendReport("Watchdog", null, reporting);
+			}
 
-				@Override
-				public void notifyReactive(String label) {
-					TaskReporting reporting = new TaskReporting();
-					reporting.addInfo(label + " is now active again!");
-					sendReport("Watchdog", null, reporting);
-				}
-			});
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+			@Override
+			public void notifyReactive(String label) {
+				TaskReporting reporting = new TaskReporting();
+				reporting.addInfo(label + " is now active again!");
+				sendReport("Watchdog", null, reporting);
+			}
+		});
 	}
 
 	public URL useDiscordForFileHosting(String fileName, byte[] fileData) throws IOException {

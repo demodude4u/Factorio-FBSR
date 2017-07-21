@@ -24,7 +24,6 @@ import com.demod.fbsr.BlueprintStringData;
 import com.demod.fbsr.FBSR;
 import com.demod.fbsr.TaskReporting;
 import com.demod.fbsr.WebUtils;
-import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.AbstractScheduledService;
 import com.google.common.util.concurrent.Uninterruptibles;
 
@@ -462,32 +461,26 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 
 	@Override
 	protected void startUp() {
-		try {
-			reddit = new RedditClient(UserAgent.of("server", "com.demod.fbsr", "0.0.1", "demodude4u"));
-			account = new AccountManager(reddit);
+		reddit = new RedditClient(UserAgent.of("server", "com.demod.fbsr", "0.0.1", "demodude4u"));
+		account = new AccountManager(reddit);
 
-			configJson = Config.get().getJSONObject("reddit");
-			subreddit = configJson.getString("subreddit");
-			ageLimitMillis = configJson.getInt("age_limit_hours") * 60 * 60 * 1000;
-			processMessages = configJson.getBoolean("process_messages");
-			summonKeyword = configJson.getString("summon_keyword").toLowerCase();
+		configJson = Config.get().getJSONObject("reddit");
+		subreddit = configJson.getString("subreddit");
+		ageLimitMillis = configJson.getInt("age_limit_hours") * 60 * 60 * 1000;
+		processMessages = configJson.getBoolean("process_messages");
+		summonKeyword = configJson.getString("summon_keyword").toLowerCase();
 
-			JSONObject redditCredentialsJson = configJson.getJSONObject("credentials");
-			credentials = Credentials.script( //
-					redditCredentialsJson.getString("username"), //
-					redditCredentialsJson.getString("password"), //
-					redditCredentialsJson.getString("client_id"), //
-					redditCredentialsJson.getString("client_secret") //
-			);
+		JSONObject redditCredentialsJson = configJson.getJSONObject("credentials");
+		credentials = Credentials.script( //
+				redditCredentialsJson.getString("username"), //
+				redditCredentialsJson.getString("password"), //
+				redditCredentialsJson.getString("client_id"), //
+				redditCredentialsJson.getString("client_secret") //
+		);
 
-			myUserName = redditCredentialsJson.getString("username");
-			myUserNameMention = ("u/" + myUserName).toLowerCase();
+		myUserName = redditCredentialsJson.getString("username");
+		myUserNameMention = ("u/" + myUserName).toLowerCase();
 
-			ServiceFinder.addService(this);
-		} catch (Exception e) {
-			e.printStackTrace();
-			Throwables.throwIfUnchecked(e);
-			throw new RuntimeException(e);
-		}
+		ServiceFinder.addService(this);
 	}
 }
