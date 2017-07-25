@@ -559,13 +559,6 @@ public class FBSR {
 			}
 			addToItemAmount(ret, itemName, 1);
 		}
-		for (String key : map.getWires().keySet()) {
-			if (key.contains("red")) {
-				addToItemAmount(ret, "red-wire", 1);
-			} else if (key.contains("green")) {
-				addToItemAmount(ret, "green-wire", 1);
-			}
-		}
 		return ret;
 	}
 
