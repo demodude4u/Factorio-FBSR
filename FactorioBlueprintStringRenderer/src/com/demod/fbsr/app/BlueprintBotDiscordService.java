@@ -385,7 +385,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			try {
 				String responseContent = totalItems.entrySet().stream()
 						.sorted((e1, e2) -> e1.getKey().compareTo(e2.getKey()))
-						.map(e -> e.getKey() + ": " + RenderUtils.fmtDouble(e.getValue()))
+						.map(e -> table.getWikiItemName(e.getKey()) + ": " + RenderUtils.fmtDouble(e.getValue()))
 						.collect(Collectors.joining("\n"));
 				String responseContentUrl = WebUtils.uploadToHostingService("items.txt", responseContent.getBytes())
 						.toString();
