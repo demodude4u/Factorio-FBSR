@@ -11,6 +11,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -349,8 +350,80 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		sendReport(event, reporting);
 	}
 
-	private void handleBlueprintRawCommand(MessageReceivedEvent event) {
+	private void handleBlueprintItemsCommand(MessageReceivedEvent event) {
+		DataTable table;
+		try {
+			table = FactorioData.getTable();
+		} catch (JSONException | IOException e1) {
+			throw new InternalError(e1);
+		}
+
 		String content = event.getMessage().getStrippedContent();
+		TaskReporting reporting = new TaskReporting();
+		reporting.setContext(content);
+
+		List<BlueprintStringData> blueprintStringDatas;
+		if (!event.getMessage().getAttachments().isEmpty()) {
+			String url = event.getMessage().getAttachments().get(0).getUrl();
+			reporting.addLink(url);
+			blueprintStringDatas = BlueprintFinder.search(url, reporting);
+		} else {
+			blueprintStringDatas = BlueprintFinder.search(content, reporting);
+		}
+
+		Map<String, Double> totalItems = new LinkedHashMap<>();
+		for (BlueprintStringData blueprintStringData : blueprintStringDatas) {
+			for (Blueprint blueprint : blueprintStringData.getBlueprints()) {
+				Map<String, Double> items = FBSR.generateTotalItems(table, blueprint, reporting);
+				items.forEach((k, v) -> {
+					totalItems.compute(k, ($, old) -> old == null ? v : old + v);
+				});
+			}
+		}
+
+		if (!totalItems.isEmpty()) {
+			try {
+				String responseContent = totalItems.entrySet().stream()
+						.sorted((e1, e2) -> e1.getKey().compareTo(e2.getKey()))
+						.map(e -> e.getKey() + ": " + RenderUtils.fmtDouble(e.getValue()))
+						.collect(Collectors.joining("\n"));
+				String responseContentUrl = WebUtils.uploadToHostingService("items.txt", responseContent.getBytes())
+						.toString();
+				reporting.addLink(responseContentUrl);
+
+				String response = "```ldif\n" + responseContent + "```";
+				if (response.length() < 2000) {
+					event.getChannel().sendMessage(response).complete();
+				} else {
+					reporting.addInfo(responseContentUrl);
+				}
+			} catch (IOException e) {
+				reporting.addException(e);
+			}
+		} else {
+			reporting.addInfo("I couldn't find any items!");
+		}
+
+		if (reporting.getImages().isEmpty() && reporting.getDownloads().isEmpty() && reporting.getWarnings().isEmpty()
+				&& reporting.getExceptions().isEmpty() && reporting.getInfo().isEmpty()
+				&& reporting.getLinks().isEmpty()) {
+			if (content.split("\\s").length == 1) {
+				reporting.addInfo("Give me blueprint strings and I'll count the items for you!");
+				reporting.addInfo("Include a link to a text file to get started.");
+			} else {
+				reporting.addInfo("I can't seem to find any blueprints. :frowning:");
+			}
+		}
+
+		if (!reporting.getInfo().isEmpty()) {
+			event.getChannel().sendMessage(reporting.getInfo().stream().collect(Collectors.joining("\n"))).complete();
+		}
+
+		sendReport(event, reporting);
+	}
+
+	private void handleBlueprintJsonCommand(MessageReceivedEvent event) {
+		String content = event.getMessage().getContent();
 		TaskReporting reporting = new TaskReporting();
 		reporting.setContext(content);
 		List<String> results = BlueprintFinder.searchRaw(content, reporting);
@@ -602,10 +675,12 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				.addCommand("blueprint", event -> handleBlueprintCommand(event))//
 				.withHelp("Renders an image of the blueprint string provided. Longer blueprints "
 						+ "can be attached as files or linked with pastebin, hastebin, gitlab, or gist URLs.")//
-				.addCommand("blueprintRaw", event -> handleBlueprintRawCommand(event))//
+				.addCommand("blueprintJSON", event -> handleBlueprintJsonCommand(event))//
 				.withHelp("Provides a dump of the json data in the specified blueprint string.")//
 				.addCommand("blueprintUpgradeBelts", event -> handleBlueprintUpgradeBeltsCommand(event))//
 				.withHelp("Converts all yellow belts into red belts, and all red belts into blue belts.")//
+				.addCommand("blueprintItems", event -> handleBlueprintItemsCommand(event))//
+				.withHelp("Prints out all of the items needed by the blueprint.")//
 				//
 				.addCommand("prototypeEntity", createPrototypeCommandHandler("entity", table.getEntities()))//
 				.withHelp("Provides a dump of the lua data for the specified entity prototype.")//

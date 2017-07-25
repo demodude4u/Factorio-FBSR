@@ -517,7 +517,7 @@ public class FBSR {
 		};
 	}
 
-	private static Map<String, Double> generateTotalItems(DataTable table, WorldMap map, Blueprint blueprint,
+	public static Map<String, Double> generateTotalItems(DataTable table, Blueprint blueprint,
 			TaskReporting reporting) {
 		Map<String, Double> ret = new LinkedHashMap<>();
 		for (BlueprintEntity entity : blueprint.getEntities()) {
@@ -556,6 +556,9 @@ public class FBSR {
 			String itemName = tile.getName();
 			if (itemName.startsWith("hazard-concrete")) {
 				itemName = "hazard-concrete";
+			}
+			if (itemName.equals("stone-path")) {
+				itemName = "stone-brick";
 			}
 			if (!table.getItem(itemName).isPresent()) {
 				System.err.println("MISSING TILE ITEM: " + itemName);
@@ -946,7 +949,7 @@ public class FBSR {
 		});
 		borderPanels.put(Direction.SOUTH, createFooterPanel());
 
-		Map<String, Double> totalItems = generateTotalItems(table, map, blueprint, reporting);
+		Map<String, Double> totalItems = generateTotalItems(table, blueprint, reporting);
 		borderPanels.put(Direction.EAST, createItemListPanel(table, "TOTAL", totalItems));
 		borderPanels.put(Direction.EAST,
 				createItemListPanel(table, "RAW", generateTotalRawItems(table, table.getRecipes(), totalItems)));
