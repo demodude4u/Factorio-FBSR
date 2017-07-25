@@ -554,7 +554,11 @@ public class FBSR {
 		}
 		for (BlueprintTile tile : blueprint.getTiles()) {
 			String itemName = tile.getName();
+			if (itemName.startsWith("hazard-concrete")) {
+				itemName = "hazard-concrete";
+			}
 			if (!table.getItem(itemName).isPresent()) {
+				System.err.println("MISSING TILE ITEM: " + itemName);
 				continue;
 			}
 			addToItemAmount(ret, itemName, 1);
