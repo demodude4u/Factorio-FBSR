@@ -3,6 +3,7 @@ package com.demod.fbsr.entity;
 import java.awt.geom.Point2D;
 import java.util.function.Consumer;
 
+import org.json.JSONObject;
 import org.luaj.vm2.LuaValue;
 
 import com.demod.factorio.DataTable;
@@ -54,15 +55,16 @@ public class TransportBeltRendering extends EntityRendererFactory {
 
 		register.accept(RenderUtils.spriteRenderer(sprite, entity, prototype));
 
-		if (entity.json().has("connections")) {
+		JSONObject connectionsJson = entity.json().optJSONObject("connections");
+		if (connectionsJson != null && connectionsJson.length() > 0) {
 			String connectorFrameMapping = transportBeltConnectorFrameMapping[entity.getDirection().cardinal()][bend
 					.ordinal()];
 
 			LuaValue connectorFrameSpritesLua = prototype.lua().get("connector_frame_sprites");
-			Sprite connectorShadow = RenderUtils.getSpriteFromAnimation(
-					connectorFrameSpritesLua.get("frame_shadow_" + connectorFrameMapping));
-			Sprite connectorSprite = RenderUtils.getSpriteFromAnimation(
-					connectorFrameSpritesLua.get("frame_main_" + connectorFrameMapping));
+			Sprite connectorShadow = RenderUtils
+					.getSpriteFromAnimation(connectorFrameSpritesLua.get("frame_shadow_" + connectorFrameMapping));
+			Sprite connectorSprite = RenderUtils
+					.getSpriteFromAnimation(connectorFrameSpritesLua.get("frame_main_" + connectorFrameMapping));
 
 			register.accept(RenderUtils.spriteRenderer(connectorShadow, entity, prototype));
 			register.accept(RenderUtils.spriteRenderer(connectorSprite, entity, prototype));
