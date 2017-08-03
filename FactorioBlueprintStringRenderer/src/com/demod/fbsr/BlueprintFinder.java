@@ -61,9 +61,9 @@ public final class BlueprintFinder {
 	}
 
 	private enum Providers implements Provider {
-		PASTEBIN("pastebin\\.com/(?<id>[A-Za-z0-9]+)", m -> "https://pastebin.com/raw/" + m.group("id")), //
+		PASTEBIN("pastebin\\.com/(?<id>[A-Za-z0-9]{4,})", m -> "https://pastebin.com/raw/" + m.group("id")), //
 
-		HASTEBIN("hastebin\\.com/(?<id>[A-Za-z0-9]+)", m -> "https://hastebin.com/raw/" + m.group("id")), //
+		HASTEBIN("hastebin\\.com/(?<id>[A-Za-z0-9]{4,})", m -> "https://hastebin.com/raw/" + m.group("id")), //
 
 		GITLAB("gitlab\\.com/snippets/(?<id>[A-Za-z0-9]+)",
 				m -> "https://gitlab.com/snippets/" + m.group("id") + "/raw"), //
