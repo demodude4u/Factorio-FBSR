@@ -86,7 +86,6 @@ public class InserterRendering extends EntityRendererFactory {
 
 		if (entity.json().has("pickup_position")) {
 			pickupPos = Utils.parsePoint2D(entity.json().getJSONObject("pickup_position"));
-			modded = true;
 			inPos = new Point2D.Double(pos.x + pickupPos.x, pos.y + pickupPos.y);
 
 		} else if (modded) {
@@ -100,7 +99,6 @@ public class InserterRendering extends EntityRendererFactory {
 
 		if (entity.json().has("drop_position")) {
 			insertPos = Utils.parsePoint2D(entity.json().getJSONObject("drop_position"));
-			modded = true;
 			outPos = new Point2D.Double(pos.x + insertPos.x, pos.y + insertPos.y);
 
 		} else if (modded) {
@@ -111,11 +109,6 @@ public class InserterRendering extends EntityRendererFactory {
 			insertPos = Utils.parsePoint2D(prototype.lua().get("insert_position"));
 			outPos = dir.offset(pos, -armStretch);
 		}
-
-		// XXX Thanks Java...
-		final Point2D.Double pickupPos_ = pickupPos;
-		final Point2D.Double insertPos_ = insertPos;
-		final boolean modded_ = modded;
 
 		register.accept(RenderUtils.spriteRenderer(sprite, entity, prototype));
 		register.accept(new Renderer(Layer.ENTITY2, sprite.bounds) {
@@ -146,11 +139,11 @@ public class InserterRendering extends EntityRendererFactory {
 				Color shadow = Color.darkGray;
 				double shadowShift = 0.07;
 
-				double pickupRotate = Math.atan2(pickupPos_.y, pickupPos_.x);
+				double pickupRotate = Math.atan2(pickupPos.y, pickupPos.x);
 
 				g.setTransform(pat);
 				g.translate(inPos.x, inPos.y);
-				if (modded_) {
+				if (modded) {
 					g.translate(-Math.cos(pickupRotate) * 0.2, -Math.sin(pickupRotate) * 0.2);
 					g.rotate(pickupRotate + Math.PI / 2.0);
 				} else {
@@ -160,10 +153,8 @@ public class InserterRendering extends EntityRendererFactory {
 				g.setColor(shadow);
 				g.fill(grabMarkerShape);
 
-				if (modded_) {
+				if (modded) {
 					g.setTransform(pat);
-					// RenderUtils.createWireRenderer(pos, inPos,
-					// RenderUtils.withAlpha(color, 128)).render(g);
 					g.setColor(RenderUtils.withAlpha(color, 64));
 					g.setStroke(new BasicStroke(0.1f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
 					g.draw(new Line2D.Double(pos, inPos));
@@ -171,7 +162,7 @@ public class InserterRendering extends EntityRendererFactory {
 
 				g.setTransform(pat);
 				g.translate(inPos.x, inPos.y);
-				if (modded_) {
+				if (modded) {
 					g.translate(-Math.cos(pickupRotate) * 0.2, -Math.sin(pickupRotate) * 0.2);
 					g.rotate(pickupRotate + Math.PI / 2.0);
 				} else {
@@ -192,11 +183,11 @@ public class InserterRendering extends EntityRendererFactory {
 				Color shadow = Color.darkGray;
 				double shadowShift = 0.07;
 
-				double insertRotate = Math.atan2(insertPos_.y, insertPos_.x);
+				double insertRotate = Math.atan2(insertPos.y, insertPos.x);
 
 				g.setTransform(pat);
 				g.translate(outPos.x, outPos.y);
-				if (modded_) {
+				if (modded) {
 					g.translate(Math.cos(insertRotate) * 0.2, Math.sin(insertRotate) * 0.2);
 					g.rotate(insertRotate + Math.PI / 2.0);
 				} else {
@@ -206,10 +197,8 @@ public class InserterRendering extends EntityRendererFactory {
 				g.setColor(shadow);
 				g.fill(placeMarkerShape);
 
-				if (modded_) {
+				if (modded) {
 					g.setTransform(pat);
-					// RenderUtils.createWireRenderer(pos, outPos,
-					// RenderUtils.withAlpha(color, 128)).render(g);
 					g.setColor(RenderUtils.withAlpha(color, 64));
 					g.setStroke(new BasicStroke(0.1f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
 					g.draw(new Line2D.Double(pos, outPos));
@@ -217,7 +206,7 @@ public class InserterRendering extends EntityRendererFactory {
 
 				g.setTransform(pat);
 				g.translate(outPos.x, outPos.y);
-				if (modded_) {
+				if (modded) {
 					g.translate(Math.cos(insertRotate) * 0.2, Math.sin(insertRotate) * 0.2);
 					g.rotate(insertRotate + Math.PI / 2.0);
 				} else {
