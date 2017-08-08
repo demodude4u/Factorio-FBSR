@@ -6,6 +6,8 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -158,7 +160,29 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 		List<Pair<Optional<String>, String>> images = reporting.getImages();
 		if (images.size() > 1) {
 			int id = 1;
-			lines.add("Blueprint Images:");
+			List<Pair<URL, String>> links = new ArrayList<>();
+			for (Pair<Optional<String>, String> pair : images) {
+				Optional<String> label = pair.getKey();
+				String url = pair.getValue();
+				try {
+					links.add(new Pair<>(new URL(url), label.orElse(null)));
+				} catch (MalformedURLException e) {
+					reporting.addException(e);
+				}
+			}
+			Optional<URL> albumUrl;
+			try {
+				albumUrl = Optional
+						.of(WebUtils.uploadToBundly("Blueprint Images", "Renderings provided by Blueprint Bot", links));
+			} catch (IOException e) {
+				reporting.addException(e);
+				albumUrl = Optional.empty();
+			}
+			if (albumUrl.isPresent()) {
+				lines.add("Blueprint Images ([View As Album](" + albumUrl.get() + ")):\n");
+			} else {
+				lines.add("Blueprint Images:");
+			}
 			for (Pair<Optional<String>, String> pair : images) {
 				Optional<String> label = pair.getKey();
 				String url = pair.getValue();
