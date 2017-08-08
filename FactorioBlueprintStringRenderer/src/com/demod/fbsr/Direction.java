@@ -75,6 +75,10 @@ public enum Direction {
 		return new Point2D.Double(pos.x + distance * dx, pos.y + distance * dy);
 	}
 
+	public Point2D.Double offset(Point2D.Double pos, Point2D.Double offset) {
+		return offset(right().offset(pos, offset.y), offset.x);
+	}
+
 	public Rectangle2D.Double offset(Rectangle2D.Double rect, double distance) {
 		return new Rectangle2D.Double(rect.x + distance * dx, rect.y + distance * dy, rect.width, rect.height);
 	}

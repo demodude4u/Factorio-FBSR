@@ -1,7 +1,6 @@
 package com.demod.fbsr;
 
 import java.awt.geom.Point2D;
-import java.awt.geom.Point2D.Double;
 
 import org.json.JSONObject;
 
@@ -12,7 +11,7 @@ public class BlueprintEntity {
 
 	private final int id;
 	private final String name;
-	private final Double position;
+	private final Point2D.Double position;
 	private final Direction direction;
 
 	public BlueprintEntity(JSONObject entityJson) {
@@ -21,8 +20,7 @@ public class BlueprintEntity {
 		id = entityJson.getInt("entity_number");
 		name = entityJson.getString("name");
 
-		JSONObject positionJson = entityJson.getJSONObject("position");
-		position = new Point2D.Double(positionJson.getDouble("x"), positionJson.getDouble("y"));
+		position = Utils.parsePoint2D(entityJson.getJSONObject("position"));
 
 		direction = Direction.values()[entityJson.optInt("direction", 0)];
 	}
@@ -45,7 +43,7 @@ public class BlueprintEntity {
 		return name;
 	}
 
-	public Double getPosition() {
+	public Point2D.Double getPosition() {
 		return position;
 	}
 
