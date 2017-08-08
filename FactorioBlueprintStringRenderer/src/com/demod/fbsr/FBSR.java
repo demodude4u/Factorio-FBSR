@@ -182,8 +182,9 @@ public class FBSR {
 			throws JSONException, FileNotFoundException, IOException {
 
 		Rectangle2D.Double worldBounds = computeBounds(renderers);
-		worldBounds.setFrameFromDiagonal(Math.floor(worldBounds.getMinX()) - 1, Math.floor(worldBounds.getMinY()) - 1,
-				Math.ceil(worldBounds.getMaxX()) + 1, Math.ceil(worldBounds.getMaxY()) + 1);
+		worldBounds.setFrameFromDiagonal(Math.floor(worldBounds.getMinX() + 0.4) - 1,
+				Math.floor(worldBounds.getMinY() + 0.4) - 1, Math.ceil(worldBounds.getMaxX() - 0.4) + 1,
+				Math.ceil(worldBounds.getMaxY() - 0.4) + 1);
 
 		Rectangle2D.Double centerBounds = new Rectangle2D.Double(worldBounds.x, worldBounds.y, worldBounds.width,
 				worldBounds.height);
@@ -273,6 +274,7 @@ public class FBSR {
 			g.draw(new Line2D.Double(worldBounds.getMinX(), y, worldBounds.getMaxX(), y));
 		}
 
+		boolean debugBounds = reporting.getDebug().map(d -> d.bounds).orElse(false);
 		renderers.stream().sorted((r1, r2) -> {
 			int ret;
 
@@ -299,6 +301,12 @@ public class FBSR {
 		}).forEach(r -> {
 			try {
 				r.render(g);
+
+				if (debugBounds) {
+					g.setStroke(new BasicStroke(1f / 32f));
+					g.setColor(Color.magenta);
+					g.draw(r.bounds);
+				}
 			} catch (Exception e) {
 				reporting.addException(e);
 			}
