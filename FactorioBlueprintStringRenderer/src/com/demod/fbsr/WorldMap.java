@@ -57,6 +57,7 @@ public class WorldMap {
 		public boolean logistic = false;
 		public boolean rail = false;
 		public boolean placement = false;
+		public boolean bounds = false;
 	}
 
 	public static class RailEdge {
