@@ -12,12 +12,17 @@ import com.demod.factorio.Utils;
 
 public class Blueprint {
 
+	private final JSONObject json;
+
 	private final List<BlueprintEntity> entities = new ArrayList<>();
 	private final List<BlueprintTile> tiles = new ArrayList<>();
 	private Optional<String> label;
+	private Optional<Long> version;
 	private Optional<JSONArray> icons;
 
 	public Blueprint(JSONObject json) throws IllegalArgumentException, IOException {
+		this.json = json;
+
 		JSONObject blueprintJson = json.getJSONObject("blueprint");
 
 		if (blueprintJson.has("entities")) {
@@ -43,6 +48,12 @@ public class Blueprint {
 		} else {
 			icons = Optional.empty();
 		}
+
+		if (blueprintJson.has("version")) {
+			version = Optional.of(blueprintJson.getLong("version"));
+		} else {
+			version = Optional.empty();
+		}
 	}
 
 	public List<BlueprintEntity> getEntities() {
@@ -59,6 +70,14 @@ public class Blueprint {
 
 	public List<BlueprintTile> getTiles() {
 		return tiles;
+	}
+
+	public Optional<Long> getVersion() {
+		return version;
+	}
+
+	public JSONObject json() {
+		return json;
 	}
 
 	public void setIcons(Optional<JSONArray> icons) {

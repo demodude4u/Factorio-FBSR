@@ -24,6 +24,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 import org.apache.commons.text.similarity.LevenshteinDistance;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.luaj.vm2.LuaValue;
@@ -323,6 +324,129 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			return event.getGuild().getName() + " / #" + event.getChannel().getName() + " / "
 					+ event.getAuthor().getName();
 		}
+	}
+
+	private void handleBlueprintBookAssembleCommand(MessageReceivedEvent event) {
+		String content = event.getMessage().getContent();
+		TaskReporting reporting = new TaskReporting();
+		reporting.setContext(content);
+
+		List<BlueprintStringData> blueprintStrings = BlueprintFinder.search(content, reporting);
+		if (!event.getMessage().getAttachments().isEmpty()) {
+			String url = event.getMessage().getAttachments().get(0).getUrl();
+			reporting.addLink(url);
+			blueprintStrings.addAll(BlueprintFinder.search(url, reporting));
+		}
+
+		if (!blueprintStrings.isEmpty()) {
+			List<Blueprint> blueprints = blueprintStrings.stream().flatMap(bs -> bs.getBlueprints().stream())
+					.collect(Collectors.toList());
+
+			JSONObject json = new JSONObject();
+			Utils.terribleHackToHaveOrderedJSONObject(json);
+			JSONObject bookJson = new JSONObject();
+			Utils.terribleHackToHaveOrderedJSONObject(bookJson);
+			json.put("blueprint_book", bookJson);
+			JSONArray blueprintsJson = new JSONArray();
+			bookJson.put("blueprints", blueprintsJson);
+			bookJson.put("item", "blueprint-book");
+			bookJson.put("active_index", 0);
+
+			Optional<Long> latestVersion = Optional.empty();
+			int index = 0;
+			for (Blueprint blueprint : blueprints) {
+				blueprint.json().put("index", index);
+
+				if (blueprint.getVersion().isPresent()) {
+					if (latestVersion.isPresent()) {
+						latestVersion = Optional.of(Math.max(blueprint.getVersion().get(), latestVersion.get()));
+					} else {
+						latestVersion = blueprint.getVersion();
+					}
+				}
+
+				blueprintsJson.put(blueprint.json());
+
+				index++;
+			}
+
+			String bookLabel = blueprintStrings.stream().filter(BlueprintStringData::isBook)
+					.map(BlueprintStringData::getLabel).filter(Optional::isPresent).map(Optional::get).map(String::trim)
+					.distinct().collect(Collectors.joining(" & "));
+			if (!bookLabel.isEmpty()) {
+				bookJson.put("label", bookLabel);
+			}
+
+			if (latestVersion.isPresent()) {
+				bookJson.put("version", latestVersion.get());
+			}
+
+			try {
+				reporting.addInfo("Assembled Book: " + WebUtils.uploadToHostingService("blueprintBook.txt",
+						(" " + BlueprintStringData.encode(json)).getBytes()));
+			} catch (Exception e) {
+				reporting.addException(e);
+			}
+
+		} else {
+			event.getChannel().sendMessage("I can't seem to find any blueprints. :frowning:").complete();
+		}
+
+		if (!reporting.getInfo().isEmpty()) {
+			event.getChannel().sendMessage(reporting.getInfo().stream().collect(Collectors.joining("\n"))).complete();
+		}
+
+		sendReport(event, reporting);
+	}
+
+	private void handleBlueprintBookExtractCommand(MessageReceivedEvent event) {
+		String content = event.getMessage().getContent();
+		TaskReporting reporting = new TaskReporting();
+		reporting.setContext(content);
+
+		List<BlueprintStringData> blueprintStrings = BlueprintFinder.search(content, reporting);
+		if (!event.getMessage().getAttachments().isEmpty()) {
+			String url = event.getMessage().getAttachments().get(0).getUrl();
+			reporting.addLink(url);
+			blueprintStrings.addAll(BlueprintFinder.search(url, reporting));
+		}
+
+		List<Blueprint> blueprints = blueprintStrings.stream().flatMap(bs -> bs.getBlueprints().stream())
+				.collect(Collectors.toList());
+		List<Pair<URL, String>> links = new ArrayList<>();
+		for (Blueprint blueprint : blueprints) {
+			try {
+				blueprint.json().remove("index");
+
+				URL url = WebUtils.uploadToHostingService("blueprint.txt",
+						(/*
+							 * blueprint.getLabel().orElse("Blueprint String") +
+							 * ": "
+							 */" " + BlueprintStringData.encode(blueprint.json())).getBytes());
+				links.add(new Pair<>(url, blueprint.getLabel().orElse(null)));
+			} catch (Exception e) {
+				reporting.addException(e);
+			}
+		}
+
+		if (!links.isEmpty()) {
+			try {
+				reporting.addInfo("Extracted blueprints: "
+						+ WebUtils.uploadToBundly("Blueprints", "Provided by Blueprint Bot", links));
+			} catch (Exception e) {
+				reporting.addException(e);
+			}
+		}
+
+		if (reporting.getBlueprintStrings().isEmpty()) {
+			event.getChannel().sendMessage("I can't seem to find any blueprints. :frowning:").complete();
+		}
+
+		if (!reporting.getInfo().isEmpty()) {
+			event.getChannel().sendMessage(reporting.getInfo().stream().collect(Collectors.joining("\n"))).complete();
+		}
+
+		sendReport(event, reporting);
 	}
 
 	private void handleBlueprintCommand(MessageReceivedEvent event) {
@@ -681,6 +805,12 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				.withHelp("Converts all yellow belts into red belts, and all red belts into blue belts.")//
 				.addCommand("blueprintItems", event -> handleBlueprintItemsCommand(event))//
 				.withHelp("Prints out all of the items needed by the blueprint.")//
+				//
+				.addCommand("blueprintBookExtract", event -> handleBlueprintBookExtractCommand(event))//
+				.withHelp("Provides an collection of blueprint strings contained within the specified blueprint book.")//
+				.addCommand("blueprintBookAssemble", event -> handleBlueprintBookAssembleCommand(event))//
+				.withHelp(
+						"Combines all blueprints (including from other books) from multiple strings into a single book.")//
 				//
 				.addCommand("prototypeEntity", createPrototypeCommandHandler("entity", table.getEntities()))//
 				.withHelp("Provides a dump of the lua data for the specified entity prototype.")//
