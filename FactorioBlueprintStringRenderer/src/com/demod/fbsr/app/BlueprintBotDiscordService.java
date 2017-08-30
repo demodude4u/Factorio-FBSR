@@ -8,6 +8,7 @@ import java.io.StringWriter;
 import java.lang.reflect.Field;
 import java.net.URL;
 import java.time.Instant;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -56,6 +57,7 @@ import javafx.util.Pair;
 import net.dv8tion.jda.core.EmbedBuilder;
 import net.dv8tion.jda.core.Permission;
 import net.dv8tion.jda.core.entities.Message;
+import net.dv8tion.jda.core.entities.MessageChannel;
 import net.dv8tion.jda.core.entities.MessageEmbed;
 import net.dv8tion.jda.core.entities.PrivateChannel;
 import net.dv8tion.jda.core.entities.TextChannel;
@@ -433,8 +435,12 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			try {
 				reporting.addInfo("Extracted blueprints: "
 						+ WebUtils.uploadToBundly("Blueprints", "Provided by Blueprint Bot", links));
-			} catch (Exception e) {
-				reporting.addException(e);
+			} catch (IOException e) {
+				try {
+					sendBundlyReplacementEmbed(event.getChannel(), "Extracted Blueprints", links);
+				} catch (Exception e2) {
+					reporting.addException(e2);
+				}
 			}
 		}
 
@@ -703,13 +709,43 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 						links.add(new Pair<>(WebUtils.uploadToHostingService("blueprint.png", image),
 								blueprint.getLabel().orElse("")));
 					}
-					reporting.addInfo("Blueprint Book Images: "
-							+ WebUtils.uploadToBundly("Blueprint Book", "Renderings provided by Blueprint Bot", links)
-									.toString());
+					try {
+						reporting.addInfo("Blueprint Book Images: " + WebUtils
+								.uploadToBundly("Blueprint Book", "Renderings provided by Blueprint Bot", links)
+								.toString());
+					} catch (IOException e) {
+						try {
+							sendBundlyReplacementEmbed(event.getChannel(), "Blueprint Book Images", links);
+						} catch (Exception e2) {
+							reporting.addException(e2);
+						}
+					}
 				}
 			} catch (Exception e) {
 				reporting.addException(e);
 			}
+		}
+	}
+
+	private void sendBundlyReplacementEmbed(MessageChannel channel, String title, List<Pair<URL, String>> links)
+			throws IllegalStateException {
+		ArrayDeque<String> linksFormatted = links.stream()
+				.map(p -> (p.getValue() != null && !p.getValue().isEmpty())
+						? ("[" + p.getValue() + "](" + p.getKey() + ")") : p.getKey().toString())
+				.collect(Collectors.toCollection(ArrayDeque::new));
+		while (!linksFormatted.isEmpty()) {
+			EmbedBuilder builder = new EmbedBuilder();
+			builder.setTitle(title, null);
+			StringBuilder description = new StringBuilder();
+			while (!linksFormatted.isEmpty()) {
+				if (description.length() + linksFormatted.peek().length() + 1 < MessageEmbed.TEXT_MAX_LENGTH) {
+					description.append(linksFormatted.pop()).append('\n');
+				} else {
+					break;
+				}
+			}
+			builder.setDescription(description);
+			channel.sendMessage(builder.build()).complete();
 		}
 	}
 

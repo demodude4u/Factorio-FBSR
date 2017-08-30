@@ -7,6 +7,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
@@ -119,7 +120,16 @@ public final class WebUtils {
 			if (line == null || line.length() > 8) {
 				throw new IOException("Bundly.io returned an invalid response: " + line);
 			}
-			return new URL("http://bundly.io/" + line);
+
+			URL resultUrl = new URL("http://bundly.io/" + line);
+			HttpURLConnection resultTestConnection = (HttpURLConnection) resultUrl.openConnection();
+			resultTestConnection.setRequestMethod("GET");
+			resultTestConnection.connect();
+			if (resultTestConnection.getResponseCode() == 500) {
+				throw new IOException("Bundly.io is still broken. :(");
+			}
+
+			return resultUrl;
 		}
 	}
 
