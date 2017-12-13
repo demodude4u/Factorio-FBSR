@@ -90,7 +90,14 @@ public final class RenderUtils {
 
 	public static Sprite getSpriteFromAnimation(LuaValue lua) {
 		Sprite ret = new Sprite();
-		String imagePath = lua.get("filename").tojstring();
+		String imagePath;
+		if (!lua.get("filenames").isnil()) {
+			// XXX this is a hack, assuming artillery turret code
+			int direction = lua.get("artillery_direction").toint();
+			imagePath = lua.get("filenames").get(direction * 2 + 1).tojstring();
+		} else {
+			imagePath = lua.get("filename").tojstring();
+		}
 		boolean drawAsShadow = lua.get("draw_as_shadow").optboolean(false);
 		ret.shadow = drawAsShadow;
 		drawAsShadow = false;// FIXME shadows need a special mask layer
