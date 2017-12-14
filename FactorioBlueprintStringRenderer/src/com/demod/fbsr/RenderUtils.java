@@ -125,6 +125,9 @@ public final class RenderUtils {
 	public static List<Sprite> getSpritesFromAnimation(LuaValue lua) {
 		List<Sprite> sprites = new ArrayList<>();
 		LuaValue layersLua = lua.get("layers");
+		if (layersLua.isnil()) {
+			layersLua = lua.get("sheets");
+		}
 		if (!layersLua.isnil()) {
 			Utils.forEach(layersLua.checktable(), (i, l) -> {
 				Sprite sprite = getSpriteFromAnimation(l);

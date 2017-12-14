@@ -47,8 +47,7 @@ public class CurvedRailRendering extends EntityRendererFactory {
 		String railName = railNames[entity.getDirection().ordinal()];
 		LuaValue pictureRailLua = prototype.lua().get("pictures").get(railName);
 		for (Entry<String, Layer> entry : StraightRailRendering.railLayers.entrySet()) {
-			Sprite railLayerSprite = RenderUtils
-					.getSpriteFromAnimation(pictureRailLua.get(entry.getKey()).get("sheet"));
+			Sprite railLayerSprite = RenderUtils.getSpriteFromAnimation(pictureRailLua.get(entry.getKey()));
 			register.accept(RenderUtils.spriteRenderer(entry.getValue(), railLayerSprite, entity, prototype));
 		}
 	}

@@ -21,14 +21,16 @@ public class MiningDrillRendering extends EntityRendererFactory {
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
 			EntityPrototype prototype) {
 		if (entity.getName().equals("pumpjack")) {
-			Sprite baseSprite = RenderUtils.getSpriteFromAnimation(prototype.lua().get("base_picture").get("sheet"));
-			baseSprite.source.x = baseSprite.source.width * entity.getDirection().cardinal();
-			Sprite jackSprite = RenderUtils.getSpriteFromAnimation(prototype.lua().get("animations").get("north"));
+			List<Sprite> baseSprites = RenderUtils.getSpritesFromAnimation(prototype.lua().get("base_picture"));
+			baseSprites.forEach(s -> s.source.x = s.source.width * entity.getDirection().cardinal());
+			List<Sprite> jackSprites = RenderUtils
+					.getSpritesFromAnimation(prototype.lua().get("animations").get("north"));
 
-			register.accept(RenderUtils.spriteRenderer(baseSprite, entity, prototype));
-			register.accept(RenderUtils.spriteRenderer(jackSprite, entity, prototype));
+			register.accept(RenderUtils.spriteRenderer(baseSprites, entity, prototype));
+			register.accept(RenderUtils.spriteRenderer(jackSprites, entity, prototype));
 		} else {
-			List<Sprite> sprites = RenderUtils.getSpritesFromAnimation(prototype.lua().get("animations"), entity.getDirection());
+			List<Sprite> sprites = RenderUtils.getSpritesFromAnimation(prototype.lua().get("animations"),
+					entity.getDirection());
 			register.accept(RenderUtils.spriteRenderer(sprites, entity, prototype));
 		}
 	}

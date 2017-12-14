@@ -1,5 +1,6 @@
 package com.demod.fbsr.entity;
 
+import java.util.List;
 import java.util.function.Consumer;
 
 import com.demod.factorio.DataTable;
@@ -15,8 +16,8 @@ public class ConstantCombinatorRendering extends EntityRendererFactory {
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
 			EntityPrototype prototype) {
-		Sprite sprite = RenderUtils.getSpriteFromAnimation(
+		List<Sprite> sprites = RenderUtils.getSpritesFromAnimation(
 				prototype.lua().get("sprites").get(entity.getDirection().name().toLowerCase()));
-		register.accept(RenderUtils.spriteRenderer(sprite, entity, prototype));
+		register.accept(RenderUtils.spriteRenderer(sprites, entity, prototype));
 	}
 }

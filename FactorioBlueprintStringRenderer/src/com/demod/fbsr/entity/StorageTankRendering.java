@@ -1,6 +1,7 @@
 package com.demod.fbsr.entity;
 
 import java.awt.geom.Point2D;
+import java.util.List;
 import java.util.function.Consumer;
 
 import com.demod.factorio.DataTable;
@@ -25,9 +26,9 @@ public class StorageTankRendering extends EntityRendererFactory {
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
 			EntityPrototype prototype) {
-		Sprite sprite = RenderUtils.getSpriteFromAnimation(prototype.lua().get("pictures").get("picture").get("sheet"));
-		sprite.source.x = sprite.source.width * (entity.getDirection().cardinal() % 2);
-		register.accept(RenderUtils.spriteRenderer(sprite, entity, prototype));
+		List<Sprite> sprites = RenderUtils.getSpritesFromAnimation(prototype.lua().get("pictures").get("picture"));
+		sprites.forEach(s -> s.source.x = s.source.width * (entity.getDirection().cardinal() % 2));
+		register.accept(RenderUtils.spriteRenderer(sprites, entity, prototype));
 	}
 
 	@Override

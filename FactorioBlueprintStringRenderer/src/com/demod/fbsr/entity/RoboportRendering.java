@@ -14,10 +14,11 @@ public class RoboportRendering extends EntityRendererFactory {
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
 			EntityPrototype prototype) {
-		register.accept(RenderUtils.spriteRenderer(RenderUtils.getSpriteFromAnimation(prototype.lua().get("base")), entity, prototype));
-		register.accept(
-				RenderUtils.spriteRenderer(RenderUtils.getSpriteFromAnimation(prototype.lua().get("door_animation_down")), entity, prototype));
-		register.accept(
-				RenderUtils.spriteRenderer(RenderUtils.getSpriteFromAnimation(prototype.lua().get("door_animation_up")), entity, prototype));
+		register.accept(RenderUtils.spriteRenderer(RenderUtils.getSpritesFromAnimation(prototype.lua().get("base")),
+				entity, prototype));
+		register.accept(RenderUtils.spriteRenderer(
+				RenderUtils.getSpriteFromAnimation(prototype.lua().get("door_animation_down")), entity, prototype));
+		register.accept(RenderUtils.spriteRenderer(
+				RenderUtils.getSpriteFromAnimation(prototype.lua().get("door_animation_up")), entity, prototype));
 	}
 }

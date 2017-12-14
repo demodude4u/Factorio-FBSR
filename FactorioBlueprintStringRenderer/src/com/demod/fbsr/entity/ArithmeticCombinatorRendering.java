@@ -1,6 +1,7 @@
 package com.demod.fbsr.entity;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
@@ -33,14 +34,14 @@ public class ArithmeticCombinatorRendering extends EntityRendererFactory {
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
 			EntityPrototype prototype) {
-		Sprite sprite = RenderUtils
-				.getSpriteFromAnimation(prototype.lua().get("sprites").get(entity.getDirection().name().toLowerCase()));
+		List<Sprite> sprites = RenderUtils.getSpritesFromAnimation(
+				prototype.lua().get("sprites").get(entity.getDirection().name().toLowerCase()));
 		Sprite operatorSprite = RenderUtils.getSpriteFromAnimation(prototype.lua()
 				.get(operationSprites.get(entity.json().getJSONObject("control_behavior")
 						.getJSONObject("arithmetic_conditions").getString("operation")))
 				.get(entity.getDirection().name().toLowerCase()));
 
-		register.accept(RenderUtils.spriteRenderer(sprite, entity, prototype));
+		register.accept(RenderUtils.spriteRenderer(sprites, entity, prototype));
 		register.accept(RenderUtils.spriteRenderer(operatorSprite, entity, prototype));
 	}
 }
