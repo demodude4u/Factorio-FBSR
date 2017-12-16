@@ -89,6 +89,14 @@ public final class RenderUtils {
 	}
 
 	public static Sprite getSpriteFromAnimation(LuaValue lua) {
+		LuaValue hrVersion = lua.get("hr_version");
+		if (!hrVersion.isnil()) {
+			Utils.forEach(hrVersion, (k, v) -> {
+				lua.set(k, v);
+			});
+			lua.set("hr_version", LuaValue.NIL);
+		}
+
 		Sprite ret = new Sprite();
 		String imagePath;
 		if (!lua.get("filenames").isnil()) {
@@ -100,7 +108,7 @@ public final class RenderUtils {
 		}
 		boolean drawAsShadow = lua.get("draw_as_shadow").optboolean(false);
 		ret.shadow = drawAsShadow;
-		drawAsShadow = false;// FIXME shadows need a special mask layer
+		// drawAsShadow = false;// FIXME shadows need a special mask layer
 		if (drawAsShadow) {
 			ret.image = FactorioData.getModImage(imagePath, new Color(255, 255, 255, 128));
 		} else {
@@ -110,12 +118,13 @@ public final class RenderUtils {
 		if (!blendMode.equals("normal")) { // FIXME blending will take effort
 			ret.image = EMPTY_IMAGE;
 		}
+		double scale = lua.get("scale").optdouble(1.0);
 		int srcX = lua.get("x").optint(0);
 		int srcY = lua.get("y").optint(0);
 		int srcWidth = lua.get("width").checkint();
-		double width = srcWidth / FBSR.tileSize;
+		double width = scale * srcWidth / FBSR.tileSize;
 		int srcHeight = lua.get("height").checkint();
-		double height = srcHeight / FBSR.tileSize;
+		double height = scale * srcHeight / FBSR.tileSize;
 		Point2D.Double shift = Utils.parsePoint2D(lua.get("shift"));
 		ret.source = new Rectangle(srcX, srcY, srcWidth, srcHeight);
 		ret.bounds = new Rectangle2D.Double(shift.x - width / 2.0, shift.y - height / 2.0, width, height);

@@ -28,12 +28,12 @@ public class TransportBeltRendering extends EntityRendererFactory {
 			};
 
 	// XXX I'm not using horizontal or vertical frames
-	public static final String[][] transportBeltConnectorFrameMapping = //
-			new String[/* Cardinal */][/* Bend */] { //
-					{ "nw", "x", "ne" }, // North
-					{ "ne", "x", "se" }, // East
-					{ "se", "x", "sw" }, // South
-					{ "sw", "x", "nw" }, // West
+	public static final int[][] transportBeltConnectorFrameMappingIndex = //
+			new int[/* Cardinal */][/* Bend */] { //
+					{ 6, 0, 5 }, // North
+					{ 5, 0, 3 }, // East
+					{ 3, 0, 4 }, // South
+					{ 4, 0, 6 }, // West
 			};
 
 	@Override
@@ -42,8 +42,12 @@ public class TransportBeltRendering extends EntityRendererFactory {
 		BeltBend bend = map.getBeltBend(entity.getPosition()).get();
 		int[] spriteMapping = transportBeltSpriteMapping[entity.getDirection().cardinal()][bend.ordinal()];
 
-		Sprite sprite = RenderUtils.getSpriteFromAnimation(prototype.lua().get("animations"));
-		sprite.source.y = sprite.source.height * spriteMapping[0];
+		LuaValue anim = prototype.lua().get("animations");
+		Sprite sprite = RenderUtils.getSpriteFromAnimation(anim);
+		int frameCount = anim.get("frame_count").toint();
+		int lineLength = anim.get("line_length").optint(frameCount);
+		int offsetMultiplier = frameCount / lineLength;
+		sprite.source.y = sprite.source.height * spriteMapping[0] * offsetMultiplier;
 		if (spriteMapping[1] == 1) {
 			sprite.source.x += sprite.source.width;
 			sprite.source.width *= -1;
@@ -57,14 +61,16 @@ public class TransportBeltRendering extends EntityRendererFactory {
 
 		JSONObject connectionsJson = entity.json().optJSONObject("connections");
 		if (connectionsJson != null && connectionsJson.length() > 0) {
-			String connectorFrameMapping = transportBeltConnectorFrameMapping[entity.getDirection().cardinal()][bend
-					.ordinal()];
+			int connectorFrameMappingIndex = transportBeltConnectorFrameMappingIndex[entity.getDirection()
+					.cardinal()][bend.ordinal()];
 
 			LuaValue connectorFrameSpritesLua = prototype.lua().get("connector_frame_sprites");
 			Sprite connectorShadow = RenderUtils
-					.getSpriteFromAnimation(connectorFrameSpritesLua.get("frame_shadow_" + connectorFrameMapping));
+					.getSpriteFromAnimation(connectorFrameSpritesLua.get("frame_shadow").get("sheet"));
+			connectorShadow.source.y += connectorShadow.source.height * connectorFrameMappingIndex;
 			Sprite connectorSprite = RenderUtils
-					.getSpriteFromAnimation(connectorFrameSpritesLua.get("frame_main_" + connectorFrameMapping));
+					.getSpriteFromAnimation(connectorFrameSpritesLua.get("frame_main").get("sheet"));
+			connectorSprite.source.y += connectorSprite.source.height * connectorFrameMappingIndex;
 
 			register.accept(RenderUtils.spriteRenderer(connectorShadow, entity, prototype));
 			register.accept(RenderUtils.spriteRenderer(connectorSprite, entity, prototype));
