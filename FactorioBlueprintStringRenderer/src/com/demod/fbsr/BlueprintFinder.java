@@ -85,6 +85,8 @@ public final class BlueprintFinder {
 
 		GOOGLEDOCS("docs\\.google\\.com/document/d/(?<id>[-_A-Za-z0-9]+)",
 				m -> "https://docs.google.com/document/d/" + m.group("id") + "/export?format=txt"), //
+		GOOGLEDRIVE("drive\\.google\\.com/open\\?id=(?<id>[-_A-Za-z0-9]+)",
+				m -> "https://drive.google.com/uc?id=" + m.group("id") + "&export=download"), //
 
 		TEXT_URLS("\\b(?<url>(?:https?|ftp)://[-a-zA-Z0-9+&@#/%?=~_|!:,.;]*[-a-zA-Z0-9+&@#/%=~_|])", (m, l) -> {
 			URL url = new URL(m.group("url"));
