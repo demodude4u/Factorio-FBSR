@@ -82,7 +82,10 @@ public class TileRendererFactory {
 
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintTile tile,
 			TilePrototype prototype) {
-		LuaValue sheetLua = prototype.lua().get("variants").get("main").get(1);
+		LuaValue sheetLua = prototype.lua().get("variants").get("material_background");
+		if (sheetLua.isnil()) {
+			sheetLua = prototype.lua().get("variants").get("main").get(1);
+		}
 		Sprite sprite = new Sprite();
 		sprite.bounds = new Rectangle2D.Double(-0.5, -0.5, 1.0, 1.0);
 		sprite.image = FactorioData.getModImage(sheetLua.get("picture").tojstring());
