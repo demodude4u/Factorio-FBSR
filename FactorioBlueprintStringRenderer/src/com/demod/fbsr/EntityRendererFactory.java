@@ -112,7 +112,7 @@ public class EntityRendererFactory {
 				@Override
 				public void render(Graphics2D g) {
 					if (labeledTypes.add(entity.getName())) {
-						g.setFont(g.getFont().deriveFont(0.4f));
+						g.setFont(new Font("Monospaced", Font.BOLD, 1).deriveFont(0.4f));
 						float textX = (float) bounds.x;
 						float textY = (float) (bounds.y
 								+ bounds.height * new Random(entity.getName().hashCode()).nextFloat());
