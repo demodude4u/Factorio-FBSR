@@ -1,8 +1,11 @@
 package com.demod.fbsr.entity;
 
 import java.awt.Color;
+import java.awt.Font;
+import java.awt.Graphics2D;
 import java.awt.geom.Point2D;
 import java.util.List;
+import java.util.Random;
 import java.util.function.Consumer;
 
 import com.demod.factorio.DataTable;
@@ -39,6 +42,23 @@ public class TrainStopRendering extends EntityRendererFactory {
 		register.accept(RenderUtils.spriteRenderer(Layer.RAIL_BACKPLATES, railSprites, entity, prototype));
 		register.accept(RenderUtils.spriteRenderer(Layer.ENTITY, sprites, entity, prototype));
 		register.accept(RenderUtils.spriteRenderer(Layer.ENTITY2, topSprites, entity, prototype));
+
+		if (entity.json().has("station")) {
+			String stationName = entity.json().optString("station");
+			register.accept(new Renderer(Layer.OVERLAY4, entity.getPosition()) {
+				@Override
+				public void render(Graphics2D g) {
+					g.setFont(new Font("Monospaced", Font.BOLD, 1).deriveFont(0.4f));
+					float textX = (float) bounds.x;
+					float textY = (float) (bounds.y
+							+ bounds.height * new Random(entity.getName().hashCode()).nextFloat());
+					g.setColor(Color.darkGray);
+					g.drawString(stationName, textX + 0.05f, textY + 0.05f);
+					g.setColor(Color.white);
+					g.drawString(stationName, textX, textY);
+				}
+			});
+		}
 	}
 
 	@Override
