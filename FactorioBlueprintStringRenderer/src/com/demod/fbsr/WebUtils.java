@@ -171,8 +171,6 @@ public final class WebUtils {
 
 	private static URL uploadToMixtapeMoe(String fileName, byte[] fileData) throws IOException {
 		try (ByteArrayInputStream bais = new ByteArrayInputStream(fileData)) {
-			// XXX You can get a copy of the MultipartUtility from
-			// http://www.codejava.net/java-se/networking/upload-files-by-sending-multipart-request-programmatically
 			MultipartUtility utility = new MultipartUtility("https://mixtape.moe/upload.php", "UTF-8");
 			utility.addFormField("name", fileName);
 			utility.addFilePart("files[]", fileName, bais);
@@ -184,8 +182,6 @@ public final class WebUtils {
 	@SuppressWarnings("unused")
 	private static URL uploadToNyaIs(String fileName, byte[] fileData) throws IOException {
 		try (ByteArrayInputStream bais = new ByteArrayInputStream(fileData)) {
-			// XXX You can get a copy of the MultipartUtility from
-			// http://www.codejava.net/java-se/networking/upload-files-by-sending-multipart-request-programmatically
 			MultipartUtility utility = new MultipartUtility("https://nya.is/upload", "UTF-8");
 			utility.addFormField("name", fileName);
 			utility.addFilePart("files[]", fileName, bais);
