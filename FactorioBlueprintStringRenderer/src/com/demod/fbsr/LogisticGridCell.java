@@ -15,6 +15,7 @@ public class LogisticGridCell {
 	private Optional<List<Point2D.Double>> warps = Optional.empty();
 	private Optional<Set<String>> inputs = Optional.empty();
 	private Optional<Set<String>> outputs = Optional.empty();
+	private Optional<Set<String>> bannedOutputs = Optional.empty();
 
 	private Optional<SortedSet<String>> transits = Optional.empty();
 	private boolean blockTransit = false;
@@ -26,6 +27,13 @@ public class LogisticGridCell {
 			return acceptFilter.get().ordinal() == move.ordinal();
 		}
 		return true;
+	}
+
+	public void addBannedOutput(String itemName) {
+		if (!bannedOutputs.isPresent()) {
+			bannedOutputs = Optional.of(new LinkedHashSet<>());
+		}
+		bannedOutputs.get().add(itemName);
 	}
 
 	public void addInput(String itemName) {
@@ -74,6 +82,10 @@ public class LogisticGridCell {
 		return acceptFilter;
 	}
 
+	public Optional<Set<String>> getBannedOutputs() {
+		return bannedOutputs;
+	}
+
 	public Optional<Set<String>> getInputs() {
 		return inputs;
 	}
@@ -106,6 +118,13 @@ public class LogisticGridCell {
 		return move.isPresent() || warps.isPresent() || inputs.isPresent();
 	}
 
+	public boolean isBannedOutput(String item) {
+		if (bannedOutputs.isPresent()) {
+			return bannedOutputs.get().contains(item);
+		}
+		return false;
+	}
+
 	public boolean isBlockTransit() {
 		return blockTransit;
 	}
@@ -121,6 +140,10 @@ public class LogisticGridCell {
 
 	public void setAcceptFilter(Optional<Direction> acceptFilter) {
 		this.acceptFilter = acceptFilter;
+	}
+
+	public void setBannedOutputs(Optional<Set<String>> bannedOutputs) {
+		this.bannedOutputs = bannedOutputs;
 	}
 
 	public void setBlockTransit(boolean blockTransit) {

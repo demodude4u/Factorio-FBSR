@@ -106,15 +106,17 @@ public class SplitterRendering extends EntityRendererFactory {
 			Point2D.Double outputPos = dir.offset(right ? rightPos : leftPos, 0.6);
 
 			if (entity.json().has("filter")) {
+				Point2D.Double iconPos = right ? rightPos : leftPos;
 				String itemName = entity.json().getString("filter");
 				Sprite spriteIcon = new Sprite();
 				Optional<ItemPrototype> optItem = dataTable.getItem(itemName);
 				if (optItem.isPresent()) {
 					spriteIcon.image = FactorioData.getIcon(optItem.get());
 					spriteIcon.source = new Rectangle(0, 0, spriteIcon.image.getWidth(), spriteIcon.image.getHeight());
-					spriteIcon.bounds = new Rectangle2D.Double(-0.3 + (right ? 0.5 : -0.5), -0.3, 0.6, 0.6);
+					spriteIcon.bounds = new Rectangle2D.Double(-0.3, -0.3, 0.6, 0.6);
 
 					Renderer delegate = RenderUtils.spriteRenderer(spriteIcon, entity, prototype);
+					spriteIcon.bounds = new Rectangle2D.Double(iconPos.x - 0.3, iconPos.y - 0.3, 0.6, 0.6);
 					register.accept(new Renderer(Layer.OVERLAY2, delegate.getBounds()) {
 						@Override
 						public void render(Graphics2D g) throws Exception {
@@ -164,17 +166,37 @@ public class SplitterRendering extends EntityRendererFactory {
 
 		setLogisticMove(map, leftPos, dir.frontLeft(), dir);
 		setLogisticMove(map, leftPos, dir.frontRight(), dir);
-		setLogisticMove(map, leftPos, dir.backLeft(), dir);
-		setLogisticMove(map, leftPos, dir.backRight(), dir);
 		setLogisticMove(map, rightPos, dir.frontLeft(), dir);
 		setLogisticMove(map, rightPos, dir.frontRight(), dir);
-		setLogisticMove(map, rightPos, dir.backLeft(), dir);
-		setLogisticMove(map, rightPos, dir.backRight(), dir);
 
-		addLogisticWarp(map, leftPos, dir.backLeft(), rightPos, dir.frontLeft());
-		addLogisticWarp(map, leftPos, dir.backRight(), rightPos, dir.frontRight());
-		addLogisticWarp(map, rightPos, dir.backLeft(), leftPos, dir.frontLeft());
-		addLogisticWarp(map, rightPos, dir.backRight(), leftPos, dir.frontRight());
+		if (entity.json().has("output_priority") && entity.json().has("filter")) {
+			boolean right = entity.json().getString("output_priority").equals("right");
+			Point2D.Double outPos = right ? rightPos : leftPos;
+			Point2D.Double notOutPos = !right ? rightPos : leftPos;
+			String itemName = entity.json().getString("filter");
+
+			map.getOrCreateLogisticGridCell(dir.frontLeft().offset(outPos, 0.25)).addOutput(itemName);
+			map.getOrCreateLogisticGridCell(dir.frontRight().offset(outPos, 0.25)).addOutput(itemName);
+			map.getOrCreateLogisticGridCell(dir.frontLeft().offset(notOutPos, 0.25)).addBannedOutput(itemName);
+			map.getOrCreateLogisticGridCell(dir.frontRight().offset(notOutPos, 0.25)).addBannedOutput(itemName);
+
+			setLogisticMove(map, notOutPos, dir.backLeft(), dir);
+			setLogisticMove(map, notOutPos, dir.backRight(), dir);
+
+			addLogisticWarp(map, outPos, dir.backLeft(), notOutPos, dir.frontLeft());
+			addLogisticWarp(map, outPos, dir.backRight(), notOutPos, dir.frontRight());
+
+		} else {
+			setLogisticMove(map, leftPos, dir.backLeft(), dir);
+			setLogisticMove(map, leftPos, dir.backRight(), dir);
+			setLogisticMove(map, rightPos, dir.backLeft(), dir);
+			setLogisticMove(map, rightPos, dir.backRight(), dir);
+
+			addLogisticWarp(map, leftPos, dir.backLeft(), rightPos, dir.frontLeft());
+			addLogisticWarp(map, leftPos, dir.backRight(), rightPos, dir.frontRight());
+			addLogisticWarp(map, rightPos, dir.backLeft(), leftPos, dir.frontLeft());
+			addLogisticWarp(map, rightPos, dir.backRight(), leftPos, dir.frontRight());
+		}
 	}
 
 	@Override

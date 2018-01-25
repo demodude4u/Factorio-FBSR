@@ -787,7 +787,7 @@ public class FBSR {
 					Pair<Point2D.Double, LogisticGridCell> pair = work.pop();
 					Point2D.Double cellPos = pair.getKey();
 					LogisticGridCell cell = pair.getValue();
-					if (cell.addTransit(item)) {
+					if (cell.addTransit(item) && !cell.isBannedOutput(item)) {
 						cell.getMove().ifPresent(d -> {
 							Point2D.Double nextCellPos = d.offset(cellPos, 0.5);
 							map.getLogisticGridCell(nextCellPos)
