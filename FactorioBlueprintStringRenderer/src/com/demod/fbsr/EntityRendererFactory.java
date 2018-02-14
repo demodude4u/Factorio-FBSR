@@ -6,12 +6,12 @@ import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.Point2D;
-import java.awt.geom.Point2D.Double;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -205,26 +205,16 @@ public class EntityRendererFactory {
 		return Optional.ofNullable(byType.get(type)).orElse(UNKNOWN);
 	}
 
-	protected void addLogisticWarp(WorldMap map, Double gridPos1, Direction cellDir1, Double gridPos2,
+	protected void addLogisticWarp(WorldMap map, Point2D.Double gridPos1, Direction cellDir1, Point2D.Double gridPos2,
 			Direction cellDir2) {
 		map.getOrCreateLogisticGridCell(cellDir1.offset(gridPos1, 0.25)).addWarp(cellDir2.offset(gridPos2, 0.25));
 	}
 
 	public void createModuleIcons(Consumer<Renderer> register, WorldMap map, DataTable table, BlueprintEntity entity,
 			EntityPrototype prototype) {
-		if (entity.json().has("items")) {
-			Multiset<String> modules = LinkedHashMultiset.create();
-
-			Object itemsJson = entity.json().get("items");
-			if (itemsJson instanceof JSONObject) {
-				Utils.forEach(entity.json().getJSONObject("items"), (String itemName, Integer count) -> {
-					modules.add(itemName, count);
-				});
-			} else if (itemsJson instanceof JSONArray) {
-				Utils.<JSONObject>forEach(entity.json().getJSONArray("items"), j -> {
-					modules.add(j.getString("item"), j.getInt("count"));
-				});
-			}
+		Optional<Multiset<String>> modulesOpt = RenderUtils.getModules(entity);
+		if (modulesOpt.isPresent()) {
+			Multiset<String> modules = modulesOpt.get();
 
 			register.accept(new Renderer(Layer.OVERLAY3, entity.getPosition()) {
 				final double spacing = 0.7;
@@ -258,6 +248,82 @@ public class EntityRendererFactory {
 					}
 				}
 			});
+		}
+
+		boolean weirdBeaconedCriteria = (!prototype.lua().get("module_specification").isnil()
+				|| entity.getName().equals("assembling-machine-1") || entity.getName().equals("burner-mining-drill"))
+				&& !entity.getName().equals("beacon");
+		if (weirdBeaconedCriteria) {
+			Point2D.Double pos = entity.getPosition();
+			Rectangle2D.Double beaconedBounds = Utils.parseRectangle(prototype.lua().get("selection_box"));
+			beaconedBounds.x += pos.x;
+			beaconedBounds.y += pos.y;
+			Set<BlueprintEntity> beacons = new LinkedHashSet<>();
+			map.getBeaconed(new Point2D.Double(beaconedBounds.x + 0.5, beaconedBounds.y + 0.5))
+					.ifPresent(beacons::addAll);
+			map.getBeaconed(new Point2D.Double(beaconedBounds.x + 0.5, beaconedBounds.y + beaconedBounds.height - 0.5))
+					.ifPresent(beacons::addAll);
+			map.getBeaconed(new Point2D.Double(beaconedBounds.x + beaconedBounds.width - 0.5,
+					beaconedBounds.y + beaconedBounds.height - 0.5)).ifPresent(beacons::addAll);
+			map.getBeaconed(new Point2D.Double(beaconedBounds.x + beaconedBounds.width - 0.5, beaconedBounds.y + 0.5))
+					.ifPresent(beacons::addAll);
+
+			if (!beacons.isEmpty()) {
+				Map<String, Double> beaconModules = new LinkedHashMap<>();
+				for (BlueprintEntity beacon : beacons) {
+					double distributionEffectivity = beacon.json().getDouble("distribution_effectivity");
+					Optional<Multiset<String>> modulesOpt2 = RenderUtils.getModules(beacon);
+					if (modulesOpt.isPresent()) {
+						Multiset<String> modules = modulesOpt2.get();
+						for (Multiset.Entry<String> entry : modules.entrySet()) {
+							double amount = beaconModules.getOrDefault(entry.getElement(), 0.0);
+							amount += distributionEffectivity * entry.getCount();
+							beaconModules.put(entry.getElement(), amount);
+						}
+					}
+				}
+
+				Multiset<String> modules = LinkedHashMultiset.create(beaconModules.size());
+				for (Map.Entry<String, Double> entry : beaconModules.entrySet()) {
+					if (entry.getValue() >= 1) {
+						modules.add(entry.getKey(), (int) (entry.getValue() + 0.01));
+					}
+				}
+
+				register.accept(new Renderer(Layer.OVERLAY3, entity.getPosition()) {
+					final double spacing = 0.3;
+					final double shadow = 0.3;
+					final double size = 0.25;
+					final double vpad = 0.5;
+
+					@Override
+					public void render(Graphics2D g) {
+						Point2D.Double pos = entity.getPosition();
+						Rectangle2D.Double box = prototype.getSelectionBox();
+
+						double startX = pos.x + box.x + box.width / 2.0 - spacing * (modules.size() / 2.0)
+								+ spacing / 2.0;
+						double startY = pos.y + box.y + vpad;
+
+						Rectangle2D.Double shadowBox = new Rectangle2D.Double(startX - shadow / 2.0,
+								startY - shadow / 2.0, shadow, shadow);
+						Rectangle2D.Double spriteBox = new Rectangle2D.Double(startX - size / 2.0, startY - size / 2.0,
+								size, size);
+
+						for (String itemName : modules) {
+							g.setColor(new Color(0, 0, 0, 180));
+							g.fill(shadowBox);
+							BufferedImage image = table.getItem(itemName).map(FactorioData::getIcon)
+									.orElse(RenderUtils.EMPTY_IMAGE);
+							RenderUtils.drawImageInBounds(image,
+									new Rectangle(0, 0, image.getWidth(), image.getHeight()), spriteBox, g);
+
+							shadowBox.x += spacing;
+							spriteBox.x += spacing;
+						}
+					}
+				});
+			}
 		}
 	}
 
@@ -322,10 +388,10 @@ public class EntityRendererFactory {
 										new Point2D.Double()));
 
 							} else {
-								Pair<Double, Double> pair = map.getWire(key);
+								Pair<Point2D.Double, Point2D.Double> pair = map.getWire(key);
 
-								Double p1 = pair.getKey();
-								Double p2 = pair.getValue();
+								Point2D.Double p1 = pair.getKey();
+								Point2D.Double p2 = pair.getValue();
 								p2.setLocation(getWirePositionFor(entity, prototype, colorName, circuitId));
 
 								Color color;
@@ -371,7 +437,7 @@ public class EntityRendererFactory {
 			connectionPointLua = connectionPointLua.get(entity.getDirection().cardinal() + 1);
 		}
 
-		Double pos = entity.getPosition();
+		Point2D.Double pos = entity.getPosition();
 		Point2D.Double offset;
 		offset = Utils.parsePoint2D(connectionPointLua.get("wire").get(colorName));
 

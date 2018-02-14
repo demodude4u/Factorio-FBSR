@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -237,6 +238,7 @@ public class WorldMap {
 	private final Table<Integer, Integer, Object> walls = HashBasedTable.create();
 	private final Table<Integer, Integer, Boolean> gates = HashBasedTable.create();
 	private final Table<Integer, Integer, Pair<String, Direction>> undergroundBeltEndings = HashBasedTable.create();
+	private final Table<Integer, Integer, List<BlueprintEntity>> beaconed = HashBasedTable.create();
 
 	// Row: X*2
 	// Column: Y*2
@@ -252,6 +254,12 @@ public class WorldMap {
 
 	private int flag(Direction facing) {
 		return 1 << facing.cardinal();
+	}
+
+	public Optional<List<BlueprintEntity>> getBeaconed(Point2D.Double pos) {
+		int kr = (int) Math.floor(pos.x);
+		int kc = (int) Math.floor(pos.y);
+		return Optional.ofNullable(beaconed.get(kr, kc));
 	}
 
 	public Optional<BeltCell> getBelt(Point2D.Double pos) {
@@ -396,6 +404,16 @@ public class WorldMap {
 		int kr = (int) Math.floor(pos.x);
 		int kc = (int) Math.floor(pos.y);
 		return walls.contains(kr, kc);
+	}
+
+	public void setBeaconed(Point2D.Double pos, BlueprintEntity beacon) {
+		int kr = (int) Math.floor(pos.x);
+		int kc = (int) Math.floor(pos.y);
+		List<BlueprintEntity> list = beaconed.get(kr, kc);
+		if (list == null) {
+			beaconed.put(kr, kc, list = new LinkedList<>());
+		}
+		list.add(beacon);
 	}
 
 	public void setBelt(Point2D.Double pos, Direction facing, boolean bendable, boolean bendOthers) {

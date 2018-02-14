@@ -31,6 +31,20 @@ public class BlueprintEntity {
 		Utils.debugPrintJson(json);
 	}
 
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		BlueprintEntity other = (BlueprintEntity) obj;
+		if (id != other.id)
+			return false;
+		return true;
+	}
+
 	public Direction getDirection() {
 		return direction;
 	}
@@ -45,6 +59,11 @@ public class BlueprintEntity {
 
 	public Point2D.Double getPosition() {
 		return position;
+	}
+
+	@Override
+	public int hashCode() {
+		return id;
 	}
 
 	public JSONObject json() {

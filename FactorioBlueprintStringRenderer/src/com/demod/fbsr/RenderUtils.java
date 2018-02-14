@@ -13,7 +13,9 @@ import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.luaj.vm2.LuaValue;
 
@@ -23,6 +25,8 @@ import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.factorio.prototype.TilePrototype;
 import com.demod.fbsr.Renderer.Layer;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.LinkedHashMultiset;
+import com.google.common.collect.Multiset;
 
 public final class RenderUtils {
 	public static final BufferedImage EMPTY_IMAGE = new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
@@ -126,6 +130,26 @@ public final class RenderUtils {
 			sumB += ((pixel) & 0xFF) * f;
 		}
 		return new Color(sumR / sumA, sumG / sumA, sumB / sumA);
+	}
+
+	public static Optional<Multiset<String>> getModules(BlueprintEntity entity) {
+		if (!entity.json().has("items")) {
+			return Optional.empty();
+		}
+
+		Multiset<String> modules = LinkedHashMultiset.create();
+
+		Object itemsJson = entity.json().get("items");
+		if (itemsJson instanceof JSONObject) {
+			Utils.forEach(entity.json().getJSONObject("items"), (String itemName, Integer count) -> {
+				modules.add(itemName, count);
+			});
+		} else if (itemsJson instanceof JSONArray) {
+			Utils.<JSONObject>forEach(entity.json().getJSONArray("items"), j -> {
+				modules.add(j.getString("item"), j.getInt("count"));
+			});
+		}
+		return Optional.of(modules);
 	}
 
 	public static Sprite getSpriteFromAnimation(LuaValue lua) {
@@ -321,4 +345,5 @@ public final class RenderUtils {
 
 	private RenderUtils() {
 	}
+
 }
