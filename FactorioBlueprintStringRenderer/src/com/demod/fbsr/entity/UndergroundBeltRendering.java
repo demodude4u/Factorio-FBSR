@@ -3,6 +3,8 @@ package com.demod.fbsr.entity;
 import java.awt.geom.Point2D;
 import java.util.function.Consumer;
 
+import org.luaj.vm2.LuaValue;
+
 import com.demod.factorio.DataTable;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.BlueprintEntity;
@@ -10,8 +12,8 @@ import com.demod.fbsr.Direction;
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
-import com.demod.fbsr.Sprite;
 import com.demod.fbsr.Renderer.Layer;
+import com.demod.fbsr.Sprite;
 import com.demod.fbsr.WorldMap;
 
 public class UndergroundBeltRendering extends EntityRendererFactory {
@@ -27,8 +29,12 @@ public class UndergroundBeltRendering extends EntityRendererFactory {
 
 		int[] beltSpriteMapping = TransportBeltRendering.transportBeltSpriteMapping[entity.getDirection()
 				.cardinal()][1];
-		Sprite beltSprite = RenderUtils.getSpriteFromAnimation(prototype.lua().get("belt_horizontal"));
-		beltSprite.source.y = beltSprite.source.height * beltSpriteMapping[0];
+		LuaValue beltAnim = prototype.lua().get("belt_horizontal");
+		Sprite beltSprite = RenderUtils.getSpriteFromAnimation(beltAnim);
+		int frameCount = beltAnim.get("frame_count").toint();
+		int lineLength = beltAnim.get("line_length").optint(frameCount);
+		int offsetMultiplier = frameCount / lineLength;
+		beltSprite.source.y = beltSprite.source.height * beltSpriteMapping[0] * offsetMultiplier;
 		if (beltSpriteMapping[1] == 1) {
 			beltSprite.source.x += beltSprite.source.width;
 			beltSprite.source.width *= -1;

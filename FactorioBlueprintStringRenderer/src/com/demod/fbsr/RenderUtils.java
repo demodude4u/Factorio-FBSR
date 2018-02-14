@@ -2,6 +2,7 @@ package com.demod.fbsr;
 
 import java.awt.BasicStroke;
 import java.awt.Color;
+import java.awt.Font;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.Stroke;
@@ -62,8 +63,47 @@ public final class RenderUtils {
 		g.setTransform(pat);
 	}
 
+	public static Renderer drawRotatedString(Layer layer, Point2D.Double position, double angle, Color color,
+			String string) {
+		return new Renderer(layer, position) {
+			@Override
+			public void render(Graphics2D g) {
+				AffineTransform pat = g.getTransform();
+
+				g.setFont(new Font("Monospaced", Font.BOLD, 1).deriveFont(0.4f));
+				float textX = (float) bounds.x;
+				float textY = (float) bounds.y;
+
+				g.translate(textX, textY);
+				g.rotate(angle);
+
+				g.setColor(Color.darkGray);
+				g.drawString(string, 0.05f, 0.05f);
+				g.setColor(color);
+				g.drawString(string, 0f, 0f);
+
+				g.setTransform(pat);
+			}
+		};
+	}
+
 	public static void drawSprite(Sprite sprite, Graphics2D g) {
 		drawImageInBounds(sprite.image, sprite.source, sprite.bounds, g);
+	}
+
+	public static Renderer drawString(Layer layer, Point2D.Double position, Color color, String string) {
+		return new Renderer(layer, position) {
+			@Override
+			public void render(Graphics2D g) {
+				g.setFont(new Font("Monospaced", Font.BOLD, 1).deriveFont(0.4f));
+				float textX = (float) bounds.x;
+				float textY = (float) bounds.y;
+				g.setColor(Color.darkGray);
+				g.drawString(string, textX + 0.05f, textY + 0.05f);
+				g.setColor(color);
+				g.drawString(string, textX, textY);
+			}
+		};
 	}
 
 	public static String fmtDouble(double value) {
