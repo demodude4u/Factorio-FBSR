@@ -565,6 +565,9 @@ public class FBSR {
 			if (itemName.startsWith("hazard-concrete")) {
 				itemName = "hazard-concrete";
 			}
+			if (itemName.startsWith("refined-hazard-concrete")) {
+				itemName = "refined-hazard-concrete";
+			}
 			if (itemName.equals("stone-path")) {
 				itemName = "stone-brick";
 			}
