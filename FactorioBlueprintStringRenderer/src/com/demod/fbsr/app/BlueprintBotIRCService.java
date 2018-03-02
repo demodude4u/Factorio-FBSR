@@ -33,8 +33,8 @@ public class BlueprintBotIRCService extends AbstractIdleService {
 	private PircBotX bot;
 
 	private String server;
-
 	private String channel;
+	private String command;
 
 	private void handleBlueprintCommand(GenericMessageEvent event) {
 		String content = event.getMessage();
@@ -96,7 +96,7 @@ public class BlueprintBotIRCService extends AbstractIdleService {
 			return;
 		}
 
-		if (event.getMessage().toLowerCase().startsWith("!blueprint ")) {
+		if (event.getMessage().toLowerCase().startsWith(command + " ")) {
 			handleBlueprintCommand(event);
 		}
 	}
@@ -113,6 +113,7 @@ public class BlueprintBotIRCService extends AbstractIdleService {
 
 		server = configJson.getString("server");
 		channel = configJson.getString("channel");
+		command = configJson.getString("command");
 		Configuration configuration = new Configuration.Builder()//
 				.setName(configJson.getString("name"))//
 				.setNickservPassword(configJson.optString("password", null))//
