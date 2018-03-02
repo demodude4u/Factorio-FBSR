@@ -19,6 +19,13 @@
         "age_limit_hours": 24,
         "process_messages": true
     },
+    "irc": {
+        "server": "",
+        "channel": "",
+        "name": "",
+        "password": "",
+        "command": "!blueprint"
+    },
     "webapi": {
         "bind": "0.0.0.0",
         "port": 80

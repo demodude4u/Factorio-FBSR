@@ -26,6 +26,7 @@ public class StartAllServices {
 		List<Service> services = new ArrayList<>();
 		addServiceIfEnabled(services, "discord", BlueprintBotDiscordService::new);
 		addServiceIfEnabled(services, "reddit", BlueprintBotRedditService::new);
+		addServiceIfEnabled(services, "irc", BlueprintBotIRCService::new);
 		addServiceIfEnabled(services, "webapi", WebAPIService::new);
 		addServiceIfEnabled(services, "watchdog", WatchdogService::new);
 		addServiceIfEnabled(services, "logging", LoggingService::new);
