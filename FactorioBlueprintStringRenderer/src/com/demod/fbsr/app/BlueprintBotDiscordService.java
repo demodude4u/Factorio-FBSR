@@ -98,7 +98,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 					return;
 				}
 				String key = Arrays.asList(args).stream().collect(Collectors.joining());
-				String[] path = key.split(".");
+				String[] path = key.split("\\.");
 				Optional<LuaValue> lua = query.apply(path);
 				if (!lua.isPresent()) {
 					event.getChannel()
