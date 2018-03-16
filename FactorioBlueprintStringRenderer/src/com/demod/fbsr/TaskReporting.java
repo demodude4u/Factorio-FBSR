@@ -1,15 +1,15 @@
 package com.demod.fbsr;
 
 import java.awt.Color;
+import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 
 import com.demod.fbsr.WorldMap.Debug;
-
-import javafx.util.Pair;
 
 public class TaskReporting {
 	public static enum Level {
@@ -30,7 +30,7 @@ public class TaskReporting {
 	private Optional<String> context = Optional.empty();
 	private final List<String> warnings = new ArrayList<>();
 	private final List<Exception> exceptions = new ArrayList<>();
-	private final List<Pair<Optional<String>, String>> images = new ArrayList<>();
+	private final List<Entry<Optional<String>, String>> images = new ArrayList<>();
 	private final List<String> downloads = new ArrayList<>();
 	private final List<String> links = new ArrayList<>();
 	private final Set<String> info = new LinkedHashSet<>();
@@ -48,7 +48,7 @@ public class TaskReporting {
 	}
 
 	public void addImage(Optional<String> label, String url) {
-		images.add(new Pair<>(label, url));
+		images.add(new SimpleEntry<>(label, url));
 	}
 
 	public void addInfo(String info) {
@@ -83,7 +83,7 @@ public class TaskReporting {
 		return exceptions;
 	}
 
-	public List<Pair<Optional<String>, String>> getImages() {
+	public List<Entry<Optional<String>, String>> getImages() {
 		return images;
 	}
 

@@ -3,8 +3,10 @@ package com.demod.fbsr.app;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.net.URL;
+import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
 import org.json.JSONObject;
@@ -21,8 +23,6 @@ import com.demod.fbsr.FBSR;
 import com.demod.fbsr.TaskReporting;
 import com.demod.fbsr.WebUtils;
 import com.google.common.util.concurrent.AbstractIdleService;
-
-import javafx.util.Pair;
 
 public class BlueprintBotIRCService extends AbstractIdleService {
 
@@ -51,10 +51,10 @@ public class BlueprintBotIRCService extends AbstractIdleService {
 					reporting.addInfo(WebUtils.uploadToHostingService("blueprint.png", image).toString());
 
 				} else {
-					List<Pair<URL, String>> links = new ArrayList<>();
+					List<Entry<URL, String>> links = new ArrayList<>();
 					for (Blueprint blueprint : blueprintString.getBlueprints()) {
 						BufferedImage image = FBSR.renderBlueprint(blueprint, reporting);
-						links.add(new Pair<>(WebUtils.uploadToHostingService("blueprint.png", image),
+						links.add(new SimpleEntry<>(WebUtils.uploadToHostingService("blueprint.png", image),
 								blueprint.getLabel().orElse("")));
 					}
 

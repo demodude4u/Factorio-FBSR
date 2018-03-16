@@ -2,6 +2,7 @@ package com.demod.fbsr.app;
 
 import java.awt.image.BufferedImage;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -20,8 +21,6 @@ import com.demod.fbsr.FBSR;
 import com.demod.fbsr.TaskReporting;
 import com.demod.fbsr.WebUtils;
 import com.google.common.util.concurrent.AbstractIdleService;
-
-import javafx.util.Pair;
 
 public class WebAPIService extends AbstractIdleService {
 
@@ -81,7 +80,7 @@ public class WebAPIService extends AbstractIdleService {
 
 			if (!reporting.getImages().isEmpty()) {
 				JSONArray images = new JSONArray();
-				for (Pair<Optional<String>, String> pair : reporting.getImages()) {
+				for (Entry<Optional<String>, String> pair : reporting.getImages()) {
 					JSONObject image = new JSONObject();
 					Utils.terribleHackToHaveOrderedJSONObject(image);
 					pair.getKey().ifPresent(l -> image.put("label", l));

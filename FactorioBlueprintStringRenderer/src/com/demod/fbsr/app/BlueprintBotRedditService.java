@@ -8,10 +8,12 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -29,7 +31,6 @@ import com.demod.fbsr.WebUtils;
 import com.google.common.util.concurrent.AbstractScheduledService;
 import com.google.common.util.concurrent.Uninterruptibles;
 
-import javafx.util.Pair;
 import net.dean.jraw.ApiException;
 import net.dean.jraw.RedditClient;
 import net.dean.jraw.http.NetworkException;
@@ -157,15 +158,15 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 		}
 
 		List<String> lines = new ArrayList<>();
-		List<Pair<Optional<String>, String>> images = reporting.getImages();
+		List<Entry<Optional<String>, String>> images = reporting.getImages();
 		if (images.size() > 1) {
 			int id = 1;
-			List<Pair<URL, String>> links = new ArrayList<>();
-			for (Pair<Optional<String>, String> pair : images) {
+			List<Entry<URL, String>> links = new ArrayList<>();
+			for (Entry<Optional<String>, String> pair : images) {
 				Optional<String> label = pair.getKey();
 				String url = pair.getValue();
 				try {
-					links.add(new Pair<>(new URL(url), label.orElse(null)));
+					links.add(new SimpleEntry<>(new URL(url), label.orElse(null)));
 				} catch (MalformedURLException e) {
 					reporting.addException(e);
 				}
@@ -183,13 +184,13 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 			} else {
 				lines.add("Blueprint Images:");
 			}
-			for (Pair<Optional<String>, String> pair : images) {
+			for (Entry<Optional<String>, String> pair : images) {
 				Optional<String> label = pair.getKey();
 				String url = pair.getValue();
 				lines.add("[" + (id++) + ": " + label.orElse("Blueprint") + "](" + url + ")");
 			}
 		} else if (!images.isEmpty()) {
-			Pair<Optional<String>, String> pair = images.get(0);
+			Entry<Optional<String>, String> pair = images.get(0);
 			Optional<String> label = pair.getKey();
 			String url = pair.getValue();
 			lines.add("[Blueprint Image" + label.map(s -> " (" + s + ")").orElse("") + "](" + url + ")");
@@ -224,7 +225,7 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 
 		int processedCount = 0;
 		long newestMillis = lastProcessedMillis;
-		List<Pair<Comment, String>> pendingReplies = new LinkedList<>();
+		List<Entry<Comment, String>> pendingReplies = new LinkedList<>();
 		paginate: for (Listing<Comment> listing : commentStream) {
 			for (Comment comment : listing) {
 				long createMillis = comment.getCreated().getTime();
@@ -246,11 +247,11 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 				Optional<String> response = processContent(comment.getBody(), getPermaLink(comment),
 						comment.getSubredditName(), comment.getAuthor(), watchdog);
 				if (response.isPresent()) {
-					pendingReplies.add(new Pair<>(comment, response.get()));
+					pendingReplies.add(new SimpleEntry<>(comment, response.get()));
 				}
 			}
 		}
-		for (Pair<Comment, String> pair : pendingReplies) {
+		for (Entry<Comment, String> pair : pendingReplies) {
 			System.out.println("IM TRYING TO REPLY TO A COMMENT!");
 			while (true) {
 				try {
@@ -287,7 +288,7 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 
 		int processedCount = 0;
 		long newestMillis = lastProcessedMillis;
-		List<Pair<Message, String>> pendingReplies = new LinkedList<>();
+		List<Entry<Message, String>> pendingReplies = new LinkedList<>();
 		List<Message> processedMessages = new LinkedList<>();
 		paginate: for (Listing<Message> listing : paginator) {
 			for (Message message : listing) {
@@ -308,7 +309,7 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 				Optional<String> response = processContent(message.getBody(), getPermaLink(message), "(Private)",
 						message.getAuthor(), watchdog);
 				if (response.isPresent()) {
-					pendingReplies.add(new Pair<>(message, response.get()));
+					pendingReplies.add(new SimpleEntry<>(message, response.get()));
 				}
 			}
 		}
@@ -318,7 +319,7 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 					processedMessages.stream().skip(1).toArray(Message[]::new));
 		}
 
-		for (Pair<Message, String> pair : pendingReplies) {
+		for (Entry<Message, String> pair : pendingReplies) {
 			System.out.println("IM TRYING TO REPLY TO A MESSAGE!");
 			while (true) {
 				try {
@@ -354,7 +355,7 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 
 		int processedCount = 0;
 		long newestMillis = lastProcessedMillis;
-		List<Pair<Submission, String>> pendingReplies = new LinkedList<>();
+		List<Entry<Submission, String>> pendingReplies = new LinkedList<>();
 		paginate: for (Listing<Submission> listing : paginator) {
 			for (Submission submission : listing) {
 				long createMillis = submission.getCreated().getTime();
@@ -381,11 +382,11 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 				Optional<String> response = processContent(submission.getSelftext(), submission.getUrl(),
 						submission.getSubredditName(), submission.getAuthor(), watchdog);
 				if (response.isPresent()) {
-					pendingReplies.add(new Pair<>(submission, response.get()));
+					pendingReplies.add(new SimpleEntry<>(submission, response.get()));
 				}
 			}
 		}
-		for (Pair<Submission, String> pair : pendingReplies) {
+		for (Entry<Submission, String> pair : pendingReplies) {
 			System.out.println("IM TRYING TO REPLY TO A SUBMISSION!");
 			while (true) {
 				try {

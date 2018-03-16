@@ -19,6 +19,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -57,8 +58,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Table;
-
-import javafx.util.Pair;
 
 public class FBSR {
 
@@ -780,14 +779,14 @@ public class FBSR {
 
 	private static void populateTransitLogistics(WorldMap map) {
 		Table<Integer, Integer, LogisticGridCell> logisticGrid = map.getLogisticGrid();
-		ArrayDeque<Pair<Point2D.Double, LogisticGridCell>> work = new ArrayDeque<>();
+		ArrayDeque<Entry<Point2D.Double, LogisticGridCell>> work = new ArrayDeque<>();
 
 		logisticGrid.cellSet().stream().filter(c -> c.getValue().isTransitStart()).forEach(c -> {
 			Set<String> outputs = c.getValue().getOutputs().get();
 			for (String item : outputs) {
-				work.add(new Pair<>(map.getLogisticCellPosition(c), c.getValue()));
+				work.add(new SimpleEntry<>(map.getLogisticCellPosition(c), c.getValue()));
 				while (!work.isEmpty()) {
-					Pair<Point2D.Double, LogisticGridCell> pair = work.pop();
+					Entry<Point2D.Double, LogisticGridCell> pair = work.pop();
 					Point2D.Double cellPos = pair.getKey();
 					LogisticGridCell cell = pair.getValue();
 					if (cell.addTransit(item) && !cell.isBannedOutput(item)) {
@@ -795,12 +794,12 @@ public class FBSR {
 							Point2D.Double nextCellPos = d.offset(cellPos, 0.5);
 							map.getLogisticGridCell(nextCellPos)
 									.filter(nc -> !nc.isBlockTransit() && nc.acceptMoveFrom(d))
-									.ifPresent(next -> work.add(new Pair<>(nextCellPos, next)));
+									.ifPresent(next -> work.add(new SimpleEntry<>(nextCellPos, next)));
 						});
 						cell.getWarps().ifPresent(l -> {
 							for (Point2D.Double p : l) {
 								map.getLogisticGridCell(p).filter(nc -> !nc.isBlockTransit())
-										.ifPresent(next -> work.add(new Pair<>(p, next)));
+										.ifPresent(next -> work.add(new SimpleEntry<>(p, next)));
 							}
 						});
 					}
@@ -812,9 +811,9 @@ public class FBSR {
 			logisticGrid.cellSet().stream().filter(c -> c.getValue().isTransitEnd()).forEach(c -> {
 				Set<String> inputs = c.getValue().getInputs().get();
 				for (String item : inputs) {
-					work.add(new Pair<>(map.getLogisticCellPosition(c), c.getValue()));
+					work.add(new SimpleEntry<>(map.getLogisticCellPosition(c), c.getValue()));
 					while (!work.isEmpty()) {
-						Pair<Point2D.Double, LogisticGridCell> pair = work.pop();
+						Entry<Point2D.Double, LogisticGridCell> pair = work.pop();
 						Point2D.Double cellPos = pair.getKey();
 						LogisticGridCell cell = pair.getValue();
 						if (cell.addTransit(item)) {
@@ -822,13 +821,13 @@ public class FBSR {
 								for (Direction d : l) {
 									Point2D.Double nextCellPos = d.offset(cellPos, 0.5);
 									map.getLogisticGridCell(nextCellPos).filter(nc -> !nc.isBlockTransit())
-											.ifPresent(next -> work.add(new Pair<>(nextCellPos, next)));
+											.ifPresent(next -> work.add(new SimpleEntry<>(nextCellPos, next)));
 								}
 							});
 							cell.getWarpedFrom().ifPresent(l -> {
 								for (Point2D.Double p : l) {
 									map.getLogisticGridCell(p).filter(nc -> !nc.isBlockTransit())
-											.ifPresent(next -> work.add(new Pair<>(p, next)));
+											.ifPresent(next -> work.add(new SimpleEntry<>(p, next)));
 								}
 							});
 						}
@@ -1056,7 +1055,7 @@ public class FBSR {
 	}
 
 	private static void showRailLogistics(Consumer<Renderer> register, DataTable table, WorldMap map) {
-		for (Pair<RailEdge, RailEdge> pair : map.getRailEdges()) {
+		for (Entry<RailEdge, RailEdge> pair : map.getRailEdges()) {
 			boolean input = pair.getKey().isInput() || pair.getValue().isInput();
 			boolean output = pair.getKey().isOutput() || pair.getValue().isOutput();
 

@@ -8,6 +8,7 @@ import java.io.StringWriter;
 import java.lang.reflect.Field;
 import java.net.URL;
 import java.time.Instant;
+import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -15,6 +16,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
@@ -53,7 +55,6 @@ import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.Multiset;
 import com.google.common.util.concurrent.AbstractIdleService;
 
-import javafx.util.Pair;
 import net.dv8tion.jda.core.EmbedBuilder;
 import net.dv8tion.jda.core.Permission;
 import net.dv8tion.jda.core.entities.Message;
@@ -185,7 +186,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 					if (!prototype.isPresent()) {
 						LevenshteinDistance levenshteinDistance = LevenshteinDistance.getDefaultInstance();
 						List<String> suggestions = map.keySet().stream()
-								.map(k -> new Pair<>(k, levenshteinDistance.apply(search, k)))
+								.map(k -> new SimpleEntry<>(k, levenshteinDistance.apply(search, k)))
 								.sorted((p1, p2) -> Integer.compare(p1.getValue(), p2.getValue())).limit(5)
 								.map(p -> p.getKey()).collect(Collectors.toList());
 						event.getChannel()
@@ -211,7 +212,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		Optional<String> context = reporting.getContext();
 		List<Exception> exceptions = reporting.getExceptions();
 		List<String> warnings = reporting.getWarnings();
-		List<Pair<Optional<String>, String>> images = reporting.getImages();
+		List<Entry<Optional<String>, String>> images = reporting.getImages();
 		List<String> links = reporting.getLinks();
 		List<String> downloads = reporting.getDownloads();
 		Set<String> info = reporting.getInfo();
@@ -241,7 +242,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		}
 		if (images.size() > 1) {
 			WebUtils.addPossiblyLargeEmbedField(builder, "Additional Image(s)",
-					images.stream().skip(1).map(Pair::getValue).collect(Collectors.joining("\n")), false);
+					images.stream().skip(1).map(Entry::getValue).collect(Collectors.joining("\n")), false);
 		}
 
 		if (!downloads.isEmpty()) {
@@ -415,17 +416,16 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 		List<Blueprint> blueprints = blueprintStrings.stream().flatMap(bs -> bs.getBlueprints().stream())
 				.collect(Collectors.toList());
-		List<Pair<URL, String>> links = new ArrayList<>();
+		List<Entry<URL, String>> links = new ArrayList<>();
 		for (Blueprint blueprint : blueprints) {
 			try {
 				blueprint.json().remove("index");
 
 				URL url = WebUtils.uploadToHostingService("blueprint.txt",
 						(/*
-							 * blueprint.getLabel().orElse("Blueprint String") +
-							 * ": "
+							 * blueprint.getLabel().orElse("Blueprint String") + ": "
 							 */" " + BlueprintStringData.encode(blueprint.json())).getBytes());
-				links.add(new Pair<>(url, blueprint.getLabel().orElse(null)));
+				links.add(new SimpleEntry<>(url, blueprint.getLabel().orElse(null)));
 			} catch (Exception e) {
 				reporting.addException(e);
 			}
@@ -703,10 +703,10 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 						reporting.addInfo(WebUtils.uploadToHostingService("blueprint.png", image).toString());
 					}
 				} else {
-					List<Pair<URL, String>> links = new ArrayList<>();
+					List<Entry<URL, String>> links = new ArrayList<>();
 					for (Blueprint blueprint : blueprintString.getBlueprints()) {
 						BufferedImage image = FBSR.renderBlueprint(blueprint, reporting);
-						links.add(new Pair<>(WebUtils.uploadToHostingService("blueprint.png", image),
+						links.add(new SimpleEntry<>(WebUtils.uploadToHostingService("blueprint.png", image),
 								blueprint.getLabel().orElse("")));
 					}
 					try {
@@ -727,11 +727,12 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		}
 	}
 
-	private void sendBundlyReplacementEmbed(MessageChannel channel, String title, List<Pair<URL, String>> links)
+	private void sendBundlyReplacementEmbed(MessageChannel channel, String title, List<Entry<URL, String>> links)
 			throws IllegalStateException {
 		ArrayDeque<String> linksFormatted = links.stream()
 				.map(p -> (p.getValue() != null && !p.getValue().isEmpty())
-						? ("[" + p.getValue() + "](" + p.getKey() + ")") : p.getKey().toString())
+						? ("[" + p.getValue() + "](" + p.getKey() + ")")
+						: p.getKey().toString())
 				.collect(Collectors.toCollection(ArrayDeque::new));
 		while (!linksFormatted.isEmpty()) {
 			EmbedBuilder builder = new EmbedBuilder();
@@ -765,9 +766,8 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 	public void sendReport(MessageReceivedEvent event, TaskReporting reporting) {
 		if (!reporting.getExceptions().isEmpty()) {
-			event.getChannel()
-					.sendMessage(
-							"There was a problem completing your request. I have contacted my programmer to fix it for you!")
+			event.getChannel().sendMessage(
+					"There was a problem completing your request. I have contacted my programmer to fix it for you!")
 					.complete();
 		}
 

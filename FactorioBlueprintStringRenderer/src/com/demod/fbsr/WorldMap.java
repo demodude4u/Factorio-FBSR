@@ -2,6 +2,7 @@ package com.demod.fbsr;
 
 import java.awt.geom.Point2D;
 import java.awt.geom.Point2D.Double;
+import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -9,6 +10,7 @@ import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 
@@ -19,8 +21,6 @@ import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Table;
 import com.google.common.collect.Table.Cell;
-
-import javafx.util.Pair;
 
 public class WorldMap {
 
@@ -237,7 +237,7 @@ public class WorldMap {
 	private final Table<Integer, Integer, Integer> heatPipes = HashBasedTable.create();
 	private final Table<Integer, Integer, Object> walls = HashBasedTable.create();
 	private final Table<Integer, Integer, Boolean> gates = HashBasedTable.create();
-	private final Table<Integer, Integer, Pair<String, Direction>> undergroundBeltEndings = HashBasedTable.create();
+	private final Table<Integer, Integer, Entry<String, Direction>> undergroundBeltEndings = HashBasedTable.create();
 	private final Table<Integer, Integer, List<BlueprintEntity>> beaconed = HashBasedTable.create();
 
 	// Row: X*2
@@ -246,9 +246,9 @@ public class WorldMap {
 	private final Table<Integer, Integer, RailNode> railNodes = HashBasedTable.create();
 
 	// Key: "eid1|cid1|eid2|cid2|color"
-	private final Map<String, Pair<Point2D.Double, Point2D.Double>> wires = new LinkedHashMap<>();
+	private final Map<String, Entry<Point2D.Double, Point2D.Double>> wires = new LinkedHashMap<>();
 
-	private final List<Pair<RailEdge, RailEdge>> railEdges = new ArrayList<>();
+	private final List<Entry<RailEdge, RailEdge>> railEdges = new ArrayList<>();
 
 	private Debug debug = new Debug();
 
@@ -338,7 +338,7 @@ public class WorldMap {
 		return ret;
 	}
 
-	public List<Pair<RailEdge, RailEdge>> getRailEdges() {
+	public List<Entry<RailEdge, RailEdge>> getRailEdges() {
 		return railEdges;
 	}
 
@@ -352,11 +352,11 @@ public class WorldMap {
 		return railNodes;
 	}
 
-	public Pair<Point2D.Double, Point2D.Double> getWire(String key) {
+	public Entry<Point2D.Double, Point2D.Double> getWire(String key) {
 		return wires.get(key);
 	}
 
-	public Map<String, Pair<Point2D.Double, Point2D.Double>> getWires() {
+	public Map<String, Entry<Point2D.Double, Point2D.Double>> getWires() {
 		return wires;
 	}
 
@@ -469,13 +469,13 @@ public class WorldMap {
 		RailEdge edge2 = new RailEdge(p2, d2, p1, d1, curved);
 		node2.addOutgoingEdge(edge2);
 		node1.addIncomingEdge(edge2);
-		railEdges.add(new Pair<>(edge1, edge2));
+		railEdges.add(new SimpleEntry<>(edge1, edge2));
 	}
 
 	public void setUndergroundBeltEnding(String name, Point2D.Double pos, Direction dir) {
 		int kr = (int) Math.floor(pos.x);
 		int kc = (int) Math.floor(pos.y);
-		undergroundBeltEndings.put(kr, kc, new Pair<>(name, dir));
+		undergroundBeltEndings.put(kr, kc, new SimpleEntry<>(name, dir));
 	}
 
 	public void setVerticalGate(Point2D.Double pos) {
@@ -490,7 +490,7 @@ public class WorldMap {
 		walls.put(kr, kc, pos);
 	}
 
-	public void setWire(String key, Pair<Point2D.Double, Point2D.Double> pair) {
+	public void setWire(String key, Entry<Point2D.Double, Point2D.Double> pair) {
 		wires.put(key, pair);
 	}
 }

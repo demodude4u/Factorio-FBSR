@@ -13,6 +13,7 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
@@ -27,7 +28,6 @@ import com.demod.fbsr.app.BlueprintBotDiscordService;
 import com.demod.fbsr.app.ServiceFinder;
 import com.google.common.util.concurrent.Uninterruptibles;
 
-import javafx.util.Pair;
 import net.dv8tion.jda.core.EmbedBuilder;
 import net.dv8tion.jda.core.entities.MessageEmbed;
 
@@ -90,14 +90,14 @@ public final class WebUtils {
 		return Utils.readJsonFromStream(new URL(url).openStream());
 	}
 
-	public static URL uploadToBundly(String title, String description, List<Pair<URL, String>> links)
+	public static URL uploadToBundly(String title, String description, List<Entry<URL, String>> links)
 			throws IOException {
 		JSONObject request = new JSONObject();
 		request.put("title", title);
 		request.put("desc", description);
 
 		JSONArray items = new JSONArray();
-		for (Pair<URL, String> pair : links) {
+		for (Entry<URL, String> pair : links) {
 			JSONObject item = new JSONObject();
 			item.put("url", pair.getKey().toString());
 			item.put("id", Long.toString(System.currentTimeMillis()));

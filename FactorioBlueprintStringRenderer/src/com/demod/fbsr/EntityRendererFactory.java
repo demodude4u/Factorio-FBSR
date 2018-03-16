@@ -8,12 +8,14 @@ import java.awt.geom.Ellipse2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
+import java.util.AbstractMap.SimpleEntry;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
@@ -77,8 +79,6 @@ import com.demod.fbsr.entity.WallRendering;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.Multiset;
-
-import javafx.util.Pair;
 
 public class EntityRendererFactory {
 
@@ -384,11 +384,12 @@ public class EntityRendererFactory {
 							}
 
 							if (!map.hasWire(key)) {
-								map.setWire(key, new Pair<>(getWirePositionFor(entity, prototype, colorName, circuitId),
-										new Point2D.Double()));
+								map.setWire(key,
+										new SimpleEntry<>(getWirePositionFor(entity, prototype, colorName, circuitId),
+												new Point2D.Double()));
 
 							} else {
-								Pair<Point2D.Double, Point2D.Double> pair = map.getWire(key);
+								Entry<Point2D.Double, Point2D.Double> pair = map.getWire(key);
 
 								Point2D.Double p1 = pair.getKey();
 								Point2D.Double p2 = pair.getValue();
