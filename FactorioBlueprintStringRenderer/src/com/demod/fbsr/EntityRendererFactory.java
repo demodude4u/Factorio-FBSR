@@ -273,7 +273,7 @@ public class EntityRendererFactory {
 				for (BlueprintEntity beacon : beacons) {
 					double distributionEffectivity = beacon.json().getDouble("distribution_effectivity");
 					Optional<Multiset<String>> modulesOpt2 = RenderUtils.getModules(beacon);
-					if (modulesOpt.isPresent()) {
+					if (modulesOpt2.isPresent()) {
 						Multiset<String> modules = modulesOpt2.get();
 						for (Multiset.Entry<String> entry : modules.entrySet()) {
 							double amount = beaconModules.getOrDefault(entry.getElement(), 0.0);
