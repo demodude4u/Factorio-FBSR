@@ -153,10 +153,16 @@ public final class RenderUtils {
 	}
 
 	public static Sprite getSpriteFromAnimation(LuaValue lua) {
+		LuaValue sheetLua = lua.get("sheet");
+		if (!sheetLua.isnil()) {
+			lua = sheetLua;
+		}
+
 		LuaValue hrVersion = lua.get("hr_version");
 		if (!hrVersion.isnil()) {
+			final LuaValue lua_f = lua;
 			Utils.forEach(hrVersion, (k, v) -> {
-				lua.set(k, v);
+				lua_f.set(k, v);
 			});
 			lua.set("hr_version", LuaValue.NIL);
 		}
