@@ -216,7 +216,7 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 	}
 
 	private boolean processNewComments(JSONObject cacheJson, String subreddit, long ageLimitMillis,
-			Optional<WatchdogService> watchdog) throws ApiException {
+			Optional<WatchdogService> watchdog) throws ApiException, IOException {
 		long lastProcessedMillis = cacheJson.getLong("lastProcessedCommentMillis");
 
 		CommentStream commentStream = new CommentStream(reddit, subreddit);
@@ -253,9 +253,14 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 		}
 		for (Entry<Comment, String> pair : pendingReplies) {
 			System.out.println("IM TRYING TO REPLY TO A COMMENT!");
+			String message = pair.getValue();
+			if (message.length() > 10000) {
+				message = WebUtils.uploadToHostingService("MESSAGE_TOO_LONG.txt", message.getBytes()).toString();
+			}
+
 			while (true) {
 				try {
-					account.reply(pair.getKey(), pair.getValue());
+					account.reply(pair.getKey(), message);
 					break;
 				} catch (ApiException e) {
 					if (e.getReason().equals("RATELIMIT")) {
