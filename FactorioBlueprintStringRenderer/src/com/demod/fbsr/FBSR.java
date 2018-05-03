@@ -579,7 +579,7 @@ public class FBSR {
 		return ret;
 	}
 
-	private static Map<String, Double> generateTotalRawItems(DataTable table, Map<String, RecipePrototype> recipes,
+	public static Map<String, Double> generateTotalRawItems(DataTable table, Map<String, RecipePrototype> recipes,
 			Map<String, Double> totalItems) {
 		Map<String, Double> ret = new LinkedHashMap<>();
 		TotalRawCalculator calculator = new TotalRawCalculator(recipes);

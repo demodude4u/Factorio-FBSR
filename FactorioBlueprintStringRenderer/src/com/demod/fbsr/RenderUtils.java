@@ -11,6 +11,7 @@ import java.awt.geom.Path2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -33,6 +34,8 @@ public final class RenderUtils {
 	static {
 		EMPTY_IMAGE.setRGB(0, 0, 0x00000000);
 	}
+
+	private static final DecimalFormat DECIMAL_FORMAT_2_PLACES = new DecimalFormat("#,##0.##");
 
 	public static Renderer createWireRenderer(Point2D.Double p1, Point2D.Double p2, Color color) {
 		Rectangle2D.Double bounds = new Rectangle2D.Double();
@@ -116,6 +119,10 @@ public final class RenderUtils {
 		} else {
 			return Double.toString(value);// String.format("%f", value);
 		}
+	}
+
+	public static String fmtDouble2(double value) {
+		return DECIMAL_FORMAT_2_PLACES.format(value);
 	}
 
 	public static Color getAverageColor(BufferedImage image) {
