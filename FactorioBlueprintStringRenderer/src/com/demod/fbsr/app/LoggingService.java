@@ -6,6 +6,7 @@ import java.io.PrintStream;
 
 import javax.swing.JOptionPane;
 
+import org.apache.commons.io.output.TeeOutputStream;
 import org.json.JSONObject;
 
 import com.demod.factorio.Config;
@@ -19,9 +20,9 @@ public class LoggingService extends AbstractIdleService {
 			JSONObject configJson = Config.get().getJSONObject("logging");
 
 			File file = new File(configJson.getString("file"));
-			PrintStream fout = new PrintStream(new FileOutputStream(file), true);
-			System.setOut(fout);
-			System.setErr(fout);
+			FileOutputStream fos = new FileOutputStream(file);
+			System.setOut(new PrintStream(new TeeOutputStream(System.out, fos)));
+			System.setErr(new PrintStream(new TeeOutputStream(System.err, fos)));
 
 		} catch (Exception e) {
 			JOptionPane.showMessageDialog(null, e.getMessage());
