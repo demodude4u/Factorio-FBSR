@@ -35,9 +35,7 @@ import java.util.function.Consumer;
 
 import javax.imageio.ImageIO;
 
-import org.json.JSONArray;
 import org.json.JSONException;
-import org.json.JSONObject;
 
 import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
@@ -539,23 +537,10 @@ public class FBSR {
 				addToItemAmount(ret, i.getName(), 1);
 			});
 
-			if (entity.json().has("items")) {
-				Object itemsJson = entity.json().get("items");
-				if (itemsJson instanceof JSONObject) {
-					Utils.forEach(entity.json().getJSONObject("items"), (String moduleName, Integer count) -> {
-						if (!table.getItem(moduleName).isPresent()) {
-							return;
-						}
-						addToItemAmount(ret, moduleName, count);
-					});
-				} else if (itemsJson instanceof JSONArray) {
-					Utils.<JSONObject>forEach(entity.json().getJSONArray("items"), j -> {
-						String moduleName = j.getString("item");
-						if (!table.getItem(moduleName).isPresent()) {
-							return;
-						}
-						addToItemAmount(ret, moduleName, j.getInt("count"));
-					});
+			Optional<Multiset<String>> modules = RenderUtils.getModules(entity, table);
+			if (modules.isPresent()) {
+				for (Multiset.Entry<String> entry : modules.get().entrySet()) {
+					addToItemAmount(ret, entry.getElement(), entry.getCount());
 				}
 			}
 		}

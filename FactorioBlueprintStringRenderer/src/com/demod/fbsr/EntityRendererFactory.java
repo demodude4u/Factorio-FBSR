@@ -212,7 +212,7 @@ public class EntityRendererFactory {
 
 	public void createModuleIcons(Consumer<Renderer> register, WorldMap map, DataTable table, BlueprintEntity entity,
 			EntityPrototype prototype) {
-		Optional<Multiset<String>> modulesOpt = RenderUtils.getModules(entity);
+		Optional<Multiset<String>> modulesOpt = RenderUtils.getModules(entity, table);
 		if (modulesOpt.isPresent()) {
 			Multiset<String> modules = modulesOpt.get();
 
@@ -272,7 +272,7 @@ public class EntityRendererFactory {
 				Map<String, Double> beaconModules = new LinkedHashMap<>();
 				for (BlueprintEntity beacon : beacons) {
 					double distributionEffectivity = beacon.json().getDouble("distribution_effectivity");
-					Optional<Multiset<String>> modulesOpt2 = RenderUtils.getModules(beacon);
+					Optional<Multiset<String>> modulesOpt2 = RenderUtils.getModules(beacon, table);
 					if (modulesOpt2.isPresent()) {
 						Multiset<String> modules = modulesOpt2.get();
 						for (Multiset.Entry<String> entry : modules.entrySet()) {

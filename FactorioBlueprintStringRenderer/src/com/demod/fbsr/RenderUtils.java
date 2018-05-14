@@ -20,9 +20,11 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.luaj.vm2.LuaValue;
 
+import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
 import com.demod.factorio.Utils;
 import com.demod.factorio.prototype.EntityPrototype;
+import com.demod.factorio.prototype.ItemPrototype;
 import com.demod.factorio.prototype.TilePrototype;
 import com.demod.fbsr.Renderer.Layer;
 import com.google.common.collect.ImmutableList;
@@ -139,7 +141,7 @@ public final class RenderUtils {
 		return new Color(sumR / sumA, sumG / sumA, sumB / sumA);
 	}
 
-	public static Optional<Multiset<String>> getModules(BlueprintEntity entity) {
+	public static Optional<Multiset<String>> getModules(BlueprintEntity entity, DataTable table) {
 		if (!entity.json().has("items")) {
 			return Optional.empty();
 		}
@@ -156,6 +158,12 @@ public final class RenderUtils {
 				modules.add(j.getString("item"), j.getInt("count"));
 			});
 		}
+
+		modules.entrySet().removeIf(e -> {
+			Optional<ItemPrototype> item = table.getItem(e.getElement());
+			return !item.isPresent() || !item.get().getType().equals("module");
+		});
+
 		return Optional.of(modules);
 	}
 
