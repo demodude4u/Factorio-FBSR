@@ -91,7 +91,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 	private CommandHandler createDataRawCommandHandler(Function<String[], Optional<LuaValue>> query) {
 		return (event, args) -> {
 			TaskReporting reporting = new TaskReporting();
-			reporting.setContext(event.getMessage().getContent());
+			reporting.setContext(event.getMessage().getContentDisplay());
 
 			try {
 				if (args.length < 1) {
@@ -171,7 +171,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 	private CommandHandler createPrototypeCommandHandler(String category, Map<String, ? extends DataPrototype> map) {
 		return (event, args) -> {
-			String content = event.getMessage().getContent();
+			String content = event.getMessage().getContentDisplay();
 			TaskReporting reporting = new TaskReporting();
 			reporting.setContext(content);
 
@@ -330,7 +330,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 	}
 
 	private void handleBlueprintBookAssembleCommand(MessageReceivedEvent event) {
-		String content = event.getMessage().getContent();
+		String content = event.getMessage().getContentDisplay();
 		TaskReporting reporting = new TaskReporting();
 		reporting.setContext(content);
 
@@ -403,7 +403,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 	}
 
 	private void handleBlueprintBookExtractCommand(MessageReceivedEvent event) {
-		String content = event.getMessage().getContent();
+		String content = event.getMessage().getContentDisplay();
 		TaskReporting reporting = new TaskReporting();
 		reporting.setContext(content);
 
@@ -456,7 +456,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 	}
 
 	private void handleBlueprintCommand(MessageReceivedEvent event) {
-		String content = event.getMessage().getContent();
+		String content = event.getMessage().getContentDisplay();
 		TaskReporting reporting = new TaskReporting();
 		reporting.setContext(content);
 		findDebugOptions(reporting, content);
@@ -488,7 +488,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			throw new InternalError(e1);
 		}
 
-		String content = event.getMessage().getStrippedContent();
+		String content = event.getMessage().getContentStripped();
 		TaskReporting reporting = new TaskReporting();
 		reporting.setContext(content);
 
@@ -560,7 +560,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			throw new InternalError(e1);
 		}
 
-		String content = event.getMessage().getStrippedContent();
+		String content = event.getMessage().getContentStripped();
 		TaskReporting reporting = new TaskReporting();
 		reporting.setContext(content);
 
@@ -627,7 +627,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 	}
 
 	private void handleBlueprintJsonCommand(MessageReceivedEvent event) {
-		String content = event.getMessage().getContent();
+		String content = event.getMessage().getContentDisplay();
 		TaskReporting reporting = new TaskReporting();
 		reporting.setContext(content);
 		List<String> results = BlueprintFinder.searchRaw(content, reporting);
@@ -676,7 +676,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 	}
 
 	private void handleBlueprintUpgradeBeltsCommand(MessageReceivedEvent event) {
-		String content = event.getMessage().getStrippedContent();
+		String content = event.getMessage().getContentStripped();
 		TaskReporting reporting = new TaskReporting();
 		reporting.setContext(content);
 
@@ -737,7 +737,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 	}
 
 	private void handleRedditCheckThingsCommand(MessageReceivedEvent event, String[] args) {
-		String content = event.getMessage().getContent();
+		String content = event.getMessage().getContentDisplay();
 		TaskReporting reporting = new TaskReporting();
 		reporting.setContext(content);
 
