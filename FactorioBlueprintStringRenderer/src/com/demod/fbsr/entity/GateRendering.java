@@ -41,9 +41,6 @@ public class GateRendering extends EntityRendererFactory {
 		Sprite spriteShadow = RenderUtils.getSpriteFromAnimation(spriteLayersLua.get(2));
 		register.accept(RenderUtils.spriteRenderer(spriteShadow, entity, prototype));
 
-		Sprite baseSprite = RenderUtils.getSpriteFromAnimation(prototype.lua().get(orientation + "_base").get("layers").get(1));
-		register.accept(RenderUtils.spriteRenderer(baseSprite, entity, prototype));
-
 		// TODO Patches need to be rendered on the wall pieces!
 
 		// if (northPatch) {

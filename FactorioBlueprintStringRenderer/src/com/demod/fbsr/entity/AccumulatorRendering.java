@@ -15,7 +15,10 @@ public class AccumulatorRendering extends EntityRendererFactory {
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
 			EntityPrototype prototype) {
-		Sprite sprite = RenderUtils.getSpriteFromAnimation(prototype.lua().get("picture"));
+		Sprite spriteShadow = RenderUtils.getSpriteFromAnimation(prototype.lua().get("picture").get("layers").get(2));
+		register.accept(RenderUtils.spriteRenderer(spriteShadow, entity, prototype));
+
+		Sprite sprite = RenderUtils.getSpriteFromAnimation(prototype.lua().get("picture").get("layers").get(1));
 		register.accept(RenderUtils.spriteRenderer(sprite, entity, prototype));
 	}
 }
