@@ -23,6 +23,7 @@ import com.demod.fbsr.Renderer;
 import com.demod.fbsr.Renderer.Layer;
 import com.demod.fbsr.Sprite;
 import com.demod.fbsr.WorldMap;
+import com.demod.fbsr.WorldMap.BeltBend;
 
 public class SplitterRendering extends EntityRendererFactory {
 
@@ -37,18 +38,7 @@ public class SplitterRendering extends EntityRendererFactory {
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
 			EntityPrototype prototype) {
-		int[] beltSpriteMapping = TransportBeltRendering.transportBeltSpriteMapping[entity.getDirection()
-				.cardinal()][1];
-		Sprite belt1Sprite = RenderUtils.getSpriteFromAnimation(prototype.lua().get("belt_horizontal"));
-		belt1Sprite.source.y = belt1Sprite.source.height * beltSpriteMapping[0];
-		if (beltSpriteMapping[1] == 1) {
-			belt1Sprite.source.x += belt1Sprite.source.width;
-			belt1Sprite.source.width *= -1;
-		}
-		if (beltSpriteMapping[2] == 1) {
-			belt1Sprite.source.y += belt1Sprite.source.height;
-			belt1Sprite.source.height *= -1;
-		}
+		Sprite belt1Sprite = TransportBeltRendering.getBeltSprite(prototype, entity.getDirection(), BeltBend.NONE);
 		Sprite belt2Sprite = new Sprite(belt1Sprite);
 
 		Point2D.Double beltShift = entity.getDirection().left().offset(new Point2D.Double(), 0.5);
