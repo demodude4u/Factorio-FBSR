@@ -68,6 +68,7 @@ import com.demod.fbsr.entity.RailSignalRendering;
 import com.demod.fbsr.entity.ReactorRendering;
 import com.demod.fbsr.entity.RoboportRendering;
 import com.demod.fbsr.entity.RocketSiloRendering;
+import com.demod.fbsr.entity.RollingStockRendering;
 import com.demod.fbsr.entity.SolarPanelRendering;
 import com.demod.fbsr.entity.SplitterRendering;
 import com.demod.fbsr.entity.StorageTankRendering;
@@ -150,9 +151,11 @@ public class EntityRendererFactory {
 		byType.put("ammo-turret", new AmmoTurretRendering());
 		byType.put("arithmetic-combinator", new ArithmeticCombinatorRendering());
 		byType.put("artillery-turret", new ArtilleryTurretRendering());
+		byType.put("artillery-wagon", new RollingStockRendering());
 		byType.put("assembling-machine", new AssemblingMachineRendering());
 		byType.put("beacon", new BeaconRendering());
 		byType.put("boiler", new BoilerRendering());
+		byType.put("cargo-wagon", new RollingStockRendering());
 		byType.put("constant-combinator", new ConstantCombinatorRendering());
 		byType.put("container", new ContainerRendering());
 		byType.put("curved-rail", new CurvedRailRendering());
@@ -160,6 +163,7 @@ public class EntityRendererFactory {
 		byType.put("electric-pole", new ElectricPoleRendering());
 		byType.put("electric-turret", new ElectricTurretRendering());
 		byType.put("fluid-turret", new FluidTurretRendering());
+		byType.put("fluid-wagon", new RollingStockRendering());
 		byType.put("furnace", new FurnaceRendering());
 		byType.put("gate", new GateRendering());
 		byType.put("generator", new GeneratorRendering());
@@ -168,6 +172,7 @@ public class EntityRendererFactory {
 		byType.put("lab", new LabRendering());
 		byType.put("lamp", new LampRendering());
 		byType.put("land-mine", new LandMineRendering());
+		byType.put("locomotive", new RollingStockRendering());
 		byType.put("logistic-container", new LogisticContainerRendering());
 		byType.put("mining-drill", new MiningDrillRendering());
 		byType.put("offshore-pump", new OffshorePumpRendering());

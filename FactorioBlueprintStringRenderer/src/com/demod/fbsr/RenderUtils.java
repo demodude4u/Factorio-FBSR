@@ -185,9 +185,9 @@ public final class RenderUtils {
 		Sprite ret = new Sprite();
 		String imagePath;
 		if (!lua.get("filenames").isnil()) {
-			// XXX this is a hack, assuming artillery turret code
-			int direction = lua.get("artillery_direction").toint();
-			imagePath = lua.get("filenames").get(direction * 2 + 1).tojstring();
+			// XXX this is a hack
+			int selector = lua.get("filename_selector").toint();
+			imagePath = lua.get("filenames").get(selector).tojstring();
 		} else {
 			imagePath = lua.get("filename").tojstring();
 		}

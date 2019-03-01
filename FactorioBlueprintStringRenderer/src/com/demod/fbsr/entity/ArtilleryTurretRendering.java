@@ -29,14 +29,14 @@ public class ArtilleryTurretRendering extends EntityRendererFactory {
 		register.accept(RenderUtils.spriteRenderer(baseSprite, entity, prototype));
 
 		LuaValue cannonBarrel = prototype.lua().get("cannon_barrel_pictures").get("layers").get(1);
-		cannonBarrel.set("artillery_direction", entity.getDirection().ordinal()); // XXX
+		cannonBarrel.set("filename_selector", entity.getDirection().ordinal() * 2 + 1); // XXX
 		Sprite cannonBarrelSprite = RenderUtils.getSpriteFromAnimation(cannonBarrel);
 		cannonBarrelSprite.bounds.x += baseShift.x;
 		cannonBarrelSprite.bounds.y += baseShift.y;
 		register.accept(RenderUtils.spriteRenderer(Layer.ENTITY2, cannonBarrelSprite, entity, prototype));
 
 		LuaValue cannonBase = prototype.lua().get("cannon_base_pictures").get("layers").get(1);
-		cannonBase.set("artillery_direction", entity.getDirection().ordinal()); // XXX
+		cannonBase.set("filename_selector", entity.getDirection().ordinal() * 2 + 1); // XXX
 		Sprite cannonBaseSprite = RenderUtils.getSpriteFromAnimation(cannonBase);
 		cannonBaseSprite.bounds.x += baseShift.x;
 		cannonBaseSprite.bounds.y += baseShift.y;
