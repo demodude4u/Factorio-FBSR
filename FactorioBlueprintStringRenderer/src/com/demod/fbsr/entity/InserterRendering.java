@@ -70,12 +70,8 @@ public class InserterRendering extends EntityRendererFactory {
 		Sprite sprite = RenderUtils.getSpriteFromAnimation(prototype.lua().get("platform_picture").get("sheet"));
 		sprite.source.x += sprite.source.width * (dir.back().cardinal());
 
-		// Sprite spriteArmBase =
-		// getSpriteFromAnimation(prototype.lua().get("hand_base_picture"));
 		Sprite spriteArmHand = RenderUtils.getSpriteFromAnimation(prototype.lua().get("hand_open_picture"));
 		double armStretch = -prototype.lua().get("pickup_position").get(2).todouble();
-		// Point2D.Double inPos = dir.offset(pos, armStretch);
-		// Point2D.Double outPos = dir.offset(pos, -armStretch);
 
 		boolean modded = entity.json().has("pickup_position") || entity.json().has("drop_position");
 

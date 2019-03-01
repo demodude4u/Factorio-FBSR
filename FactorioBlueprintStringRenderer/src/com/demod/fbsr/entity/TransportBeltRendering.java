@@ -27,14 +27,6 @@ public class TransportBeltRendering extends EntityRendererFactory {
 					{ "south_to_west_index", "west_index", "north_to_west_index" }, // West
 			};
 
-	// public static final int[][][] transportBeltSpriteMapping = //
-	// new int[/* Cardinal */][/* Bend */][/* SXY */] { //
-	// { { 8, 1, 0 }, { 1, 0, 0 }, { 8, 0, 0 } }, // North
-	// { { 9, 0, 0 }, { 0, 0, 0 }, { 11, 0, 0 } }, // East
-	// { { 10, 1, 0 }, { 1, 0, 1 }, { 10, 0, 0 } }, // South
-	// { { 11, 1, 0 }, { 0, 1, 0 }, { 9, 1, 0 } }, // West
-	// };
-
 	// XXX I'm not using horizontal or vertical frames
 	public static final int[][] transportBeltConnectorFrameMappingIndex = //
 			new int[/* Cardinal */][/* Bend */] { //

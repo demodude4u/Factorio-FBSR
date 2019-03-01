@@ -14,18 +14,14 @@ import com.demod.fbsr.WorldMap;
 
 public class ElectricPoleRendering extends EntityRendererFactory {
 
-	// private static final int SpriteIndex = 2;
-
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
 			EntityPrototype prototype) {
 		Sprite spriteShadow = RenderUtils.getSpriteFromAnimation(prototype.lua().get("pictures").get("layers").get(2));
-		// sprite.source.x = sprite.source.width * SpriteIndex;
 		spriteShadow.source.x = spriteShadow.source.width * entity.getDirection().cardinal();
 		register.accept(RenderUtils.spriteRenderer(Layer.ENTITY3, spriteShadow, entity, prototype));
 
 		Sprite sprite = RenderUtils.getSpriteFromAnimation(prototype.lua().get("pictures").get("layers").get(1));
-		// sprite.source.x = sprite.source.width * SpriteIndex;
 		sprite.source.x = sprite.source.width * entity.getDirection().cardinal();
 		register.accept(RenderUtils.spriteRenderer(Layer.ENTITY3, sprite, entity, prototype));
 	}

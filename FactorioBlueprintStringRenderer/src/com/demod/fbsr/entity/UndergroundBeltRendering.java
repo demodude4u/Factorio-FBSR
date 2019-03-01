@@ -25,27 +25,6 @@ public class UndergroundBeltRendering extends EntityRendererFactory {
 
 		Sprite beltSprite = TransportBeltRendering.getBeltSprite(prototype, entity.getDirection(), BeltBend.NONE);
 
-		// switch (structDir) {
-		// case NORTH:
-		// beltSprite.source.height /= 2;
-		// beltSprite.source.y += beltSprite.source.height;
-		// beltSprite.bounds.height /= 2;
-		// beltSprite.bounds.y += beltSprite.bounds.height;
-		// break;
-		// case WEST:
-		// beltSprite.source.width /= 2;
-		// beltSprite.source.x += beltSprite.source.width;
-		// beltSprite.bounds.width /= 2;
-		// beltSprite.bounds.x += beltSprite.bounds.width;
-		// break;
-		// case EAST:
-		// beltSprite.source.width /= 2;
-		// beltSprite.bounds.width /= 2;
-		// break;
-		// default:
-		// break;
-		// }
-
 		Sprite sprite = RenderUtils.getSpriteFromAnimation(
 				prototype.lua().get("structure").get(input ? "direction_in" : "direction_out").get("sheet"));
 		sprite.source.x += sprite.source.width * (structDir.cardinal());
