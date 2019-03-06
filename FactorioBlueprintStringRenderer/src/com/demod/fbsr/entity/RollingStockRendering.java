@@ -1,10 +1,12 @@
 package com.demod.fbsr.entity;
 
+import java.awt.Color;
 import java.util.function.Consumer;
 
 import org.luaj.vm2.LuaValue;
 
 import com.demod.factorio.DataTable;
+import com.demod.factorio.Utils;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.BlueprintEntity;
 import com.demod.fbsr.EntityRendererFactory;
@@ -28,6 +30,16 @@ public class RollingStockRendering extends EntityRendererFactory {
 		LuaValue body = layers.get(1);
 		Sprite sprite = getRotatedSprite(body, orientation);
 
+		Sprite mask = null;
+		if (layers.length() == 3 && entity.json().has("color")) {
+			Color color = RenderUtils.parseColor(entity.json().getJSONObject("color"));
+
+			LuaValue bodyMask = layers.get(2);
+			mask = getRotatedSprite(bodyMask, orientation);
+
+			mask.image = Utils.tintImage(mask.image, color);
+		}
+
 		LuaValue shadow = layers.get(layers.length());
 		Sprite spriteShadow = getRotatedSprite(shadow, orientation);
 
@@ -49,6 +61,9 @@ public class RollingStockRendering extends EntityRendererFactory {
 		register.accept(RenderUtils.spriteRenderer(Layer.ENTITY2, spriteWheels1, entity, prototype));
 		register.accept(RenderUtils.spriteRenderer(Layer.ENTITY2, spriteWheels2, entity, prototype));
 		register.accept(RenderUtils.spriteRenderer(Layer.ENTITY2, sprite, entity, prototype));
+		if (mask != null) {
+			register.accept(RenderUtils.spriteRenderer(Layer.ENTITY2, mask, entity, prototype));
+		}
 	}
 
 	protected Sprite getRotatedSprite(LuaValue lua, double orientation) {
