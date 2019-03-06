@@ -51,20 +51,12 @@ public class RollingStockRendering extends EntityRendererFactory {
 		register.accept(RenderUtils.spriteRenderer(Layer.ENTITY2, sprite, entity, prototype));
 	}
 
-	private Sprite getRotatedSprite(LuaValue lua, double orientation) {
-		boolean backEqualsFront = lua.get("back_equals_front").optboolean(false);
-		int directionCount = lua.get("direction_count").toint();
-		if (backEqualsFront) {
-			directionCount *= 2;
-		}
+	protected Sprite getRotatedSprite(LuaValue lua, double orientation) {
 		int lineLength = lua.get("line_length").toint();
 		int linesPerFile = lua.get("lines_per_file").toint();
 		int fileLength = lineLength * linesPerFile;
 
-		int index = (int) (projectedFraction(orientation) * directionCount);
-		if (backEqualsFront) {
-			index = index % (directionCount / 2);
-		}
+		int index = getRotationIndex(lua, orientation);
 		int fileIndex = index / fileLength;
 		int tileIndex = index % fileLength;
 		lua.set("filename_selector", fileIndex + 1); // XXX
@@ -72,6 +64,19 @@ public class RollingStockRendering extends EntityRendererFactory {
 		sprite.source.x += (tileIndex % lineLength) * sprite.source.width;
 		sprite.source.y += (tileIndex / lineLength) * sprite.source.height;
 		return sprite;
+	}
+
+	protected int getRotationIndex(LuaValue lua, double orientation) {
+		boolean backEqualsFront = lua.get("back_equals_front").optboolean(false);
+		int directionCount = lua.get("direction_count").toint();
+		if (backEqualsFront) {
+			directionCount *= 2;
+		}
+		int index = (int) (projectedFraction(orientation) * directionCount);
+		if (backEqualsFront) {
+			index = index % (directionCount / 2);
+		}
+		return index;
 	}
 
 	private double projectedFraction(double orientation) {

@@ -36,6 +36,7 @@ import com.demod.fbsr.entity.AccumulatorRendering;
 import com.demod.fbsr.entity.AmmoTurretRendering;
 import com.demod.fbsr.entity.ArithmeticCombinatorRendering;
 import com.demod.fbsr.entity.ArtilleryTurretRendering;
+import com.demod.fbsr.entity.ArtilleryWagonRendering;
 import com.demod.fbsr.entity.AssemblingMachineRendering;
 import com.demod.fbsr.entity.BeaconRendering;
 import com.demod.fbsr.entity.BoilerRendering;
@@ -151,7 +152,7 @@ public class EntityRendererFactory {
 		byType.put("ammo-turret", new AmmoTurretRendering());
 		byType.put("arithmetic-combinator", new ArithmeticCombinatorRendering());
 		byType.put("artillery-turret", new ArtilleryTurretRendering());
-		byType.put("artillery-wagon", new RollingStockRendering());
+		byType.put("artillery-wagon", new ArtilleryWagonRendering());
 		byType.put("assembling-machine", new AssemblingMachineRendering());
 		byType.put("beacon", new BeaconRendering());
 		byType.put("boiler", new BoilerRendering());
