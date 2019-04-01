@@ -19,12 +19,12 @@ import com.demod.fbsr.WorldMap.BeltBend;
 
 public class TransportBeltRendering extends EntityRendererFactory {
 
-	public static final int[][][] transportBeltSpriteMapping = //
-			new int[/* Cardinal */][/* Bend */][/* SXY */] { //
-					{ { 8, 1, 0 }, { 1, 0, 0 }, { 8, 0, 0 } }, // North
-					{ { 9, 0, 0 }, { 0, 0, 0 }, { 11, 0, 0 } }, // East
-					{ { 10, 1, 0 }, { 1, 0, 1 }, { 10, 0, 0 } }, // South
-					{ { 11, 1, 0 }, { 0, 1, 0 }, { 9, 1, 0 } }, // West
+	public static final String[][] transportBeltIndexName = //
+			new String[/* Cardinal */][/* Bend */] { //
+					{ "west_to_north_index", "north_index", "east_to_north_index" }, // North
+					{ "north_to_east_index", "east_index", "south_to_east_index" }, // East
+					{ "east_to_south_index", "south_index", "west_to_south_index" }, // South
+					{ "south_to_west_index", "west_index", "north_to_west_index" }, // West
 			};
 
 	// XXX I'm not using horizontal or vertical frames
@@ -36,26 +36,20 @@ public class TransportBeltRendering extends EntityRendererFactory {
 					{ 4, 0, 6 }, // West
 			};
 
+	public static Sprite getBeltSprite(EntityPrototype prototype, Direction direction, BeltBend bend) {
+		LuaValue anim = prototype.lua().get("belt_animation_set");
+		Sprite sprite = RenderUtils.getSpriteFromAnimation(anim.get("animation_set"));
+		int spriteIndex = anim.get(transportBeltIndexName[direction.cardinal()][bend.ordinal()]).toint();
+		sprite.source.y = sprite.source.height * (spriteIndex - 1);
+		return sprite;
+	}
+
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
 			EntityPrototype prototype) {
 		BeltBend bend = map.getBeltBend(entity.getPosition()).get();
-		int[] spriteMapping = transportBeltSpriteMapping[entity.getDirection().cardinal()][bend.ordinal()];
 
-		LuaValue anim = prototype.lua().get("animations");
-		Sprite sprite = RenderUtils.getSpriteFromAnimation(anim);
-		int frameCount = anim.get("frame_count").toint();
-		int lineLength = anim.get("line_length").optint(frameCount);
-		int offsetMultiplier = frameCount / lineLength;
-		sprite.source.y = sprite.source.height * spriteMapping[0] * offsetMultiplier;
-		if (spriteMapping[1] == 1) {
-			sprite.source.x += sprite.source.width;
-			sprite.source.width *= -1;
-		}
-		if (spriteMapping[2] == 1) {
-			sprite.source.y += sprite.source.height;
-			sprite.source.height *= -1;
-		}
+		Sprite sprite = getBeltSprite(prototype, entity.getDirection(), bend);
 
 		register.accept(RenderUtils.spriteRenderer(sprite, entity, prototype));
 

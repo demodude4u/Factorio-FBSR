@@ -555,6 +555,9 @@ public class FBSR {
 			if (itemName.equals("stone-path")) {
 				itemName = "stone-brick";
 			}
+			if (itemName.equals("grass-1")) {
+				itemName = "landfill";
+			}
 			if (!table.getItem(itemName).isPresent()) {
 				System.err.println("MISSING TILE ITEM: " + itemName);
 				continue;
