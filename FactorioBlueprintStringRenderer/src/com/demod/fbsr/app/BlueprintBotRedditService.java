@@ -18,6 +18,7 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import com.demod.factorio.Config;
@@ -28,6 +29,7 @@ import com.demod.fbsr.BlueprintStringData;
 import com.demod.fbsr.FBSR;
 import com.demod.fbsr.TaskReporting;
 import com.demod.fbsr.WebUtils;
+import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.AbstractScheduledService;
 import com.google.common.util.concurrent.Uninterruptibles;
 
@@ -61,7 +63,7 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 
 	private JSONObject configJson;
 	private String myUserName;
-	private String subreddit;
+	private List<String> subreddits;
 	private long ageLimitMillis;
 	private Credentials credentials;
 
@@ -108,8 +110,6 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 		}
 
 		JSONObject cache = new JSONObject();
-		cache.put("lastProcessedSubmissionMillis", 0L);
-		cache.put("lastProcessedCommentMillis", 0L);
 		cache.put("lastProcessedMessageMillis", 0L);
 		return cache;
 	}
@@ -171,19 +171,23 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 					reporting.addException(e);
 				}
 			}
-			Optional<URL> albumUrl;
-			try {
-				albumUrl = Optional
-						.of(WebUtils.uploadToBundly("Blueprint Images", "Renderings provided by Blueprint Bot", links));
-			} catch (IOException e) {
-				reporting.addException(e);
-				albumUrl = Optional.empty();
-			}
-			if (albumUrl.isPresent()) {
-				lines.add("Blueprint Images ([View As Album](" + albumUrl.get() + ")):\n");
-			} else {
-				lines.add("Blueprint Images:");
-			}
+
+			// FIXME
+			// Optional<URL> albumUrl;
+			// try {
+			// albumUrl = Optional
+			// .of(WebUtils.uploadToBundly("Blueprint Images", "Renderings provided by
+			// Blueprint Bot", links));
+			// } catch (IOException e) {
+			// reporting.addException(e);
+			// albumUrl = Optional.empty();
+			// }
+			// if (albumUrl.isPresent()) {
+			// lines.add("Blueprint Images ([View As Album](" + albumUrl.get() + ")):\n");
+			// } else {
+			lines.add("Blueprint Images:");
+			// }
+
 			for (Entry<Optional<String>, String> pair : images) {
 				Optional<String> label = pair.getKey();
 				String url = pair.getValue();
@@ -217,7 +221,7 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 
 	private boolean processNewComments(JSONObject cacheJson, String subreddit, long ageLimitMillis,
 			Optional<WatchdogService> watchdog) throws ApiException, IOException {
-		long lastProcessedMillis = cacheJson.getLong("lastProcessedCommentMillis");
+		long lastProcessedMillis = cacheJson.optLong("lastProcessedCommentMillis-" + subreddit);
 
 		CommentStream commentStream = new CommentStream(reddit, subreddit);
 		commentStream.setTimePeriod(TimePeriod.ALL);
@@ -275,7 +279,7 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 
 		if (processedCount > 0) {
 			System.out.println("Processed " + processedCount + " comment(s) from /r/" + subreddit);
-			cacheJson.put("lastProcessedCommentMillis", newestMillis);
+			cacheJson.put("lastProcessedCommentMillis-" + subreddit, newestMillis);
 			return true;
 		} else {
 			return false;
@@ -352,7 +356,7 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 
 	private boolean processNewSubmissions(JSONObject cacheJson, String subreddit, long ageLimitMillis,
 			Optional<WatchdogService> watchdog) throws NetworkException, ApiException {
-		long lastProcessedMillis = cacheJson.getLong("lastProcessedSubmissionMillis");
+		long lastProcessedMillis = cacheJson.optLong("lastProcessedSubmissionMillis-" + subreddit);
 
 		SubredditPaginator paginator = new SubredditPaginator(reddit, subreddit);
 		paginator.setTimePeriod(TimePeriod.ALL);
@@ -410,7 +414,7 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 
 		if (processedCount > 0) {
 			System.out.println("Processed " + processedCount + " submission(s) from /r/" + subreddit);
-			cacheJson.put("lastProcessedSubmissionMillis", newestMillis);
+			cacheJson.put("lastProcessedSubmissionMillis-" + subreddit, newestMillis);
 			return true;
 		} else {
 			return false;
@@ -452,8 +456,12 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 			boolean cacheUpdated = false;
 
 			ensureConnectedToReddit();
-			cacheUpdated |= processNewSubmissions(cacheJson, subreddit, ageLimitMillis, watchdog);
-			cacheUpdated |= processNewComments(cacheJson, subreddit, ageLimitMillis, watchdog);
+
+			for (String subreddit : subreddits) {
+				cacheUpdated |= processNewSubmissions(cacheJson, subreddit, ageLimitMillis, watchdog);
+				cacheUpdated |= processNewComments(cacheJson, subreddit, ageLimitMillis, watchdog);
+			}
+
 			if (processMessages) {
 				cacheUpdated |= processNewMessages(cacheJson, ageLimitMillis, watchdog);
 			}
@@ -495,7 +503,13 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 		account = new AccountManager(reddit);
 
 		configJson = Config.get().getJSONObject("reddit");
-		subreddit = configJson.getString("subreddit");
+		if (configJson.has("subreddit")) {
+			subreddits = ImmutableList.of(configJson.getString("subreddit"));
+		} else {
+			JSONArray subredditsJson = configJson.getJSONArray("subreddits");
+			subreddits = new ArrayList<>();
+			Utils.<String>forEach(subredditsJson, s -> subreddits.add(s));
+		}
 		ageLimitMillis = configJson.getInt("age_limit_hours") * 60 * 60 * 1000;
 		processMessages = configJson.getBoolean("process_messages");
 		summonKeyword = configJson.getString("summon_keyword").toLowerCase();

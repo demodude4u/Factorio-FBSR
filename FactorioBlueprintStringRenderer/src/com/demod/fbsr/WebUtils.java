@@ -90,7 +90,7 @@ public final class WebUtils {
 		return Utils.readJsonFromStream(new URL(url).openStream());
 	}
 
-	public static URL uploadToBundly(String title, String description, List<Entry<URL, String>> links)
+	public static URL uploadToBundly_BROKEN(String title, String description, List<Entry<URL, String>> links)
 			throws IOException {
 		JSONObject request = new JSONObject();
 		request.put("title", title);
@@ -138,24 +138,24 @@ public final class WebUtils {
 				.findService(BlueprintBotDiscordService.class);
 
 		if (discordService.isPresent()) {
-			// Discord original -> nya.is -> Discord scaled
+			// Discord original -> image hosting -> Discord scaled
 			try {
 				return discordService.get().useDiscordForImageHosting(fileName, image, false);
 			} catch (Exception e) {
 				try {
-					return uploadToMixtapeMoe(fileName, getImageData(image));
+					return uploadToRemoteHosting(fileName, getImageData(image));
 				} catch (Exception e1) {
 					return discordService.get().useDiscordForImageHosting(fileName, image, true);
 				}
 			}
 		} else {
-			return uploadToMixtapeMoe(fileName, getImageData(image));
+			return uploadToRemoteHosting(fileName, getImageData(image));
 		}
 	}
 
 	public static URL uploadToHostingService(String fileName, byte[] fileData) throws IOException {
 		try {
-			return uploadToMixtapeMoe(fileName, fileData);
+			return uploadToRemoteHosting(fileName, fileData);
 		} catch (Exception e) {
 			Optional<BlueprintBotDiscordService> discordService = ServiceFinder
 					.findService(BlueprintBotDiscordService.class);
@@ -169,7 +169,8 @@ public final class WebUtils {
 		}
 	}
 
-	private static URL uploadToMixtapeMoe(String fileName, byte[] fileData) throws IOException {
+	@SuppressWarnings("unused")
+	private static URL uploadToMixtapeMoe_BROKEN(String fileName, byte[] fileData) throws IOException {
 		try (ByteArrayInputStream bais = new ByteArrayInputStream(fileData)) {
 			MultipartUtility utility = new MultipartUtility("https://mixtape.moe/upload.php", "UTF-8");
 			utility.addFormField("name", fileName);
@@ -180,7 +181,7 @@ public final class WebUtils {
 	}
 
 	@SuppressWarnings("unused")
-	private static URL uploadToNyaIs(String fileName, byte[] fileData) throws IOException {
+	private static URL uploadToNyaIs_BROKEN(String fileName, byte[] fileData) throws IOException {
 		try (ByteArrayInputStream bais = new ByteArrayInputStream(fileData)) {
 			MultipartUtility utility = new MultipartUtility("https://nya.is/upload", "UTF-8");
 			utility.addFormField("name", fileName);
@@ -188,6 +189,10 @@ public final class WebUtils {
 			return new URL(
 					new JSONObject(utility.finish().get(0)).getJSONArray("files").getJSONObject(0).getString("url"));
 		}
+	}
+
+	private static URL uploadToRemoteHosting(String fileName, byte[] fileData) throws IOException {
+		throw new IOException("No Image Host available!");// FIXME
 	}
 
 	private WebUtils() {

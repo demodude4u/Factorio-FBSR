@@ -216,6 +216,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		List<String> links = reporting.getLinks();
 		List<String> downloads = reporting.getDownloads();
 		Set<String> info = reporting.getInfo();
+		Optional<Message> contextMessage = reporting.getContextMessage();
 
 		EmbedBuilder builder = new EmbedBuilder();
 		builder.setAuthor(author, null, authorURL);
@@ -231,6 +232,10 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		} else if (context.isPresent()) {
 			builder.addField("Context Link",
 					WebUtils.uploadToHostingService("context.txt", context.get().getBytes()).toString(), false);
+		}
+
+		if (contextMessage.isPresent()) {
+			builder.addField("Context Message", "[Message Link](" + contextMessage.get().getJumpUrl() + ")", false);
 		}
 
 		if (!links.isEmpty()) {
@@ -432,16 +437,18 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		}
 
 		if (!links.isEmpty()) {
+			// FIXME
+			// try {
+			//// reporting.addInfo("Extracted blueprints: "
+			//// + WebUtils.uploadToBundly("Blueprints", "Provided by Blueprint Bot",
+			// links));
+			// } catch (IOException e) {
 			try {
-				reporting.addInfo("Extracted blueprints: "
-						+ WebUtils.uploadToBundly("Blueprints", "Provided by Blueprint Bot", links));
-			} catch (IOException e) {
-				try {
-					sendBundlyReplacementEmbed(event.getChannel(), "Extracted Blueprints", links);
-				} catch (Exception e2) {
-					reporting.addException(e2);
-				}
+				sendBundlyReplacementEmbed(event.getChannel(), "Extracted Blueprints", links);
+			} catch (Exception e2) {
+				reporting.addException(e2);
 			}
+			// }
 		}
 
 		if (reporting.getBlueprintStrings().isEmpty()) {
@@ -459,6 +466,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		String content = event.getMessage().getContentDisplay();
 		TaskReporting reporting = new TaskReporting();
 		reporting.setContext(content);
+		reporting.setContextMessage(event.getMessage());
 		findDebugOptions(reporting, content);
 		if (!event.getMessage().getAttachments().isEmpty()) {
 			String url = event.getMessage().getAttachments().get(0).getUrl();
@@ -783,17 +791,19 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 						links.add(new SimpleEntry<>(WebUtils.uploadToHostingService("blueprint.png", image),
 								blueprint.getLabel().orElse("")));
 					}
+					// FIXME
+					// try {
+					// reporting.addInfo("Blueprint Book Images: " + WebUtils
+					// .uploadToBundly("Blueprint Book", "Renderings provided by Blueprint Bot",
+					// links)
+					// .toString());
+					// } catch (IOException e) {
 					try {
-						reporting.addInfo("Blueprint Book Images: " + WebUtils
-								.uploadToBundly("Blueprint Book", "Renderings provided by Blueprint Bot", links)
-								.toString());
-					} catch (IOException e) {
-						try {
-							sendBundlyReplacementEmbed(event.getChannel(), "Blueprint Book Images", links);
-						} catch (Exception e2) {
-							reporting.addException(e2);
-						}
+						sendBundlyReplacementEmbed(event.getChannel(), "Blueprint Book Images", links);
+					} catch (Exception e2) {
+						reporting.addException(e2);
 					}
+					// }
 				}
 			} catch (Exception e) {
 				reporting.addException(e);

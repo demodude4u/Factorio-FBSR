@@ -11,6 +11,8 @@ import java.util.Set;
 
 import com.demod.fbsr.WorldMap.Debug;
 
+import net.dv8tion.jda.core.entities.Message;
+
 public class TaskReporting {
 	public static enum Level {
 		INFO(Color.gray), WARN(Color.orange), ERROR(Color.red), DEBUG(Color.magenta);
@@ -28,6 +30,7 @@ public class TaskReporting {
 	private final List<String> blueprintStrings = new ArrayList<>();
 	private Optional<Debug> debug = Optional.empty();
 	private Optional<String> context = Optional.empty();
+	private Optional<Message> contextMessage = Optional.empty();
 	private final List<String> warnings = new ArrayList<>();
 	private final List<Exception> exceptions = new ArrayList<>();
 	private final List<Entry<Optional<String>, String>> images = new ArrayList<>();
@@ -69,6 +72,10 @@ public class TaskReporting {
 
 	public Optional<String> getContext() {
 		return context;
+	}
+
+	public Optional<Message> getContextMessage() {
+		return contextMessage;
 	}
 
 	public Optional<Debug> getDebug() {
@@ -114,6 +121,10 @@ public class TaskReporting {
 
 	public synchronized void setContext(String context) {
 		this.context = Optional.of(context);
+	}
+
+	public void setContextMessage(Message message) {
+		this.contextMessage = Optional.of(message);
 	}
 
 	public void setDebug(Optional<Debug> debug) {

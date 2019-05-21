@@ -3,6 +3,7 @@ package com.demod.fbsr.app;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.List;
@@ -58,9 +59,21 @@ public class BlueprintBotIRCService extends AbstractIdleService {
 								blueprint.getLabel().orElse("")));
 					}
 
+					// FIXME
+					// try {
+					// reporting.addInfo("Blueprint Book Images: " + WebUtils
+					// .uploadToBundly("Blueprint Book", "Renderings provided by Blueprint Bot",
+					// links)
+					// .toString());
+					// } catch (IOException e) {
+					// reporting.addException(e);
+					// }
+
 					try {
+						String fileContent = links.stream().map(e -> e.getValue() + ": " + e.getKey())
+								.collect(Collectors.joining("\n"));
 						reporting.addInfo("Blueprint Book Images: " + WebUtils
-								.uploadToBundly("Blueprint Book", "Renderings provided by Blueprint Bot", links)
+								.uploadToHostingService("blueprints.txt", fileContent.getBytes(StandardCharsets.UTF_8))
 								.toString());
 					} catch (IOException e) {
 						reporting.addException(e);
