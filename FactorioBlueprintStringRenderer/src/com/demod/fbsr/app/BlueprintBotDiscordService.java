@@ -33,6 +33,7 @@ import org.json.JSONObject;
 import org.luaj.vm2.LuaValue;
 
 import com.demod.dcba.CommandHandler;
+import com.demod.dcba.CommandHandler.NoArgHandler;
 import com.demod.dcba.DCBA;
 import com.demod.dcba.DiscordBot;
 import com.demod.factorio.Config;
@@ -916,21 +917,21 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 						Permission.MESSAGE_ADD_REACTION,//
 				})//
 					//
-				.addCommand("blueprint", event -> handleBlueprintCommand(event))//
+				.addCommand("blueprint", (NoArgHandler) event -> handleBlueprintCommand(event))//
 				.withHelp("Renders an image of the blueprint string provided. Longer blueprints "
 						+ "can be attached as files or linked with pastebin, hastebin, gitlab, or gist URLs.")//
-				.addCommand("blueprintJSON", event -> handleBlueprintJsonCommand(event))//
+				.addCommand("blueprintJSON", (NoArgHandler) event -> handleBlueprintJsonCommand(event))//
 				.withHelp("Provides a dump of the json data in the specified blueprint string.")//
-				.addCommand("blueprintUpgradeBelts", event -> handleBlueprintUpgradeBeltsCommand(event))//
+				.addCommand("blueprintUpgradeBelts", (NoArgHandler) event -> handleBlueprintUpgradeBeltsCommand(event))//
 				.withHelp("Converts all yellow belts into red belts, and all red belts into blue belts.")//
-				.addCommand("blueprintItems", event -> handleBlueprintItemsCommand(event))//
+				.addCommand("blueprintItems", (NoArgHandler) event -> handleBlueprintItemsCommand(event))//
 				.withHelp("Prints out all of the items needed by the blueprint.")//
-				.addCommand("blueprintRawItems", event -> handleBlueprintItemsRawCommand(event))//
+				.addCommand("blueprintRawItems", (NoArgHandler) event -> handleBlueprintItemsRawCommand(event))//
 				.withHelp("Prints out all of the raw items needed by the blueprint.")//
 				//
-				.addCommand("blueprintBookExtract", event -> handleBlueprintBookExtractCommand(event))//
+				.addCommand("blueprintBookExtract", (NoArgHandler) event -> handleBlueprintBookExtractCommand(event))//
 				.withHelp("Provides an collection of blueprint strings contained within the specified blueprint book.")//
-				.addCommand("blueprintBookAssemble", event -> handleBlueprintBookAssembleCommand(event))//
+				.addCommand("blueprintBookAssemble", (NoArgHandler) event -> handleBlueprintBookAssembleCommand(event))//
 				.withHelp(
 						"Combines all blueprints (including from other books) from multiple strings into a single book.")//
 				//
@@ -952,7 +953,8 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				.addCommand("dataRaw", createDataRawCommandHandler(table::getRaw))//
 				.withHelp("Provides a dump of lua from `data.raw` for the specified key.")//
 				//
-				.addCommand("redditCheckThings", (event, args) -> handleRedditCheckThingsCommand(event, args))
+				.addCommand("redditCheckThings",
+						(CommandHandler) (event, args) -> handleRedditCheckThingsCommand(event, args))
 				//
 				.create();
 
