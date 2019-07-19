@@ -36,6 +36,7 @@ import java.util.function.Consumer;
 import javax.imageio.ImageIO;
 
 import org.json.JSONException;
+import org.json.JSONObject;
 
 import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
@@ -175,7 +176,7 @@ public class FBSR {
 	}
 
 	private static BufferedImage applyRendering(TaskReporting reporting, int tileSize, List<Renderer> renderers,
-			ArrayListMultimap<Direction, PanelRenderer> borderPanels)
+			ArrayListMultimap<Direction, PanelRenderer> borderPanels, JSONObject options)
 			throws JSONException, FileNotFoundException, IOException {
 
 		Rectangle2D.Double worldBounds = computeBounds(renderers);
@@ -207,6 +208,8 @@ public class FBSR {
 				* (long) (centerBounds.getHeight() * worldRenderScale * tileSize)) > MAX_WORLD_RENDER_PIXELS) {
 			worldRenderScale /= 2;
 		}
+
+		// TODO max-width and max-height image restrictions
 
 		double borderTop = 0, borderRight = 0, borderBottom = 0, borderLeft = 0;
 		double borderRightBudget = 0;
@@ -828,6 +831,11 @@ public class FBSR {
 
 	public static BufferedImage renderBlueprint(Blueprint blueprint, TaskReporting reporting)
 			throws JSONException, IOException {
+		return renderBlueprint(blueprint, reporting, new JSONObject());
+	}
+
+	public static BufferedImage renderBlueprint(Blueprint blueprint, TaskReporting reporting, JSONObject options)
+			throws JSONException, IOException {
 		DataTable table = FactorioData.getTable();
 		WorldMap map = new WorldMap();
 		reporting.getDebug().ifPresent(map::setDebug);
@@ -942,15 +950,17 @@ public class FBSR {
 		showRailLogistics(renderers::add, table, map);
 
 		ArrayListMultimap<Direction, PanelRenderer> borderPanels = ArrayListMultimap.create();
-		blueprint.getLabel().ifPresent(label -> {
-			borderPanels.put(Direction.NORTH, createHeaderPanel(label));
-		});
-		borderPanels.put(Direction.SOUTH, createFooterPanel());
+		if (options.optBoolean("show-info-panels", true)) {
+			blueprint.getLabel().ifPresent(label -> {
+				borderPanels.put(Direction.NORTH, createHeaderPanel(label));
+			});
+			borderPanels.put(Direction.SOUTH, createFooterPanel());
 
-		Map<String, Double> totalItems = generateTotalItems(table, blueprint, reporting);
-		borderPanels.put(Direction.EAST, createItemListPanel(table, "TOTAL", totalItems));
-		borderPanels.put(Direction.EAST,
-				createItemListPanel(table, "RAW", generateTotalRawItems(table, table.getRecipes(), totalItems)));
+			Map<String, Double> totalItems = generateTotalItems(table, blueprint, reporting);
+			borderPanels.put(Direction.EAST, createItemListPanel(table, "TOTAL", totalItems));
+			borderPanels.put(Direction.EAST,
+					createItemListPanel(table, "RAW", generateTotalRawItems(table, table.getRecipes(), totalItems)));
+		}
 
 		if (map.getDebug().placement) {
 			entityRenderingTuples.forEach(t -> {
@@ -980,7 +990,7 @@ public class FBSR {
 			});
 		}
 
-		return applyRendering(reporting, (int) Math.round(tileSize), renderers, borderPanels);
+		return applyRendering(reporting, (int) Math.round(tileSize), renderers, borderPanels, options);
 	}
 
 	private static void showLogisticGrid(Consumer<Renderer> register, DataTable table, WorldMap map) {
