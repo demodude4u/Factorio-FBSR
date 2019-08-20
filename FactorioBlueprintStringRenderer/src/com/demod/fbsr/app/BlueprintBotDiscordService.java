@@ -244,7 +244,11 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		}
 
 		if (!images.isEmpty()) {
-			builder.setImage(images.get(0).getValue());
+			try {
+				builder.setImage(images.get(0).getValue());
+			} catch (IllegalArgumentException e) {
+				// Local Storage Image, can't preview!
+			}
 		}
 		if (images.size() > 1) {
 			WebUtils.addPossiblyLargeEmbedField(builder, "Additional Image(s)",

@@ -209,8 +209,6 @@ public class FBSR {
 			worldRenderScale /= 2;
 		}
 
-		// TODO max-width and max-height image restrictions
-
 		double borderTop = 0, borderRight = 0, borderBottom = 0, borderLeft = 0;
 		double borderRightBudget = 0;
 		for (Entry<Direction, PanelRenderer> entry : borderPanels.entries()) {
@@ -240,6 +238,27 @@ public class FBSR {
 				break;
 			}
 		}
+
+		if (options.has("max-width")) {
+			int width = (int) ((centerBounds.width + borderLeft / worldRenderScale + borderRight / worldRenderScale)
+					* worldRenderScale * tileSize);
+			int maxWidth = options.getInt("max-width");
+			if (width > maxWidth) {
+				worldRenderScale = (float) ((maxWidth - tileSize * (borderLeft + borderRight))
+						/ (centerBounds.width * tileSize));
+			}
+		}
+
+		if (options.has("max-height")) {
+			int height = (int) ((centerBounds.height + borderTop / worldRenderScale + borderBottom / worldRenderScale)
+					* worldRenderScale * tileSize);
+			int maxHeight = options.getInt("max-height");
+			if (height > maxHeight) {
+				worldRenderScale = (float) ((maxHeight - tileSize * (borderTop + borderBottom))
+						/ (centerBounds.height * tileSize));
+			}
+		}
+
 		Rectangle2D.Double totalBounds = new Rectangle2D.Double(centerBounds.x - borderLeft / worldRenderScale,
 				centerBounds.y - borderTop / worldRenderScale,
 				centerBounds.width + borderLeft / worldRenderScale + borderRight / worldRenderScale,

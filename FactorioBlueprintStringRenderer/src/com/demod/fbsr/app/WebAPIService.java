@@ -60,11 +60,13 @@ public class WebAPIService extends AbstractIdleService {
 
 		configJson = Config.get().getJSONObject("webapi");
 
+		String address = configJson.optString("bind", "0.0.0.0");
 		int port = configJson.optInt("port", 80);
 
-		On.address(configJson.optString("bind", "0.0.0.0")).port(port);
+		On.address(address).port(port);
 
 		On.post("/blueprint").serve((req, resp) -> {
+			System.out.println("Web API POST!");
 			TaskReporting reporting = new TaskReporting();
 			try {
 				try {
@@ -77,7 +79,7 @@ public class WebAPIService extends AbstractIdleService {
 
 					JSONObject body;
 					try {
-						body = new JSONObject(req.body());
+						body = new JSONObject(new String(req.body()));
 					} catch (Exception e) {
 						reporting.addException(e);
 						resp.code(400);
@@ -119,7 +121,9 @@ public class WebAPIService extends AbstractIdleService {
 							BufferedImage image = FBSR.renderBlueprint(blueprint, reporting, body);
 							if (configJson.optBoolean("use-local-storage", false)) {
 								File localStorageFolder = new File(configJson.getString("local-storage"));
-								reporting.addImage(blueprint.getLabel(), saveToLocalStorage(localStorageFolder, image));
+								String imageLink = saveToLocalStorage(localStorageFolder, image);
+								reporting.addImage(blueprint.getLabel(), imageLink);
+								reporting.addLink(imageLink);
 							} else {
 								reporting.addImage(blueprint.getLabel(),
 										WebUtils.uploadToHostingService("blueprint.png", image).toString());
@@ -171,7 +175,7 @@ public class WebAPIService extends AbstractIdleService {
 
 		});
 
-		System.out.println("Web API Initialized!");
+		System.out.println("Web API Initialized at " + address + ":" + port);
 	}
 
 }
