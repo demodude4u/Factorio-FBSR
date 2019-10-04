@@ -321,7 +321,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		}
 	}
 
-	private byte[] generateDiscordFriendlyPNGImage(BufferedImage image) throws IOException {
+	private byte[] generateDiscordFriendlyPNGImage(BufferedImage image) {
 		byte[] imageData = WebUtils.getImageData(image);
 		if (imageData.length > 8000000) {
 			return generateDiscordFriendlyPNGImage(
@@ -889,7 +889,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 	}
 
 	@Override
-	protected void shutDown() throws Exception {
+	protected void shutDown() {
 		ServiceFinder.removeService(this);
 		ServiceFinder.removeService(WatchdogReporter.class);
 		bot.stopAsync().awaitTerminated();

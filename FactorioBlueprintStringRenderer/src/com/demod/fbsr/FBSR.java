@@ -177,7 +177,7 @@ public class FBSR {
 
 	private static BufferedImage applyRendering(TaskReporting reporting, int tileSize, List<Renderer> renderers,
 			ArrayListMultimap<Direction, PanelRenderer> borderPanels, JSONObject options)
-			throws JSONException, FileNotFoundException, IOException {
+			throws JSONException {
 
 		Rectangle2D.Double worldBounds = computeBounds(renderers);
 		worldBounds.setFrameFromDiagonal(Math.floor(worldBounds.getMinX() + 0.4) - 1,
@@ -456,8 +456,7 @@ public class FBSR {
 	private static PanelRenderer createFooterPanel() {
 		return new PanelRenderer(0, 0.5) {
 			@Override
-			public void render(Graphics2D g, double width, double height)
-					throws JSONException, FileNotFoundException, IOException {
+			public void render(Graphics2D g, double width, double height) {
 				g.setColor(GRID_COLOR);
 				g.setFont(new Font("Monospaced", Font.BOLD, 1).deriveFont(0.4f));
 				String footerMessage;
@@ -488,7 +487,7 @@ public class FBSR {
 		final double iconSize = 0.6;
 		return new PanelRenderer(3.0, header + items.size() * spacing + 0.2) {
 			@Override
-			public void render(Graphics2D g, double width, double height) throws Exception {
+			public void render(Graphics2D g, double width, double height) {
 				g.setColor(GRID_COLOR);
 				g.setStroke(GRID_STROKE);
 				g.draw(new Rectangle2D.Double(0, 0, width, height));
@@ -986,7 +985,7 @@ public class FBSR {
 				Point2D.Double pos = t.entity.getPosition();
 				renderers.add(new Renderer(Layer.DEBUG_P, pos) {
 					@Override
-					public void render(Graphics2D g) throws Exception {
+					public void render(Graphics2D g) {
 						g.setColor(Color.cyan);
 						g.fill(new Ellipse2D.Double(pos.x - 0.1, pos.y - 0.1, 0.2, 0.2));
 						Stroke ps = g.getStroke();
@@ -1001,7 +1000,7 @@ public class FBSR {
 				Point2D.Double pos = t.tile.getPosition();
 				renderers.add(new Renderer(Layer.DEBUG_P, pos) {
 					@Override
-					public void render(Graphics2D g) throws Exception {
+					public void render(Graphics2D g) {
 						g.setColor(Color.cyan);
 						g.fill(new Ellipse2D.Double(pos.x - 0.1, pos.y - 0.1, 0.2, 0.2));
 					}
@@ -1085,7 +1084,7 @@ public class FBSR {
 
 				register.accept(new Renderer(Layer.LOGISTICS_RAIL_IO, edge.getStartPos()) {
 					@Override
-					public void render(Graphics2D g) throws Exception {
+					public void render(Graphics2D g) {
 						Shape path;
 						if (edge.isCurved()) {
 							double control = 1.7;
@@ -1120,7 +1119,7 @@ public class FBSR {
 
 					register.accept(new Renderer(Layer.LOGISTICS_RAIL_IO, edge.getStartPos()) {
 						@Override
-						public void render(Graphics2D g) throws Exception {
+						public void render(Graphics2D g) {
 							Stroke ps = g.getStroke();
 							g.setStroke(new BasicStroke(2 / 32f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_ROUND));
 							g.setColor(RenderUtils.withAlpha(Color.green, 92));
@@ -1139,7 +1138,7 @@ public class FBSR {
 
 				register.accept(new Renderer(Layer.DEBUG_RA1, pos) {
 					@Override
-					public void render(Graphics2D g) throws Exception {
+					public void render(Graphics2D g) {
 						Stroke ps = g.getStroke();
 						g.setStroke(new BasicStroke(1 / 32f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_ROUND));
 
@@ -1161,7 +1160,7 @@ public class FBSR {
 
 				register.accept(new Renderer(Layer.DEBUG_RA2, pos) {
 					@Override
-					public void render(Graphics2D g) throws Exception {
+					public void render(Graphics2D g) {
 						Stroke ps = g.getStroke();
 						g.setStroke(new BasicStroke(1 / 32f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_ROUND));
 

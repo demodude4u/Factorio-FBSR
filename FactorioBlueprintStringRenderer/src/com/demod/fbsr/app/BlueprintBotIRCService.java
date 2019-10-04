@@ -115,7 +115,7 @@ public class BlueprintBotIRCService extends AbstractIdleService {
 	}
 
 	@Override
-	protected void shutDown() throws Exception {
+	protected void shutDown() {
 		bot.stopBotReconnect();
 		bot.sendIRC().quitServer("Killed By Owner");
 	}

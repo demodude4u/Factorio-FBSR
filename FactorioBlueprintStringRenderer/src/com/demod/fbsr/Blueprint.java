@@ -20,7 +20,7 @@ public class Blueprint {
 	private Optional<Long> version;
 	private Optional<JSONArray> icons;
 
-	public Blueprint(JSONObject json) throws IllegalArgumentException, IOException {
+	public Blueprint(JSONObject json) throws IllegalArgumentException {
 		this.json = json;
 
 		JSONObject blueprintJson = json.getJSONObject("blueprint");
