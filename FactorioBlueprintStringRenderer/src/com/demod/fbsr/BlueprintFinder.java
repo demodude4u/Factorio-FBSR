@@ -7,9 +7,12 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Scanner;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
@@ -130,7 +133,7 @@ public final class BlueprintFinder {
 
 	private static final Pattern blueprintPattern = Pattern.compile("([0-9][A-Za-z0-9+\\/=\\r\\n]{90,})");
 
-	private static void findBlueprints(InputStream in, TaskReporting reporting, List<String> results) {
+	private static void findBlueprints(InputStream in, TaskReporting reporting, Set<String> results) {
 		try (Scanner scanner = new Scanner(in)) {
 			String blueprintString;
 			while ((blueprintString = scanner.findWithinHorizon(blueprintPattern, 4000000)) != null) {
@@ -144,11 +147,21 @@ public final class BlueprintFinder {
 		}
 	}
 
-	private static void findProviders(String content, TaskReporting reporting, List<String> results) {
+	private static void findProviders(String content, TaskReporting reporting, Set<String> results) {
+		HashSet<String> uniqueCheck = new HashSet<>();
 		for (Provider provider : providers) {
 			Matcher matcher = provider.getPattern().matcher(content);
 			while (matcher.find()) {
 				try {
+					String matchString = content.substring(matcher.start(), matcher.end());
+
+					System.out.println("\t[" + provider + "] " + matchString);
+
+					if (!uniqueCheck.add(matchString)) {
+						System.out.println("\t\tDuplicate match!");
+						continue;
+					}
+
 					provider.getMapper().matched(matcher, in -> {
 						List<Exception> tryExceptions = new ArrayList<>();
 						for (int tries = 6; tries >= 0; tries--) {
@@ -191,10 +204,10 @@ public final class BlueprintFinder {
 	}
 
 	public static List<String> searchRaw(String content, TaskReporting reporting) {
-		List<String> results = new ArrayList<>();
+		Set<String> results = new LinkedHashSet<>();
 		findBlueprints(new ByteArrayInputStream(content.getBytes()), reporting, results);
 		findProviders(content, reporting, results);
-		return results;
+		return new ArrayList<>(results);
 	}
 
 	private BlueprintFinder() {

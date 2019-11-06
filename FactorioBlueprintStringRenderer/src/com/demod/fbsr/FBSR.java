@@ -147,13 +147,15 @@ public class FBSR {
 			yAligned.add(((h / 2) % 2 == 0) == (y % 2 == 0));
 		}
 
-		System.out.println("X ALIGNED: " + xAligned.count(true) + " yes, " + xAligned.count(false) + " no");
-		System.out.println("Y ALIGNED: " + yAligned.count(true) + " yes, " + yAligned.count(false) + " no");
+		// System.out.println("X ALIGNED: " + xAligned.count(true) + " yes, " +
+		// xAligned.count(false) + " no");
+		// System.out.println("Y ALIGNED: " + yAligned.count(true) + " yes, " +
+		// yAligned.count(false) + " no");
 
 		boolean shiftX = xAligned.count(true) < xAligned.count(false);
 		boolean shiftY = yAligned.count(true) < yAligned.count(false);
 		if (shiftX || shiftY) {
-			System.out.println("SHIFTING!");
+			// System.out.println("SHIFTING!");
 			for (EntityRenderingTuple tuple : entityRenderingTuples) {
 				Point2D.Double position = tuple.entity.getPosition();
 				if (shiftX) {
@@ -264,12 +266,16 @@ public class FBSR {
 				centerBounds.width + borderLeft / worldRenderScale + borderRight / worldRenderScale,
 				centerBounds.height + borderTop / worldRenderScale + borderBottom / worldRenderScale);
 
-		System.out.println("IMAGE SCALE: " + worldRenderScale);
-		System.out.println("IMAGE DIM: " + (int) (totalBounds.getWidth() * worldRenderScale * tileSize) + ","
-				+ (int) (totalBounds.getHeight() * worldRenderScale * tileSize));
+		// System.out.println("IMAGE SCALE: " + worldRenderScale);
+		// System.out.println("IMAGE DIM: " + (int) (totalBounds.getWidth() *
+		// worldRenderScale * tileSize) + ","
+		// + (int) (totalBounds.getHeight() * worldRenderScale * tileSize));
 
-		BufferedImage image = new BufferedImage((int) (totalBounds.getWidth() * worldRenderScale * tileSize),
-				(int) (totalBounds.getHeight() * worldRenderScale * tileSize), BufferedImage.TYPE_INT_RGB);
+		int imageWidth = (int) (totalBounds.getWidth() * worldRenderScale * tileSize);
+		int imageHeight = (int) (totalBounds.getHeight() * worldRenderScale * tileSize);
+		System.out.println("\t" + imageWidth + "x" + imageHeight + " (" + worldRenderScale + ")");
+
+		BufferedImage image = new BufferedImage(imageWidth, imageHeight, BufferedImage.TYPE_INT_RGB);
 		Graphics2D g = image.createGraphics();
 
 		g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -855,6 +861,9 @@ public class FBSR {
 
 	public static BufferedImage renderBlueprint(Blueprint blueprint, TaskReporting reporting, JSONObject options)
 			throws JSONException, IOException {
+		System.out.println("Rendering " + blueprint.getLabel().orElse("(No Name)"));
+		long startMillis = System.currentTimeMillis();
+
 		DataTable table = FactorioData.getTable();
 		WorldMap map = new WorldMap();
 		reporting.getDebug().ifPresent(map::setDebug);
@@ -1009,7 +1018,13 @@ public class FBSR {
 			});
 		}
 
-		return applyRendering(reporting, (int) Math.round(tileSize), renderers, borderPanels, options);
+		BufferedImage result = applyRendering(reporting, (int) Math.round(tileSize), renderers, borderPanels, options);
+
+		long endMillis = System.currentTimeMillis();
+		System.out.println("\tRender Time " + (endMillis - startMillis) + " ms");
+		reporting.addRenderTime(endMillis - startMillis);
+
+		return result;
 	}
 
 	private static void showLogisticGrid(Consumer<Renderer> register, DataTable table, WorldMap map) {

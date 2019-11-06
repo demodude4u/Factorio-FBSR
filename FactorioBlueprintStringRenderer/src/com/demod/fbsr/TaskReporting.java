@@ -16,6 +16,7 @@ import net.dv8tion.jda.core.entities.Message;
 public class TaskReporting {
 	public static enum Level {
 		INFO(Color.gray), WARN(Color.orange), ERROR(Color.red), DEBUG(Color.magenta);
+
 		private final Color color;
 
 		private Level(Color color) {
@@ -37,6 +38,7 @@ public class TaskReporting {
 	private final List<String> downloads = new ArrayList<>();
 	private final List<String> links = new ArrayList<>();
 	private final Set<String> info = new LinkedHashSet<>();
+	private final List<Long> renderTimes = new ArrayList<>();
 
 	public void addBlueprintString(String blueprintString) {
 		blueprintStrings.add(blueprintString);
@@ -60,6 +62,10 @@ public class TaskReporting {
 
 	public void addLink(String url) {
 		links.add(url);
+	}
+
+	public void addRenderTime(long millis) {
+		renderTimes.add(millis);
 	}
 
 	public void addWarning(String warning) {
@@ -113,6 +119,10 @@ public class TaskReporting {
 
 	public List<String> getLinks() {
 		return links;
+	}
+
+	public List<Long> getRenderTimes() {
+		return renderTimes;
 	}
 
 	public List<String> getWarnings() {

@@ -32,12 +32,10 @@ public class BeaconRendering extends EntityRendererFactory {
 
 		double supplyAreaDistance = prototype.lua().get("supply_area_distance").todouble();
 		Rectangle2D.Double supplyBounds = Utils.parseRectangle(prototype.lua().get("selection_box"));
-		System.out.println(supplyBounds);
 		supplyBounds.x += pos.x - supplyAreaDistance;
 		supplyBounds.y += pos.y - supplyAreaDistance;
 		supplyBounds.width += supplyAreaDistance * 2;
 		supplyBounds.height += supplyAreaDistance * 2;
-		System.out.println(supplyBounds + " (" + supplyAreaDistance + ")");
 
 		// XXX
 		entity.json().put("distribution_effectivity", prototype.lua().get("distribution_effectivity").todouble());
@@ -52,6 +50,5 @@ public class BeaconRendering extends EntityRendererFactory {
 				debugCount++;
 			}
 		}
-		System.out.println(debugCount);
 	}
 }

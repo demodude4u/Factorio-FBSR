@@ -218,6 +218,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		List<String> downloads = reporting.getDownloads();
 		Set<String> info = reporting.getInfo();
 		Optional<Message> contextMessage = reporting.getContextMessage();
+		List<Long> renderTimes = reporting.getRenderTimes();
 
 		EmbedBuilder builder = new EmbedBuilder();
 		builder.setAuthor(author, null, authorURL);
@@ -261,6 +262,15 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 		if (!info.isEmpty()) {
 			builder.addField("Info", info.stream().collect(Collectors.joining("\n")), false);
+		}
+
+		if (!renderTimes.isEmpty()) {
+			builder.addField("Render Time", renderTimes.stream().mapToLong(l -> l).sum() + " ms"
+					+ (renderTimes.size() > 1
+							? (" [" + renderTimes.stream().map(Object::toString).collect(Collectors.joining(", "))
+									+ "]")
+							: ""),
+					false);
 		}
 
 		Multiset<String> uniqueWarnings = LinkedHashMultiset.create(warnings);

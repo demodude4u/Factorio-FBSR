@@ -142,6 +142,7 @@ public class WebAPIService extends AbstractIdleService {
 				if (!reporting.getExceptions().isEmpty()) {
 					reporting.addInfo(
 							"There was a problem completing your request. I have contacted my programmer to fix it for you!");
+					reporting.getExceptions().forEach(Exception::printStackTrace);
 				}
 
 				if (!reporting.getInfo().isEmpty()) {
