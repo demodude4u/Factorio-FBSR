@@ -51,6 +51,7 @@ import com.demod.fbsr.entity.FurnaceRendering;
 import com.demod.fbsr.entity.GateRendering;
 import com.demod.fbsr.entity.GeneratorRendering;
 import com.demod.fbsr.entity.HeatPipeRendering;
+import com.demod.fbsr.entity.InfinityPipeRendering;
 import com.demod.fbsr.entity.InserterRendering;
 import com.demod.fbsr.entity.LabRendering;
 import com.demod.fbsr.entity.LampRendering;
@@ -169,6 +170,7 @@ public class EntityRendererFactory {
 		byType.put("gate", new GateRendering());
 		byType.put("generator", new GeneratorRendering());
 		byType.put("heat-pipe", new HeatPipeRendering());
+		byType.put("infinity-pipe", new InfinityPipeRendering());
 		byType.put("inserter", new InserterRendering());
 		byType.put("lab", new LabRendering());
 		byType.put("lamp", new LampRendering());
