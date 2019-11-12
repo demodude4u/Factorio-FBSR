@@ -34,9 +34,7 @@ public class LoaderRendering extends EntityRendererFactory {
 	private static Point2D.Double getBeltShift(BlueprintEntity entity, EntityPrototype prototype, double offset) {
 		boolean input = entity.json().getString("type").equals("input");
 		Direction oppositeStructDir = input ? entity.getDirection().back() : entity.getDirection();
-		double beltDistance = !prototype.lua().get("belt_distance").isnil()
-				? prototype.lua().get("belt_distance").todouble()
-				: 0.5;
+		double beltDistance = prototype.lua().get("belt_distance").optdouble(0.5);
 		beltDistance += offset;
 		return new Point2D.Double(beltDistance * oppositeStructDir.getDx(), beltDistance * oppositeStructDir.getDy());
 	}
@@ -44,9 +42,7 @@ public class LoaderRendering extends EntityRendererFactory {
 	private static Point2D.Double getContainerShift(BlueprintEntity entity, EntityPrototype prototype, double offset) {
 		boolean input = entity.json().getString("type").equals("input");
 		Direction structDir = input ? entity.getDirection() : entity.getDirection().back();
-		double containerDistance = !prototype.lua().get("container_distance").isnil()
-				? prototype.lua().get("container_distance").todouble()
-				: 1.5;
+		double containerDistance = prototype.lua().get("container_distance").optdouble(1.5);
 		containerDistance += offset;
 		return new Point2D.Double(containerDistance * structDir.getDx(), containerDistance * structDir.getDy());
 	}
