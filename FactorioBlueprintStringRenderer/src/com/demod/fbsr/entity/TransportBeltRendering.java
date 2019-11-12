@@ -27,6 +27,14 @@ public class TransportBeltRendering extends EntityRendererFactory {
 					{ "south_to_west_index", "west_index", "north_to_west_index" }, // West
 			};
 
+	public static final int[][] transportBeltIndexDefaults = //
+			new int[/* Cardinal */][/* Bend */] { //
+					{ 6, 2, 4 }, // North
+					{ 5, 0, 8 }, // East
+					{ 9, 3, 11 }, // South
+					{ 10, 1, 7 }, // West
+			};
+
 	// XXX I'm not using horizontal or vertical frames
 	public static final int[][] transportBeltConnectorFrameMappingIndex = //
 			new int[/* Cardinal */][/* Bend */] { //
@@ -39,8 +47,13 @@ public class TransportBeltRendering extends EntityRendererFactory {
 	public static Sprite getBeltSprite(EntityPrototype prototype, Direction direction, BeltBend bend) {
 		LuaValue anim = prototype.lua().get("belt_animation_set");
 		Sprite sprite = RenderUtils.getSpriteFromAnimation(anim.get("animation_set"));
-		int spriteIndex = anim.get(transportBeltIndexName[direction.cardinal()][bend.ordinal()]).toint();
-		sprite.source.y = sprite.source.height * (spriteIndex - 1);
+		int spriteIndex;
+		if (!anim.get(transportBeltIndexName[direction.cardinal()][bend.ordinal()]).isnil()) {
+			spriteIndex = anim.get(transportBeltIndexName[direction.cardinal()][bend.ordinal()]).toint() - 1;
+		} else {
+			spriteIndex = transportBeltIndexDefaults[direction.cardinal()][bend.ordinal()];
+		}
+		sprite.source.y = sprite.source.height * (spriteIndex);
 		return sprite;
 	}
 

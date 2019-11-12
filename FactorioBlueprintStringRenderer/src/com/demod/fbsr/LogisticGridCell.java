@@ -19,6 +19,10 @@ public class LogisticGridCell {
 
 	private Optional<SortedSet<String>> transits = Optional.empty();
 	private boolean blockTransit = false;
+	// Not implemented in FBSR::populateReverseLogistics
+	private boolean blockWarpToIfMove = false; // dont warp to here if origin has a "move".
+	// Not implemented in FBSR::populateReverseLogistics
+	private boolean blockWarpFromIfMove = false; // dont warp from here if destination has a "move".
 	private Optional<List<Direction>> movedFrom = Optional.empty();
 	private Optional<List<Point2D.Double>> warpedFrom = Optional.empty();
 
@@ -129,6 +133,14 @@ public class LogisticGridCell {
 		return blockTransit;
 	}
 
+	public boolean isBlockWarpFromIfMove() {
+		return blockWarpFromIfMove;
+	}
+
+	public boolean isBlockWarpToIfMove() {
+		return blockWarpToIfMove;
+	}
+
 	public boolean isTransitEnd() {
 		return inputs.isPresent()
 				&& (warpedFrom.map(l -> !l.isEmpty()).isPresent() || movedFrom.map(l -> !l.isEmpty()).isPresent());
@@ -148,6 +160,14 @@ public class LogisticGridCell {
 
 	public void setBlockTransit(boolean blockTransit) {
 		this.blockTransit = blockTransit;
+	}
+
+	public void setBlockWarpFromIfMove(boolean blockWarpFromIfMove) {
+		this.blockWarpFromIfMove = blockWarpFromIfMove;
+	}
+
+	public void setBlockWarpToIfMove(boolean blockWarpToIfMove) {
+		this.blockWarpToIfMove = blockWarpToIfMove;
 	}
 
 	public void setInputs(Optional<Set<String>> inputs) {
