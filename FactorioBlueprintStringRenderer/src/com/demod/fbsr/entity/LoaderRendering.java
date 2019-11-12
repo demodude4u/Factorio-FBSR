@@ -31,11 +31,10 @@ import com.demod.fbsr.WorldMap.BeltBend;
 
 public class LoaderRendering extends EntityRendererFactory {
 
-	private static Point2D.Double getBeltShift(BlueprintEntity entity, EntityPrototype prototype, double offset) {
+	private static Point2D.Double getBeltShift(BlueprintEntity entity, EntityPrototype prototype) {
 		boolean input = entity.json().getString("type").equals("input");
 		Direction oppositeStructDir = input ? entity.getDirection().back() : entity.getDirection();
 		double beltDistance = prototype.lua().get("belt_distance").optdouble(0.5);
-		beltDistance += offset;
 		return new Point2D.Double(beltDistance * oppositeStructDir.getDx(), beltDistance * oppositeStructDir.getDy());
 	}
 
@@ -53,7 +52,7 @@ public class LoaderRendering extends EntityRendererFactory {
 		boolean input = entity.json().getString("type").equals("input");
 		Direction structDir = input ? entity.getDirection() : entity.getDirection().back();
 
-		Point2D.Double beltShift = getBeltShift(entity, prototype, 0);
+		Point2D.Double beltShift = getBeltShift(entity, prototype);
 		Sprite beltSprite = TransportBeltRendering.getBeltSprite(prototype, entity.getDirection(), BeltBend.NONE);
 		beltSprite.bounds.x += beltShift.x;
 		beltSprite.bounds.y += beltShift.y;
@@ -99,32 +98,30 @@ public class LoaderRendering extends EntityRendererFactory {
 			EntityPrototype prototype) {
 		Direction dir = entity.getDirection();
 		Point2D.Double pos = entity.getPosition();
-		Point2D.Double beltShift = getBeltShift(entity, prototype, 0.5);
+		Point2D.Double beltShift = getBeltShift(entity, prototype);
 		Point2D.Double containerShift = getContainerShift(entity, prototype, -0.5);
 		boolean input = entity.json().getString("type").equals("input");
 
 		if (input) { // problem: should not output to belt, but does
-			Direction movementDir = dir.back();
 			Point2D.Double inPos = new Point2D.Double(pos.x + beltShift.x, pos.y + beltShift.y);
 			Point2D.Double outPos = new Point2D.Double(pos.x + containerShift.x, pos.y + containerShift.y);
 
-			setLogisticMove(map, inPos, movementDir.backLeft(), movementDir);
-			setLogisticMove(map, inPos, movementDir.backRight(), movementDir);
-			setLogisticAcceptFilter(map, inPos, movementDir.frontLeft(), dir); // i dont know of I need this
-			setLogisticAcceptFilter(map, inPos, movementDir.frontRight(), dir);
+			setLogisticMove(map, inPos, dir.frontLeft(), dir);
+			setLogisticMove(map, inPos, dir.frontRight(), dir);
+			setLogisticMove(map, inPos, dir.backLeft(), dir);
+			setLogisticMove(map, inPos, dir.backRight(), dir);
 
-			addLogisticWarp(map, inPos, movementDir.backLeft(), outPos, movementDir.back());
-			addLogisticWarp(map, inPos, movementDir.backRight(), outPos, movementDir.back());
+			addLogisticWarp(map, inPos, dir.back().backLeft(), outPos, dir);
+			addLogisticWarp(map, inPos, dir.back().backRight(), outPos, dir);
 
 		} else { // problem: should not input from belt, but does
-			// Problem: doesnt accept inserter input on belt tile
 			Point2D.Double inPos = new Point2D.Double(pos.x + containerShift.x, pos.y + containerShift.y);
 			Point2D.Double outPos = new Point2D.Double(pos.x + beltShift.x, pos.y + beltShift.y);
 
-			setLogisticMove(map, outPos, dir.backLeft(), dir); // why is this back instead of front???
+			setLogisticMove(map, outPos, dir.frontLeft(), dir);
+			setLogisticMove(map, outPos, dir.frontRight(), dir);
+			setLogisticMove(map, outPos, dir.backLeft(), dir);
 			setLogisticMove(map, outPos, dir.backRight(), dir);
-			// setLogisticAcceptFilter(map, outPos, dir.frontLeft(), dir.back());
-			// setLogisticAcceptFilter(map, outPos, dir.frontRight(), dir.back());
 
 			addLogisticWarp(map, inPos, dir.back(), outPos, dir.frontLeft());
 			addLogisticWarp(map, inPos, dir.back(), outPos, dir.frontRight());
@@ -149,7 +146,7 @@ public class LoaderRendering extends EntityRendererFactory {
 	@Override
 	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity, EntityPrototype prototype) {
 		boolean input = entity.json().getString("type").equals("input");
-		Point2D.Double beltShift = getBeltShift(entity, prototype, 0);
+		Point2D.Double beltShift = getBeltShift(entity, prototype);
 
 		if (input) {
 			map.setBelt(new Point2D.Double(entity.getPosition().x + beltShift.x, entity.getPosition().y + beltShift.y),
