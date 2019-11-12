@@ -921,6 +921,11 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				.withTechnology("[FactorioDataWrapper](https://github.com/demodude4u/Java-Factorio-Data-Wrapper)",
 						"Factorio Data Scraper")//
 				.withCredits("Attribution", "[Factorio](https://www.factorio.com/) - Made by Wube Software")//
+				.withCredits("Contributors", "Demod")//
+				.withCredits("Contributors", "Bilka")//
+				.withCredits("Contributors", "FactorioBlueprints")//
+				.withCredits("Contributors", "acid")//
+				.withCredits("Contributors", "Vilsol")//
 				.withInvite(new Permission[] { //
 						Permission.MESSAGE_READ, //
 						Permission.MESSAGE_WRITE, //
