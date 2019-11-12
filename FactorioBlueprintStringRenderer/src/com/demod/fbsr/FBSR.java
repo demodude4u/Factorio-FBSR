@@ -814,7 +814,10 @@ public class FBSR {
 						});
 						cell.getWarps().ifPresent(l -> {
 							for (Point2D.Double p : l) {
-								map.getLogisticGridCell(p).filter(nc -> !nc.isBlockTransit())
+								map.getLogisticGridCell(p)
+										.filter(nc -> !nc.isBlockTransit()
+												&& !(nc.getMove().isPresent() && cell.isBlockWarpFromIfMove())
+												&& !(cell.getMove().isPresent() && nc.isBlockWarpToIfMove()))
 										.ifPresent(next -> work.add(new SimpleEntry<>(p, next)));
 							}
 						});
@@ -1079,7 +1082,12 @@ public class FBSR {
 				});
 				cell.getWarpedFrom().ifPresent(l -> {
 					for (Point2D.Double p : l) {
-						register.accept(RenderUtils.createWireRenderer(p, pos, Color.MAGENTA));
+						if (cell.isBlockWarpToIfMove())
+							register.accept(RenderUtils.createWireRenderer(p, pos, Color.RED));
+						else if (map.getOrCreateLogisticGridCell(p).isBlockWarpFromIfMove())
+							register.accept(RenderUtils.createWireRenderer(p, pos, Color.MAGENTA));
+						else
+							register.accept(RenderUtils.createWireRenderer(p, pos, Color.GREEN));
 					}
 				});
 			}

@@ -102,7 +102,7 @@ public class LoaderRendering extends EntityRendererFactory {
 		Point2D.Double containerShift = getContainerShift(entity, prototype, -0.5);
 		boolean input = entity.json().getString("type").equals("input");
 
-		if (input) { // problem: should not output to belt, but does
+		if (input) {
 			Point2D.Double inPos = new Point2D.Double(pos.x + beltShift.x, pos.y + beltShift.y);
 			Point2D.Double outPos = new Point2D.Double(pos.x + containerShift.x, pos.y + containerShift.y);
 
@@ -113,8 +113,10 @@ public class LoaderRendering extends EntityRendererFactory {
 
 			addLogisticWarp(map, inPos, dir.back().backLeft(), outPos, dir);
 			addLogisticWarp(map, inPos, dir.back().backRight(), outPos, dir);
+			map.getOrCreateLogisticGridCell(dir.back().backLeft().offset(inPos, 0.25)).setBlockWarpFromIfMove(true);
+			map.getOrCreateLogisticGridCell(dir.back().backRight().offset(inPos, 0.25)).setBlockWarpFromIfMove(true);
 
-		} else { // problem: should not input from belt, but does
+		} else {
 			Point2D.Double inPos = new Point2D.Double(pos.x + containerShift.x, pos.y + containerShift.y);
 			Point2D.Double outPos = new Point2D.Double(pos.x + beltShift.x, pos.y + beltShift.y);
 
@@ -123,11 +125,14 @@ public class LoaderRendering extends EntityRendererFactory {
 			setLogisticMove(map, outPos, dir.backLeft(), dir);
 			setLogisticMove(map, outPos, dir.backRight(), dir);
 
-			addLogisticWarp(map, inPos, dir.back(), outPos, dir.frontLeft());
-			addLogisticWarp(map, inPos, dir.back(), outPos, dir.frontRight());
+			addLogisticWarp(map, inPos, dir.back(), outPos, dir.backLeft());
+			addLogisticWarp(map, inPos, dir.back(), outPos, dir.backRight());
+
+			map.getOrCreateLogisticGridCell(dir.backLeft().offset(outPos, 0.25)).setBlockWarpToIfMove(true);
+			map.getOrCreateLogisticGridCell(dir.backRight().offset(outPos, 0.25)).setBlockWarpToIfMove(true);
 		}
 
-		if (entity.json().has("filters") && !input) { // this works. TODO: blocked output? TODO: fix icons with mip maps
+		if (entity.json().has("filters") && !input) {
 
 			Set<String> outputs = new LinkedHashSet<>();
 			Utils.<JSONObject>forEach(entity.json().getJSONArray("filters"), j -> {
