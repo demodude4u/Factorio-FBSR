@@ -8,3 +8,6 @@
 /log.txt
 /mods/
 /mods_disabled/
+/.project
+/.classpath
+/.settings/
