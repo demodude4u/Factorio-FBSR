@@ -127,11 +127,11 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 		return "https://www.reddit.com/message/messages/" + message.getId();
 	}
 
-	private Optional<String> processContent(String content, String link, String category, String author,
+	private List<String> processContent(String content, String link, String category, String author,
 			Optional<WatchdogService> watchdog) {
 		String contentLowerCase = content.toLowerCase();
 		if (!contentLowerCase.contains(summonKeyword) && !contentLowerCase.contains(myUserNameMention)) {
-			return Optional.empty();
+			return ImmutableList.of();
 		}
 
 		TaskReporting reporting = new TaskReporting();
@@ -213,9 +213,21 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 				.ifPresent(s -> s.sendReport("Reddit / " + category + " / " + author, REDDIT_AUTHOR_URL, reporting));
 
 		if (!lines.isEmpty()) {
-			return Optional.of(lines.stream().collect(Collectors.joining("\n\n")));
+			List<String> res = new ArrayList<>();
+			String message = "";
+			for (int i = 0; i < lines.size(); i++) {
+				String line = lines.get(i) + "\n\n";
+				if (message.length() + line.length() < 10000) {
+					message += line;
+				} else {
+					res.add(message);
+					message = "Blueprint Images (Continued):\n\n";
+				}
+			}
+			res.add(message);
+			return res;
 		} else {
-			return Optional.empty();
+			return ImmutableList.of();
 		}
 	}
 
@@ -248,10 +260,10 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 					continue;
 				}
 
-				Optional<String> response = processContent(comment.getBody(), getPermaLink(comment),
+				List<String> responses = processContent(comment.getBody(), getPermaLink(comment),
 						comment.getSubredditName(), comment.getAuthor(), watchdog);
-				if (response.isPresent()) {
-					pendingReplies.add(new SimpleEntry<>(comment, response.get()));
+				for (String response : responses) {
+					pendingReplies.add(new SimpleEntry<>(comment, response));
 				}
 			}
 		}
@@ -287,7 +299,7 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 	}
 
 	private boolean processNewMessages(JSONObject cacheJson, long ageLimitMillis, Optional<WatchdogService> watchdog)
-			throws ApiException {
+			throws ApiException, IOException {
 
 		long lastProcessedMillis = cacheJson.getLong("lastProcessedMessageMillis");
 
@@ -315,10 +327,10 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 				newestMillis = Math.max(newestMillis, createMillis);
 				processedMessages.add(message);
 
-				Optional<String> response = processContent(message.getBody(), getPermaLink(message), "(Private)",
+				List<String> responses = processContent(message.getBody(), getPermaLink(message), "(Private)",
 						message.getAuthor(), watchdog);
-				if (response.isPresent()) {
-					pendingReplies.add(new SimpleEntry<>(message, response.get()));
+				for (String response : responses) {
+					pendingReplies.add(new SimpleEntry<>(message, response));
 				}
 			}
 		}
@@ -330,9 +342,14 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 
 		for (Entry<Message, String> pair : pendingReplies) {
 			System.out.println("IM TRYING TO REPLY TO A MESSAGE!");
+			String message = pair.getValue();
+			if (message.length() > 10000) {
+				message = WebUtils.uploadToHostingService("MESSAGE_TOO_LONG.txt", message.getBytes()).toString();
+			}
+
 			while (true) {
 				try {
-					account.reply(pair.getKey(), pair.getValue());
+					account.reply(pair.getKey(), message);
 					break;
 				} catch (ApiException e) {
 					if (e.getReason().equals("RATELIMIT")) {
@@ -355,7 +372,7 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 	}
 
 	private boolean processNewSubmissions(JSONObject cacheJson, String subreddit, long ageLimitMillis,
-			Optional<WatchdogService> watchdog) throws NetworkException, ApiException {
+			Optional<WatchdogService> watchdog) throws NetworkException, ApiException, IOException {
 		long lastProcessedMillis = cacheJson.optLong("lastProcessedSubmissionMillis-" + subreddit);
 
 		SubredditPaginator paginator = new SubredditPaginator(reddit, subreddit);
@@ -388,18 +405,23 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 					break paginate;
 				}
 
-				Optional<String> response = processContent(submission.getSelftext(), submission.getUrl(),
+				List<String> responses = processContent(submission.getSelftext(), submission.getUrl(),
 						submission.getSubredditName(), submission.getAuthor(), watchdog);
-				if (response.isPresent()) {
-					pendingReplies.add(new SimpleEntry<>(submission, response.get()));
+				for (String response : responses) {
+					pendingReplies.add(new SimpleEntry<>(submission, response));
 				}
 			}
 		}
 		for (Entry<Submission, String> pair : pendingReplies) {
 			System.out.println("IM TRYING TO REPLY TO A SUBMISSION!");
+			String message = pair.getValue();
+			if (message.length() > 10000) {
+				message = WebUtils.uploadToHostingService("MESSAGE_TOO_LONG.txt", message.getBytes()).toString();
+			}
+
 			while (true) {
 				try {
-					account.reply(pair.getKey(), pair.getValue());
+					account.reply(pair.getKey(), message);
 					break;
 				} catch (ApiException e) {
 					if (e.getReason().equals("RATELIMIT")) {
@@ -429,18 +451,18 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 			if (thing instanceof Comment) {
 				System.out.println("REQUESTED COMMENT!");
 				Comment comment = (Comment) thing;
-				Optional<String> response = processContent(comment.getBody(), getPermaLink(comment),
+				List<String> responses = processContent(comment.getBody(), getPermaLink(comment),
 						comment.getSubredditName(), comment.getAuthor(), Optional.empty());
-				if (response.isPresent()) {
-					account.reply(comment, response.get());
+				for (String response : responses) {
+					account.reply(comment, response);
 				}
 			} else if (thing instanceof Submission) {
 				System.out.println("REQUESTED SUBMISSION!");
 				Submission submission = (Submission) thing;
-				Optional<String> response = processContent(submission.getSelftext(), submission.getUrl(),
+				List<String> responses = processContent(submission.getSelftext(), submission.getUrl(),
 						submission.getSubredditName(), submission.getAuthor(), Optional.empty());
-				if (response.isPresent()) {
-					account.reply(submission, response.get());
+				for (String response : responses) {
+					account.reply(submission, response);
 				}
 			}
 		}
