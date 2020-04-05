@@ -3,7 +3,6 @@ package com.demod.fbsr.entity;
 import java.util.function.Consumer;
 
 import com.demod.factorio.DataTable;
-import com.demod.factorio.Utils;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.BlueprintEntity;
 import com.demod.fbsr.Direction;
@@ -25,9 +24,6 @@ public class InfinityPipeRendering extends PipeRendering {
 		String spriteName = pipeSpriteNameMapping[adjCode];
 
 		Sprite sprite = RenderUtils.getSpriteFromAnimation(prototype.lua().get("pictures").get(spriteName));
-		sprite.image = Utils.tintImage(sprite.image,
-				Utils.parseColor(prototype.lua().get("pictures").get(spriteName).get("tint")));
-
 		register.accept(RenderUtils.spriteRenderer(sprite, entity, prototype));
 	}
 

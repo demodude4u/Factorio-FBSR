@@ -203,6 +203,10 @@ public final class RenderUtils {
 		if (!blendMode.equals("normal")) { // FIXME blending will take effort
 			ret.image = EMPTY_IMAGE;
 		}
+		LuaValue tint = lua.get("tint");
+		if (!tint.isnil()) {
+			ret.image = Utils.tintImage(ret.image, Utils.parseColor(tint));
+		}
 		double scale = lua.get("scale").optdouble(1.0);
 		int srcX = lua.get("x").optint(0);
 		int srcY = lua.get("y").optint(0);

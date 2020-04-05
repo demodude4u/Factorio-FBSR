@@ -40,10 +40,12 @@ import com.demod.fbsr.entity.ArtilleryWagonRendering;
 import com.demod.fbsr.entity.AssemblingMachineRendering;
 import com.demod.fbsr.entity.BeaconRendering;
 import com.demod.fbsr.entity.BoilerRendering;
+import com.demod.fbsr.entity.BurnerGeneratorRendering;
 import com.demod.fbsr.entity.ConstantCombinatorRendering;
 import com.demod.fbsr.entity.ContainerRendering;
 import com.demod.fbsr.entity.CurvedRailRendering;
 import com.demod.fbsr.entity.DeciderCombinatorRendering;
+import com.demod.fbsr.entity.ElectricEnergyInterfaceRendering;
 import com.demod.fbsr.entity.ElectricPoleRendering;
 import com.demod.fbsr.entity.ElectricTurretRendering;
 import com.demod.fbsr.entity.FluidTurretRendering;
@@ -88,7 +90,8 @@ import com.google.common.collect.Multiset;
 
 public class EntityRendererFactory {
 
-	private static List<String> defaultProperties = ImmutableList.of("animation", "off_animation", "structure");
+	private static List<String> defaultProperties = ImmutableList.of("animation", "off_animation", "structure",
+			"picture");
 
 	public static final EntityRendererFactory UNKNOWN = new EntityRendererFactory() {
 		Set<String> labeledTypes = new HashSet<>();
@@ -160,11 +163,13 @@ public class EntityRendererFactory {
 		byType.put("assembling-machine", new AssemblingMachineRendering());
 		byType.put("beacon", new BeaconRendering());
 		byType.put("boiler", new BoilerRendering());
+		byType.put("burner-generator", new BurnerGeneratorRendering());
 		byType.put("cargo-wagon", new RollingStockRendering());
 		byType.put("constant-combinator", new ConstantCombinatorRendering());
 		byType.put("container", new ContainerRendering());
 		byType.put("curved-rail", new CurvedRailRendering());
 		byType.put("decider-combinator", new DeciderCombinatorRendering());
+		byType.put("electric-energy-interface", new ElectricEnergyInterfaceRendering());
 		byType.put("electric-pole", new ElectricPoleRendering());
 		byType.put("electric-turret", new ElectricTurretRendering());
 		byType.put("fluid-turret", new FluidTurretRendering());
@@ -181,6 +186,7 @@ public class EntityRendererFactory {
 		byType.put("lamp", new LampRendering());
 		byType.put("land-mine", new LandMineRendering());
 		byType.put("loader", new LoaderRendering());
+		byType.put("loader-1x1", new LoaderRendering());
 		byType.put("locomotive", new RollingStockRendering());
 		byType.put("logistic-container", new LogisticContainerRendering());
 		byType.put("mining-drill", new MiningDrillRendering());

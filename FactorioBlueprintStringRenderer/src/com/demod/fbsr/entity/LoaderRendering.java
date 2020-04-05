@@ -34,7 +34,7 @@ public class LoaderRendering extends EntityRendererFactory {
 	private static Point2D.Double getBeltShift(BlueprintEntity entity, EntityPrototype prototype) {
 		boolean input = entity.json().getString("type").equals("input");
 		Direction oppositeStructDir = input ? entity.getDirection().back() : entity.getDirection();
-		double beltDistance = prototype.lua().get("belt_distance").optdouble(0.5);
+		double beltDistance = prototype.getType().equals("loader-1x1") ? 0 : 0.5;
 		return new Point2D.Double(beltDistance * oppositeStructDir.getDx(), beltDistance * oppositeStructDir.getDy());
 	}
 
