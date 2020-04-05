@@ -47,8 +47,7 @@ public class AssemblingMachineRendering extends EntityRendererFactory {
 			Optional<RecipePrototype> optRecipe = dataTable.getRecipe(recipe);
 			if (optRecipe.isPresent()) {
 				RecipePrototype protoRecipe = optRecipe.get();
-				LuaValue iconLua = protoRecipe.lua().get("icon");
-				if (!iconLua.isnil()) {
+				if (!protoRecipe.lua().get("icon").isnil() || !protoRecipe.lua().get("icons").isnil()) {
 					spriteIcon.image = FactorioData.getIcon(protoRecipe);
 				} else {
 					String name;

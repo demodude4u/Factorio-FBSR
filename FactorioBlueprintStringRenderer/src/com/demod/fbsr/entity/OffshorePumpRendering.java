@@ -1,6 +1,9 @@
 package com.demod.fbsr.entity;
 
+import java.util.List;
 import java.util.function.Consumer;
+
+import org.luaj.vm2.LuaValue;
 
 import com.demod.factorio.DataTable;
 import com.demod.factorio.prototype.EntityPrototype;
@@ -16,9 +19,14 @@ public class OffshorePumpRendering extends EntityRendererFactory {
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
 			EntityPrototype prototype) {
-		Sprite sprite = RenderUtils.getSpriteFromAnimation(
-				prototype.lua().get("picture").get(entity.getDirection().name().toLowerCase()));
-		register.accept(RenderUtils.spriteRenderer(sprite, entity, prototype));
+		List<Sprite> sprites;
+		LuaValue graphicsSet = prototype.lua().get("graphics_set");
+		if (!graphicsSet.isnil()) {
+			sprites = RenderUtils.getSpritesFromAnimation(graphicsSet.get("animation"), entity.getDirection());
+		} else {
+			sprites = RenderUtils.getSpritesFromAnimation(prototype.lua().get("picture"), entity.getDirection());
+		}
+		register.accept(RenderUtils.spriteRenderer(sprites, entity, prototype));
 	}
 
 	@Override
