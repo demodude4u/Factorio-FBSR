@@ -939,14 +939,17 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				.addCommand("blueprint", (NoArgHandler) event -> handleBlueprintCommand(event))//
 				.withHelp("Renders an image of the blueprint string provided. Longer blueprints "
 						+ "can be attached as files or linked with pastebin, hastebin, gitlab, or gist URLs.")//
+				.withAliases("bp")//
 				.addCommand("blueprintJSON", (NoArgHandler) event -> handleBlueprintJsonCommand(event))//
 				.withHelp("Provides a dump of the json data in the specified blueprint string.")//
 				.addCommand("blueprintUpgradeBelts", (NoArgHandler) event -> handleBlueprintUpgradeBeltsCommand(event))//
 				.withHelp("Converts all yellow belts into red belts, and all red belts into blue belts.")//
 				.addCommand("blueprintItems", (NoArgHandler) event -> handleBlueprintItemsCommand(event))//
 				.withHelp("Prints out all of the items needed by the blueprint.")//
+				.withAliases("bpItems")//
 				.addCommand("blueprintRawItems", (NoArgHandler) event -> handleBlueprintItemsRawCommand(event))//
 				.withHelp("Prints out all of the raw items needed by the blueprint.")//
+				.withAliases("bpRawItems")//
 				//
 				.addCommand("blueprintBookExtract", (NoArgHandler) event -> handleBlueprintBookExtractCommand(event))//
 				.withHelp("Provides an collection of blueprint strings contained within the specified blueprint book.")//
