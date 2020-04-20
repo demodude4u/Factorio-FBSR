@@ -8,8 +8,11 @@ import java.awt.geom.Path2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Point2D.Double;
 import java.awt.geom.Rectangle2D;
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
+
+import org.luaj.vm2.LuaValue;
 
 import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
@@ -38,24 +41,30 @@ public class SplitterRendering extends EntityRendererFactory {
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
 			EntityPrototype prototype) {
-		Sprite belt1Sprite = TransportBeltRendering.getBeltSprite(prototype, entity.getDirection(), BeltBend.NONE);
+		Direction dir = entity.getDirection();
+
+		Sprite belt1Sprite = TransportBeltRendering.getBeltSprite(prototype, dir, BeltBend.NONE);
 		Sprite belt2Sprite = new Sprite(belt1Sprite);
 
-		Point2D.Double beltShift = entity.getDirection().left().offset(new Point2D.Double(), 0.5);
+		Point2D.Double beltShift = dir.left().offset(new Point2D.Double(), 0.5);
 
 		belt1Sprite.bounds.x += beltShift.x;
 		belt1Sprite.bounds.y += beltShift.y;
 		belt2Sprite.bounds.x -= beltShift.x;
 		belt2Sprite.bounds.y -= beltShift.y;
 
-		Sprite sprite = RenderUtils.getSpriteFromAnimation(
-				prototype.lua().get("structure").get(entity.getDirection().toString().toLowerCase()));
-
 		register.accept(RenderUtils.spriteRenderer(Layer.ENTITY, belt1Sprite, entity, prototype));
 		register.accept(RenderUtils.spriteRenderer(Layer.ENTITY, belt2Sprite, entity, prototype));
-		register.accept(RenderUtils.spriteRenderer(Layer.ENTITY2, sprite, entity, prototype));
 
-		Direction dir = entity.getDirection();
+		LuaValue structurePatch = prototype.lua().get("structure_patch");
+		if (!structurePatch.isnil() && (dir == Direction.WEST || dir == Direction.EAST)) {
+			List<Sprite> patch = RenderUtils.getSpritesFromAnimation(structurePatch, dir);
+			register.accept(RenderUtils.spriteRenderer(Layer.ENTITY2, patch, entity, prototype));
+		}
+
+		List<Sprite> sprites = RenderUtils.getSpritesFromAnimation(prototype.lua().get("structure"), dir);
+		register.accept(RenderUtils.spriteRenderer(Layer.ENTITY2, sprites, entity, prototype));
+
 		Double pos = entity.getPosition();
 		Point2D.Double leftPos = dir.left().offset(pos, 0.5);
 		Point2D.Double rightPos = dir.right().offset(pos, 0.5);
