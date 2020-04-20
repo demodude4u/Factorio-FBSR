@@ -175,11 +175,7 @@ public final class RenderUtils {
 
 		LuaValue hrVersion = lua.get("hr_version");
 		if (!hrVersion.isnil()) {
-			final LuaValue lua_f = lua;
-			Utils.forEach(hrVersion, (k, v) -> {
-				lua_f.set(k, v);
-			});
-			lua.set("hr_version", LuaValue.NIL);
+			lua = hrVersion;
 		}
 
 		Sprite ret = new Sprite();
