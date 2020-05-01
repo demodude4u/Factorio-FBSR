@@ -23,6 +23,8 @@ public class RollingStockRendering extends EntityRendererFactory {
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
 			EntityPrototype prototype) {
 
+		debugPrintContext(entity, prototype);// XXX
+
 		double orientation = entity.json().getDouble("orientation");
 
 		LuaValue layers = prototype.lua().get("pictures").get("layers");
@@ -67,6 +69,11 @@ public class RollingStockRendering extends EntityRendererFactory {
 	}
 
 	protected Sprite getRotatedSprite(LuaValue lua, double orientation) {
+		LuaValue hrVersion = lua.get("hr_version");
+		if (!hrVersion.isnil()) {
+			lua = hrVersion;
+		}
+
 		int lineLength = lua.get("line_length").toint();
 		int linesPerFile = lua.get("lines_per_file").toint();
 		int fileLength = lineLength * linesPerFile;
