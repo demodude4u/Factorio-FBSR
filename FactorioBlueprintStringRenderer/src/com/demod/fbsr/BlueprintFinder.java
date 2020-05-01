@@ -1,6 +1,7 @@
 package com.demod.fbsr;
 
 import java.io.ByteArrayInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
@@ -168,6 +169,8 @@ public final class BlueprintFinder {
 							try {
 								findBlueprints(in.get(), reporting, results);
 								break;
+							} catch (FileNotFoundException e) {
+								System.out.println("\t\tFile not Found!");
 							} catch (Exception e) {
 								tryExceptions.add(e);
 							}
