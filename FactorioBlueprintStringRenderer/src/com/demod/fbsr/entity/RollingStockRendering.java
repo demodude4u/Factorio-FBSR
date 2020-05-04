@@ -22,9 +22,6 @@ public class RollingStockRendering extends EntityRendererFactory {
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
 			EntityPrototype prototype) {
-
-		debugPrintContext(entity, prototype);// XXX
-
 		double orientation = entity.json().getDouble("orientation");
 
 		LuaValue layers = prototype.lua().get("pictures").get("layers");
