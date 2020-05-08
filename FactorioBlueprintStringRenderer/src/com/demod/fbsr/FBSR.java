@@ -17,7 +17,6 @@ import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayDeque;
@@ -178,8 +177,7 @@ public class FBSR {
 	}
 
 	private static BufferedImage applyRendering(TaskReporting reporting, int tileSize, List<Renderer> renderers,
-			ArrayListMultimap<Direction, PanelRenderer> borderPanels, JSONObject options)
-			throws JSONException {
+			ArrayListMultimap<Direction, PanelRenderer> borderPanels, JSONObject options) throws JSONException {
 
 		Rectangle2D.Double worldBounds = computeBounds(renderers);
 		worldBounds.setFrameFromDiagonal(Math.floor(worldBounds.getMinX() + 0.4) - 1,
@@ -551,16 +549,9 @@ public class FBSR {
 
 	public static Map<String, Integer> generateSummedTotalItems(DataTable table, Blueprint blueprint,
 			TaskReporting reporting) {
-		int entityAmount = 0;
+		int entityAmount = blueprint.getEntities().size();
 		int moduleAmount = 0;
 		for (BlueprintEntity entity : blueprint.getEntities()) {
-			String entityName = entity.getName();
-			List<ItemPrototype> items = table.getItemsForEntity(entityName);
-			if (items.isEmpty()) {
-				continue;
-			}
-			entityAmount++;
-
 			Optional<Multiset<String>> modules = RenderUtils.getModules(entity, table);
 			if (modules.isPresent()) {
 				for (Multiset.Entry<String> entry : modules.get().entrySet()) {

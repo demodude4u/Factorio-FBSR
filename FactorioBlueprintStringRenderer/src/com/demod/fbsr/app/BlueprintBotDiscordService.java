@@ -749,7 +749,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				reporting.addException(e);
 			}
 		} else {
-			reporting.addInfo("I couldn't find any non-hidden entities, tiles or modules!");
+			reporting.addInfo("I couldn't find any entities, tiles or modules!");
 		}
 
 		if (reporting.getImages().isEmpty() && reporting.getDownloads().isEmpty() && reporting.getWarnings().isEmpty()
