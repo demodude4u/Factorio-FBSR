@@ -550,6 +550,56 @@ public class FBSR {
 		};
 	}
 
+	public static Map<String, Integer> generateSummedTotalItems(DataTable table, Blueprint blueprint,
+			TaskReporting reporting) {
+		int entityAmount = 0;
+		int moduleAmount = 0;
+		for (BlueprintEntity entity : blueprint.getEntities()) {
+			String entityName = entity.getName();
+			List<ItemPrototype> items = table.getItemsForEntity(entityName);
+			if (items.isEmpty()) {
+				continue;
+			}
+			entityAmount++;
+
+			Optional<Multiset<String>> modules = RenderUtils.getModules(entity, table);
+			if (modules.isPresent()) {
+				for (Multiset.Entry<String> entry : modules.get().entrySet()) {
+					moduleAmount += entry.getCount();
+				}
+			}
+		}
+		int tileAmount = 0;
+		for (BlueprintTile tile : blueprint.getTiles()) {
+			String itemName = tile.getName();
+			if (itemName.startsWith("hazard-concrete")) {
+				itemName = "hazard-concrete";
+			}
+			if (itemName.startsWith("refined-hazard-concrete")) {
+				itemName = "refined-hazard-concrete";
+			}
+			if (itemName.equals("stone-path")) {
+				itemName = "stone-brick";
+			}
+			if (itemName.equals("grass-1")) {
+				itemName = "landfill";
+			}
+			if (!table.getItem(itemName).isPresent()) {
+				System.err.println("MISSING TILE ITEM: " + itemName);
+				continue;
+			}
+			tileAmount++;
+		}
+		Map<String, Integer> ret = new LinkedHashMap<>();
+		if (entityAmount != 0)
+			ret.put("Entities", entityAmount);
+		if (moduleAmount != 0)
+			ret.put("Modules", moduleAmount);
+		if (tileAmount != 0)
+			ret.put("Tiles", tileAmount);
+		return ret;
+	}
+
 	public static Map<String, Double> generateTotalItems(DataTable table, Blueprint blueprint,
 			TaskReporting reporting) {
 		Map<String, Double> ret = new LinkedHashMap<>();
