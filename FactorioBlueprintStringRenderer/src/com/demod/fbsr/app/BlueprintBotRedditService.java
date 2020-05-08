@@ -76,7 +76,7 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 	private String summonKeyword;
 	private String myUserNameMention;
 
-	private void ensureConnectedToReddit() throws NetworkException, OAuthException, InterruptedException {
+	private void ensureConnectedToReddit() throws NetworkException, InterruptedException {
 		if (System.currentTimeMillis() + 60000 > authExpireMillis) {
 			for (int wait = 4000; true; wait = Math.min(wait * 2, (5) * 60 * 1000)) {
 				try {
@@ -100,7 +100,7 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 				.findAny();
 	}
 
-	private JSONObject getOrCreateCache() throws FileNotFoundException, IOException {
+	private JSONObject getOrCreateCache() {
 		if (CACHE_FILE.exists()) {
 			try (FileInputStream fis = new FileInputStream(CACHE_FILE)) {
 				return Utils.readJsonFromStream(fis);
@@ -469,7 +469,7 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 	}
 
 	@Override
-	protected void runOneIteration() throws Exception {
+	protected void runOneIteration() {
 		Optional<WatchdogService> watchdog = ServiceFinder.findService(WatchdogService.class);
 		watchdog.ifPresent(w -> w.notifyKnown(WATCHDOG_LABEL));
 
@@ -513,7 +513,7 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 	}
 
 	@Override
-	protected void shutDown() throws Exception {
+	protected void shutDown() {
 		ServiceFinder.removeService(this);
 		reddit.getOAuthHelper().revokeAccessToken(credentials);
 		reddit.deauthenticate();

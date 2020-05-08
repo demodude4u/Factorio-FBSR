@@ -39,7 +39,7 @@ public class WatchdogService extends AbstractScheduledService {
 	}
 
 	@Override
-	protected synchronized void runOneIteration() throws Exception {
+	protected synchronized void runOneIteration() {
 		for (String label : known) {
 			if (!active.contains(label) && !alarmed.contains(label)) {
 				alarmed.add(label);
@@ -58,12 +58,12 @@ public class WatchdogService extends AbstractScheduledService {
 	}
 
 	@Override
-	protected void shutDown() throws Exception {
+	protected void shutDown() {
 		ServiceFinder.removeService(this);
 	}
 
 	@Override
-	protected void startUp() throws Exception {
+	protected void startUp() {
 		ServiceFinder.addService(this);
 
 		configJson = Config.get().getJSONObject("watchdog");

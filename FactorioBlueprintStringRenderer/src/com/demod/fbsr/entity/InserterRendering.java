@@ -128,7 +128,7 @@ public class InserterRendering extends EntityRendererFactory {
 		});
 		register.accept(new Renderer(Layer.OVERLAY3, inPos) {
 			@Override
-			public void render(Graphics2D g) throws Exception {
+			public void render(Graphics2D g) {
 				AffineTransform pat = g.getTransform();
 
 				Color color = Color.yellow;
@@ -172,7 +172,7 @@ public class InserterRendering extends EntityRendererFactory {
 		});
 		register.accept(new Renderer(Layer.OVERLAY3, outPos) {
 			@Override
-			public void render(Graphics2D g) throws Exception {
+			public void render(Graphics2D g) {
 				AffineTransform pat = g.getTransform();
 
 				Color color = Color.yellow;

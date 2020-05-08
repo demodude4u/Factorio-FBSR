@@ -75,7 +75,7 @@ public class SplitterRendering extends EntityRendererFactory {
 
 			register.accept(new Renderer(Layer.OVERLAY3, inputPos) {
 				@Override
-				public void render(Graphics2D g) throws Exception {
+				public void render(Graphics2D g) {
 					AffineTransform pat = g.getTransform();
 
 					Color color = Color.yellow;
@@ -128,7 +128,7 @@ public class SplitterRendering extends EntityRendererFactory {
 			} else {
 				register.accept(new Renderer(Layer.OVERLAY3, outputPos) {
 					@Override
-					public void render(Graphics2D g) throws Exception {
+					public void render(Graphics2D g) {
 						AffineTransform pat = g.getTransform();
 
 						Color color = Color.yellow;

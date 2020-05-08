@@ -48,14 +48,14 @@ public class WebAPIService extends AbstractIdleService {
 	}
 
 	@Override
-	protected void shutDown() throws Exception {
+	protected void shutDown() {
 		ServiceFinder.removeService(this);
 
 		App.shutdown();
 	}
 
 	@Override
-	protected void startUp() throws Exception {
+	protected void startUp() {
 		ServiceFinder.addService(this);
 
 		configJson = Config.get().getJSONObject("webapi");
