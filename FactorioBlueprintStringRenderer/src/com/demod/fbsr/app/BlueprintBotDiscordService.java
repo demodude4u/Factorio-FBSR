@@ -722,7 +722,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		Map<String, Double> totalItems = new LinkedHashMap<>();
 		for (BlueprintStringData blueprintStringData : blueprintStringDatas) {
 			for (Blueprint blueprint : blueprintStringData.getBlueprints()) {
-				Map<String, Integer> items = FBSR.generateSummedTotalItems(table, blueprint, reporting);
+				Map<String, Double> items = FBSR.generateSummedTotalItems(table, blueprint, reporting);
 				items.forEach((k, v) -> {
 					totalItems.compute(k, ($, old) -> old == null ? v : old + v);
 				});
