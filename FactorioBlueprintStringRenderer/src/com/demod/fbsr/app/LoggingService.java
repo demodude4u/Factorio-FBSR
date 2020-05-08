@@ -32,12 +32,12 @@ public class LoggingService extends AbstractIdleService {
 	}
 
 	@Override
-	protected void shutDown() throws Exception {
+	protected void shutDown() {
 		ServiceFinder.removeService(this);
 	}
 
 	@Override
-	protected void startUp() throws Exception {
+	protected void startUp() {
 		ServiceFinder.addService(this);
 
 	}

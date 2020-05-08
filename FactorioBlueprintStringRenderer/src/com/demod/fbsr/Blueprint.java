@@ -1,6 +1,5 @@
 package com.demod.fbsr;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -20,7 +19,7 @@ public class Blueprint {
 	private Optional<Long> version;
 	private Optional<JSONArray> icons;
 
-	public Blueprint(JSONObject json) throws IllegalArgumentException, IOException {
+	public Blueprint(JSONObject json) throws IllegalArgumentException {
 		this.json = json;
 
 		JSONObject blueprintJson = json.getJSONObject("blueprint");

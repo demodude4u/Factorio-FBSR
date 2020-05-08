@@ -331,7 +331,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		}
 	}
 
-	private byte[] generateDiscordFriendlyPNGImage(BufferedImage image) throws IOException {
+	private byte[] generateDiscordFriendlyPNGImage(BufferedImage image) {
 		byte[] imageData = WebUtils.getImageData(image);
 		if (imageData.length > 8000000) {
 			return generateDiscordFriendlyPNGImage(
@@ -698,6 +698,78 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		sendReport(event, reporting);
 	}
 
+	private void handleBlueprintTotalsCommand(MessageReceivedEvent event) {
+		DataTable table;
+		try {
+			table = FactorioData.getTable();
+		} catch (JSONException | IOException e1) {
+			throw new InternalError(e1);
+		}
+
+		String content = event.getMessage().getContentStripped();
+		TaskReporting reporting = new TaskReporting();
+		reporting.setContext(content);
+
+		List<BlueprintStringData> blueprintStringDatas;
+		if (!event.getMessage().getAttachments().isEmpty()) {
+			String url = event.getMessage().getAttachments().get(0).getUrl();
+			reporting.addLink(url);
+			blueprintStringDatas = BlueprintFinder.search(url, reporting);
+		} else {
+			blueprintStringDatas = BlueprintFinder.search(content, reporting);
+		}
+
+		Map<String, Double> totalItems = new LinkedHashMap<>();
+		for (BlueprintStringData blueprintStringData : blueprintStringDatas) {
+			for (Blueprint blueprint : blueprintStringData.getBlueprints()) {
+				Map<String, Double> items = FBSR.generateSummedTotalItems(table, blueprint, reporting);
+				items.forEach((k, v) -> {
+					totalItems.compute(k, ($, old) -> old == null ? v : old + v);
+				});
+			}
+		}
+
+		if (!totalItems.isEmpty()) {
+			try {
+				String responseContent = totalItems.entrySet().stream()
+						.sorted((e1, e2) -> e1.getKey().compareTo(e2.getKey()))
+						.map(e -> e.getKey() + ": " + RenderUtils.fmtDouble2(e.getValue()))
+						.collect(Collectors.joining("\n"));
+				String responseContentUrl = WebUtils.uploadToHostingService("items.txt", responseContent.getBytes())
+						.toString();
+				reporting.addLink(responseContentUrl);
+
+				String response = "```ldif\n" + responseContent + "```";
+				if (response.length() < 2000) {
+					event.getChannel().sendMessage(response).complete();
+				} else {
+					reporting.addInfo(responseContentUrl);
+				}
+			} catch (IOException e) {
+				reporting.addException(e);
+			}
+		} else {
+			reporting.addInfo("I couldn't find any entities, tiles or modules!");
+		}
+
+		if (reporting.getImages().isEmpty() && reporting.getDownloads().isEmpty() && reporting.getWarnings().isEmpty()
+				&& reporting.getExceptions().isEmpty() && reporting.getInfo().isEmpty()
+				&& reporting.getLinks().isEmpty()) {
+			if (content.split("\\s").length == 1) {
+				reporting.addInfo("Give me blueprint strings and I'll count the items for you!");
+				reporting.addInfo("Include a link to a text file to get started.");
+			} else {
+				reporting.addInfo("I can't seem to find any blueprints. :frowning:");
+			}
+		}
+
+		if (!reporting.getInfo().isEmpty()) {
+			event.getChannel().sendMessage(reporting.getInfo().stream().collect(Collectors.joining("\n"))).complete();
+		}
+
+		sendReport(event, reporting);
+	}
+
 	private void handleBlueprintUpgradeBeltsCommand(MessageReceivedEvent event) {
 		String content = event.getMessage().getContentStripped();
 		TaskReporting reporting = new TaskReporting();
@@ -899,7 +971,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 	}
 
 	@Override
-	protected void shutDown() throws Exception {
+	protected void shutDown() {
 		ServiceFinder.removeService(this);
 		ServiceFinder.removeService(WatchdogReporter.class);
 		bot.stopAsync().awaitTerminated();
@@ -950,6 +1022,9 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				.addCommand("blueprintRawItems", (NoArgHandler) event -> handleBlueprintItemsRawCommand(event))//
 				.withHelp("Prints out all of the raw items needed by the blueprint.")//
 				.withAliases("bpRawItems")//
+				.addCommand("blueprintCounts", (NoArgHandler) event -> handleBlueprintTotalsCommand(event))
+				.withHelp("Prints out the total counts of entities, items and tiles needed by the blueprint.")//
+				.withAliases("bpCounts")//
 				//
 				.addCommand("blueprintBookExtract", (NoArgHandler) event -> handleBlueprintBookExtractCommand(event))//
 				.withHelp("Provides an collection of blueprint strings contained within the specified blueprint book.")//
