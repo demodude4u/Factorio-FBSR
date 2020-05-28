@@ -168,6 +168,15 @@ public final class RenderUtils {
 	}
 
 	public static Sprite getSpriteFromAnimation(LuaValue lua) {
+		return getSpriteFromAnimation(lua, 0);
+	}
+
+	/***
+	 * @param fileNameSelector The 1-based index of the desired image path in the
+	 *                         "filenames" array. Used only if "filenames" property
+	 *                         exists.
+	 */
+	public static Sprite getSpriteFromAnimation(LuaValue lua, int fileNameSelector) {
 		LuaValue sheetLua = lua.get("sheet");
 		if (!sheetLua.isnil()) {
 			lua = sheetLua;
@@ -181,9 +190,9 @@ public final class RenderUtils {
 		Sprite ret = new Sprite();
 		String imagePath;
 		if (!lua.get("filenames").isnil()) {
-			// XXX this is a hack
-			int selector = lua.get("filename_selector").toint();
-			imagePath = lua.get("filenames").get(selector).tojstring();
+			if (fileNameSelector == 0)
+				System.err.println("Using 'filenames' but file name selector is not set!");
+			imagePath = lua.get("filenames").get(fileNameSelector).tojstring();
 		} else {
 			imagePath = lua.get("filename").tojstring();
 		}
@@ -217,6 +226,24 @@ public final class RenderUtils {
 	}
 
 	public static List<Sprite> getSpritesFromAnimation(LuaValue lua) {
+		return getSpritesFromAnimation(lua, 0);
+	}
+
+	public static List<Sprite> getSpritesFromAnimation(LuaValue lua, Direction direction) {
+		LuaValue dirLua = lua.get(direction.name().toLowerCase());
+		if (!dirLua.isnil()) {
+			return getSpritesFromAnimation(dirLua);
+		} else {
+			return getSpritesFromAnimation(lua);
+		}
+	}
+
+	/***
+	 * @param fileNameSelector The 1-based index of the desired image path in the
+	 *                         "filenames" array. Used only if "filenames" property
+	 *                         exists.
+	 */
+	public static List<Sprite> getSpritesFromAnimation(LuaValue lua, int fileNameSelector) {
 		List<Sprite> sprites = new ArrayList<>();
 		LuaValue layersLua = lua.get("layers");
 		if (layersLua.isnil()) {
@@ -224,12 +251,12 @@ public final class RenderUtils {
 		}
 		if (!layersLua.isnil()) {
 			Utils.forEach(layersLua.checktable(), (i, l) -> {
-				Sprite sprite = getSpriteFromAnimation(l);
+				Sprite sprite = getSpriteFromAnimation(l, fileNameSelector);
 				sprite.order = i.toint();
 				sprites.add(sprite);
 			});
 		} else {
-			sprites.add(getSpriteFromAnimation(lua));
+			sprites.add(getSpriteFromAnimation(lua, fileNameSelector));
 		}
 
 		sprites.sort((s1, s2) -> {
@@ -240,15 +267,6 @@ public final class RenderUtils {
 		});
 
 		return sprites;
-	}
-
-	public static List<Sprite> getSpritesFromAnimation(LuaValue lua, Direction direction) {
-		LuaValue dirLua = lua.get(direction.name().toLowerCase());
-		if (!dirLua.isnil()) {
-			return getSpritesFromAnimation(dirLua);
-		} else {
-			return getSpritesFromAnimation(lua);
-		}
 	}
 
 	public static Color parseColor(JSONObject json) {
@@ -264,13 +282,18 @@ public final class RenderUtils {
 		return ret;
 	}
 
+	public static void shiftSprites(List<Sprite> sprites, Point2D.Double shift) {
+		for (Sprite sprite : sprites) {
+			sprite.bounds.x += shift.x;
+			sprite.bounds.y += shift.y;
+		}
+	}
+
 	public static Renderer spriteRenderer(Layer layer, List<Sprite> sprites, BlueprintEntity entity,
 			EntityPrototype prototype) {
 		Point2D.Double pos = entity.getPosition();
-		for (Sprite sprite : sprites) {
-			sprite.bounds.x += pos.x;
-			sprite.bounds.y += pos.y;
-		}
+		RenderUtils.shiftSprites(sprites, pos);
+
 		// Rectangle2D.Double groundBounds =
 		// Utils.parseRectangle(prototype.lua().get("collision_box"));
 		Rectangle2D.Double groundBounds = Utils.parseRectangle(prototype.lua().get("selection_box"));
