@@ -196,14 +196,11 @@ public final class RenderUtils {
 		} else {
 			imagePath = lua.get("filename").tojstring();
 		}
+		ret.image = FactorioData.getModImage(imagePath);
+
 		boolean drawAsShadow = lua.get("draw_as_shadow").optboolean(false);
 		ret.shadow = drawAsShadow;
-		// drawAsShadow = false;// FIXME shadows need a special mask layer
-		if (drawAsShadow) {
-			ret.image = FactorioData.getModImage(imagePath, new Color(255, 255, 255, 128));
-		} else {
-			ret.image = FactorioData.getModImage(imagePath);
-		}
+
 		String blendMode = lua.get("blend_mode").optjstring("normal");
 		if (!blendMode.equals("normal")) { // FIXME blending will take effort
 			ret.image = EMPTY_IMAGE;
@@ -326,7 +323,8 @@ public final class RenderUtils {
 			@Override
 			public void render(Graphics2D g) {
 				for (Sprite sprite : sprites) {
-					drawSprite(sprite, g);
+					if (sprite.shadow)
+						drawSprite(sprite, g);
 					// debugShowBounds(groundBounds, g);
 				}
 			}
