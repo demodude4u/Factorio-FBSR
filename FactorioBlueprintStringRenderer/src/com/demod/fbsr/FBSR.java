@@ -278,20 +278,17 @@ public class FBSR {
 
 		BufferedImage shadowImage = new BufferedImage(imageWidth, imageHeight, BufferedImage.TYPE_INT_ARGB);
 		Graphics2D shadowG = shadowImage.createGraphics();
+		AffineTransform noXform = g.getTransform();
 
 		g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 		g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
 
-		AffineTransform noXform = g.getTransform();
-
 		g.scale(image.getWidth() / totalBounds.getWidth(), image.getHeight() / totalBounds.getHeight());
 		g.translate(-totalBounds.getX(), -totalBounds.getY());
-
 		AffineTransform worldXform = g.getTransform();
 
 		shadowG.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 		shadowG.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
-
 		shadowG.setTransform(worldXform);
 
 		// Background
@@ -315,11 +312,10 @@ public class FBSR {
 				reporting.addException(e);
 			}
 		});
-
 		shadowG.dispose();
 		shadowImage = Utils.halfAlphaImage(shadowImage);
-		AffineTransform tempXform = g.getTransform();
 
+		AffineTransform tempXform = g.getTransform();
 		g.setTransform(noXform);
 		g.drawImage(shadowImage, 0, 0, null);
 
@@ -362,7 +358,6 @@ public class FBSR {
 				reporting.addException(e);
 			}
 		});
-
 		g.setTransform(worldXform);
 
 		// Grid Numbers
@@ -459,7 +454,6 @@ public class FBSR {
 		}
 
 		g.dispose();
-
 		return image;
 	}
 

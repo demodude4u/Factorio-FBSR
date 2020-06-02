@@ -192,8 +192,9 @@ public final class RenderUtils {
 		Sprite ret = new Sprite();
 		String imagePath;
 		if (!lua.get("filenames").isnil()) {
-			if (fileNameSelector == 0)
-				System.err.println("Using 'filenames' but file name selector is not set!");
+			// if (fileNameSelector == 0)
+			// System.err.println("Using 'filenames' but file name selector is not set!");
+			// if the above happens, it will automatically throw with the below line
 			imagePath = lua.get("filenames").get(fileNameSelector).tojstring();
 		} else {
 			imagePath = lua.get("filename").tojstring();
