@@ -19,9 +19,7 @@ public class ElectricPoleRendering extends EntityRendererFactory {
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
 			EntityPrototype prototype) {
 		List<Sprite> sprites = RenderUtils.getSpritesFromAnimation(prototype.lua().get("pictures"));
-		for (Sprite s : sprites) {
-			s.source.x = s.source.width * entity.getDirection().cardinal();
-		}
+		sprites.forEach(s -> s.source.x = s.source.width * entity.getDirection().cardinal());
 		register.accept(RenderUtils.spriteRenderer(Layer.ENTITY3, sprites, entity, prototype));
 	}
 }
