@@ -14,7 +14,9 @@ import java.awt.image.BufferedImage;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -286,17 +288,20 @@ public final class RenderUtils {
 		}
 	}
 
-	public static Renderer spriteRenderer(Layer layer, List<Sprite> sprites, BlueprintEntity entity,
+	public static EntityRenderer spriteRenderer(Layer layer, List<Sprite> sprites, BlueprintEntity entity,
 			EntityPrototype prototype) {
 		Point2D.Double pos = entity.getPosition();
 		RenderUtils.shiftSprites(sprites, pos);
+
+		Map<Boolean, List<Sprite>> groupedSprites = sprites.stream()
+				.collect(Collectors.partitioningBy(sprite -> sprite.shadow));
 
 		// Rectangle2D.Double groundBounds =
 		// Utils.parseRectangle(prototype.lua().get("collision_box"));
 		Rectangle2D.Double groundBounds = Utils.parseRectangle(prototype.lua().get("selection_box"));
 		groundBounds.x += pos.x;
 		groundBounds.y += pos.y;
-		return new Renderer(layer, groundBounds) {
+		return new EntityRenderer(layer, groundBounds) {
 			@SuppressWarnings("unused")
 			private void debugShowBounds(Rectangle2D.Double groundBounds, Graphics2D g) {
 				long x = Math.round(groundBounds.getCenterX() * 2);
@@ -322,16 +327,22 @@ public final class RenderUtils {
 
 			@Override
 			public void render(Graphics2D g) {
-				for (Sprite sprite : sprites) {
-					if (sprite.shadow)
-						drawSprite(sprite, g);
+				for (Sprite sprite : groupedSprites.get(false)) {
+					drawSprite(sprite, g);
 					// debugShowBounds(groundBounds, g);
+				}
+			}
+
+			@Override
+			public void renderShadows(Graphics2D g) {
+				for (Sprite sprite : groupedSprites.get(true)) {
+					drawSprite(sprite, g);
 				}
 			}
 		};
 	}
 
-	public static Renderer spriteRenderer(Layer layer, Sprite sprite, BlueprintEntity entity,
+	public static EntityRenderer spriteRenderer(Layer layer, Sprite sprite, BlueprintEntity entity,
 			EntityPrototype prototype) {
 		return spriteRenderer(layer, ImmutableList.of(sprite), entity, prototype);
 	}
@@ -373,11 +384,12 @@ public final class RenderUtils {
 		};
 	}
 
-	public static Renderer spriteRenderer(List<Sprite> sprites, BlueprintEntity entity, EntityPrototype prototype) {
+	public static EntityRenderer spriteRenderer(List<Sprite> sprites, BlueprintEntity entity,
+			EntityPrototype prototype) {
 		return spriteRenderer(Layer.ENTITY, sprites, entity, prototype);
 	}
 
-	public static Renderer spriteRenderer(Sprite sprite, BlueprintEntity entity, EntityPrototype prototype) {
+	public static EntityRenderer spriteRenderer(Sprite sprite, BlueprintEntity entity, EntityPrototype prototype) {
 		return spriteRenderer(Layer.ENTITY, sprite, entity, prototype);
 	}
 

@@ -308,6 +308,23 @@ public class FBSR {
 			g.draw(new Line2D.Double(worldBounds.getMinX(), y, worldBounds.getMaxX(), y));
 		}
 
+		renderers.stream().filter(r -> r instanceof EntityRenderer).map(r -> (EntityRenderer) r).forEach(r -> {
+			try {
+				r.renderShadows(shadowG);
+			} catch (Exception e) {
+				reporting.addException(e);
+			}
+		});
+
+		shadowG.dispose();
+		shadowImage = Utils.halfAlphaImage(shadowImage);
+		AffineTransform tempXform = g.getTransform();
+
+		g.setTransform(noXform);
+		g.drawImage(shadowImage, 0, 0, null);
+
+		g.setTransform(tempXform);
+
 		boolean debugBounds = reporting.getDebug().map(d -> d.bounds).orElse(false);
 		renderers.stream().sorted((r1, r2) -> {
 			int ret;
@@ -334,7 +351,7 @@ public class FBSR {
 			return ret;
 		}).forEach(r -> {
 			try {
-				r.render(shadowG);
+				r.render(g);
 
 				if (debugBounds) {
 					g.setStroke(new BasicStroke(1f / 32f));
@@ -345,11 +362,6 @@ public class FBSR {
 				reporting.addException(e);
 			}
 		});
-
-		shadowG.dispose();
-		shadowImage = Utils.halfAlphaImage(shadowImage);
-		g.setTransform(noXform);
-		g.drawImage(shadowImage, 0, 0, null);
 
 		g.setTransform(worldXform);
 
