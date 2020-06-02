@@ -1,8 +1,7 @@
 package com.demod.fbsr.entity;
 
+import java.util.List;
 import java.util.function.Consumer;
-
-import org.luaj.vm2.LuaValue;
 
 import com.demod.factorio.DataTable;
 import com.demod.factorio.prototype.EntityPrototype;
@@ -22,13 +21,8 @@ public class GateRendering extends EntityRendererFactory {
 
 		String orientation = vertical ? "vertical" : "horizontal";
 
-		LuaValue spriteLayersLua = prototype.lua().get(orientation + "_animation").get("layers");
-
-		Sprite spriteShadow = RenderUtils.getSpriteFromAnimation(spriteLayersLua.get(2));
-		register.accept(RenderUtils.spriteRenderer(spriteShadow, entity, prototype));
-
-		Sprite sprite = RenderUtils.getSpriteFromAnimation(spriteLayersLua.get(1));
-		register.accept(RenderUtils.spriteRenderer(sprite, entity, prototype));
+		List<Sprite> sprites = RenderUtils.getSpritesFromAnimation(prototype.lua().get(orientation + "_animation"));
+		register.accept(RenderUtils.spriteRenderer(sprites, entity, prototype));
 	}
 
 	private boolean isVerticalGate(BlueprintEntity entity) {

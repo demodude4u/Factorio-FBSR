@@ -231,9 +231,9 @@ public final class RenderUtils {
 	public static List<Sprite> getSpritesFromAnimation(LuaValue lua, Direction direction) {
 		LuaValue dirLua = lua.get(direction.name().toLowerCase());
 		if (!dirLua.isnil()) {
-			return getSpritesFromAnimation(dirLua);
+			return getSpritesFromAnimation(dirLua, 0);
 		} else {
-			return getSpritesFromAnimation(lua);
+			return getSpritesFromAnimation(lua, 0);
 		}
 	}
 

@@ -34,12 +34,12 @@ public class ArithmeticCombinatorRendering extends EntityRendererFactory {
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
 			EntityPrototype prototype) {
-		List<Sprite> sprites = RenderUtils.getSpritesFromAnimation(
-				prototype.lua().get("sprites").get(entity.getDirection().name().toLowerCase()));
-		Sprite operatorSprite = RenderUtils.getSpriteFromAnimation(prototype.lua()
-				.get(operationSprites.get(entity.json().getJSONObject("control_behavior")
-						.getJSONObject("arithmetic_conditions").getString("operation")))
-				.get(entity.getDirection().name().toLowerCase()));
+		List<Sprite> sprites = RenderUtils.getSpritesFromAnimation(prototype.lua().get("sprites"),
+				entity.getDirection());
+		String operationString = entity.json().getJSONObject("control_behavior").getJSONObject("arithmetic_conditions")
+				.getString("operation");
+		List<Sprite> operatorSprite = RenderUtils.getSpritesFromAnimation(
+				prototype.lua().get(operationSprites.get(operationString)), entity.getDirection());
 
 		register.accept(RenderUtils.spriteRenderer(sprites, entity, prototype));
 		register.accept(RenderUtils.spriteRenderer(operatorSprite, entity, prototype));
