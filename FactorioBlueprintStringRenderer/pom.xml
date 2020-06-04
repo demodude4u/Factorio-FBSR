@@ -24,11 +24,6 @@
 			<name>jcenter-bintray</name>
 			<url>https://jcenter.bintray.com</url>
 		</repository>
-		<repository>
-			<id>revonline-repository</id>
-			<name>Revonline Maven Repository</name>
-			<url>http://revonline.comuf.com/maven3/</url>
-		</repository>
 	</repositories>
 	<dependencies>
 		<dependency>
