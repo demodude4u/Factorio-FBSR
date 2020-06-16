@@ -313,7 +313,7 @@ public class FBSR {
 			}
 		});
 		shadowG.dispose();
-		shadowImage = Utils.halfAlphaImage(shadowImage);
+		shadowImage = RenderUtils.halveAlpha(shadowImage);
 
 		AffineTransform tempXform = g.getTransform();
 		g.setTransform(noXform);

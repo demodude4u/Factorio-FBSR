@@ -269,6 +269,22 @@ public final class RenderUtils {
 		return sprites;
 	}
 
+	public static BufferedImage halveAlpha(BufferedImage image) {
+		int w = image.getWidth();
+		int h = image.getHeight();
+		BufferedImage ret = new BufferedImage(w, h, image.getType());
+		int[] pixels = new int[w * h];
+		image.getRGB(0, 0, w, h, pixels, 0, w);
+		for (int i = 0; i < pixels.length; i++) {
+			int argb = pixels[i];
+			int a = ((argb >> 24) & 0xFF);
+
+			pixels[i] = ((a / 2) << 24) | (argb & 0xFFFFFF);
+		}
+		ret.setRGB(0, 0, w, h, pixels, 0, w);
+		return ret;
+	}
+
 	public static Color parseColor(JSONObject json) {
 		return new Color((float) json.getDouble("r"), (float) json.getDouble("g"), (float) json.getDouble("b"),
 				(float) json.getDouble("a"));
