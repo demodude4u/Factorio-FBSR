@@ -315,7 +315,7 @@ public class FBSR {
 			}
 		});
 		shadowG.dispose();
-		Utils.halfAlphaImage(shadowImage);
+		RenderUtils.halveAlpha(shadowImage);
 
 		shadowHack = false;
 
