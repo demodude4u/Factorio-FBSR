@@ -93,8 +93,6 @@ public class FBSR {
 
 	public static final double tileSize = 32.0;
 
-	private static boolean shadowHack = false;
-
 	private static void addToItemAmount(Map<String, Double> items, String itemName, double add) {
 		double amount = items.getOrDefault(itemName, 0.0);
 		amount += add;
@@ -317,7 +315,16 @@ public class FBSR {
 		shadowG.dispose();
 		RenderUtils.halveAlpha(shadowImage);
 
-		shadowHack = false;
+		renderers.add(new Renderer(Layer.SHADOW_BUFFER, worldBounds) {
+			@Override
+			public void render(Graphics2D g) throws Exception {
+				AffineTransform tempXform = g.getTransform();
+				g.setTransform(noXform);
+				g.drawImage(shadowImage, 0, 0, null);
+
+				g.setTransform(tempXform);
+			}
+		});
 
 		boolean debugBounds = reporting.getDebug().map(d -> d.bounds).orElse(false);
 		renderers.stream().sorted((r1, r2) -> {
@@ -344,15 +351,6 @@ public class FBSR {
 			ret = r1.getLayer().compareTo(r2.getLayer());
 			return ret;
 		}).forEach(r -> {
-			if (r.getLayer() == Layer.ENTITY && !shadowHack) {
-				AffineTransform tempXform = g.getTransform();
-				g.setTransform(noXform);
-				g.drawImage(shadowImage, 0, 0, null);
-
-				g.setTransform(tempXform);
-
-				shadowHack = true;
-			}
 			try {
 				r.render(g);
 
