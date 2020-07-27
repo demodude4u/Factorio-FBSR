@@ -313,13 +313,18 @@ public class FBSR {
 			}
 		});
 		shadowG.dispose();
-		shadowImage = RenderUtils.halveAlpha(shadowImage);
+		RenderUtils.halveAlpha(shadowImage);
 
-		AffineTransform tempXform = g.getTransform();
-		g.setTransform(noXform);
-		g.drawImage(shadowImage, 0, 0, null);
+		renderers.add(new Renderer(Layer.SHADOW_BUFFER, worldBounds) {
+			@Override
+			public void render(Graphics2D g) throws Exception {
+				AffineTransform tempXform = g.getTransform();
+				g.setTransform(noXform);
+				g.drawImage(shadowImage, 0, 0, null);
 
-		g.setTransform(tempXform);
+				g.setTransform(tempXform);
+			}
+		});
 
 		boolean debugBounds = reporting.getDebug().map(d -> d.bounds).orElse(false);
 		renderers.stream().sorted((r1, r2) -> {
