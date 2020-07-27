@@ -16,8 +16,8 @@ public class ConstantCombinatorRendering extends EntityRendererFactory {
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
 			EntityPrototype prototype) {
-		List<Sprite> sprites = RenderUtils.getSpritesFromAnimation(
-				prototype.lua().get("sprites").get(entity.getDirection().name().toLowerCase()));
+		List<Sprite> sprites = RenderUtils.getSpritesFromAnimation(prototype.lua().get("sprites"),
+				entity.getDirection());
 		register.accept(RenderUtils.spriteRenderer(sprites, entity, prototype));
 	}
 }

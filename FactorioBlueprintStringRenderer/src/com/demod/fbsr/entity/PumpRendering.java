@@ -1,6 +1,7 @@
 package com.demod.fbsr.entity;
 
 import java.awt.geom.Point2D;
+import java.util.List;
 import java.util.function.Consumer;
 
 import com.demod.factorio.DataTable;
@@ -17,8 +18,8 @@ public class PumpRendering extends EntityRendererFactory {
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
 			EntityPrototype prototype) {
-		Sprite sprite = RenderUtils.getSpriteFromAnimation(
-				prototype.lua().get("animations").get(entity.getDirection().name().toLowerCase()));
+		List<Sprite> sprite = RenderUtils.getSpritesFromAnimation(prototype.lua().get("animations"),
+				entity.getDirection());
 		register.accept(RenderUtils.spriteRenderer(sprite, entity, prototype));
 	}
 

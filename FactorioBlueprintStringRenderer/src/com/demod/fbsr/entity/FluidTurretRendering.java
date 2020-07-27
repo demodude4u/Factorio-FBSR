@@ -1,8 +1,7 @@
 package com.demod.fbsr.entity;
 
+import java.util.List;
 import java.util.function.Consumer;
-
-import org.luaj.vm2.LuaValue;
 
 import com.demod.factorio.DataTable;
 import com.demod.factorio.prototype.EntityPrototype;
@@ -18,13 +17,12 @@ public class FluidTurretRendering extends EntityRendererFactory {
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
 			EntityPrototype prototype) {
-		Sprite baseSprite = RenderUtils.getSpriteFromAnimation(prototype.lua().get("base_picture")
-				.get(entity.getDirection().name().toLowerCase()).get("layers").get(1));
-		register.accept(RenderUtils.spriteRenderer(baseSprite, entity, prototype));
-		LuaValue turretLayers = prototype.lua().get("folded_animation").get(entity.getDirection().name().toLowerCase())
-				.get("layers");
-		Sprite turretSprite = RenderUtils.getSpriteFromAnimation(turretLayers.get(1));
-		register.accept(RenderUtils.spriteRenderer(turretSprite, entity, prototype));
+		List<Sprite> baseSprites = RenderUtils.getSpritesFromAnimation(prototype.lua().get("base_picture"),
+				entity.getDirection());
+		register.accept(RenderUtils.spriteRenderer(baseSprites, entity, prototype));
+		List<Sprite> turretSprites = RenderUtils.getSpritesFromAnimation(prototype.lua().get("folded_animation"),
+				entity.getDirection());
+		register.accept(RenderUtils.spriteRenderer(turretSprites, entity, prototype));
 	}
 
 	@Override

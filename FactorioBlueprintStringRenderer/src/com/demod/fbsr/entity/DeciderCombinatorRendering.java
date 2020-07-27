@@ -28,12 +28,12 @@ public class DeciderCombinatorRendering extends EntityRendererFactory {
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
 			EntityPrototype prototype) {
-		List<Sprite> sprites = RenderUtils.getSpritesFromAnimation(
-				prototype.lua().get("sprites").get(entity.getDirection().name().toLowerCase()));
-		Sprite operatorSprite = RenderUtils.getSpriteFromAnimation(prototype.lua()
-				.get(operationSprites.get(entity.json().getJSONObject("control_behavior")
-						.getJSONObject("decider_conditions").getString("comparator")))
-				.get(entity.getDirection().name().toLowerCase()));
+		List<Sprite> sprites = RenderUtils.getSpritesFromAnimation(prototype.lua().get("sprites"),
+				entity.getDirection());
+		String comparatorString = entity.json().getJSONObject("control_behavior").getJSONObject("decider_conditions")
+				.getString("comparator");
+		List<Sprite> operatorSprite = RenderUtils.getSpritesFromAnimation(
+				prototype.lua().get(operationSprites.get(comparatorString)), entity.getDirection());
 
 		register.accept(RenderUtils.spriteRenderer(sprites, entity, prototype));
 		register.accept(RenderUtils.spriteRenderer(operatorSprite, entity, prototype));

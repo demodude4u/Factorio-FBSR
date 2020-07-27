@@ -276,12 +276,20 @@ public class FBSR {
 		BufferedImage image = new BufferedImage(imageWidth, imageHeight, BufferedImage.TYPE_INT_RGB);
 		Graphics2D g = image.createGraphics();
 
+		BufferedImage shadowImage = new BufferedImage(imageWidth, imageHeight, BufferedImage.TYPE_INT_ARGB);
+		Graphics2D shadowG = shadowImage.createGraphics();
+		AffineTransform noXform = g.getTransform();
+
 		g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 		g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
 
 		g.scale(image.getWidth() / totalBounds.getWidth(), image.getHeight() / totalBounds.getHeight());
 		g.translate(-totalBounds.getX(), -totalBounds.getY());
 		AffineTransform worldXform = g.getTransform();
+
+		shadowG.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+		shadowG.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+		shadowG.setTransform(worldXform);
 
 		// Background
 		g.setColor(GROUND_COLOR);
@@ -296,6 +304,27 @@ public class FBSR {
 		for (double y = Math.round(worldBounds.getMinY()); y <= worldBounds.getMaxY(); y++) {
 			g.draw(new Line2D.Double(worldBounds.getMinX(), y, worldBounds.getMaxX(), y));
 		}
+
+		renderers.stream().filter(r -> r instanceof EntityRenderer).map(r -> (EntityRenderer) r).forEach(r -> {
+			try {
+				r.renderShadows(shadowG);
+			} catch (Exception e) {
+				reporting.addException(e);
+			}
+		});
+		shadowG.dispose();
+		RenderUtils.halveAlpha(shadowImage);
+
+		renderers.add(new Renderer(Layer.SHADOW_BUFFER, worldBounds) {
+			@Override
+			public void render(Graphics2D g) throws Exception {
+				AffineTransform tempXform = g.getTransform();
+				g.setTransform(noXform);
+				g.drawImage(shadowImage, 0, 0, null);
+
+				g.setTransform(tempXform);
+			}
+		});
 
 		boolean debugBounds = reporting.getDebug().map(d -> d.bounds).orElse(false);
 		renderers.stream().sorted((r1, r2) -> {

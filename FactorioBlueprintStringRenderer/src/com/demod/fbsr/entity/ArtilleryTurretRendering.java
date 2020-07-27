@@ -1,6 +1,7 @@
 package com.demod.fbsr.entity;
 
 import java.awt.geom.Point2D;
+import java.util.List;
 import java.util.function.Consumer;
 
 import org.luaj.vm2.LuaValue;
@@ -22,24 +23,20 @@ public class ArtilleryTurretRendering extends EntityRendererFactory {
 			EntityPrototype prototype) {
 		Point2D.Double baseShift = Utils.parsePoint2D(prototype.lua().get("base_shift"));
 
-		Sprite baseSprite = RenderUtils
-				.getSpriteFromAnimation(prototype.lua().get("base_picture").get("layers").get(1));
-		baseSprite.bounds.x += baseShift.x;
-		baseSprite.bounds.y += baseShift.y;
-		register.accept(RenderUtils.spriteRenderer(baseSprite, entity, prototype));
+		List<Sprite> baseSprites = RenderUtils.getSpritesFromAnimation(prototype.lua().get("base_picture"));
+		RenderUtils.shiftSprites(baseSprites, baseShift);
+		register.accept(RenderUtils.spriteRenderer(baseSprites, entity, prototype));
 
-		LuaValue cannonBarrel = prototype.lua().get("cannon_barrel_pictures").get("layers").get(1);
-		cannonBarrel.set("filename_selector", entity.getDirection().ordinal() * 2 + 1); // XXX
-		Sprite cannonBarrelSprite = RenderUtils.getSpriteFromAnimation(cannonBarrel);
-		cannonBarrelSprite.bounds.x += baseShift.x;
-		cannonBarrelSprite.bounds.y += baseShift.y;
-		register.accept(RenderUtils.spriteRenderer(Layer.ENTITY2, cannonBarrelSprite, entity, prototype));
+		int fileNameSelector = entity.getDirection().ordinal() * 2 + 1;
 
-		LuaValue cannonBase = prototype.lua().get("cannon_base_pictures").get("layers").get(1);
-		cannonBase.set("filename_selector", entity.getDirection().ordinal() * 2 + 1); // XXX
-		Sprite cannonBaseSprite = RenderUtils.getSpriteFromAnimation(cannonBase);
-		cannonBaseSprite.bounds.x += baseShift.x;
-		cannonBaseSprite.bounds.y += baseShift.y;
-		register.accept(RenderUtils.spriteRenderer(Layer.ENTITY2, cannonBaseSprite, entity, prototype));
+		LuaValue cannonBarrel = prototype.lua().get("cannon_barrel_pictures");
+		List<Sprite> cannonBarrelSprites = RenderUtils.getSpritesFromAnimation(cannonBarrel, fileNameSelector);
+		RenderUtils.shiftSprites(cannonBarrelSprites, baseShift);
+		register.accept(RenderUtils.spriteRenderer(Layer.ENTITY2, cannonBarrelSprites, entity, prototype));
+
+		LuaValue cannonBase = prototype.lua().get("cannon_base_pictures");
+		List<Sprite> cannonBaseSprites = RenderUtils.getSpritesFromAnimation(cannonBase, fileNameSelector);
+		RenderUtils.shiftSprites(cannonBaseSprites, baseShift);
+		register.accept(RenderUtils.spriteRenderer(Layer.ENTITY2, cannonBaseSprites, entity, prototype));
 	}
 }

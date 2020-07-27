@@ -78,8 +78,7 @@ public class RollingStockRendering extends EntityRendererFactory {
 		int index = getRotationIndex(lua, orientation);
 		int fileIndex = index / fileLength;
 		int tileIndex = index % fileLength;
-		lua.set("filename_selector", fileIndex + 1); // XXX
-		Sprite sprite = RenderUtils.getSpriteFromAnimation(lua);
+		Sprite sprite = RenderUtils.getSpriteFromAnimation(lua, fileIndex + 1);
 		sprite.source.x += (tileIndex % lineLength) * sprite.source.width;
 		sprite.source.y += (tileIndex / lineLength) * sprite.source.height;
 		return sprite;

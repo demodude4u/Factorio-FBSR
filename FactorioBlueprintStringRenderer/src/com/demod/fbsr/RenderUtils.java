@@ -14,7 +14,9 @@ import java.awt.image.BufferedImage;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -168,6 +170,15 @@ public final class RenderUtils {
 	}
 
 	public static Sprite getSpriteFromAnimation(LuaValue lua) {
+		return getSpriteFromAnimation(lua, 0);
+	}
+
+	/***
+	 * @param fileNameSelector The 1-based index of the desired image path in the
+	 *                         "filenames" array. Used only if "filenames" property
+	 *                         exists.
+	 */
+	public static Sprite getSpriteFromAnimation(LuaValue lua, int fileNameSelector) {
 		LuaValue sheetLua = lua.get("sheet");
 		if (!sheetLua.isnil()) {
 			lua = sheetLua;
@@ -181,20 +192,18 @@ public final class RenderUtils {
 		Sprite ret = new Sprite();
 		String imagePath;
 		if (!lua.get("filenames").isnil()) {
-			// XXX this is a hack
-			int selector = lua.get("filename_selector").toint();
-			imagePath = lua.get("filenames").get(selector).tojstring();
+			// if (fileNameSelector == 0)
+			// System.err.println("Using 'filenames' but file name selector is not set!");
+			// if the above happens, it will automatically throw with the below line
+			imagePath = lua.get("filenames").get(fileNameSelector).tojstring();
 		} else {
 			imagePath = lua.get("filename").tojstring();
 		}
+		ret.image = FactorioData.getModImage(imagePath);
+
 		boolean drawAsShadow = lua.get("draw_as_shadow").optboolean(false);
 		ret.shadow = drawAsShadow;
-		// drawAsShadow = false;// FIXME shadows need a special mask layer
-		if (drawAsShadow) {
-			ret.image = FactorioData.getModImage(imagePath, new Color(255, 255, 255, 128));
-		} else {
-			ret.image = FactorioData.getModImage(imagePath);
-		}
+
 		String blendMode = lua.get("blend_mode").optjstring("normal");
 		if (!blendMode.equals("normal")) { // FIXME blending will take effort
 			ret.image = EMPTY_IMAGE;
@@ -217,6 +226,24 @@ public final class RenderUtils {
 	}
 
 	public static List<Sprite> getSpritesFromAnimation(LuaValue lua) {
+		return getSpritesFromAnimation(lua, 0);
+	}
+
+	public static List<Sprite> getSpritesFromAnimation(LuaValue lua, Direction direction) {
+		LuaValue dirLua = lua.get(direction.name().toLowerCase());
+		if (!dirLua.isnil()) {
+			return getSpritesFromAnimation(dirLua, 0);
+		} else {
+			return getSpritesFromAnimation(lua, 0);
+		}
+	}
+
+	/***
+	 * @param fileNameSelector The 1-based index of the desired image path in the
+	 *                         "filenames" array. Used only if "filenames" property
+	 *                         exists.
+	 */
+	public static List<Sprite> getSpritesFromAnimation(LuaValue lua, int fileNameSelector) {
 		List<Sprite> sprites = new ArrayList<>();
 		LuaValue layersLua = lua.get("layers");
 		if (layersLua.isnil()) {
@@ -224,12 +251,12 @@ public final class RenderUtils {
 		}
 		if (!layersLua.isnil()) {
 			Utils.forEach(layersLua.checktable(), (i, l) -> {
-				Sprite sprite = getSpriteFromAnimation(l);
+				Sprite sprite = getSpriteFromAnimation(l, fileNameSelector);
 				sprite.order = i.toint();
 				sprites.add(sprite);
 			});
 		} else {
-			sprites.add(getSpriteFromAnimation(lua));
+			sprites.add(getSpriteFromAnimation(lua, fileNameSelector));
 		}
 
 		sprites.sort((s1, s2) -> {
@@ -242,13 +269,18 @@ public final class RenderUtils {
 		return sprites;
 	}
 
-	public static List<Sprite> getSpritesFromAnimation(LuaValue lua, Direction direction) {
-		LuaValue dirLua = lua.get(direction.name().toLowerCase());
-		if (!dirLua.isnil()) {
-			return getSpritesFromAnimation(dirLua);
-		} else {
-			return getSpritesFromAnimation(lua);
+	public static void halveAlpha(BufferedImage image) {
+		int w = image.getWidth();
+		int h = image.getHeight();
+		int[] pixels = new int[w * h];
+		image.getRGB(0, 0, w, h, pixels, 0, w);
+		for (int i = 0; i < pixels.length; i++) {
+			int argb = pixels[i];
+			int a = ((argb >> 24) & 0xFF);
+
+			pixels[i] = ((a / 2) << 24) | (argb & 0xFFFFFF);
 		}
+		image.setRGB(0, 0, w, h, pixels, 0, w);
 	}
 
 	public static Color parseColor(JSONObject json) {
@@ -264,19 +296,27 @@ public final class RenderUtils {
 		return ret;
 	}
 
-	public static Renderer spriteRenderer(Layer layer, List<Sprite> sprites, BlueprintEntity entity,
+	public static void shiftSprites(List<Sprite> sprites, Point2D.Double shift) {
+		for (Sprite sprite : sprites) {
+			sprite.bounds.x += shift.x;
+			sprite.bounds.y += shift.y;
+		}
+	}
+
+	public static EntityRenderer spriteRenderer(Layer layer, List<Sprite> sprites, BlueprintEntity entity,
 			EntityPrototype prototype) {
 		Point2D.Double pos = entity.getPosition();
-		for (Sprite sprite : sprites) {
-			sprite.bounds.x += pos.x;
-			sprite.bounds.y += pos.y;
-		}
+		RenderUtils.shiftSprites(sprites, pos);
+
+		Map<Boolean, List<Sprite>> groupedSprites = sprites.stream()
+				.collect(Collectors.partitioningBy(sprite -> sprite.shadow));
+
 		// Rectangle2D.Double groundBounds =
 		// Utils.parseRectangle(prototype.lua().get("collision_box"));
 		Rectangle2D.Double groundBounds = Utils.parseRectangle(prototype.lua().get("selection_box"));
 		groundBounds.x += pos.x;
 		groundBounds.y += pos.y;
-		return new Renderer(layer, groundBounds) {
+		return new EntityRenderer(layer, groundBounds) {
 			@SuppressWarnings("unused")
 			private void debugShowBounds(Rectangle2D.Double groundBounds, Graphics2D g) {
 				long x = Math.round(groundBounds.getCenterX() * 2);
@@ -302,15 +342,22 @@ public final class RenderUtils {
 
 			@Override
 			public void render(Graphics2D g) {
-				for (Sprite sprite : sprites) {
+				for (Sprite sprite : groupedSprites.get(false)) {
 					drawSprite(sprite, g);
 					// debugShowBounds(groundBounds, g);
+				}
+			}
+
+			@Override
+			public void renderShadows(Graphics2D g) {
+				for (Sprite sprite : groupedSprites.get(true)) {
+					drawSprite(sprite, g);
 				}
 			}
 		};
 	}
 
-	public static Renderer spriteRenderer(Layer layer, Sprite sprite, BlueprintEntity entity,
+	public static EntityRenderer spriteRenderer(Layer layer, Sprite sprite, BlueprintEntity entity,
 			EntityPrototype prototype) {
 		return spriteRenderer(layer, ImmutableList.of(sprite), entity, prototype);
 	}
@@ -352,11 +399,12 @@ public final class RenderUtils {
 		};
 	}
 
-	public static Renderer spriteRenderer(List<Sprite> sprites, BlueprintEntity entity, EntityPrototype prototype) {
+	public static EntityRenderer spriteRenderer(List<Sprite> sprites, BlueprintEntity entity,
+			EntityPrototype prototype) {
 		return spriteRenderer(Layer.ENTITY, sprites, entity, prototype);
 	}
 
-	public static Renderer spriteRenderer(Sprite sprite, BlueprintEntity entity, EntityPrototype prototype) {
+	public static EntityRenderer spriteRenderer(Sprite sprite, BlueprintEntity entity, EntityPrototype prototype) {
 		return spriteRenderer(Layer.ENTITY, sprite, entity, prototype);
 	}
 
