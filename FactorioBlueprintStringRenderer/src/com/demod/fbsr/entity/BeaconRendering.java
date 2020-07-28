@@ -2,7 +2,11 @@ package com.demod.fbsr.entity;
 
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Consumer;
+
+import org.luaj.vm2.LuaValue;
 
 import com.demod.factorio.DataTable;
 import com.demod.factorio.Utils;
@@ -18,12 +22,20 @@ public class BeaconRendering extends EntityRendererFactory {
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
 			EntityPrototype prototype) {
-		Sprite baseSprite = RenderUtils.getSpriteFromAnimation(prototype.lua().get("base_picture"));
-		Sprite antennaSpriteShadow = RenderUtils.getSpriteFromAnimation(prototype.lua().get("animation_shadow"));
-		Sprite antennaSprite = RenderUtils.getSpriteFromAnimation(prototype.lua().get("animation"));
-		register.accept(RenderUtils.spriteRenderer(baseSprite, entity, prototype));
-		register.accept(RenderUtils.spriteRenderer(antennaSpriteShadow, entity, prototype));
-		register.accept(RenderUtils.spriteRenderer(antennaSprite, entity, prototype));
+		List<Sprite> animations = new ArrayList<>();
+		LuaValue animationList = prototype.lua().get("graphics_set").get("animation_list");
+		if (!animationList.isnil()) {
+			Utils.forEach(animationList.checktable(), (i, l) -> {
+				List<Sprite> animation = RenderUtils.getSpritesFromAnimation(l.get("animation"));
+				for (Sprite s : animation)
+					s.order = i.toint();
+				animations.addAll(animation);
+			});
+		} else {
+			animations.addAll(RenderUtils.getSpritesFromAnimation(prototype.lua().get("base_picture")));
+			animations.addAll(RenderUtils.getSpritesFromAnimation(prototype.lua().get("animation")));
+		}
+		register.accept(RenderUtils.spriteRenderer(animations, entity, prototype));
 	}
 
 	@Override
