@@ -1,5 +1,6 @@
 package com.demod.fbsr.entity;
 
+import java.util.List;
 import java.util.function.Consumer;
 
 import com.demod.factorio.DataTable;
@@ -15,7 +16,7 @@ public class PowerSwitchRendering extends EntityRendererFactory {
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
 			EntityPrototype prototype) {
-		Sprite sprite = RenderUtils.getSpriteFromAnimation(prototype.lua().get("power_on_animation"));
-		register.accept(RenderUtils.spriteRenderer(sprite, entity, prototype));
+		List<Sprite> sprites = RenderUtils.getSpritesFromAnimation(prototype.lua().get("power_on_animation"));
+		register.accept(RenderUtils.spriteRenderer(sprites, entity, prototype));
 	}
 }
