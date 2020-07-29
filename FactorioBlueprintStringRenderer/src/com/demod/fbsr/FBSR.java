@@ -99,6 +99,7 @@ public class FBSR {
 		items.put(itemName, amount);
 	}
 
+	// Used before MapVersion(0, 18, 37, 3)
 	private static void alignRenderingTuplesToGrid(List<EntityRenderingTuple> entityRenderingTuples,
 			List<TileRenderingTuple> tileRenderingTuples) {
 		Multiset<Boolean> xAligned = LinkedHashMultiset.create();
@@ -155,6 +156,16 @@ public class FBSR {
 		}
 
 		// Always shift tiles
+		for (TileRenderingTuple tuple : tileRenderingTuples) {
+			Point2D.Double position = tuple.tile.getPosition();
+			position.x += 0.5;
+			position.y += 0.5;
+		}
+
+	}
+
+	// Used since MapVersion(0, 18, 37, 3), due to game-internal bp string changes
+	private static void alignTileRenderingTuplesToGrid(List<TileRenderingTuple> tileRenderingTuples) {
 		for (TileRenderingTuple tuple : tileRenderingTuples) {
 			Point2D.Double position = tuple.tile.getPosition();
 			position.x += 0.5;
@@ -963,7 +974,10 @@ public class FBSR {
 			tileRenderingTuples.add(tuple);
 		}
 
-		alignRenderingTuplesToGrid(entityRenderingTuples, tileRenderingTuples);
+		if (blueprint.getVersion().greaterOrEquals(new MapVersion(0, 18, 37, 3)))
+			alignTileRenderingTuplesToGrid(tileRenderingTuples);
+		else // legacy
+			alignRenderingTuplesToGrid(entityRenderingTuples, tileRenderingTuples);
 
 		entityRenderingTuples.forEach(t -> {
 			try {
