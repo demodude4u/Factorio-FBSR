@@ -16,7 +16,7 @@ public class Blueprint {
 	private final List<BlueprintEntity> entities = new ArrayList<>();
 	private final List<BlueprintTile> tiles = new ArrayList<>();
 	private Optional<String> label;
-	private Optional<Long> version;
+	private MapVersion version;
 	private Optional<JSONArray> icons;
 
 	public Blueprint(JSONObject json) throws IllegalArgumentException {
@@ -49,9 +49,9 @@ public class Blueprint {
 		}
 
 		if (blueprintJson.has("version")) {
-			version = Optional.of(blueprintJson.getLong("version"));
+			version = new MapVersion(blueprintJson.getLong("version"));
 		} else {
-			version = Optional.empty();
+			version = new MapVersion();
 		}
 	}
 
@@ -71,7 +71,7 @@ public class Blueprint {
 		return tiles;
 	}
 
-	public Optional<Long> getVersion() {
+	public MapVersion getVersion() {
 		return version;
 	}
 

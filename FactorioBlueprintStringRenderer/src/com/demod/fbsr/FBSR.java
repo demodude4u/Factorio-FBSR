@@ -99,14 +99,18 @@ public class FBSR {
 		items.put(itemName, amount);
 	}
 
+	// Used before MapVersion(0, 18, 37, 3)
 	private static void alignRenderingTuplesToGrid(List<EntityRenderingTuple> entityRenderingTuples,
 			List<TileRenderingTuple> tileRenderingTuples) {
 		Multiset<Boolean> xAligned = LinkedHashMultiset.create();
 		Multiset<Boolean> yAligned = LinkedHashMultiset.create();
 
+		boolean anyRails = false;
+
 		for (EntityRenderingTuple tuple : entityRenderingTuples) {
 			if (tuple.entity.getName().equals("straight-rail") || tuple.entity.getName().equals("curved-rail")) {
-				continue; // XXX
+				anyRails = true; // no entity shifting if there are rails
+				break;
 			}
 
 			Point2D.Double pos = tuple.entity.getPosition();
@@ -130,21 +134,6 @@ public class FBSR {
 			xAligned.add(((w / 2) % 2 == 0) == (x % 2 == 0));
 			yAligned.add(((h / 2) % 2 == 0) == (y % 2 == 0));
 		}
-		for (TileRenderingTuple tuple : tileRenderingTuples) {
-			Point2D.Double pos = tuple.tile.getPosition();
-			Rectangle2D.Double bounds = new Rectangle2D.Double(pos.x - 0.5, pos.y - 0.5, 1.0, 1.0);
-
-			// Everything is doubled and rounded to the closest original 0.5
-			// increment
-			long x = Math.round(bounds.getCenterX() * 2);
-			long y = Math.round(bounds.getCenterY() * 2);
-			long w = Math.round(bounds.width * 2);
-			long h = Math.round(bounds.height * 2);
-
-			// If size/2 is odd, pos should be odd, and vice versa
-			xAligned.add(((w / 2) % 2 == 0) == (x % 2 == 0));
-			yAligned.add(((h / 2) % 2 == 0) == (y % 2 == 0));
-		}
 
 		// System.out.println("X ALIGNED: " + xAligned.count(true) + " yes, " +
 		// xAligned.count(false) + " no");
@@ -153,7 +142,7 @@ public class FBSR {
 
 		boolean shiftX = xAligned.count(true) < xAligned.count(false);
 		boolean shiftY = yAligned.count(true) < yAligned.count(false);
-		if (shiftX || shiftY) {
+		if (!anyRails && (shiftX || shiftY)) {
 			// System.out.println("SHIFTING!");
 			for (EntityRenderingTuple tuple : entityRenderingTuples) {
 				Point2D.Double position = tuple.entity.getPosition();
@@ -164,15 +153,23 @@ public class FBSR {
 					position.y += 0.5;
 				}
 			}
-			for (TileRenderingTuple tuple : tileRenderingTuples) {
-				Point2D.Double position = tuple.tile.getPosition();
-				if (shiftX) {
-					position.x += 0.5;
-				}
-				if (shiftY) {
-					position.y += 0.5;
-				}
-			}
+		}
+
+		// Always shift tiles
+		for (TileRenderingTuple tuple : tileRenderingTuples) {
+			Point2D.Double position = tuple.tile.getPosition();
+			position.x += 0.5;
+			position.y += 0.5;
+		}
+
+	}
+
+	// Used since MapVersion(0, 18, 37, 3), due to game-internal bp string changes
+	private static void alignTileRenderingTuplesToGrid(List<TileRenderingTuple> tileRenderingTuples) {
+		for (TileRenderingTuple tuple : tileRenderingTuples) {
+			Point2D.Double position = tuple.tile.getPosition();
+			position.x += 0.5;
+			position.y += 0.5;
 		}
 	}
 
@@ -977,7 +974,10 @@ public class FBSR {
 			tileRenderingTuples.add(tuple);
 		}
 
-		alignRenderingTuplesToGrid(entityRenderingTuples, tileRenderingTuples);
+		if (blueprint.getVersion().greaterOrEquals(new MapVersion(0, 18, 37, 3)))
+			alignTileRenderingTuplesToGrid(tileRenderingTuples);
+		else // legacy
+			alignRenderingTuplesToGrid(entityRenderingTuples, tileRenderingTuples);
 
 		entityRenderingTuples.forEach(t -> {
 			try {
