@@ -55,7 +55,7 @@ public class BlueprintStringData {
 	private final JSONObject json;
 
 	private final Optional<String> label;
-	private final Optional<Long> version;
+	private final MapVersion version;
 
 	public BlueprintStringData(String blueprintString) throws IllegalArgumentException, IOException {
 		String versionChar = blueprintString.substring(0, 1);
@@ -89,9 +89,9 @@ public class BlueprintStringData {
 				label = Optional.empty();
 			}
 			if (bookJson.has("version")) {
-				version = Optional.of(bookJson.getLong("version"));
+				version = new MapVersion(bookJson.getLong("version"));
 			} else {
-				version = Optional.empty();
+				version = new MapVersion();
 			}
 		}
 
@@ -108,7 +108,7 @@ public class BlueprintStringData {
 		return label;
 	}
 
-	public Optional<Long> getVersion() {
+	public MapVersion getVersion() {
 		return version;
 	}
 

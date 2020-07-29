@@ -46,6 +46,7 @@ import com.demod.fbsr.BlueprintEntity;
 import com.demod.fbsr.BlueprintFinder;
 import com.demod.fbsr.BlueprintStringData;
 import com.demod.fbsr.FBSR;
+import com.demod.fbsr.MapVersion;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.TaskReporting;
 import com.demod.fbsr.TaskReporting.Level;
@@ -375,18 +376,12 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			bookJson.put("item", "blueprint-book");
 			bookJson.put("active_index", 0);
 
-			Optional<Long> latestVersion = Optional.empty();
+			MapVersion latestVersion = new MapVersion();
 			int index = 0;
 			for (Blueprint blueprint : blueprints) {
 				blueprint.json().put("index", index);
 
-				if (blueprint.getVersion().isPresent()) {
-					if (latestVersion.isPresent()) {
-						latestVersion = Optional.of(Math.max(blueprint.getVersion().get(), latestVersion.get()));
-					} else {
-						latestVersion = blueprint.getVersion();
-					}
-				}
+				latestVersion = MapVersion.max(latestVersion, blueprint.getVersion());
 
 				blueprintsJson.put(blueprint.json());
 
@@ -400,8 +395,8 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				bookJson.put("label", bookLabel);
 			}
 
-			if (latestVersion.isPresent()) {
-				bookJson.put("version", latestVersion.get());
+			if (!latestVersion.isEmpty()) {
+				bookJson.put("version", latestVersion.getSerialized());
 			}
 
 			try {
