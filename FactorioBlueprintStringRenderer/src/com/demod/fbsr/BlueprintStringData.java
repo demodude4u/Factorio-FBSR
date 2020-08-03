@@ -88,7 +88,8 @@ public class BlueprintStringData {
 					firstVersion = blueprint.getVersion();
 					first = false;
 				}
-			} else {
+
+			} else if (json.has("blueprint_book")) {
 				JSONObject bookJson = json.getJSONObject("blueprint_book");
 				JSONArray blueprintsJson = bookJson.getJSONArray("blueprints");
 				for (int i = 0; i < blueprintsJson.length(); i++) {
