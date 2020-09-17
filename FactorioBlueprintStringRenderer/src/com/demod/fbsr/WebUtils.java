@@ -28,8 +28,8 @@ import com.demod.fbsr.app.BlueprintBotDiscordService;
 import com.demod.fbsr.app.ServiceFinder;
 import com.google.common.util.concurrent.Uninterruptibles;
 
-import net.dv8tion.jda.core.EmbedBuilder;
-import net.dv8tion.jda.core.entities.MessageEmbed;
+import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.entities.MessageEmbed;
 
 public final class WebUtils {
 	public static void addPossiblyLargeEmbedField(EmbedBuilder builder, String name, String value, boolean inline)

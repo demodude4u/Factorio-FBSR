@@ -11,7 +11,7 @@ import java.util.Set;
 
 import com.demod.fbsr.WorldMap.Debug;
 
-import net.dv8tion.jda.core.entities.Message;
+import net.dv8tion.jda.api.entities.Message;
 
 public class TaskReporting {
 	public static enum Level {

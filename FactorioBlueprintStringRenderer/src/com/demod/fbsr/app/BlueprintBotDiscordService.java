@@ -57,14 +57,16 @@ import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.Multiset;
 import com.google.common.util.concurrent.AbstractIdleService;
 
-import net.dv8tion.jda.core.EmbedBuilder;
-import net.dv8tion.jda.core.Permission;
-import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.MessageChannel;
-import net.dv8tion.jda.core.entities.MessageEmbed;
-import net.dv8tion.jda.core.entities.PrivateChannel;
-import net.dv8tion.jda.core.entities.TextChannel;
-import net.dv8tion.jda.core.events.message.MessageReceivedEvent;
+import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.Permission;
+import net.dv8tion.jda.api.entities.ChannelType;
+import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.MessageChannel;
+import net.dv8tion.jda.api.entities.MessageEmbed;
+import net.dv8tion.jda.api.entities.PrivateChannel;
+import net.dv8tion.jda.api.entities.TextChannel;
+import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import net.dv8tion.jda.api.utils.ChunkingFilter;
 
 public class BlueprintBotDiscordService extends AbstractIdleService {
 
@@ -342,7 +344,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 	}
 
 	private String getReadableAddress(MessageReceivedEvent event) {
-		if (event.getGuild() == null) {
+		if (event.isFromType(ChannelType.PRIVATE)) {// event.getGuild() == null) {
 			return event.getAuthor().getName();
 		} else {
 			return event.getGuild().getName() + " / #" + event.getChannel().getName() + " / "
@@ -942,7 +944,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 	public void sendReport(String author, String authorURL, TaskReporting reporting) {
 		try {
-			PrivateChannel privateChannel = bot.getJDA().getUserById(reportingUserID).openPrivateChannel().complete();
+			PrivateChannel privateChannel = bot.getJDA().openPrivateChannelById(reportingUserID).complete();
 			privateChannel.sendMessage(createReportEmbed(author, authorURL, reporting)).complete();
 			if (!reporting.getExceptions().isEmpty()) {
 				TextChannel textChannel = bot.getJDA().getTextChannelById(reportingChannelID);
@@ -952,13 +954,13 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			}
 
 		} catch (Exception e) {
-			PrivateChannel privateChannel = bot.getJDA().getUserById(reportingUserID).openPrivateChannel().complete();
+			PrivateChannel privateChannel = bot.getJDA().openPrivateChannelById(reportingUserID).complete();
 			privateChannel.sendMessage("Failed to create report!").complete();
 			try (StringWriter sw = new StringWriter(); PrintWriter pw = new PrintWriter(sw)) {
 				e.printStackTrace();
 				e.printStackTrace(pw);
 				pw.flush();
-				privateChannel.sendFile(sw.toString().getBytes(), "Exception.txt", null).complete();
+				privateChannel.sendFile(sw.toString().getBytes(), "Exception.txt").complete();
 			} catch (IOException e1) {
 				e1.printStackTrace();
 			}
@@ -1048,7 +1050,15 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				.addCommand("redditCheckThings",
 						(CommandHandler) (event, args) -> handleRedditCheckThingsCommand(event, args))
 				//
-				.create();
+				//
+				.withCustomSetup(builder -> {
+					return builder//
+							.setChunkingFilter(ChunkingFilter.NONE)//
+//							.setMemberCachePolicy(MemberCachePolicy.NONE)//
+//							.setDisabledIntents(GatewayIntent.GUILD_PRESENCES, GatewayIntent.GUILD_MESSAGE_TYPING,
+//									GatewayIntent.GUILD_MEMBERS)//
+					;
+				}).create();
 
 		bot.startAsync().awaitRunning();
 
@@ -1085,7 +1095,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		TextChannel channel = bot.getJDA().getTextChannelById(hostingChannelID);
 		Message message = channel
 				.sendFile(downscaleIfNeeded ? generateDiscordFriendlyPNGImage(image) : WebUtils.getImageData(image),
-						fileName, null)
+						fileName)
 				.complete();
 		return new URL(message.getAttachments().get(0).getUrl());
 	}
