@@ -673,7 +673,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 						zos.close();
 						byte[] zipData = baos.toByteArray();
 						try {
-							Message response = event.getChannel().sendFile(zipData, "blueprint JSON files.zip", null)
+							Message response = event.getChannel().sendFile(zipData, "blueprint JSON files.zip")
 									.complete();
 							reporting.addDownload(response.getAttachments().get(0).getUrl());
 						} catch (Exception e) {
@@ -862,8 +862,8 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 					Blueprint blueprint = blueprintString.getBlueprints().get(0);
 					BufferedImage image = FBSR.renderBlueprint(blueprint, reporting);
 					try {
-						Message message = event.getChannel()
-								.sendFile(WebUtils.getImageData(image), "blueprint.png", null).complete();
+						Message message = event.getChannel().sendFile(WebUtils.getImageData(image), "blueprint.png")
+								.complete();
 						reporting.addImage(blueprint.getLabel(), message.getAttachments().get(0).getUrl());
 					} catch (Exception e) {
 						reporting.addInfo(WebUtils.uploadToHostingService("blueprint.png", image).toString());
@@ -1086,7 +1086,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 	public URL useDiscordForFileHosting(String fileName, byte[] fileData) throws IOException {
 		TextChannel channel = bot.getJDA().getTextChannelById(hostingChannelID);
-		Message message = channel.sendFile(fileData, fileName, null).complete();
+		Message message = channel.sendFile(fileData, fileName).complete();
 		return new URL(message.getAttachments().get(0).getUrl());
 	}
 

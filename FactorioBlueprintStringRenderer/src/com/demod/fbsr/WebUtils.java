@@ -163,6 +163,7 @@ public final class WebUtils {
 				try {
 					return discordService.get().useDiscordForFileHosting(fileName, fileData);
 				} catch (Exception e2) {
+					throw new IOException("File hosting failed!", e2);
 				}
 			}
 			throw new IOException("File hosting failed!");
