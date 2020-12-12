@@ -1,6 +1,7 @@
 package com.demod.fbsr.entity;
 
 import java.awt.geom.Point2D;
+import java.util.List;
 import java.util.function.Consumer;
 
 import com.demod.factorio.DataTable;
@@ -20,11 +21,13 @@ public class RailSignalRendering extends EntityRendererFactory {
 		Sprite railSprite = RenderUtils.getSpriteFromAnimation(prototype.lua().get("rail_piece"));
 		railSprite.source.x += railSprite.source.width * (entity.getDirection().ordinal());
 
-		Sprite sprite = RenderUtils.getSpriteFromAnimation(prototype.lua().get("animation"));
-		sprite.source.y += sprite.source.height * (entity.getDirection().ordinal());
+		List<Sprite> sprites = RenderUtils.getSpritesFromAnimation(prototype.lua().get("animation"));
+		for (Sprite sprite : sprites) {
+			sprite.source.y += sprite.source.height * (entity.getDirection().ordinal());
+		}
 
 		register.accept(RenderUtils.spriteRenderer(railSprite, entity, prototype));
-		register.accept(RenderUtils.spriteRenderer(sprite, entity, prototype));
+		register.accept(RenderUtils.spriteRenderer(sprites, entity, prototype));
 	}
 
 	@Override

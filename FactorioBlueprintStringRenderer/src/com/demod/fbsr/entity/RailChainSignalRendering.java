@@ -1,6 +1,7 @@
 package com.demod.fbsr.entity;
 
 import java.awt.geom.Point2D;
+import java.util.List;
 import java.util.function.Consumer;
 
 import com.demod.factorio.DataTable;
@@ -20,9 +21,11 @@ public class RailChainSignalRendering extends EntityRendererFactory {
 		Sprite railSprite = RenderUtils.getSpriteFromAnimation(prototype.lua().get("rail_piece"));
 		railSprite.source.x += railSprite.source.width * (entity.getDirection().ordinal());
 
-		Sprite sprite = RenderUtils.getSpriteFromAnimation(prototype.lua().get("animation"));
-		sprite.source.y += sprite.source.height * (entity.getDirection().ordinal());
-		sprite.source.x += sprite.source.width * (3);
+		List<Sprite> sprites = RenderUtils.getSpritesFromAnimation(prototype.lua().get("animation"));
+		for (Sprite sprite : sprites) {
+			sprite.source.y += sprite.source.height * (entity.getDirection().ordinal());
+			sprite.source.x += sprite.source.width * (3);
+		}
 
 		// XXX This is a straight up hack
 		Direction shiftDir = entity.getDirection().right();
@@ -33,11 +36,10 @@ public class RailChainSignalRendering extends EntityRendererFactory {
 		}
 		railSprite.bounds.x += shift.x;
 		railSprite.bounds.y += shift.y;
-		sprite.bounds.x += shift.x;
-		sprite.bounds.y += shift.y;
+		RenderUtils.shiftSprites(sprites, shift);
 
 		register.accept(RenderUtils.spriteRenderer(railSprite, entity, prototype));
-		register.accept(RenderUtils.spriteRenderer(sprite, entity, prototype));
+		register.accept(RenderUtils.spriteRenderer(sprites, entity, prototype));
 	}
 
 	@Override
