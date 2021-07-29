@@ -393,7 +393,9 @@ public class EntityRendererFactory {
 							int targetEntityId = wireJson.getInt("entity_id");
 
 							String key;
-							if (entityId < targetEntityId) {
+							if (entityId == targetEntityId) {
+								key = entityId + "|" + colorName;
+							} else if (entityId < targetEntityId) {
 								key = entityId + "|" + circuitId + "|" + targetEntityId + "|" + targetCircuitId + "|"
 										+ colorName;
 							} else {
