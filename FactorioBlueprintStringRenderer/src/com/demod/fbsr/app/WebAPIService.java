@@ -1,6 +1,7 @@
 package com.demod.fbsr.app;
 
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
@@ -69,6 +70,9 @@ public class WebAPIService extends AbstractIdleService {
 			System.out.println("Web API POST!");
 			TaskReporting reporting = new TaskReporting();
 			try {
+				JSONObject body = null;
+				BufferedImage returnSingleImage = null;
+
 				try {
 					if (req.body() == null) {
 						resp.code(400);
@@ -77,7 +81,6 @@ public class WebAPIService extends AbstractIdleService {
 						return resp;
 					}
 
-					JSONObject body;
 					try {
 						body = new JSONObject(new String(req.body()));
 					} catch (Exception e) {
@@ -119,6 +122,12 @@ public class WebAPIService extends AbstractIdleService {
 					for (Blueprint blueprint : blueprints) {
 						try {
 							BufferedImage image = FBSR.renderBlueprint(blueprint, reporting, body);
+
+							if (body.optBoolean("return-single-image", false)) {
+								returnSingleImage = image;
+								break;
+							}
+
 							if (configJson.optBoolean("use-local-storage", false)) {
 								File localStorageFolder = new File(configJson.getString("local-storage"));
 								String imageLink = saveToLocalStorage(localStorageFolder, image);
@@ -136,35 +145,47 @@ public class WebAPIService extends AbstractIdleService {
 					reporting.addException(e);
 				}
 
-				JSONObject result = new JSONObject();
-				Utils.terribleHackToHaveOrderedJSONObject(result);
-
-				if (!reporting.getExceptions().isEmpty()) {
-					reporting.addInfo(
-							"There was a problem completing your request. I have contacted my programmer to fix it for you!");
-					reporting.getExceptions().forEach(Exception::printStackTrace);
-				}
-
-				if (!reporting.getInfo().isEmpty()) {
-					result.put("info", new JSONArray(reporting.getInfo()));
-				}
-
-				if (!reporting.getImages().isEmpty()) {
-					JSONArray images = new JSONArray();
-					for (Entry<Optional<String>, String> pair : reporting.getImages()) {
-						JSONObject image = new JSONObject();
-						Utils.terribleHackToHaveOrderedJSONObject(image);
-						pair.getKey().ifPresent(l -> image.put("label", l));
-						image.put("link", pair.getValue());
-						images.put(image);
+				if (returnSingleImage != null) {
+					resp.contentType(MediaType.IMAGE_PNG);
+					try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+						ImageIO.write(returnSingleImage, "PNG", baos);
+						baos.flush();
+						resp.body(baos.toByteArray());
 					}
-					result.put("images", images);
+					return resp;
+
+				} else {
+
+					JSONObject result = new JSONObject();
+					Utils.terribleHackToHaveOrderedJSONObject(result);
+
+					if (!reporting.getExceptions().isEmpty()) {
+						resp.code(400);
+						reporting.addInfo("There was a problem completing your request.");
+						reporting.getExceptions().forEach(Exception::printStackTrace);
+					}
+
+					if (!reporting.getInfo().isEmpty()) {
+						result.put("info", new JSONArray(reporting.getInfo()));
+					}
+
+					if (!reporting.getImages().isEmpty()) {
+						JSONArray images = new JSONArray();
+						for (Entry<Optional<String>, String> pair : reporting.getImages()) {
+							JSONObject image = new JSONObject();
+							Utils.terribleHackToHaveOrderedJSONObject(image);
+							pair.getKey().ifPresent(l -> image.put("label", l));
+							image.put("link", pair.getValue());
+							images.put(image);
+						}
+						result.put("images", images);
+					}
+
+					resp.contentType(MediaType.JSON);
+					resp.body(result.toString(2).getBytes());
+
+					return resp;
 				}
-
-				resp.contentType(MediaType.JSON);
-				resp.body(result.toString(2).getBytes());
-
-				return resp;
 
 			} finally {
 				ServiceFinder.findService(BlueprintBotDiscordService.class)
