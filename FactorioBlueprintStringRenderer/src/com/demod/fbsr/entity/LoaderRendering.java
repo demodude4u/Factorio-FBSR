@@ -106,30 +106,52 @@ public class LoaderRendering extends EntityRendererFactory {
 			Point2D.Double inPos = new Point2D.Double(pos.x + beltShift.x, pos.y + beltShift.y);
 			Point2D.Double outPos = new Point2D.Double(pos.x + containerShift.x, pos.y + containerShift.y);
 
-			setLogisticMove(map, inPos, dir.frontLeft(), dir);
-			setLogisticMove(map, inPos, dir.frontRight(), dir);
-			setLogisticMove(map, inPos, dir.backLeft(), dir);
-			setLogisticMove(map, inPos, dir.backRight(), dir);
+			setLogisticMoveAndAcceptFilter(map, inPos, dir.frontLeft(), dir, dir);
+			setLogisticMoveAndAcceptFilter(map, inPos, dir.frontRight(), dir, dir);
+			setLogisticMoveAndAcceptFilter(map, inPos, dir.backLeft(), dir, dir);
+			setLogisticMoveAndAcceptFilter(map, inPos, dir.backRight(), dir, dir);
 
-			addLogisticWarp(map, inPos, dir.back().backLeft(), outPos, dir);
-			addLogisticWarp(map, inPos, dir.back().backRight(), outPos, dir);
-			map.getOrCreateLogisticGridCell(dir.back().backLeft().offset(inPos, 0.25)).setBlockWarpFromIfMove(true);
-			map.getOrCreateLogisticGridCell(dir.back().backRight().offset(inPos, 0.25)).setBlockWarpFromIfMove(true);
+			if (beltShift.x != 0 || beltShift.y != 0) { // don't do this for 1x1 loaders
+				setLogisticMoveAndAcceptFilter(map, pos, dir.frontLeft(), dir, dir);
+				setLogisticMoveAndAcceptFilter(map, pos, dir.frontRight(), dir, dir);
+				setLogisticMoveAndAcceptFilter(map, pos, dir.backLeft(), dir, dir);
+				setLogisticMoveAndAcceptFilter(map, pos, dir.backRight(), dir, dir);
+			}
+
+			// don't sideload on the output(chest) end of the loader either
+			setLogisticAcceptFilter(map, outPos, dir.back().frontLeft(), dir);
+			setLogisticAcceptFilter(map, outPos, dir.back().frontRight(), dir);
+
+			addLogisticWarp(map, outPos, dir.back().frontLeft(), outPos, dir);
+			addLogisticWarp(map, outPos, dir.back().frontRight(), outPos, dir);
+			map.getOrCreateLogisticGridCell(dir.back().frontLeft().offset(outPos, 0.25)).setBlockWarpFromIfMove(true);
+			map.getOrCreateLogisticGridCell(dir.back().frontRight().offset(outPos, 0.25)).setBlockWarpFromIfMove(true);
 
 		} else {
 			Point2D.Double inPos = new Point2D.Double(pos.x + containerShift.x, pos.y + containerShift.y);
 			Point2D.Double outPos = new Point2D.Double(pos.x + beltShift.x, pos.y + beltShift.y);
 
-			setLogisticMove(map, outPos, dir.frontLeft(), dir);
-			setLogisticMove(map, outPos, dir.frontRight(), dir);
-			setLogisticMove(map, outPos, dir.backLeft(), dir);
-			setLogisticMove(map, outPos, dir.backRight(), dir);
+			setLogisticMoveAndAcceptFilter(map, outPos, dir.frontLeft(), dir, dir);
+			setLogisticMoveAndAcceptFilter(map, outPos, dir.frontRight(), dir, dir);
+			setLogisticMoveAndAcceptFilter(map, outPos, dir.backLeft(), dir, dir);
+			setLogisticMoveAndAcceptFilter(map, outPos, dir.backRight(), dir, dir);
 
-			addLogisticWarp(map, inPos, dir.back(), outPos, dir.backLeft());
-			addLogisticWarp(map, inPos, dir.back(), outPos, dir.backRight());
+			if (beltShift.x != 0 || beltShift.y != 0) { // don't do this for 1x1 loaders
+				setLogisticMoveAndAcceptFilter(map, pos, dir.frontLeft(), dir, dir);
+				setLogisticMoveAndAcceptFilter(map, pos, dir.frontRight(), dir, dir);
+				setLogisticMoveAndAcceptFilter(map, pos, dir.backLeft(), dir, dir);
+				setLogisticMoveAndAcceptFilter(map, pos, dir.backRight(), dir, dir);
 
-			map.getOrCreateLogisticGridCell(dir.backLeft().offset(outPos, 0.25)).setBlockWarpToIfMove(true);
-			map.getOrCreateLogisticGridCell(dir.backRight().offset(outPos, 0.25)).setBlockWarpToIfMove(true);
+				// XXX really should be a filter that accepts no direction
+				setLogisticMoveAndAcceptFilter(map, inPos, dir.frontLeft(), dir, dir.back());
+				setLogisticMoveAndAcceptFilter(map, inPos, dir.frontRight(), dir, dir.back());
+			}
+
+			addLogisticWarp(map, inPos, dir.back(), inPos, dir.frontLeft());
+			addLogisticWarp(map, inPos, dir.back(), inPos, dir.frontRight());
+
+			map.getOrCreateLogisticGridCell(dir.frontLeft().offset(inPos, 0.25)).setBlockWarpToIfMove(true);
+			map.getOrCreateLogisticGridCell(dir.frontRight().offset(inPos, 0.25)).setBlockWarpToIfMove(true);
 		}
 
 		if (entity.json().has("filters") && !input) {
