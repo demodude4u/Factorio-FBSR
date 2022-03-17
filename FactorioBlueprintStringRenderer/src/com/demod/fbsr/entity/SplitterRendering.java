@@ -163,10 +163,10 @@ public class SplitterRendering extends EntityRendererFactory {
 		Point2D.Double leftPos = dir.left().offset(pos, 0.5);
 		Point2D.Double rightPos = dir.right().offset(pos, 0.5);
 
-		setLogisticMove(map, leftPos, dir.frontLeft(), dir);
-		setLogisticMove(map, leftPos, dir.frontRight(), dir);
-		setLogisticMove(map, rightPos, dir.frontLeft(), dir);
-		setLogisticMove(map, rightPos, dir.frontRight(), dir);
+		setLogisticMoveAndAcceptFilter(map, leftPos, dir.frontLeft(), dir, dir);
+		setLogisticMoveAndAcceptFilter(map, leftPos, dir.frontRight(), dir, dir);
+		setLogisticMoveAndAcceptFilter(map, rightPos, dir.frontLeft(), dir, dir);
+		setLogisticMoveAndAcceptFilter(map, rightPos, dir.frontRight(), dir, dir);
 
 		if (entity.json().has("output_priority") && entity.json().has("filter")) {
 			boolean right = entity.json().getString("output_priority").equals("right");
@@ -179,17 +179,21 @@ public class SplitterRendering extends EntityRendererFactory {
 			map.getOrCreateLogisticGridCell(dir.frontLeft().offset(notOutPos, 0.25)).addBannedOutput(itemName);
 			map.getOrCreateLogisticGridCell(dir.frontRight().offset(notOutPos, 0.25)).addBannedOutput(itemName);
 
-			setLogisticMove(map, notOutPos, dir.backLeft(), dir);
-			setLogisticMove(map, notOutPos, dir.backRight(), dir);
+			setLogisticMoveAndAcceptFilter(map, notOutPos, dir.backLeft(), dir, dir);
+			setLogisticMoveAndAcceptFilter(map, notOutPos, dir.backRight(), dir, dir);
 
 			addLogisticWarp(map, outPos, dir.backLeft(), notOutPos, dir.frontLeft());
 			addLogisticWarp(map, outPos, dir.backRight(), notOutPos, dir.frontRight());
 
+			// no sideloading
+			setLogisticAcceptFilter(map, outPos, dir.backLeft(), dir);
+			setLogisticAcceptFilter(map, outPos, dir.backRight(), dir);
+
 		} else {
-			setLogisticMove(map, leftPos, dir.backLeft(), dir);
-			setLogisticMove(map, leftPos, dir.backRight(), dir);
-			setLogisticMove(map, rightPos, dir.backLeft(), dir);
-			setLogisticMove(map, rightPos, dir.backRight(), dir);
+			setLogisticMoveAndAcceptFilter(map, leftPos, dir.backLeft(), dir, dir);
+			setLogisticMoveAndAcceptFilter(map, leftPos, dir.backRight(), dir, dir);
+			setLogisticMoveAndAcceptFilter(map, rightPos, dir.backLeft(), dir, dir);
+			setLogisticMoveAndAcceptFilter(map, rightPos, dir.backRight(), dir, dir);
 
 			addLogisticWarp(map, leftPos, dir.backLeft(), rightPos, dir.frontLeft());
 			addLogisticWarp(map, leftPos, dir.backRight(), rightPos, dir.frontRight());
