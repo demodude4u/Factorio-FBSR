@@ -57,6 +57,8 @@ import com.demod.fbsr.entity.InserterRendering;
 import com.demod.fbsr.entity.LabRendering;
 import com.demod.fbsr.entity.LampRendering;
 import com.demod.fbsr.entity.LandMineRendering;
+import com.demod.fbsr.entity.LinkedBeltRendering;
+import com.demod.fbsr.entity.LinkedContainerRendering;
 import com.demod.fbsr.entity.LoaderRendering;
 import com.demod.fbsr.entity.LogisticContainerRendering;
 import com.demod.fbsr.entity.MiningDrillRendering;
@@ -187,6 +189,8 @@ public class EntityRendererFactory {
 		byType.put("loader-1x1", new LoaderRendering());
 		byType.put("locomotive", new RollingStockRendering());
 		byType.put("logistic-container", new LogisticContainerRendering());
+		byType.put("linked-belt", new LinkedBeltRendering());
+		byType.put("linked-container", new LinkedContainerRendering());
 		byType.put("mining-drill", new MiningDrillRendering());
 		byType.put("offshore-pump", new OffshorePumpRendering());
 		byType.put("pipe", new PipeRendering());
