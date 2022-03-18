@@ -991,8 +991,8 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				.withCredits("Contributors", "acid")//
 				.withCredits("Contributors", "Vilsol")//
 				.withInvite(new Permission[] { //
-						Permission.MESSAGE_READ, //
-						Permission.MESSAGE_WRITE, //
+						Permission.VIEW_CHANNEL, //
+						Permission.MESSAGE_SEND, //
 						Permission.MESSAGE_ATTACH_FILES, //
 						Permission.MESSAGE_EXT_EMOJI, //
 						Permission.MESSAGE_EMBED_LINKS, //
