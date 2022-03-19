@@ -199,7 +199,7 @@ public final class BlueprintFinder {
 			try {
 				results.add(new BlueprintStringData(blueprintString));
 			} catch (IllegalArgumentException | EOFException e) {
-				reporting.addInfo("Sorry, but there is something wrong with your blueprint.");
+				reporting.addInfo("Sorry, but there is something wrong with your blueprint, or it is an older format.");
 			} catch (ZipException e) {
 				reporting.addInfo("Sorry, but I can't read those kind of blueprints just yet.");
 			} catch (IOException e) {
