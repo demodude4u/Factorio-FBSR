@@ -198,12 +198,10 @@ public final class BlueprintFinder {
 		for (String blueprintString : searchRaw(content, reporting)) {
 			try {
 				results.add(new BlueprintStringData(blueprintString));
-			} catch (IllegalArgumentException | EOFException e) {
+			} catch (IllegalArgumentException | EOFException | ZipException e) {
 				reporting.addInfo("Sorry, but there is something wrong with your blueprint, or it is an older format.");
-			} catch (ZipException e) {
-				reporting.addInfo("Sorry, but I can't read those kind of blueprints just yet.");
 			} catch (IOException e) {
-				reporting.addException(e);
+				reporting.addInfo("Sorry, there is a problem loading that blueprint: " + e.getMessage());
 			}
 		}
 		return results;
