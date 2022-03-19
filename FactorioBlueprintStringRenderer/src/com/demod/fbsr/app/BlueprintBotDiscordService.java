@@ -922,9 +922,9 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		json.put("category", category);
 		json.put("version", FBSR.getVersion());
 		json.put("data", Utils.<JSONObject>convertLuaToJson(lua));
-		URL url = WebUtils.uploadToHostingService(category + "_" + name + "_dump_" + FBSR.getVersion() + ".json",
-				json.toString(2).getBytes());
-		event.reply(category + " " + name + " lua dump: " + url.toString());
+		String fileName = category + "_" + name + "_dump_" + FBSR.getVersion() + ".json";
+		URL url = WebUtils.uploadToHostingService(fileName, json.toString(2).getBytes());
+		event.reply(category + " " + name + " lua dump: [" + fileName + "](" + url.toString() + ")");
 		reporting.addLink(url.toString());
 	}
 
@@ -1000,66 +1000,99 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 						Permission.MESSAGE_ADD_REACTION,//
 				})//
 					//
-				.addCommand("blueprint", event -> handleBlueprintCommand(event))//
-				.withHelp("Renders an image of the blueprint string provided.")//
-				.withAliases("bp")//
-				.withParam(OptionType.STRING, "string", "Blueprint string or URL.")
-				.addCommand("blueprintJSON", event -> handleBlueprintJsonCommand(event))//
-				.withHelp("Provides a dump of the json data in the specified blueprint string.")//
-				.withParam(OptionType.STRING, "string", "Blueprint string or URL.")
-				.addCommand("blueprintUpgradeBelts", event -> handleBlueprintUpgradeBeltsCommand(event))//
-				.withHelp("Converts all yellow belts into red belts, and all red belts into blue belts.")//
-				.withParam(OptionType.STRING, "string", "Blueprint string or URL.")
-				.addCommand("blueprintItems", event -> handleBlueprintItemsCommand(event))//
-				.withHelp("Prints out all of the items needed by the blueprint.")//
-				.withAliases("bpItems")//
-				.withParam(OptionType.STRING, "string", "Blueprint string or URL.")
-				.addCommand("blueprintRawItems", event -> handleBlueprintItemsRawCommand(event))//
-				.withHelp("Prints out all of the raw items needed by the blueprint.")//
-				.withAliases("bpRawItems")//
-				.withParam(OptionType.STRING, "string", "Blueprint string or URL.")
-				.addCommand("blueprintCounts", event -> handleBlueprintTotalsCommand(event))
-				.withHelp("Prints out the total counts of entities, items and tiles needed by the blueprint.")//
-				.withAliases("bpCounts")//
-				.withParam(OptionType.STRING, "string", "Blueprint string or URL.")
+				.addCommand("blueprint", "Renders an image of the blueprint string provided.",
+						event -> handleBlueprintCommand(event))//
+				.withParam(OptionType.STRING, "string", "Blueprint string or URL.")//
+				.withLegacyWarning("blueprint", "bp")//
 				//
-				.addCommand("blueprintBookExtract", event -> handleBlueprintBookExtractCommand(event))//
-				.withHelp("Provides an collection of blueprint strings contained within the specified blueprint book.")//
-				.withParam(OptionType.STRING, "string", "Blueprint string or URL.")
-				.addCommand("blueprintBookAssemble", event -> handleBlueprintBookAssembleCommand(event))//
-				.withHelp(
-						"Combines all blueprints (including from other books) from multiple strings into a single book.")//
-				.withParam(OptionType.STRING, "string", "Blueprint string or URL.")
+				.addCommand("json", "Provides a dump of the json data in the specified blueprint string.",
+						event -> handleBlueprintJsonCommand(event))//
+				.withParam(OptionType.STRING, "string", "Blueprint string or URL.")//
+				.withLegacyWarning("blueprintJSON")//
 				//
-				.addCommand("prototypeEntity", createPrototypeCommandHandler("entity", table.getEntities()))//
-				.withHelp("Provides a dump of the lua data for the specified entity prototype.")//
-				.withParam(OptionType.STRING, "name", "Prototype name of the entity.")
-				.addCommand("prototypeRecipe", createPrototypeCommandHandler("recipe", table.getRecipes()))//
-				.withHelp("Provides a dump of the lua data for the specified recipe prototype.")//
-				.withParam(OptionType.STRING, "name", "Prototype name of the recipe.")
-				.addCommand("prototypeFluid", createPrototypeCommandHandler("fluid", table.getFluids()))//
-				.withHelp("Provides a dump of the lua data for the specified fluid prototype.")//
-				.withParam(OptionType.STRING, "name", "Prototype name of the fluid.")
-				.addCommand("prototypeItem", createPrototypeCommandHandler("item", table.getItems()))//
-				.withHelp("Provides a dump of the lua data for the specified item prototype.")//
-				.withParam(OptionType.STRING, "name", "Prototype name of the item.")
-				.addCommand("prototypeTechnology", createPrototypeCommandHandler("technology", table.getTechnologies()))//
-				.withHelp("Provides a dump of the lua data for the specified technology prototype.")//
-				.withParam(OptionType.STRING, "name", "Prototype name of the technology.")
-				.addCommand("prototypeEquipment", createPrototypeCommandHandler("equipment", table.getEquipments()))//
-				.withHelp("Provides a dump of the lua data for the specified equipment prototype.")//
-				.withParam(OptionType.STRING, "name", "Prototype name of the equipment.")
-				.addCommand("prototypeTile", createPrototypeCommandHandler("tile", table.getTiles()))//
-				.withHelp("Provides a dump of the lua data for the specified tile prototype.")//
-				.withParam(OptionType.STRING, "name", "Prototype name of the tile.")
+				.addCommand("upgrade/belts",
+						"Converts all yellow belts into red belts, and all red belts into blue belts.",
+						event -> handleBlueprintUpgradeBeltsCommand(event))//
+				.withParam(OptionType.STRING, "string", "Blueprint string or URL.")//
+				.withLegacyWarning("blueprintUpgradeBelts")//
 				//
-				.addCommand("dataRaw", createDataRawCommandHandler(table::getRaw))//
-				.withHelp("Provides a dump of lua from `data.raw` for the specified key.")//
-				.withParam(OptionType.STRING, "path", "Path to identify which key.")
+				.addCommand("items", "Prints out all of the items needed by the blueprint.",
+						event -> handleBlueprintItemsCommand(event))//
+				.withParam(OptionType.STRING, "string", "Blueprint string or URL.")//
+				.withLegacyWarning("blueprintItems", "bpItems")//
 				//
-				.addCommand("redditCheckThings", event -> handleRedditCheckThingsCommand(event))
-				.withHelp("Troubleshooting.")//
-				.withParam(OptionType.STRING, "id", "ID to check.")
+				.addCommand("raw/items", "Prints out all of the raw items needed by the blueprint.",
+						event -> handleBlueprintItemsRawCommand(event))//
+				.withParam(OptionType.STRING, "string", "Blueprint string or URL.")//
+				.withLegacyWarning("blueprintRawItems", "bpRawItems")//
+				//
+				.addCommand("counts",
+						"Prints out the total counts of entities, items and tiles needed by the blueprint.",
+						event -> handleBlueprintTotalsCommand(event))
+				.withParam(OptionType.STRING, "string", "Blueprint string or URL.")//
+				.withLegacyWarning("blueprintCounts", "bpCounts")//
+				//
+				//
+				.addCommand("book/extract",
+						"Provides an collection of blueprint strings contained within the specified blueprint book.",
+						event -> handleBlueprintBookExtractCommand(event))//
+				.withParam(OptionType.STRING, "string", "Blueprint string or URL.")//
+				.withLegacyWarning("blueprintBookExtract")//
+				//
+				.addCommand("book/assemble",
+						"Combines all blueprints (including from other books) from multiple strings into a single book.",
+						event -> handleBlueprintBookAssembleCommand(event))//
+				.withParam(OptionType.STRING, "string", "Blueprint string or URL.")//
+				.withLegacyWarning("blueprintBookAssemble")//
+				//
+				//
+				.addCommand("prototype/entity", "Lua data for the specified entity prototype.",
+						createPrototypeCommandHandler("entity", table.getEntities()))//
+				.withParam(OptionType.STRING, "name", "Prototype name of the entity.")//
+				.withLegacyWarning("prototypeEntity")//
+				//
+				.addCommand("prototype/recipe", "Lua data for the specified recipe prototype.",
+						createPrototypeCommandHandler("recipe", table.getRecipes()))//
+				.withParam(OptionType.STRING, "name", "Prototype name of the recipe.")//
+				.withLegacyWarning("prototypeRecipe")//
+				//
+				.addCommand("prototype/fluid", "Lua data for the specified fluid prototype.",
+						createPrototypeCommandHandler("fluid", table.getFluids()))//
+				.withParam(OptionType.STRING, "name", "Prototype name of the fluid.")//
+				.withLegacyWarning("prototypeFluid")//
+				//
+				.addCommand("prototype/item", "Lua data for the specified item prototype.",
+						createPrototypeCommandHandler("item", table.getItems()))//
+				.withParam(OptionType.STRING, "name", "Prototype name of the item.")//
+				.withLegacyWarning("prototypeItem")//
+				//
+				.addCommand("prototype/technology", "Lua data for the specified technology prototype.",
+						createPrototypeCommandHandler("technology", table.getTechnologies()))//
+				.withParam(OptionType.STRING, "name", "Prototype name of the technology.")//
+				.withLegacyWarning("prototypeTechnology")//
+				//
+				.addCommand("prototype/equipment", "Lua data for the specified equipment prototype.",
+						createPrototypeCommandHandler("equipment", table.getEquipments()))//
+				.withParam(OptionType.STRING, "name", "Prototype name of the equipment.")//
+				.withLegacyWarning("prototypeEquipment")//
+				//
+				.addCommand("prototype/tile", "Lua data for the specified tile prototype.",
+						createPrototypeCommandHandler("tile", table.getTiles()))//
+				.withParam(OptionType.STRING, "name", "Prototype name of the tile.")//
+				.withLegacyWarning("prototypeTile")//
+				//
+				//
+				.addCommand("data/raw", "Lua from `data.raw` for the specified key.",
+						createDataRawCommandHandler(table::getRaw))//
+				.withParam(OptionType.STRING, "path", "Path to identify which key.")//
+				.withLegacyWarning("dataRaw")//
+				//
+				//
+//				.addCommand("redditCheckThings", event -> handleRedditCheckThingsCommand(event))
+//				.withHelp("Troubleshooting.")//
+//				.withParam(OptionType.STRING, "id", "ID to check.")//
+//				.withLegacy("prototypeEntity")//
+				//
 				//
 				//
 				.withCustomSetup(builder -> {
