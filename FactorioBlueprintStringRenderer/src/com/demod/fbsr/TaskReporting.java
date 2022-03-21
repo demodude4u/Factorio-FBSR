@@ -3,9 +3,11 @@ package com.demod.fbsr;
 import java.awt.Color;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.Set;
 
 import com.demod.fbsr.WorldMap.Debug;
 
@@ -35,7 +37,7 @@ public class TaskReporting {
 	private final List<Entry<Optional<String>, String>> images = new ArrayList<>();
 	private final List<String> downloads = new ArrayList<>();
 	private final List<String> links = new ArrayList<>();
-	private final List<String> info = new ArrayList<>();
+	private final Set<String> info = new LinkedHashSet<>();
 	private final List<Long> renderTimes = new ArrayList<>();
 
 	public void addBlueprintString(String blueprintString) {
@@ -98,7 +100,7 @@ public class TaskReporting {
 		return images;
 	}
 
-	public List<String> getInfo() {
+	public Set<String> getInfo() {
 		return info;
 	}
 

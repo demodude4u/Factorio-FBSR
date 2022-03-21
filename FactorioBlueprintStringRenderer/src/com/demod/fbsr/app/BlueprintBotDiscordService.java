@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -31,10 +32,12 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.luaj.vm2.LuaValue;
 
-import com.demod.dcba.CommandEvent;
-import com.demod.dcba.CommandHandler;
 import com.demod.dcba.DCBA;
 import com.demod.dcba.DiscordBot;
+import com.demod.dcba.EventReply;
+import com.demod.dcba.MessageCommandEvent;
+import com.demod.dcba.SlashCommandEvent;
+import com.demod.dcba.SlashCommandHandler;
 import com.demod.factorio.Config;
 import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
@@ -60,6 +63,7 @@ import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.ChannelType;
 import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.Message.Attachment;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.PrivateChannel;
 import net.dv8tion.jda.api.entities.TextChannel;
@@ -90,7 +94,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 	private String reportingChannelID;
 	private String hostingChannelID;
 
-	private CommandHandler createDataRawCommandHandler(Function<String[], Optional<LuaValue>> query) {
+	private SlashCommandHandler createDataRawCommandHandler(Function<String[], Optional<LuaValue>> query) {
 		return (event) -> {
 			TaskReporting reporting = new TaskReporting();
 
@@ -166,7 +170,8 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		return builder.build();
 	}
 
-	private CommandHandler createPrototypeCommandHandler(String category, Map<String, ? extends DataPrototype> map) {
+	private SlashCommandHandler createPrototypeCommandHandler(String category,
+			Map<String, ? extends DataPrototype> map) {
 		return (event) -> {
 			TaskReporting reporting = new TaskReporting();
 			reporting.setContext(event.getCommandString());
@@ -202,7 +207,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		List<Entry<Optional<String>, String>> images = reporting.getImages();
 		List<String> links = reporting.getLinks();
 		List<String> downloads = reporting.getDownloads();
-		List<String> info = reporting.getInfo();
+		Set<String> info = reporting.getInfo();
 		Optional<Message> contextMessage = reporting.getContextMessage();
 		List<Long> renderTimes = reporting.getRenderTimes();
 
@@ -326,17 +331,32 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		return imageData;
 	}
 
-	private String getReadableAddress(CommandEvent event) {
+	private String getReadableAddress(MessageCommandEvent event) {
 		if (event.isFromType(ChannelType.PRIVATE)) {// event.getGuild() == null) {
-			return event.getAuthor().getName();
+			return event.getUser().getName();
 		} else {
 			return event.getGuild().getName() + " / #" + event.getMessageChannel().getName() + " / "
-					+ event.getAuthor().getName();
+					+ event.getUser().getName();
 		}
 	}
 
-	private void handleBlueprintBookAssembleCommand(CommandEvent event) {
+	private String getReadableAddress(SlashCommandEvent event) {
+		if (event.isFromType(ChannelType.PRIVATE)) {// event.getGuild() == null) {
+			return event.getUser().getName();
+		} else {
+			return event.getGuild().getName() + " / #" + event.getMessageChannel().getName() + " / "
+					+ event.getUser().getName();
+		}
+	}
+
+	private void handleBlueprintBookAssembleCommand(SlashCommandEvent event) {
 		String content = event.getCommandString();
+
+		Optional<Attachment> attachment = event.optParamAttachment("file");
+		if (attachment.isPresent()) {
+			content += " " + attachment.get().getUrl();
+		}
+
 		TaskReporting reporting = new TaskReporting();
 		reporting.setContext(content);
 
@@ -396,7 +416,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			}
 
 		} else {
-			event.reply("I can't seem to find any blueprints. :frowning:");
+			reporting.addInfo("No blueprint found!");
 		}
 
 		if (!reporting.getInfo().isEmpty()) {
@@ -406,8 +426,14 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		sendReport(event, reporting);
 	}
 
-	private void handleBlueprintBookExtractCommand(CommandEvent event) {
+	private void handleBlueprintBookExtractCommand(SlashCommandEvent event) {
 		String content = event.getCommandString();
+
+		Optional<Attachment> attachment = event.optParamAttachment("file");
+		if (attachment.isPresent()) {
+			content += " " + attachment.get().getUrl();
+		}
+
 		TaskReporting reporting = new TaskReporting();
 		reporting.setContext(content);
 
@@ -439,63 +465,47 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			}
 		}
 
+		List<EmbedBuilder> embedBuilders = new ArrayList<>();
+
 		if (!links.isEmpty()) {
-			// FIXME
-			// try {
-			//// reporting.addInfo("Extracted blueprints: "
-			//// + WebUtils.uploadToBundly("Blueprints", "Provided by Blueprint Bot",
-			// links));
-			// } catch (IOException e) {
-			try {
-				sendBundlyReplacementEmbed(event, "Extracted Blueprints", links);
-			} catch (Exception e2) {
-				reporting.addException(e2);
+			ArrayDeque<String> lines = links.stream()
+					.map(p -> (p.getValue() != null && !p.getValue().isEmpty())
+							? ("[" + p.getValue() + "](" + p.getKey() + ")")
+							: p.getKey().toString())
+					.collect(Collectors.toCollection(ArrayDeque::new));
+			while (!lines.isEmpty()) {
+				EmbedBuilder builder = new EmbedBuilder();
+				StringBuilder description = new StringBuilder();
+				while (!lines.isEmpty()) {
+					if (description.length() + lines.peek().length() + 1 < MessageEmbed.DESCRIPTION_MAX_LENGTH) {
+						description.append(lines.pop()).append('\n');
+					} else {
+						break;
+					}
+				}
+				builder.setDescription(description);
+				embedBuilders.add(builder);
 			}
-			// }
-		}
 
-		if (reporting.getBlueprintStrings().isEmpty()) {
-			event.reply("I can't seem to find any blueprints. :frowning:");
+		} else {
+			embedBuilders.add(new EmbedBuilder().setDescription("Blueprint not found!"));
 		}
 
 		if (!reporting.getInfo().isEmpty()) {
-			event.reply(reporting.getInfo().stream().collect(Collectors.joining("\n")));
+			embedBuilders.get(embedBuilders.size() - 1)
+					.setFooter(reporting.getInfo().stream().collect(Collectors.joining("\n")));
+		}
+
+		List<MessageEmbed> embeds = embedBuilders.stream().map(EmbedBuilder::build).collect(Collectors.toList());
+		for (MessageEmbed embed : embeds) {
+			Message message = event.replyEmbed(embed);
+			reporting.setContextMessage(message);
 		}
 
 		sendReport(event, reporting);
 	}
 
-	private void handleBlueprintCommand(CommandEvent event) {
-		String content = event.getCommandString();
-		TaskReporting reporting = new TaskReporting();
-		reporting.setContext(content);
-//		if (event instanceof MessageCommandEvent) {
-//			reporting.setContextMessage(((MessageCommandEvent) event).getMessage());
-//		}
-		findDebugOptions(reporting, content);
-
-//		if (event instanceof MessageCommandEvent
-//				&& !((MessageCommandEvent) event).getMessage().getAttachments().isEmpty()) {
-//			String url = ((MessageCommandEvent) event).getMessage().getAttachments().get(0).getUrl();
-//			reporting.addLink(url);
-//			processBlueprints(BlueprintFinder.search(url, reporting), event, reporting);
-//		} else {
-		processBlueprints(BlueprintFinder.search(content, reporting), event, reporting);
-//		}
-
-		if (reporting.getBlueprintStrings().isEmpty()) {
-			reporting.addInfo("Give me blueprint strings and I'll create images for you!");
-			reporting.addInfo("Include a link to a text file to get started.");
-		}
-
-		if (!reporting.getInfo().isEmpty()) {
-			event.reply(reporting.getInfo().stream().collect(Collectors.joining("\n")));
-		}
-
-		sendReport(event, reporting);
-	}
-
-	private void handleBlueprintItemsCommand(CommandEvent event) {
+	private void handleBlueprintItemsCommand(SlashCommandEvent event) {
 		DataTable table;
 		try {
 			table = FactorioData.getTable();
@@ -504,6 +514,12 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		}
 
 		String content = event.getCommandString();
+
+		Optional<Attachment> attachment = event.optParamAttachment("file");
+		if (attachment.isPresent()) {
+			content += " " + attachment.get().getUrl();
+		}
+
 		TaskReporting reporting = new TaskReporting();
 		reporting.setContext(content);
 
@@ -548,17 +564,10 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				reporting.addException(e);
 			}
 		} else {
-			reporting.addInfo("I couldn't find any items!");
-		}
-
-		if (reporting.getImages().isEmpty() && reporting.getDownloads().isEmpty() && reporting.getWarnings().isEmpty()
-				&& reporting.getExceptions().isEmpty() && reporting.getInfo().isEmpty()
-				&& reporting.getLinks().isEmpty()) {
-			if (content.split("\\s").length == 1) {
-				reporting.addInfo("Give me blueprint strings and I'll count the items for you!");
-				reporting.addInfo("Include a link to a text file to get started.");
+			if (reporting.getBlueprintStrings().isEmpty()) {
+				reporting.addInfo("No blueprint found!");
 			} else {
-				reporting.addInfo("I can't seem to find any blueprints. :frowning:");
+				reporting.addInfo("I couldn't find any items!");
 			}
 		}
 
@@ -569,7 +578,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		sendReport(event, reporting);
 	}
 
-	private void handleBlueprintItemsRawCommand(CommandEvent event) {
+	private void handleBlueprintItemsRawCommand(SlashCommandEvent event) {
 		DataTable table;
 		try {
 			table = FactorioData.getTable();
@@ -578,6 +587,12 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		}
 
 		String content = event.getCommandString();
+
+		Optional<Attachment> attachment = event.optParamAttachment("file");
+		if (attachment.isPresent()) {
+			content += " " + attachment.get().getUrl();
+		}
+
 		TaskReporting reporting = new TaskReporting();
 		reporting.setContext(content);
 
@@ -624,17 +639,10 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				reporting.addException(e);
 			}
 		} else {
-			reporting.addInfo("I couldn't find any raw items!");
-		}
-
-		if (reporting.getImages().isEmpty() && reporting.getDownloads().isEmpty() && reporting.getWarnings().isEmpty()
-				&& reporting.getExceptions().isEmpty() && reporting.getInfo().isEmpty()
-				&& reporting.getLinks().isEmpty()) {
-			if (content.split("\\s").length == 1) {
-				reporting.addInfo("Give me blueprint strings and I'll count the items for you!");
-				reporting.addInfo("Include a link to a text file to get started.");
+			if (reporting.getBlueprintStrings().isEmpty()) {
+				reporting.addInfo("No blueprint found!");
 			} else {
-				reporting.addInfo("I can't seem to find any blueprints. :frowning:");
+				reporting.addInfo("I couldn't find any raw items!");
 			}
 		}
 
@@ -645,8 +653,14 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		sendReport(event, reporting);
 	}
 
-	private void handleBlueprintJsonCommand(CommandEvent event) {
+	private void handleBlueprintJsonCommand(SlashCommandEvent event) {
 		String content = event.getCommandString();
+
+		Optional<Attachment> attachment = event.optParamAttachment("file");
+		if (attachment.isPresent()) {
+			content += " " + attachment.get().getUrl();
+		}
+
 		TaskReporting reporting = new TaskReporting();
 		reporting.setContext(content);
 		List<String> results = BlueprintFinder.searchRaw(content, reporting);
@@ -685,15 +699,69 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			} catch (Exception e) {
 				reporting.addException(e);
 			}
+		} else {
+			reporting.addInfo("No blueprint found!");
 		}
 
-		if (reporting.getBlueprintStrings().isEmpty()) {
-			event.reply("I can't seem to find any blueprints. :frowning:");
-		}
 		sendReport(event, reporting);
 	}
 
-	private void handleBlueprintTotalsCommand(CommandEvent event) {
+	private void handleBlueprintMessageCommand(MessageCommandEvent event) {
+		String content = event.getMessage().getContentDisplay();
+
+		TaskReporting reporting = new TaskReporting();
+		reporting.setContext(content);
+
+		findDebugOptions(reporting, content);
+
+		List<EmbedBuilder> embedBuilders = processBlueprints(BlueprintFinder.search(content, reporting), reporting);
+
+		embedBuilders.get(0).addField("", "[Blueprint String](" + event.getMessage().getJumpUrl() + ")", false);
+
+		if (!reporting.getInfo().isEmpty()) {
+			embedBuilders.get(embedBuilders.size() - 1)
+					.setFooter(reporting.getInfo().stream().collect(Collectors.joining("\n")));
+		}
+
+		List<MessageEmbed> embeds = embedBuilders.stream().map(EmbedBuilder::build).collect(Collectors.toList());
+		for (MessageEmbed embed : embeds) {
+			Message message = event.replyEmbed(embed);
+			reporting.setContextMessage(message);
+		}
+
+		sendReport(event, reporting);
+	}
+
+	private void handleBlueprintSlashCommand(SlashCommandEvent event) {
+		String content = event.getCommandString();
+
+		Optional<Attachment> attachment = event.optParamAttachment("file");
+		if (attachment.isPresent()) {
+			content += " " + attachment.get().getUrl();
+		}
+
+		TaskReporting reporting = new TaskReporting();
+		reporting.setContext(content);
+
+		findDebugOptions(reporting, content);
+
+		List<EmbedBuilder> embedBuilders = processBlueprints(BlueprintFinder.search(content, reporting), reporting);
+
+		if (!reporting.getInfo().isEmpty()) {
+			embedBuilders.get(embedBuilders.size() - 1)
+					.setFooter(reporting.getInfo().stream().collect(Collectors.joining("\n")));
+		}
+
+		List<MessageEmbed> embeds = embedBuilders.stream().map(EmbedBuilder::build).collect(Collectors.toList());
+		for (MessageEmbed embed : embeds) {
+			Message message = event.replyEmbed(embed);
+			reporting.setContextMessage(message);
+		}
+
+		sendReport(event, reporting);
+	}
+
+	private void handleBlueprintTotalsCommand(SlashCommandEvent event) {
 		DataTable table;
 		try {
 			table = FactorioData.getTable();
@@ -702,6 +770,12 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		}
 
 		String content = event.getCommandString();
+
+		Optional<Attachment> attachment = event.optParamAttachment("file");
+		if (attachment.isPresent()) {
+			content += " " + attachment.get().getUrl();
+		}
+
 		TaskReporting reporting = new TaskReporting();
 		reporting.setContext(content);
 
@@ -746,17 +820,10 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				reporting.addException(e);
 			}
 		} else {
-			reporting.addInfo("I couldn't find any entities, tiles or modules!");
-		}
-
-		if (reporting.getImages().isEmpty() && reporting.getDownloads().isEmpty() && reporting.getWarnings().isEmpty()
-				&& reporting.getExceptions().isEmpty() && reporting.getInfo().isEmpty()
-				&& reporting.getLinks().isEmpty()) {
-			if (content.split("\\s").length == 1) {
-				reporting.addInfo("Give me blueprint strings and I'll count the items for you!");
-				reporting.addInfo("Include a link to a text file to get started.");
+			if (reporting.getBlueprintStrings().isEmpty()) {
+				reporting.addInfo("No blueprint found!");
 			} else {
-				reporting.addInfo("I can't seem to find any blueprints. :frowning:");
+				reporting.addInfo("I couldn't find any entities, tiles or modules!");
 			}
 		}
 
@@ -767,8 +834,14 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		sendReport(event, reporting);
 	}
 
-	private void handleBlueprintUpgradeBeltsCommand(CommandEvent event) {
+	private void handleBlueprintUpgradeBeltsCommand(SlashCommandEvent event) {
 		String content = event.getCommandString();
+
+		Optional<Attachment> attachment = event.optParamAttachment("file");
+		if (attachment.isPresent()) {
+			content += " " + attachment.get().getUrl();
+		}
+
 		TaskReporting reporting = new TaskReporting();
 		reporting.setContext(content);
 
@@ -810,16 +883,10 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				}
 			}
 		} else {
-			reporting.addInfo("I couldn't find anything to upgrade!");
-		}
-
-		if (reporting.getImages().isEmpty() && reporting.getDownloads().isEmpty() && reporting.getWarnings().isEmpty()
-				&& reporting.getExceptions().isEmpty() && reporting.getInfo().isEmpty()) {
-			if (content.split("\\s").length == 1) {
-				reporting.addInfo("Give me blueprint strings and I'll create upgrade the belts for you!");
-				reporting.addInfo("Include a link to a text file to get started.");
+			if (reporting.getBlueprintStrings().isEmpty()) {
+				reporting.addInfo("No blueprint found!");
 			} else {
-				reporting.addInfo("I can't seem to find any blueprints. :frowning:");
+				reporting.addInfo("I couldn't find anything to upgrade!");
 			}
 		}
 
@@ -830,7 +897,8 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		sendReport(event, reporting);
 	}
 
-	private void handleRedditCheckThingsCommand(CommandEvent event) {
+	@SuppressWarnings("unused")
+	private void handleRedditCheckThingsCommand(SlashCommandEvent event) {
 		String content = event.getCommandString();
 		TaskReporting reporting = new TaskReporting();
 		reporting.setContext(content);
@@ -850,72 +918,73 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		sendReport(event, reporting);
 	}
 
-	private void processBlueprints(List<BlueprintStringData> blueprintStrings, CommandEvent event,
-			TaskReporting reporting) {
+	private List<EmbedBuilder> processBlueprints(List<BlueprintStringData> blueprintStrings, TaskReporting reporting) {
+
+		List<EmbedBuilder> embedBuilders = new ArrayList<>();
+
+		List<Entry<Optional<String>, BufferedImage>> images = new ArrayList<>();
+
 		for (BlueprintStringData blueprintString : blueprintStrings) {
-			try {
-				System.out.println("Parsing blueprints: " + blueprintString.getBlueprints().size());
-				if (blueprintString.getBlueprints().size() == 1) {
-					Blueprint blueprint = blueprintString.getBlueprints().get(0);
+			System.out.println("Parsing blueprints: " + blueprintString.getBlueprints().size());
+			for (Blueprint blueprint : blueprintString.getBlueprints()) {
+				try {
 					BufferedImage image = FBSR.renderBlueprint(blueprint, reporting);
-					try {
-						Message message = event.replyFile(WebUtils.getImageData(image), "blueprint.png");
-						reporting.addImage(blueprint.getLabel(), message.getAttachments().get(0).getUrl());
-					} catch (Exception e) {
-						reporting.addInfo(WebUtils.uploadToHostingService("blueprint.png", image).toString());
-					}
-				} else {
-					List<Entry<URL, String>> links = new ArrayList<>();
-					for (Blueprint blueprint : blueprintString.getBlueprints()) {
-						BufferedImage image = FBSR.renderBlueprint(blueprint, reporting);
-						links.add(new SimpleEntry<>(WebUtils.uploadToHostingService("blueprint.png", image),
-								blueprint.getLabel().orElse("")));
-					}
-					// FIXME
-					// try {
-					// reporting.addInfo("Blueprint Book Images: " + WebUtils
-					// .uploadToBundly("Blueprint Book", "Renderings provided by Blueprint Bot",
-					// links)
-					// .toString());
-					// } catch (IOException e) {
-					try {
-						sendBundlyReplacementEmbed(event, "Blueprint Book Images", links);
-					} catch (Exception e2) {
-						reporting.addException(e2);
-					}
-					// }
-				}
-			} catch (Exception e) {
-				reporting.addException(e);
-			}
-		}
-	}
-
-	private void sendBundlyReplacementEmbed(CommandEvent event, String title, List<Entry<URL, String>> links)
-			throws IllegalStateException {
-		ArrayDeque<String> linksFormatted = links.stream()
-				.map(p -> (p.getValue() != null && !p.getValue().isEmpty())
-						? ("[" + p.getValue() + "](" + p.getKey() + ")")
-						: p.getKey().toString())
-				.collect(Collectors.toCollection(ArrayDeque::new));
-		while (!linksFormatted.isEmpty()) {
-			EmbedBuilder builder = new EmbedBuilder();
-			builder.setTitle(title, null);
-			StringBuilder description = new StringBuilder();
-			while (!linksFormatted.isEmpty()) {
-				if (description.length() + linksFormatted.peek().length() + 1 < MessageEmbed.TEXT_MAX_LENGTH) {
-					description.append(linksFormatted.pop()).append('\n');
-				} else {
-					break;
+					images.add(new SimpleEntry<>(blueprint.getLabel(), image));
+				} catch (Exception e) {
+					reporting.addException(e);
 				}
 			}
-			builder.setDescription(description);
-			event.replyEmbed(builder.build());
 		}
+
+		try {
+			if (images.size() == 0) {
+				embedBuilders.add(new EmbedBuilder().setDescription("Blueprint not found!"));
+
+			} else if (images.size() == 1) {
+				Entry<Optional<String>, BufferedImage> entry = images.get(0);
+				BufferedImage image = entry.getValue();
+				URL url = WebUtils.uploadToHostingService("blueprint.png", image);
+				EmbedBuilder builder = new EmbedBuilder();
+				builder.setImage(url.toString());
+				embedBuilders.add(builder);
+				reporting.addImage(entry.getKey(), url.toString());
+
+			} else {
+				List<Entry<URL, String>> links = new ArrayList<>();
+				for (Entry<Optional<String>, BufferedImage> entry : images) {
+					BufferedImage image = entry.getValue();
+					links.add(new SimpleEntry<>(WebUtils.uploadToHostingService("blueprint.png", image),
+							entry.getKey().orElse("")));
+				}
+
+				ArrayDeque<String> lines = links.stream()
+						.map(p -> (p.getValue() != null && !p.getValue().isEmpty())
+								? ("[" + p.getValue() + "](" + p.getKey() + ")")
+								: p.getKey().toString())
+						.collect(Collectors.toCollection(ArrayDeque::new));
+				while (!lines.isEmpty()) {
+					EmbedBuilder builder = new EmbedBuilder();
+					StringBuilder description = new StringBuilder();
+					while (!lines.isEmpty()) {
+						if (description.length() + lines.peek().length() + 1 < MessageEmbed.DESCRIPTION_MAX_LENGTH) {
+							description.append(lines.pop()).append('\n');
+						} else {
+							break;
+						}
+					}
+					builder.setDescription(description);
+					embedBuilders.add(builder);
+				}
+			}
+		} catch (Exception e) {
+			reporting.addException(e);
+		}
+
+		return embedBuilders;
 	}
 
-	private void sendLuaDumpFile(CommandEvent event, String category, String name, LuaValue lua,
-			TaskReporting reporting) throws IOException {
+	private void sendLuaDumpFile(EventReply event, String category, String name, LuaValue lua, TaskReporting reporting)
+			throws IOException {
 		JSONObject json = new JSONObject();
 		Utils.terribleHackToHaveOrderedJSONObject(json);
 		json.put("name", name);
@@ -928,13 +997,22 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		reporting.addLink(url.toString());
 	}
 
-	public void sendReport(CommandEvent event, TaskReporting reporting) {
+	public void sendReport(MessageCommandEvent event, TaskReporting reporting) {
 		if (!reporting.getExceptions().isEmpty()) {
 			event.replyEmbed(
 					new EmbedBuilder().appendDescription("There was a problem completing your request.").build());
 		}
 
-		sendReport(getReadableAddress(event), event.getAuthor().getEffectiveAvatarUrl(), reporting);
+		sendReport(getReadableAddress(event), event.getUser().getEffectiveAvatarUrl(), reporting);
+	}
+
+	public void sendReport(SlashCommandEvent event, TaskReporting reporting) {
+		if (!reporting.getExceptions().isEmpty()) {
+			event.replyEmbed(
+					new EmbedBuilder().appendDescription("There was a problem completing your request.").build());
+		}
+
+		sendReport(getReadableAddress(event), event.getUser().getEffectiveAvatarUrl(), reporting);
 	}
 
 	public void sendReport(String author, String authorURL, TaskReporting reporting) {
@@ -1000,89 +1078,107 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 						Permission.MESSAGE_ADD_REACTION,//
 				})//
 					//
-				.addCommand("blueprint", "Renders an image of the blueprint string provided.",
-						event -> handleBlueprintCommand(event))//
-				.withParam(OptionType.STRING, "string", "Blueprint string or URL.")//
+				.addMessageCommand("Blueprint Image", event -> handleBlueprintMessageCommand(event))
+				//
+				.addSlashCommand("blueprint", "Renders an image of the blueprint string provided.",
+						event -> handleBlueprintSlashCommand(event))//
+				.withOptionalParam(OptionType.STRING, "string", "Blueprint string.")//
+				.withOptionalParam(OptionType.STRING, "url", "Url containing blueprint string.")//
+				.withOptionalParam(OptionType.ATTACHMENT, "file", "File containing blueprint string.")//
 				.withLegacyWarning("blueprint", "bp")//
 				//
-				.addCommand("json", "Provides a dump of the json data in the specified blueprint string.",
+				.addSlashCommand("json", "Provides a dump of the json data in the specified blueprint string.",
 						event -> handleBlueprintJsonCommand(event))//
-				.withParam(OptionType.STRING, "string", "Blueprint string or URL.")//
+				.withOptionalParam(OptionType.STRING, "string", "Blueprint string.")//
+				.withOptionalParam(OptionType.STRING, "url", "Url containing blueprint string.")//
+				.withOptionalParam(OptionType.ATTACHMENT, "file", "File containing blueprint string.")//
 				.withLegacyWarning("blueprintJSON")//
 				//
-				.addCommand("upgrade/belts",
+				.addSlashCommand("upgrade/belts",
 						"Converts all yellow belts into red belts, and all red belts into blue belts.",
 						event -> handleBlueprintUpgradeBeltsCommand(event))//
-				.withParam(OptionType.STRING, "string", "Blueprint string or URL.")//
+				.withOptionalParam(OptionType.STRING, "string", "Blueprint string.")//
+				.withOptionalParam(OptionType.STRING, "url", "Url containing blueprint string.")//
+				.withOptionalParam(OptionType.ATTACHMENT, "file", "File containing blueprint string.")//
 				.withLegacyWarning("blueprintUpgradeBelts")//
 				//
-				.addCommand("items", "Prints out all of the items needed by the blueprint.",
+				.addSlashCommand("items", "Prints out all of the items needed by the blueprint.",
 						event -> handleBlueprintItemsCommand(event))//
-				.withParam(OptionType.STRING, "string", "Blueprint string or URL.")//
+				.withOptionalParam(OptionType.STRING, "string", "Blueprint string.")//
+				.withOptionalParam(OptionType.STRING, "url", "Url containing blueprint string.")//
+				.withOptionalParam(OptionType.ATTACHMENT, "file", "File containing blueprint string.")//
 				.withLegacyWarning("blueprintItems", "bpItems")//
 				//
-				.addCommand("raw/items", "Prints out all of the raw items needed by the blueprint.",
+				.addSlashCommand("raw/items", "Prints out all of the raw items needed by the blueprint.",
 						event -> handleBlueprintItemsRawCommand(event))//
-				.withParam(OptionType.STRING, "string", "Blueprint string or URL.")//
+				.withOptionalParam(OptionType.STRING, "string", "Blueprint string.")//
+				.withOptionalParam(OptionType.STRING, "url", "Url containing blueprint string.")//
+				.withOptionalParam(OptionType.ATTACHMENT, "file", "File containing blueprint string.")//
 				.withLegacyWarning("blueprintRawItems", "bpRawItems")//
 				//
-				.addCommand("counts",
+				.addSlashCommand("counts",
 						"Prints out the total counts of entities, items and tiles needed by the blueprint.",
 						event -> handleBlueprintTotalsCommand(event))
-				.withParam(OptionType.STRING, "string", "Blueprint string or URL.")//
+				.withOptionalParam(OptionType.STRING, "string", "Blueprint string.")//
+				.withOptionalParam(OptionType.STRING, "url", "Url containing blueprint string.")//
+				.withOptionalParam(OptionType.ATTACHMENT, "file", "File containing blueprint string.")//
 				.withLegacyWarning("blueprintCounts", "bpCounts")//
 				//
 				//
-				.addCommand("book/extract",
+				.addSlashCommand("book/extract",
 						"Provides an collection of blueprint strings contained within the specified blueprint book.",
 						event -> handleBlueprintBookExtractCommand(event))//
-				.withParam(OptionType.STRING, "string", "Blueprint string or URL.")//
+				.withOptionalParam(OptionType.STRING, "string", "Blueprint string.")//
+				.withOptionalParam(OptionType.STRING, "url", "Url containing blueprint string.")//
+				.withOptionalParam(OptionType.ATTACHMENT, "file", "File containing blueprint string.")//
 				.withLegacyWarning("blueprintBookExtract")//
 				//
-				.addCommand("book/assemble",
+				.addSlashCommand("book/assemble",
 						"Combines all blueprints (including from other books) from multiple strings into a single book.",
 						event -> handleBlueprintBookAssembleCommand(event))//
-				.withParam(OptionType.STRING, "string", "Blueprint string or URL.")//
+				.withOptionalParam(OptionType.STRING, "string", "Blueprint string.")//
+				.withOptionalParam(OptionType.STRING, "url", "Url containing blueprint string.")//
+				.withOptionalParam(OptionType.ATTACHMENT, "file", "File containing blueprint string.")//
 				.withLegacyWarning("blueprintBookAssemble")//
 				//
 				//
-				.addCommand("prototype/entity", "Lua data for the specified entity prototype.",
+				.addSlashCommand("prototype/entity", "Lua data for the specified entity prototype.",
 						createPrototypeCommandHandler("entity", table.getEntities()))//
 				.withParam(OptionType.STRING, "name", "Prototype name of the entity.")//
 				.withLegacyWarning("prototypeEntity")//
 				//
-				.addCommand("prototype/recipe", "Lua data for the specified recipe prototype.",
+				.addSlashCommand("prototype/recipe", "Lua data for the specified recipe prototype.",
 						createPrototypeCommandHandler("recipe", table.getRecipes()))//
 				.withParam(OptionType.STRING, "name", "Prototype name of the recipe.")//
 				.withLegacyWarning("prototypeRecipe")//
 				//
-				.addCommand("prototype/fluid", "Lua data for the specified fluid prototype.",
+				.addSlashCommand("prototype/fluid", "Lua data for the specified fluid prototype.",
 						createPrototypeCommandHandler("fluid", table.getFluids()))//
 				.withParam(OptionType.STRING, "name", "Prototype name of the fluid.")//
 				.withLegacyWarning("prototypeFluid")//
 				//
-				.addCommand("prototype/item", "Lua data for the specified item prototype.",
+				.addSlashCommand("prototype/item", "Lua data for the specified item prototype.",
 						createPrototypeCommandHandler("item", table.getItems()))//
 				.withParam(OptionType.STRING, "name", "Prototype name of the item.")//
 				.withLegacyWarning("prototypeItem")//
 				//
-				.addCommand("prototype/technology", "Lua data for the specified technology prototype.",
+				.addSlashCommand("prototype/technology", "Lua data for the specified technology prototype.",
 						createPrototypeCommandHandler("technology", table.getTechnologies()))//
 				.withParam(OptionType.STRING, "name", "Prototype name of the technology.")//
 				.withLegacyWarning("prototypeTechnology")//
 				//
-				.addCommand("prototype/equipment", "Lua data for the specified equipment prototype.",
+				.addSlashCommand("prototype/equipment", "Lua data for the specified equipment prototype.",
 						createPrototypeCommandHandler("equipment", table.getEquipments()))//
 				.withParam(OptionType.STRING, "name", "Prototype name of the equipment.")//
 				.withLegacyWarning("prototypeEquipment")//
 				//
-				.addCommand("prototype/tile", "Lua data for the specified tile prototype.",
+				.addSlashCommand("prototype/tile", "Lua data for the specified tile prototype.",
 						createPrototypeCommandHandler("tile", table.getTiles()))//
 				.withParam(OptionType.STRING, "name", "Prototype name of the tile.")//
 				.withLegacyWarning("prototypeTile")//
 				//
 				//
-				.addCommand("data/raw", "Lua from `data.raw` for the specified key.",
+				.addSlashCommand("data/raw", "Lua from `data.raw` for the specified key.",
 						createDataRawCommandHandler(table::getRaw))//
 				.withParam(OptionType.STRING, "path", "Path to identify which key.")//
 				.withLegacyWarning("dataRaw")//
