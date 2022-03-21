@@ -6,7 +6,6 @@ import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Line2D;
-import java.awt.geom.Path2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
@@ -16,6 +15,7 @@ import java.util.Optional;
 import java.util.function.Consumer;
 
 import org.json.JSONObject;
+import org.luaj.vm2.LuaValue;
 
 import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
@@ -44,21 +44,14 @@ public class InserterRendering extends EntityRendererFactory {
 					{ 1, 1, -1 },// West
 			};
 
-	private static final Path2D.Double placeMarkerShape = new Path2D.Double();
-	private static final Path2D.Double grabMarkerShape = new Path2D.Double();
-	static {
-		final double inset = 0.15;
+	private static final Sprite getGrabMarker(DataTable dataTable) {
+		Optional<LuaValue> optUtilityConstantsLua = dataTable.getRaw("utility-sprites", "default");
+		return RenderUtils.getSpriteFromAnimation(optUtilityConstantsLua.get().get("indication_line"));
+	}
 
-		placeMarkerShape.moveTo(-0.5 + inset, 0.5 - inset);
-		placeMarkerShape.lineTo(0.5 - inset, 0.5 - inset);
-		placeMarkerShape.lineTo(0, 0 + inset);
-		placeMarkerShape.closePath();
-
-		grabMarkerShape.moveTo(-0.5 + inset, -0.5 + inset);
-		grabMarkerShape.lineTo(0.5 - inset, -0.5 + inset);
-		grabMarkerShape.lineTo(0.5 - inset, -0.5 + inset + 0.15);
-		grabMarkerShape.lineTo(-0.5 + inset, -0.5 + inset + 0.15);
-		grabMarkerShape.closePath();
+	private static final Sprite getPlaceMarker(DataTable dataTable) {
+		Optional<LuaValue> optUtilityConstantsLua = dataTable.getRaw("utility-sprites", "default");
+		return RenderUtils.getSpriteFromAnimation(optUtilityConstantsLua.get().get("indication_arrow"));
 	}
 
 	@Override
@@ -131,41 +124,35 @@ public class InserterRendering extends EntityRendererFactory {
 			public void render(Graphics2D g) {
 				AffineTransform pat = g.getTransform();
 
-				Color color = Color.yellow;
-				Color shadow = Color.darkGray;
-				double shadowShift = 0.07;
+				Sprite grabberMarker = getGrabMarker(dataTable);
+				Rectangle2D.Double bounds = grabberMarker.bounds;
+				Rectangle source = grabberMarker.source;
+				BufferedImage image = grabberMarker.image;
 
 				double pickupRotate = Math.atan2(pickupPos.y, pickupPos.x);
 
-				g.setTransform(pat);
-				g.translate(inPos.x, inPos.y);
-				if (modded) {
-					g.translate(-Math.cos(pickupRotate) * 0.2, -Math.sin(pickupRotate) * 0.2);
-					g.rotate(pickupRotate + Math.PI / 2.0);
-				} else {
-					g.rotate(dir.back().ordinal() * Math.PI / 4.0);
-				}
-				g.translate(shadowShift, shadowShift);
-				g.setColor(shadow);
-				g.fill(grabMarkerShape);
-
 				if (modded) {
 					g.setTransform(pat);
-					g.setColor(RenderUtils.withAlpha(color, 64));
+					g.setColor(RenderUtils.withAlpha(Color.yellow, 64));
 					g.setStroke(new BasicStroke(0.1f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
 					g.draw(new Line2D.Double(pos, inPos));
 				}
 
 				g.setTransform(pat);
 				g.translate(inPos.x, inPos.y);
+				// HACK magic numbers
+				Point2D.Double magicImageShift = new Point2D.Double(bounds.x + 0.1, bounds.y + -0.05);
+				g.translate(magicImageShift.x, magicImageShift.y);
 				if (modded) {
 					g.translate(-Math.cos(pickupRotate) * 0.2, -Math.sin(pickupRotate) * 0.2);
-					g.rotate(pickupRotate + Math.PI / 2.0);
+					g.rotate(pickupRotate + Math.PI / 2.0, -magicImageShift.x, -magicImageShift.y);
 				} else {
-					g.rotate(dir.back().ordinal() * Math.PI / 4.0);
+					g.rotate(dir.back().ordinal() * Math.PI / 4.0, -magicImageShift.x, -magicImageShift.y);
 				}
-				g.setColor(color);
-				g.fill(grabMarkerShape);
+				// magic numbers from Factorio code
+				g.scale(0.8, 0.8);
+				g.drawImage(image, 0, 0, 1, 1, source.x, source.y, source.x + source.width, source.y + source.height,
+						null);
 
 				g.setTransform(pat);
 			}
@@ -175,41 +162,35 @@ public class InserterRendering extends EntityRendererFactory {
 			public void render(Graphics2D g) {
 				AffineTransform pat = g.getTransform();
 
-				Color color = Color.yellow;
-				Color shadow = Color.darkGray;
-				double shadowShift = 0.07;
+				Sprite placeMarker = getPlaceMarker(dataTable);
+				Rectangle2D.Double bounds = placeMarker.bounds;
+				Rectangle source = placeMarker.source;
+				BufferedImage image = placeMarker.image;
 
 				double insertRotate = Math.atan2(insertPos.y, insertPos.x);
 
-				g.setTransform(pat);
-				g.translate(outPos.x, outPos.y);
-				if (modded) {
-					g.translate(Math.cos(insertRotate) * 0.2, Math.sin(insertRotate) * 0.2);
-					g.rotate(insertRotate + Math.PI / 2.0);
-				} else {
-					g.rotate(dir.back().ordinal() * Math.PI / 4.0);
-				}
-				g.translate(shadowShift, shadowShift);
-				g.setColor(shadow);
-				g.fill(placeMarkerShape);
-
 				if (modded) {
 					g.setTransform(pat);
-					g.setColor(RenderUtils.withAlpha(color, 64));
+					g.setColor(RenderUtils.withAlpha(Color.yellow, 64));
 					g.setStroke(new BasicStroke(0.1f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
 					g.draw(new Line2D.Double(pos, outPos));
 				}
 
 				g.setTransform(pat);
 				g.translate(outPos.x, outPos.y);
+				// HACK magic numbers
+				Point2D.Double magicImageShift = new Point2D.Double(bounds.x + 0.1, bounds.y + 0.35);
+				g.translate(magicImageShift.x, magicImageShift.y);
 				if (modded) {
 					g.translate(Math.cos(insertRotate) * 0.2, Math.sin(insertRotate) * 0.2);
-					g.rotate(insertRotate + Math.PI / 2.0);
+					g.rotate(insertRotate + Math.PI / 2.0, -magicImageShift.x, -magicImageShift.y);
 				} else {
-					g.rotate(dir.back().ordinal() * Math.PI / 4.0);
+					g.rotate(dir.back().ordinal() * Math.PI / 4.0, -magicImageShift.x, -magicImageShift.y);
 				}
-				g.setColor(color);
-				g.fill(placeMarkerShape);
+				// magic numbers from Factorio code
+				g.scale(0.8, 0.8);
+				g.drawImage(image, 0, 0, 1, 1, source.x, source.y, source.x + source.width, source.y + source.height,
+						null);
 
 				g.setTransform(pat);
 			}
