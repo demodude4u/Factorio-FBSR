@@ -714,9 +714,20 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 		findDebugOptions(reporting, content);
 
-		List<EmbedBuilder> embedBuilders = processBlueprints(BlueprintFinder.search(content, reporting), reporting);
+		List<EmbedBuilder> embedBuilders = processBlueprints(BlueprintFinder.search(content, reporting), reporting,
+				new JSONObject());
 
-		embedBuilders.get(0).addField("", "[Blueprint String](" + event.getMessage().getJumpUrl() + ")", false);
+		EmbedBuilder firstEmbed = embedBuilders.get(0);
+//		if (firstEmbed.getDescriptionBuilder().length() > 0) {
+//			firstEmbed.addField(
+//					new MessageEmbed.Field("", "[Blueprint String](" + event.getMessage().getJumpUrl() + ")", false));
+//		} else {
+//			firstEmbed.setDescription("[Blueprint String](" + event.getMessage().getJumpUrl() + ")");
+//		}
+		firstEmbed.setAuthor(event.getMessage().getAuthor().getName(), event.getMessage().getJumpUrl(),
+				event.getMessage().getAuthor().getEffectiveAvatarUrl());
+
+//		embedBuilders.get(0).addField("", "[Blueprint String](" + event.getMessage().getJumpUrl() + ")", false);
 
 		if (!reporting.getInfo().isEmpty()) {
 			embedBuilders.get(embedBuilders.size() - 1)
@@ -745,7 +756,13 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 		findDebugOptions(reporting, content);
 
-		List<EmbedBuilder> embedBuilders = processBlueprints(BlueprintFinder.search(content, reporting), reporting);
+		JSONObject options = new JSONObject();
+		event.optParamBoolean("simple").ifPresent(b -> options.put("show-info-panels", !b));
+		event.optParamLong("max-width").ifPresent(l -> options.put("max-width", l.intValue()));
+		event.optParamLong("max-height").ifPresent(l -> options.put("max-height", l.intValue()));
+
+		List<EmbedBuilder> embedBuilders = processBlueprints(BlueprintFinder.search(content, reporting), reporting,
+				options);
 
 		if (!reporting.getInfo().isEmpty()) {
 			embedBuilders.get(embedBuilders.size() - 1)
@@ -918,7 +935,8 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		sendReport(event, reporting);
 	}
 
-	private List<EmbedBuilder> processBlueprints(List<BlueprintStringData> blueprintStrings, TaskReporting reporting) {
+	private List<EmbedBuilder> processBlueprints(List<BlueprintStringData> blueprintStrings, TaskReporting reporting,
+			JSONObject options) {
 
 		List<EmbedBuilder> embedBuilders = new ArrayList<>();
 
@@ -928,7 +946,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			System.out.println("Parsing blueprints: " + blueprintString.getBlueprints().size());
 			for (Blueprint blueprint : blueprintString.getBlueprints()) {
 				try {
-					BufferedImage image = FBSR.renderBlueprint(blueprint, reporting);
+					BufferedImage image = FBSR.renderBlueprint(blueprint, reporting, options);
 					images.add(new SimpleEntry<>(blueprint.getLabel(), image));
 				} catch (Exception e) {
 					reporting.addException(e);
@@ -1080,11 +1098,28 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 					//
 				.addMessageCommand("Blueprint Image", event -> handleBlueprintMessageCommand(event))
 				//
-				.addSlashCommand("blueprint", "Renders an image of the blueprint string provided.",
+				.addSlashCommand("blueprint/string", "Renders an image of the blueprint string.",
 						event -> handleBlueprintSlashCommand(event))//
-				.withOptionalParam(OptionType.STRING, "string", "Blueprint string.")//
-				.withOptionalParam(OptionType.STRING, "url", "Url containing blueprint string.")//
-				.withOptionalParam(OptionType.ATTACHMENT, "file", "File containing blueprint string.")//
+				.withParam(OptionType.STRING, "string", "Blueprint string.")//
+				.withOptionalParam(OptionType.BOOLEAN, "simple", "Set True to show just the image, no side panels.")
+				.withOptionalParam(OptionType.INTEGER, "max-width", "Maximum width of image, in pixels.")
+				.withOptionalParam(OptionType.INTEGER, "max-height", "Maximum height of image, in pixels.")
+				.withLegacyWarning("blueprint", "bp")//
+				//
+				.addSlashCommand("blueprint/url", "Renders an image of the blueprint url.",
+						event -> handleBlueprintSlashCommand(event))//
+				.withParam(OptionType.STRING, "url", "Url containing blueprint string.")//
+				.withOptionalParam(OptionType.BOOLEAN, "simple", "Set True to show just the image, no side panels.")
+				.withOptionalParam(OptionType.INTEGER, "max-width", "Maximum width of image, in pixels.")
+				.withOptionalParam(OptionType.INTEGER, "max-height", "Maximum height of image, in pixels.")
+				.withLegacyWarning("blueprint", "bp")//
+				//
+				.addSlashCommand("blueprint/file", "Renders an image of the blueprint attachment.",
+						event -> handleBlueprintSlashCommand(event))//
+				.withParam(OptionType.ATTACHMENT, "file", "File containing blueprint string.")//
+				.withOptionalParam(OptionType.BOOLEAN, "simple", "Set True to show just the image, no side panels.")
+				.withOptionalParam(OptionType.INTEGER, "max-width", "Maximum width of image, in pixels.")
+				.withOptionalParam(OptionType.INTEGER, "max-height", "Maximum height of image, in pixels.")
 				.withLegacyWarning("blueprint", "bp")//
 				//
 				.addSlashCommand("json", "Provides a dump of the json data in the specified blueprint string.",
