@@ -1112,7 +1112,6 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				.withOptionalParam(OptionType.BOOLEAN, "simple", "Set True to show just the image, no side panels.")
 				.withOptionalParam(OptionType.INTEGER, "max-width", "Maximum width of image, in pixels.")
 				.withOptionalParam(OptionType.INTEGER, "max-height", "Maximum height of image, in pixels.")
-				.withLegacyWarning("blueprint", "bp")//
 				//
 				.addSlashCommand("blueprint/file", "Renders an image of the blueprint attachment.",
 						event -> handleBlueprintSlashCommand(event))//
@@ -1120,7 +1119,6 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				.withOptionalParam(OptionType.BOOLEAN, "simple", "Set True to show just the image, no side panels.")
 				.withOptionalParam(OptionType.INTEGER, "max-width", "Maximum width of image, in pixels.")
 				.withOptionalParam(OptionType.INTEGER, "max-height", "Maximum height of image, in pixels.")
-				.withLegacyWarning("blueprint", "bp")//
 				//
 				.addSlashCommand("json", "Provides a dump of the json data in the specified blueprint string.",
 						event -> handleBlueprintJsonCommand(event))//
