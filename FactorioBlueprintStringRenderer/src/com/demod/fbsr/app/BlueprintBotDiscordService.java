@@ -1095,7 +1095,9 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 						Permission.MESSAGE_HISTORY, //
 						Permission.MESSAGE_ADD_REACTION,//
 				})//
-					//
+				.withCustomField("Need old !blueprint commands?",
+						"[BlueprintBot Legacy Invite Link](https://discord.com/oauth2/authorize?scope=bot&client_id=958469202824552498&permissions=379968)")//
+				//
 				.addMessageCommand("Blueprint Image", event -> handleBlueprintMessageCommand(event))
 				//
 				.addSlashCommand("blueprint/string", "Renders an image of the blueprint string.",
