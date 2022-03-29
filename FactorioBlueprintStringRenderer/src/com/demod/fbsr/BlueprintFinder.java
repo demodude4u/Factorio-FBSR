@@ -1,6 +1,7 @@
 package com.demod.fbsr;
 
 import java.io.ByteArrayInputStream;
+import java.io.EOFException;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -197,10 +198,10 @@ public final class BlueprintFinder {
 		for (String blueprintString : searchRaw(content, reporting)) {
 			try {
 				results.add(new BlueprintStringData(blueprintString));
-			} catch (ZipException e) {
-				reporting.addInfo("Sorry, but I can't read those kind of blueprints just yet.");
-			} catch (IllegalArgumentException | IOException e) {
-				reporting.addException(e);
+			} catch (IllegalArgumentException | EOFException | ZipException e) {
+				reporting.addInfo("Sorry, but there is something wrong with your blueprint, or it is an older format.");
+			} catch (IOException e) {
+				reporting.addInfo("Sorry, there is a problem loading that blueprint: " + e.getMessage());
 			}
 		}
 		return results;

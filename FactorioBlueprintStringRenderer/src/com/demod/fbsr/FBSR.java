@@ -240,6 +240,9 @@ public class FBSR {
 			int width = (int) ((centerBounds.width + borderLeft / worldRenderScale + borderRight / worldRenderScale)
 					* worldRenderScale * tileSize);
 			int maxWidth = options.getInt("max-width");
+			if (maxWidth < 10) {
+				maxWidth = 10;
+			}
 			if (width > maxWidth) {
 				worldRenderScale = (float) ((maxWidth - tileSize * (borderLeft + borderRight))
 						/ (centerBounds.width * tileSize));
@@ -250,6 +253,9 @@ public class FBSR {
 			int height = (int) ((centerBounds.height + borderTop / worldRenderScale + borderBottom / worldRenderScale)
 					* worldRenderScale * tileSize);
 			int maxHeight = options.getInt("max-height");
+			if (maxHeight < 10) {
+				maxHeight = 10;
+			}
 			if (height > maxHeight) {
 				worldRenderScale = (float) ((maxHeight - tileSize * (borderTop + borderBottom))
 						/ (centerBounds.height * tileSize));
