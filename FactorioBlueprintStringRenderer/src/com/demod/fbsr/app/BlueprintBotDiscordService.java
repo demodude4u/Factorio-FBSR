@@ -32,6 +32,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.luaj.vm2.LuaValue;
 
+import com.demod.dcba.AutoCompleteHandler;
 import com.demod.dcba.DCBA;
 import com.demod.dcba.DiscordBot;
 import com.demod.dcba.EventReply;
@@ -55,6 +56,7 @@ import com.demod.fbsr.TaskReporting.Level;
 import com.demod.fbsr.WebUtils;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.app.WatchdogService.WatchdogReporter;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.Multiset;
 import com.google.common.util.concurrent.AbstractIdleService;
@@ -68,6 +70,7 @@ import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.PrivateChannel;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
+import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import net.dv8tion.jda.api.utils.ChunkingFilter;
 
 public class BlueprintBotDiscordService extends AbstractIdleService {
@@ -168,6 +171,32 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		}
 
 		return builder.build();
+	}
+
+	private AutoCompleteHandler createPrototypeAutoCompleteHandler(Map<String, ? extends DataPrototype> map) {
+		return (event) -> {
+			String name = event.getParamString("name").trim().toLowerCase();
+
+			if (name.isEmpty()) {
+				event.reply(ImmutableList.of());
+				return;
+			}
+
+			List<String> nameStartsWith = new ArrayList<>();
+			List<String> nameContains = new ArrayList<>();
+			map.keySet().stream().sorted().forEach(n -> {
+				String lowerCase = n.toLowerCase();
+				if (lowerCase.startsWith(name)) {
+					nameStartsWith.add(n);
+				} else if (lowerCase.contains(name)) {
+					nameContains.add(n);
+				}
+			});
+
+			List<String> choices = ImmutableList.<String>builder().addAll(nameStartsWith).addAll(nameContains).build()
+					.stream().limit(OptionData.MAX_CHOICES).collect(Collectors.toList());
+			event.reply(choices);
+		};
 	}
 
 	private SlashCommandHandler createPrototypeCommandHandler(String category,
@@ -1182,38 +1211,45 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				//
 				//
 				.addSlashCommand("prototype/entity", "Lua data for the specified entity prototype.",
-						createPrototypeCommandHandler("entity", table.getEntities()))//
-				.withParam(OptionType.STRING, "name", "Prototype name of the entity.")//
+						createPrototypeCommandHandler("entity", table.getEntities()),
+						createPrototypeAutoCompleteHandler(table.getEntities()))//
+				.withAutoParam(OptionType.STRING, "name", "Prototype name of the entity.")//
 				.withLegacyWarning("prototypeEntity")//
 				//
 				.addSlashCommand("prototype/recipe", "Lua data for the specified recipe prototype.",
-						createPrototypeCommandHandler("recipe", table.getRecipes()))//
-				.withParam(OptionType.STRING, "name", "Prototype name of the recipe.")//
+						createPrototypeCommandHandler("recipe", table.getRecipes()),
+						createPrototypeAutoCompleteHandler(table.getRecipes()))//
+				.withAutoParam(OptionType.STRING, "name", "Prototype name of the recipe.")//
 				.withLegacyWarning("prototypeRecipe")//
 				//
 				.addSlashCommand("prototype/fluid", "Lua data for the specified fluid prototype.",
-						createPrototypeCommandHandler("fluid", table.getFluids()))//
-				.withParam(OptionType.STRING, "name", "Prototype name of the fluid.")//
+						createPrototypeCommandHandler("fluid", table.getFluids()),
+						createPrototypeAutoCompleteHandler(table.getFluids()))//
+				.withAutoParam(OptionType.STRING, "name", "Prototype name of the fluid.")//
 				.withLegacyWarning("prototypeFluid")//
 				//
 				.addSlashCommand("prototype/item", "Lua data for the specified item prototype.",
-						createPrototypeCommandHandler("item", table.getItems()))//
-				.withParam(OptionType.STRING, "name", "Prototype name of the item.")//
+						createPrototypeCommandHandler("item", table.getItems()),
+						createPrototypeAutoCompleteHandler(table.getItems()))//
+				.withAutoParam(OptionType.STRING, "name", "Prototype name of the item.")//
 				.withLegacyWarning("prototypeItem")//
 				//
 				.addSlashCommand("prototype/technology", "Lua data for the specified technology prototype.",
-						createPrototypeCommandHandler("technology", table.getTechnologies()))//
-				.withParam(OptionType.STRING, "name", "Prototype name of the technology.")//
+						createPrototypeCommandHandler("technology", table.getTechnologies()),
+						createPrototypeAutoCompleteHandler(table.getTechnologies()))//
+				.withAutoParam(OptionType.STRING, "name", "Prototype name of the technology.")//
 				.withLegacyWarning("prototypeTechnology")//
 				//
 				.addSlashCommand("prototype/equipment", "Lua data for the specified equipment prototype.",
-						createPrototypeCommandHandler("equipment", table.getEquipments()))//
-				.withParam(OptionType.STRING, "name", "Prototype name of the equipment.")//
+						createPrototypeCommandHandler("equipment", table.getEquipments()),
+						createPrototypeAutoCompleteHandler(table.getEquipments()))//
+				.withAutoParam(OptionType.STRING, "name", "Prototype name of the equipment.")//
 				.withLegacyWarning("prototypeEquipment")//
 				//
 				.addSlashCommand("prototype/tile", "Lua data for the specified tile prototype.",
-						createPrototypeCommandHandler("tile", table.getTiles()))//
-				.withParam(OptionType.STRING, "name", "Prototype name of the tile.")//
+						createPrototypeCommandHandler("tile", table.getTiles()),
+						createPrototypeAutoCompleteHandler(table.getTiles()))//
+				.withAutoParam(OptionType.STRING, "name", "Prototype name of the tile.")//
 				.withLegacyWarning("prototypeTile")//
 				//
 				//
