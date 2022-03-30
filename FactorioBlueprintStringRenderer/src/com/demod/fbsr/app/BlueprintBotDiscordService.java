@@ -1008,11 +1008,16 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 							entry.getKey().orElse("")));
 				}
 
-				ArrayDeque<String> lines = links.stream()
-						.map(p -> (p.getValue() != null && !p.getValue().isEmpty())
-								? ("[" + p.getValue() + "](" + p.getKey() + ")")
-								: p.getKey().toString())
-						.collect(Collectors.toCollection(ArrayDeque::new));
+				ArrayDeque<String> lines = new ArrayDeque<>();
+				for (int i = 0; i < links.size(); i++) {
+					Entry<URL, String> entry = links.get(i);
+					if (entry.getValue() != null && !entry.getValue().trim().isEmpty()) {
+						lines.add("[" + entry.getValue().trim() + "](" + entry.getKey() + ")");
+					} else {
+						lines.add("[Blueprint " + (i + 1) + "](" + entry.getKey() + ")");
+					}
+				}
+
 				while (!lines.isEmpty()) {
 					EmbedBuilder builder = new EmbedBuilder();
 					StringBuilder description = new StringBuilder();
