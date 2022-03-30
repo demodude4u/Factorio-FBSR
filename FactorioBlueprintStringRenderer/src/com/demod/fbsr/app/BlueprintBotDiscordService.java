@@ -709,6 +709,10 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 	private void handleBlueprintMessageCommand(MessageCommandEvent event) {
 		String content = event.getMessage().getContentDisplay();
 
+		for (Attachment attachment : event.getMessage().getAttachments()) {
+			content += " " + attachment.getUrl();
+		}
+
 		TaskReporting reporting = new TaskReporting();
 		reporting.setContext(content);
 
