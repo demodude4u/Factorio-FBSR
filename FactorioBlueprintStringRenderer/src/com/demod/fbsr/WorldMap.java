@@ -52,15 +52,6 @@ public class WorldMap {
 		}
 	}
 
-	public static class Debug {
-		public boolean typeMapping = false;
-		public boolean inputs = false;
-		public boolean logistic = false;
-		public boolean rail = false;
-		public boolean placement = false;
-		public boolean bounds = false;
-	}
-
 	public static class RailEdge {
 		private final Point2D.Double startPos;
 		private final Direction startDir;
@@ -250,8 +241,6 @@ public class WorldMap {
 
 	private final List<Entry<RailEdge, RailEdge>> railEdges = new ArrayList<>();
 
-	private Debug debug = new Debug();
-
 	private int flag(Direction facing) {
 		return 1 << facing.cardinal();
 	}
@@ -298,10 +287,6 @@ public class WorldMap {
 		int kr = (int) Math.floor(pos.x);
 		int kc = (int) Math.floor(pos.y);
 		return Optional.ofNullable(belts.get(kr, kc)).map(BeltCell::getFacing);
-	}
-
-	public Debug getDebug() {
-		return debug;
 	}
 
 	public Point2D.Double getLogisticCellPosition(Cell<Integer, Integer, LogisticGridCell> c) {
@@ -420,10 +405,6 @@ public class WorldMap {
 		int kr = (int) Math.floor(pos.x);
 		int kc = (int) Math.floor(pos.y);
 		belts.put(kr, kc, new BeltCell(facing, bendable, bendOthers));
-	}
-
-	public void setDebug(Debug debug) {
-		this.debug = debug;
 	}
 
 	public void setHeatPipe(Point2D.Double pos, Direction... facings) {

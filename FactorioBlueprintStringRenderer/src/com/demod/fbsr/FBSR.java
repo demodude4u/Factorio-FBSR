@@ -37,6 +37,8 @@ import javax.imageio.ImageIO;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import com.demod.dcba.CommandReporting;
+import com.demod.dcba.CommandReporting.Level;
 import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
 import com.demod.factorio.ModInfo;
@@ -48,7 +50,6 @@ import com.demod.factorio.prototype.ItemPrototype;
 import com.demod.factorio.prototype.RecipePrototype;
 import com.demod.factorio.prototype.TilePrototype;
 import com.demod.fbsr.Renderer.Layer;
-import com.demod.fbsr.TaskReporting.Level;
 import com.demod.fbsr.WorldMap.RailEdge;
 import com.demod.fbsr.WorldMap.RailNode;
 import com.google.common.collect.ArrayListMultimap;
@@ -173,7 +174,7 @@ public class FBSR {
 		}
 	}
 
-	private static BufferedImage applyRendering(TaskReporting reporting, int tileSize, List<Renderer> renderers,
+	private static BufferedImage applyRendering(CommandReporting reporting, int tileSize, List<Renderer> renderers,
 			ArrayListMultimap<Direction, PanelRenderer> borderPanels, JSONObject options) throws JSONException {
 
 		Rectangle2D.Double worldBounds = computeBounds(renderers);
@@ -329,7 +330,7 @@ public class FBSR {
 			}
 		});
 
-		boolean debugBounds = reporting.getDebug().map(d -> d.bounds).orElse(false);
+		boolean debugBounds = options.optBoolean("debug-bounds");
 		renderers.stream().sorted((r1, r2) -> {
 			int ret;
 
@@ -579,8 +580,7 @@ public class FBSR {
 		};
 	}
 
-	public static Map<String, Double> generateSummedTotalItems(DataTable table, Blueprint blueprint,
-			TaskReporting reporting) {
+	public static Map<String, Double> generateSummedTotalItems(DataTable table, Blueprint blueprint) {
 		Map<String, Double> ret = new LinkedHashMap<>();
 		if (!blueprint.getEntities().isEmpty())
 			ret.put("Entities", (double) blueprint.getEntities().size());
@@ -617,8 +617,7 @@ public class FBSR {
 		return ret;
 	}
 
-	public static Map<String, Double> generateTotalItems(DataTable table, Blueprint blueprint,
-			TaskReporting reporting) {
+	public static Map<String, Double> generateTotalItems(DataTable table, Blueprint blueprint) {
 		Map<String, Double> ret = new LinkedHashMap<>();
 		for (BlueprintEntity entity : blueprint.getEntities()) {
 			String entityName = entity.getName();
@@ -860,7 +859,7 @@ public class FBSR {
 		});
 	}
 
-	private static void populateTransitLogistics(WorldMap map) {
+	private static void populateTransitLogistics(WorldMap map, JSONObject options) {
 		Table<Integer, Integer, LogisticGridCell> logisticGrid = map.getLogisticGrid();
 		ArrayDeque<Entry<Point2D.Double, LogisticGridCell>> work = new ArrayDeque<>();
 
@@ -893,7 +892,7 @@ public class FBSR {
 			}
 		});
 
-		if (map.getDebug().inputs) {
+		if (options.optBoolean("debug-inputs")) {
 			logisticGrid.cellSet().stream().filter(c -> c.getValue().isTransitEnd()).forEach(c -> {
 				Set<String> inputs = c.getValue().getInputs().get();
 				for (String item : inputs) {
@@ -924,19 +923,18 @@ public class FBSR {
 
 	}
 
-	public static BufferedImage renderBlueprint(Blueprint blueprint, TaskReporting reporting)
+	public static BufferedImage renderBlueprint(Blueprint blueprint, CommandReporting reporting)
 			throws JSONException, IOException {
 		return renderBlueprint(blueprint, reporting, new JSONObject());
 	}
 
-	public static BufferedImage renderBlueprint(Blueprint blueprint, TaskReporting reporting, JSONObject options)
+	public static BufferedImage renderBlueprint(Blueprint blueprint, CommandReporting reporting, JSONObject options)
 			throws JSONException, IOException {
 		System.out.println("Rendering " + blueprint.getLabel().orElse("(No Name)"));
 		long startMillis = System.currentTimeMillis();
 
 		DataTable table = FactorioData.getTable();
 		WorldMap map = new WorldMap();
-		reporting.getDebug().ifPresent(map::setDebug);
 
 		List<EntityRenderingTuple> entityRenderingTuples = new ArrayList<EntityRenderingTuple>();
 		List<TileRenderingTuple> tileRenderingTuples = new ArrayList<TileRenderingTuple>();
@@ -948,14 +946,12 @@ public class FBSR {
 			if (!prototype.isPresent()) {
 				tuple.prototype = null;
 				tuple.factory = EntityRendererFactory.UNKNOWN;
-				// reporting.addWarning("Cant find prototype for " +
-				// entity.getName());
-				reporting.addInfo("(Modded features are shown as question marks)");
+				blueprint.setModsDetected();
 			} else {
 				tuple.prototype = prototype.get();
 				tuple.factory = EntityRendererFactory.forType(tuple.prototype.getType());
-				if (map.getDebug().typeMapping) {
-					reporting.addWarning(entity.getName() + " -> " + tuple.factory.getClass().getSimpleName());
+				if (options.optBoolean("debug-typeMapping")) {
+					reporting.addDebug(entity.getName() + " -> " + tuple.factory.getClass().getSimpleName());
 				}
 			}
 			entityRenderingTuples.add(tuple);
@@ -967,14 +963,12 @@ public class FBSR {
 			if (!prototype.isPresent()) {
 				tuple.prototype = null;
 				tuple.factory = TileRendererFactory.UNKNOWN;
-				// reporting.addWarning("Cant find prototype for " +
-				// tile.getName());
-				reporting.addInfo("(Modded features are shown as question marks)");
+				blueprint.setModsDetected();
 			} else {
 				tuple.prototype = prototype.get();
 				tuple.factory = TileRendererFactory.forType(tuple.prototype.getType());
-				if (map.getDebug().typeMapping) {
-					reporting.addWarning(tile.getName() + " -> " + tuple.factory.getClass().getSimpleName());
+				if (options.optBoolean("debug-typeMapping")) {
+					reporting.addDebug(tile.getName() + " -> " + tuple.factory.getClass().getSimpleName());
 				}
 			}
 			tileRenderingTuples.add(tuple);
@@ -1009,7 +1003,7 @@ public class FBSR {
 		});
 
 		populateReverseLogistics(map);
-		populateTransitLogistics(map);
+		populateTransitLogistics(map, options);
 
 		populateRailBlocking(map);
 		populateRailStationLogistics(map);
@@ -1047,8 +1041,8 @@ public class FBSR {
 			}
 		});
 
-		showLogisticGrid(renderers::add, table, map);
-		showRailLogistics(renderers::add, table, map);
+		showLogisticGrid(renderers::add, table, map, options);
+		showRailLogistics(renderers::add, table, map, options);
 
 		ArrayListMultimap<Direction, PanelRenderer> borderPanels = ArrayListMultimap.create();
 		if (options.optBoolean("show-info-panels", true)) {
@@ -1057,13 +1051,13 @@ public class FBSR {
 			});
 			borderPanels.put(Direction.SOUTH, createFooterPanel());
 
-			Map<String, Double> totalItems = generateTotalItems(table, blueprint, reporting);
+			Map<String, Double> totalItems = generateTotalItems(table, blueprint);
 			borderPanels.put(Direction.EAST, createItemListPanel(table, "TOTAL", totalItems));
 			borderPanels.put(Direction.EAST,
 					createItemListPanel(table, "RAW", generateTotalRawItems(table, table.getRecipes(), totalItems)));
 		}
 
-		if (map.getDebug().placement) {
+		if (options.optBoolean("debug-placement")) {
 			entityRenderingTuples.forEach(t -> {
 				Point2D.Double pos = t.entity.getPosition();
 				renderers.add(new Renderer(Layer.DEBUG_P, pos) {
@@ -1095,12 +1089,13 @@ public class FBSR {
 
 		long endMillis = System.currentTimeMillis();
 		System.out.println("\tRender Time " + (endMillis - startMillis) + " ms");
-		reporting.addRenderTime(endMillis - startMillis);
+		blueprint.setRenderTime(endMillis - startMillis);
 
 		return result;
 	}
 
-	private static void showLogisticGrid(Consumer<Renderer> register, DataTable table, WorldMap map) {
+	private static void showLogisticGrid(Consumer<Renderer> register, DataTable table, WorldMap map,
+			JSONObject options) {
 		Table<Integer, Integer, LogisticGridCell> logisticGrid = map.getLogisticGrid();
 		logisticGrid.cellSet().forEach(c -> {
 			Point2D.Double pos = new Point2D.Double(c.getRowKey() / 2.0 + 0.25, c.getColumnKey() / 2.0 + 0.25);
@@ -1134,7 +1129,7 @@ public class FBSR {
 
 			});
 
-			if (map.getDebug().logistic) {
+			if (options.optBoolean("debug-logistic")) {
 				cell.getMovedFrom().ifPresent(l -> {
 					for (Direction d : l) {
 						Point2D.Double p = d.offset(pos, 0.5);
@@ -1164,7 +1159,8 @@ public class FBSR {
 		});
 	}
 
-	private static void showRailLogistics(Consumer<Renderer> register, DataTable table, WorldMap map) {
+	private static void showRailLogistics(Consumer<Renderer> register, DataTable table, WorldMap map,
+			JSONObject options) {
 		for (Entry<RailEdge, RailEdge> pair : map.getRailEdges()) {
 			boolean input = pair.getKey().isInput() || pair.getValue().isInput();
 			boolean output = pair.getKey().isOutput() || pair.getValue().isOutput();
@@ -1200,7 +1196,7 @@ public class FBSR {
 				});
 			}
 
-			if (map.getDebug().rail) {
+			if (options.optBoolean("debug-rail")) {
 				for (RailEdge edge : ImmutableList.of(pair.getKey(), pair.getValue())) {
 					if (edge.isBlocked()) {
 						continue;
@@ -1225,7 +1221,7 @@ public class FBSR {
 			}
 		}
 
-		if (map.getDebug().rail) {
+		if (options.optBoolean("debug-rail")) {
 			map.getRailNodes().cellSet().forEach(c -> {
 				Point2D.Double pos = new Point2D.Double(c.getRowKey() / 2.0, c.getColumnKey() / 2.0);
 				RailNode node = c.getValue();

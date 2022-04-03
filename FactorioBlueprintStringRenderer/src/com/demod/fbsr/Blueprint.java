@@ -3,6 +3,7 @@ package com.demod.fbsr;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalLong;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -18,6 +19,8 @@ public class Blueprint {
 	private Optional<String> label;
 	private MapVersion version;
 	private Optional<JSONArray> icons;
+	private boolean modsDetected = false;
+	private OptionalLong renderTime = OptionalLong.empty();
 
 	public Blueprint(JSONObject json) throws IllegalArgumentException {
 		this.json = json;
@@ -67,12 +70,20 @@ public class Blueprint {
 		return label;
 	}
 
+	public OptionalLong getRenderTime() {
+		return renderTime;
+	}
+
 	public List<BlueprintTile> getTiles() {
 		return tiles;
 	}
 
 	public MapVersion getVersion() {
 		return version;
+	}
+
+	public boolean isModsDetected() {
+		return modsDetected;
 	}
 
 	public JSONObject json() {
@@ -85,6 +96,14 @@ public class Blueprint {
 
 	public void setLabel(Optional<String> label) {
 		this.label = label;
+	}
+
+	public void setModsDetected() {
+		modsDetected = true;
+	}
+
+	public void setRenderTime(long renderTime) {
+		this.renderTime = OptionalLong.of(renderTime);
 	}
 
 }

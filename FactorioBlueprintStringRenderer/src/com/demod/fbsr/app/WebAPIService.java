@@ -4,6 +4,9 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.util.AbstractMap.SimpleEntry;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Optional;
@@ -17,15 +20,18 @@ import org.rapidoid.http.MediaType;
 import org.rapidoid.setup.App;
 import org.rapidoid.setup.On;
 
+import com.demod.dcba.CommandReporting;
 import com.demod.factorio.Config;
 import com.demod.factorio.Utils;
 import com.demod.fbsr.Blueprint;
 import com.demod.fbsr.BlueprintFinder;
 import com.demod.fbsr.BlueprintStringData;
 import com.demod.fbsr.FBSR;
-import com.demod.fbsr.TaskReporting;
 import com.demod.fbsr.WebUtils;
+import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.AbstractIdleService;
+
+import net.dv8tion.jda.api.entities.MessageEmbed.Field;
 
 public class WebAPIService extends AbstractIdleService {
 
@@ -68,10 +74,16 @@ public class WebAPIService extends AbstractIdleService {
 
 		On.post("/blueprint").serve((req, resp) -> {
 			System.out.println("Web API POST!");
-			TaskReporting reporting = new TaskReporting();
+			CommandReporting reporting = new CommandReporting("Web API / " + req.clientIpAddress() + " / "
+					+ Optional.ofNullable(req.header("User-Agent", null)).orElse("<Unknown>"), null);
 			try {
 				JSONObject body = null;
 				BufferedImage returnSingleImage = null;
+
+				List<String> infos = new ArrayList<>();
+				List<Entry<Optional<String>, String>> imageLinks = new ArrayList<>();
+
+				boolean useLocalStorage = configJson.optBoolean("use-local-storage", false);
 
 				try {
 					if (req.body() == null) {
@@ -89,28 +101,13 @@ public class WebAPIService extends AbstractIdleService {
 						resp.plain("Malformed JSON: " + e.getMessage());
 						return resp;
 					}
-					reporting.setContext(body.toString(2));
+					reporting.setCommand(body.toString(2));
 
 					/*
-					 * 	{
-					 * 		"blueprint": "0e...", 		(required)
-					 * 		"max-width": 1234,
-					 * 		"max-height": 1234,
-					 * 		"show-info-panels": false
-					 * 	}
-					 * 				|
-					 * 				v
-					 * {
-					 * 		"info": [
-					 * 			"message 1!", "message 2!", ...
-					 * 		],
-					 * 		"images": [
-					 * 			{
-					 * 				"label": "Blueprint Label",
-					 * 				"link": "https://cdn.discordapp.com/..." (or) "1563569893008.png"
-					 * 			}
-					 * 		]
-					 * }
+					 * { "blueprint": "0e...", (required) "max-width": 1234, "max-height": 1234,
+					 * "show-info-panels": false } | v { "info": [ "message 1!", "message 2!", ...
+					 * ], "images": [ { "label": "Blueprint Label", "link":
+					 * "https://cdn.discordapp.com/..." (or) "1563569893008.png" } ] }
 					 */
 
 					String content = body.getString("blueprint");
@@ -123,23 +120,41 @@ public class WebAPIService extends AbstractIdleService {
 						try {
 							BufferedImage image = FBSR.renderBlueprint(blueprint, reporting, body);
 
-							if (body.optBoolean("return-single-image", false)) {
+							if (body.optBoolean("return-single-image")) {
 								returnSingleImage = image;
 								break;
 							}
 
-							if (configJson.optBoolean("use-local-storage", false)) {
+							if (useLocalStorage) {
 								File localStorageFolder = new File(configJson.getString("local-storage"));
 								String imageLink = saveToLocalStorage(localStorageFolder, image);
-								reporting.addImage(blueprint.getLabel(), imageLink);
-								reporting.addLink(imageLink);
+								imageLinks.add(new SimpleEntry<>(blueprint.getLabel(), imageLink));
 							} else {
-								reporting.addImage(blueprint.getLabel(),
-										WebUtils.uploadToHostingService("blueprint.png", image).toString());
+								imageLinks.add(new SimpleEntry<>(blueprint.getLabel(),
+										WebUtils.uploadToHostingService("blueprint.png", image).toString()));
 							}
 						} catch (Exception e) {
 							reporting.addException(e);
 						}
+					}
+
+					List<Long> renderTimes = blueprintStrings.stream().flatMap(d -> d.getBlueprints().stream())
+							.flatMap(b -> (b.getRenderTime().isPresent() ? Arrays.asList(b.getRenderTime().getAsLong())
+									: ImmutableList.<Long>of()).stream())
+							.collect(Collectors.toList());
+					if (!renderTimes.isEmpty()) {
+						reporting.addField(new Field("Render Time",
+								renderTimes.stream().mapToLong(l -> l).sum() + " ms"
+										+ (renderTimes.size() > 1
+												? (" [" + renderTimes.stream().map(Object::toString)
+														.collect(Collectors.joining(", ")) + "]")
+												: ""),
+								true));
+					}
+
+					if (blueprintStrings.stream()
+							.anyMatch(d -> d.getBlueprints().stream().anyMatch(b -> b.isModsDetected()))) {
+						infos.add("(Modded features are shown as question marks)");
 					}
 				} catch (Exception e) {
 					reporting.addException(e);
@@ -161,17 +176,21 @@ public class WebAPIService extends AbstractIdleService {
 
 					if (!reporting.getExceptions().isEmpty()) {
 						resp.code(400);
-						reporting.addInfo("There was a problem completing your request.");
+						infos.add("There was a problem completing your request.");
 						reporting.getExceptions().forEach(Exception::printStackTrace);
 					}
 
-					if (!reporting.getInfo().isEmpty()) {
-						result.put("info", new JSONArray(reporting.getInfo()));
+					if (!infos.isEmpty()) {
+						result.put("info", new JSONArray(infos));
 					}
 
-					if (!reporting.getImages().isEmpty()) {
+					if (imageLinks.size() == 1 && !useLocalStorage) {
+						reporting.setImageURL(imageLinks.get(0).getValue());
+					}
+
+					if (!imageLinks.isEmpty()) {
 						JSONArray images = new JSONArray();
-						for (Entry<Optional<String>, String> pair : reporting.getImages()) {
+						for (Entry<Optional<String>, String> pair : imageLinks) {
 							JSONObject image = new JSONObject();
 							Utils.terribleHackToHaveOrderedJSONObject(image);
 							pair.getKey().ifPresent(l -> image.put("label", l));
@@ -182,17 +201,17 @@ public class WebAPIService extends AbstractIdleService {
 					}
 
 					resp.contentType(MediaType.JSON);
-					resp.body(result.toString(2).getBytes());
+					String responseBody = result.toString(2);
+					resp.body(responseBody.getBytes());
+
+					reporting.addField(new Field("Response", responseBody, false));
 
 					return resp;
 				}
 
 			} finally {
 				ServiceFinder.findService(BlueprintBotDiscordService.class)
-						.ifPresent(s -> s.sendReport(
-								"Web API / " + req.clientIpAddress() + " / "
-										+ Optional.ofNullable(req.header("User-Agent", null)).orElse("<Unknown>"),
-								null, reporting));
+						.ifPresent(s -> s.getBot().submitReport(reporting));
 			}
 
 		});

@@ -1,7 +1,6 @@
 package com.demod.fbsr;
 
 import java.io.ByteArrayInputStream;
-import java.io.EOFException;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -20,10 +19,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.zip.ZipException;
 
 import org.json.JSONObject;
 
+import com.demod.dcba.CommandReporting;
 import com.demod.factorio.Utils;
 import com.google.common.util.concurrent.Uninterruptibles;
 
@@ -135,13 +134,12 @@ public final class BlueprintFinder {
 
 	private static final Pattern blueprintPattern = Pattern.compile("([0-9][A-Za-z0-9+\\/=\\r\\n]{90,})");
 
-	private static void findBlueprints(InputStream in, TaskReporting reporting, Set<String> results) {
+	private static void findBlueprints(InputStream in, CommandReporting reporting, Set<String> results) {
 		try (Scanner scanner = new Scanner(in)) {
 			String blueprintString;
 			while ((blueprintString = scanner.findWithinHorizon(blueprintPattern, 4000000)) != null) {
 				try {
 					results.add(blueprintString);
-					reporting.addBlueprintString(blueprintString);
 				} catch (Exception e) {
 					reporting.addException(e);
 				}
@@ -149,7 +147,7 @@ public final class BlueprintFinder {
 		}
 	}
 
-	private static void findProviders(String content, TaskReporting reporting, Set<String> results) {
+	private static void findProviders(String content, CommandReporting reporting, Set<String> results) {
 		HashSet<String> uniqueCheck = new HashSet<>();
 		for (Provider provider : providers) {
 			Matcher matcher = provider.getPattern().matcher(content);
@@ -193,21 +191,19 @@ public final class BlueprintFinder {
 		providers.add(provider);
 	}
 
-	public static List<BlueprintStringData> search(String content, TaskReporting reporting) {
+	public static List<BlueprintStringData> search(String content, CommandReporting reporting) {
 		List<BlueprintStringData> results = new ArrayList<>();
 		for (String blueprintString : searchRaw(content, reporting)) {
 			try {
 				results.add(new BlueprintStringData(blueprintString));
-			} catch (IllegalArgumentException | EOFException | ZipException e) {
-				reporting.addInfo("Sorry, but there is something wrong with your blueprint, or it is an older format.");
-			} catch (IOException e) {
-				reporting.addInfo("Sorry, there is a problem loading that blueprint: " + e.getMessage());
+			} catch (IllegalArgumentException | IOException e) {
+				reporting.addException(e);
 			}
 		}
 		return results;
 	}
 
-	public static List<String> searchRaw(String content, TaskReporting reporting) {
+	public static List<String> searchRaw(String content, CommandReporting reporting) {
 		Set<String> results = new LinkedHashSet<>();
 		findBlueprints(new ByteArrayInputStream(content.getBytes()), reporting, results);
 		findProviders(content, reporting, results);

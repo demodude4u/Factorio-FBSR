@@ -20,13 +20,13 @@ import java.util.stream.Collectors;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import com.demod.dcba.CommandReporting;
 import com.demod.factorio.Config;
 import com.demod.factorio.Utils;
 import com.demod.fbsr.Blueprint;
 import com.demod.fbsr.BlueprintFinder;
 import com.demod.fbsr.BlueprintStringData;
 import com.demod.fbsr.FBSR;
-import com.demod.fbsr.TaskReporting;
 import com.demod.fbsr.WebUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.AbstractScheduledService;
@@ -51,6 +51,7 @@ import net.dean.jraw.paginators.InboxPaginator;
 import net.dean.jraw.paginators.Sorting;
 import net.dean.jraw.paginators.SubredditPaginator;
 import net.dean.jraw.paginators.TimePeriod;
+import net.dv8tion.jda.api.entities.MessageEmbed.Field;
 
 public class BlueprintBotRedditService extends AbstractScheduledService {
 
@@ -132,9 +133,11 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 			return ImmutableList.of();
 		}
 
-		TaskReporting reporting = new TaskReporting();
-		reporting.setContext(content);
-		reporting.addLink(link);
+		CommandReporting reporting = new CommandReporting("Reddit / " + category + " / " + author, REDDIT_AUTHOR_URL);
+		reporting.setCommand(content);
+
+		List<String> infos = new ArrayList<>();
+		List<Entry<Optional<String>, String>> imageLinks = new ArrayList<>();
 
 		try {
 			List<BlueprintStringData> blueprintStrings = BlueprintFinder.search(content, reporting);
@@ -145,22 +148,38 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 				watchdog.ifPresent(w -> w.notifyActive(WATCHDOG_LABEL));
 				try {
 					BufferedImage image = FBSR.renderBlueprint(blueprint, reporting);
-					reporting.addImage(blueprint.getLabel(),
-							WebUtils.uploadToHostingService("blueprint.png", image).toString());
+					imageLinks.add(new SimpleEntry<>(blueprint.getLabel(),
+							WebUtils.uploadToHostingService("blueprint.png", image).toString()));
 				} catch (Exception e) {
 					reporting.addException(e);
 				}
+			}
+
+			List<Long> renderTimes = blueprintStrings.stream().flatMap(d -> d.getBlueprints().stream())
+					.flatMap(b -> (b.getRenderTime().isPresent() ? Arrays.asList(b.getRenderTime().getAsLong())
+							: ImmutableList.<Long>of()).stream())
+					.collect(Collectors.toList());
+			if (!renderTimes.isEmpty()) {
+				reporting.addField(new Field("Render Time", renderTimes.stream().mapToLong(l -> l).sum() + " ms"
+						+ (renderTimes.size() > 1
+								? (" [" + renderTimes.stream().map(Object::toString).collect(Collectors.joining(", "))
+										+ "]")
+								: ""),
+						true));
+			}
+
+			if (blueprintStrings.stream().anyMatch(d -> d.getBlueprints().stream().anyMatch(b -> b.isModsDetected()))) {
+				infos.add("(Modded features are shown as question marks)");
 			}
 		} catch (Exception e) {
 			reporting.addException(e);
 		}
 
 		List<String> lines = new ArrayList<>();
-		List<Entry<Optional<String>, String>> images = reporting.getImages();
-		if (images.size() > 1) {
+		if (imageLinks.size() > 1) {
 			int id = 1;
 			List<Entry<URL, String>> links = new ArrayList<>();
-			for (Entry<Optional<String>, String> pair : images) {
+			for (Entry<Optional<String>, String> pair : imageLinks) {
 				Optional<String> label = pair.getKey();
 				String url = pair.getValue();
 				try {
@@ -170,45 +189,30 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 				}
 			}
 
-			// FIXME
-			// Optional<URL> albumUrl;
-			// try {
-			// albumUrl = Optional
-			// .of(WebUtils.uploadToBundly("Blueprint Images", "Renderings provided by
-			// Blueprint Bot", links));
-			// } catch (IOException e) {
-			// reporting.addException(e);
-			// albumUrl = Optional.empty();
-			// }
-			// if (albumUrl.isPresent()) {
-			// lines.add("Blueprint Images ([View As Album](" + albumUrl.get() + ")):\n");
-			// } else {
 			lines.add("Blueprint Images:");
-			// }
 
-			for (Entry<Optional<String>, String> pair : images) {
+			for (Entry<Optional<String>, String> pair : imageLinks) {
 				Optional<String> label = pair.getKey();
 				String url = pair.getValue();
 				lines.add("[" + (id++) + ": " + label.orElse("Blueprint") + "](" + url + ")");
 			}
-		} else if (!images.isEmpty()) {
-			Entry<Optional<String>, String> pair = images.get(0);
+		} else if (!imageLinks.isEmpty()) {
+			Entry<Optional<String>, String> pair = imageLinks.get(0);
 			Optional<String> label = pair.getKey();
 			String url = pair.getValue();
 			lines.add("[Blueprint Image" + label.map(s -> " (" + s + ")").orElse("") + "](" + url + ")");
+			reporting.setImageURL(url);
 		}
 
-		for (String info : reporting.getInfo()) {
+		for (String info : infos) {
 			lines.add("    " + info);
 		}
 
 		if (!reporting.getExceptions().isEmpty()) {
-			lines.add(
-					"    There was a problem completing your request. I have contacted my programmer to fix it for you!");
+			lines.add("    Sorry, There was a problem completing your request.");
 		}
 
-		ServiceFinder.findService(BlueprintBotDiscordService.class)
-				.ifPresent(s -> s.sendReport("Reddit / " + category + " / " + author, REDDIT_AUTHOR_URL, reporting));
+		ServiceFinder.findService(BlueprintBotDiscordService.class).ifPresent(s -> s.getBot().submitReport(reporting));
 
 		if (!lines.isEmpty()) {
 			List<String> res = new ArrayList<>();
