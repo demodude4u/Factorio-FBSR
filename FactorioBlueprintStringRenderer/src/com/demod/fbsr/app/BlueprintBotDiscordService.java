@@ -81,8 +81,6 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 	private JSONObject configJson;
 
-	private String reportingUserID;
-	private String reportingChannelID;
 	private String hostingChannelID;
 
 	private SlashCommandHandler createDataRawCommandHandler(Function<String[], Optional<LuaValue>> query) {
@@ -825,8 +823,6 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 		bot.startAsync().awaitRunning();
 
-		reportingUserID = configJson.getString("reporting_user_id");
-		reportingChannelID = configJson.getString("reporting_channel_id");
 		hostingChannelID = configJson.getString("hosting_channel_id");
 
 		ServiceFinder.addService(this);
