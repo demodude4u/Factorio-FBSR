@@ -219,7 +219,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			}
 
 		} else {
-			event.reply("No blueprint found!");
+			event.replyIfNoException("No blueprint found!");
 		}
 	}
 
@@ -320,9 +320,9 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				event.replyFile(responseContent.getBytes(), "items.txt");
 			}
 		} else if (blueprintStringDatas.stream().anyMatch(d -> !d.getBlueprints().isEmpty())) {
-			event.reply("I couldn't find any items!");
+			event.replyIfNoException("I couldn't find any items!");
 		} else {
-			event.reply("No blueprint found!");
+			event.replyIfNoException("No blueprint found!");
 		}
 	}
 
@@ -367,9 +367,9 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				event.replyFile(responseContent.getBytes(), "raw-items.txt");
 			}
 		} else if (blueprintStringDatas.stream().anyMatch(d -> !d.getBlueprints().isEmpty())) {
-			event.reply("I couldn't find any items!");
+			event.replyIfNoException("I couldn't find any items!");
 		} else {
-			event.reply("No blueprint found!");
+			event.replyIfNoException("No blueprint found!");
 		}
 	}
 
@@ -404,7 +404,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				}
 			}
 		} else {
-			event.reply("No blueprint found!");
+			event.replyIfNoException("No blueprint found!");
 		}
 	}
 
@@ -501,9 +501,9 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				event.replyFile(responseContent.getBytes(), "totals.txt");
 			}
 		} else if (blueprintStringDatas.stream().anyMatch(d -> !d.getBlueprints().isEmpty())) {
-			event.reply("I couldn't find any items!");
+			event.replyIfNoException("I couldn't find any items!");
 		} else {
-			event.reply("No blueprint found!");
+			event.replyIfNoException("No blueprint found!");
 		}
 	}
 
@@ -540,9 +540,9 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			}
 			event.reply("Upgraded " + upgradedCount + " entities.");
 		} else if (blueprintStringDatas.stream().anyMatch(d -> !d.getBlueprints().isEmpty())) {
-			event.reply("I couldn't find anything to upgrade!");
+			event.replyIfNoException("I couldn't find anything to upgrade!");
 		} else {
-			event.reply("No blueprint found!");
+			event.replyIfNoException("No blueprint found!");
 		}
 	}
 
