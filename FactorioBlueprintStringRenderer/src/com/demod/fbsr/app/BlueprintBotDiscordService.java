@@ -152,15 +152,6 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		}
 	}
 
-	private byte[] generateDiscordFriendlyPNGImage(BufferedImage image) {
-		byte[] imageData = WebUtils.getImageData(image);
-		if (imageData.length > 8000000) {
-			return generateDiscordFriendlyPNGImage(
-					RenderUtils.scaleImage(image, image.getWidth() / 2, image.getHeight() / 2));
-		}
-		return imageData;
-	}
-
 	public DiscordBot getBot() {
 		return bot;
 	}
@@ -235,12 +226,12 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 		List<Blueprint> blueprints = blueprintStringDatas.stream().flatMap(bs -> bs.getBlueprints().stream())
 				.collect(Collectors.toList());
-		List<Entry<URL, String>> links = new ArrayList<>();
+		List<Entry<String, String>> links = new ArrayList<>();
 		for (Blueprint blueprint : blueprints) {
 			try {
 				blueprint.json().remove("index");
 
-				URL url = WebUtils.uploadToHostingService("blueprint.txt",
+				String url = WebUtils.uploadToHostingService("blueprint.txt",
 						BlueprintStringData.encode(blueprint.json()).getBytes());
 				links.add(new SimpleEntry<>(url, blueprint.getLabel().orElse(null)));
 			} catch (Exception e) {
@@ -254,7 +245,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			ArrayDeque<String> lines = links.stream()
 					.map(p -> (p.getValue() != null && !p.getValue().isEmpty())
 							? ("[" + p.getValue() + "](" + p.getKey() + ")")
-							: p.getKey().toString())
+							: p.getKey())
 					.collect(Collectors.toCollection(ArrayDeque::new));
 			while (!lines.isEmpty()) {
 				EmbedBuilder builder = new EmbedBuilder();
@@ -584,13 +575,13 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		} else if (images.size() == 1) {
 			Entry<Optional<String>, BufferedImage> entry = images.get(0);
 			BufferedImage image = entry.getValue();
-			URL url = WebUtils.uploadToHostingService("blueprint.png", image);
+			String url = WebUtils.uploadToHostingService("blueprint.png", image);
 			EmbedBuilder builder = new EmbedBuilder();
-			builder.setImage(url.toString());
+			builder.setImage(url);
 			embedBuilders.add(builder);
 
 		} else {
-			List<Entry<URL, String>> links = new ArrayList<>();
+			List<Entry<String, String>> links = new ArrayList<>();
 			for (Entry<Optional<String>, BufferedImage> entry : images) {
 				BufferedImage image = entry.getValue();
 				links.add(new SimpleEntry<>(WebUtils.uploadToHostingService("blueprint.png", image),
@@ -599,27 +590,44 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 			ArrayDeque<String> lines = new ArrayDeque<>();
 			for (int i = 0; i < links.size(); i++) {
-				Entry<URL, String> entry = links.get(i);
+				Entry<String, String> entry = links.get(i);
 				if (entry.getValue() != null && !entry.getValue().trim().isEmpty()) {
 					lines.add("[" + entry.getValue().trim() + "](" + entry.getKey() + ")");
 				} else {
-					lines.add("[Blueprint " + (i + 1) + "](" + entry.getKey() + ")");
+					lines.add("[Blueprint Image " + (i + 1) + "](" + entry.getKey() + ")");
 				}
 			}
 
 			while (!lines.isEmpty()) {
 				EmbedBuilder builder = new EmbedBuilder();
-				StringBuilder description = new StringBuilder();
-				while (!lines.isEmpty()) {
-					if (description.length() + lines.peek().length() + 1 < MessageEmbed.DESCRIPTION_MAX_LENGTH) {
-						description.append(lines.pop()).append('\n');
-					} else {
-						break;
+				for (int i = 0; i < 3 && !lines.isEmpty(); i++) {
+					StringBuilder description = new StringBuilder();
+					while (!lines.isEmpty()) {
+						if (description.length() + lines.peek().length() + 1 < MessageEmbed.VALUE_MAX_LENGTH) {
+							description.append(lines.pop()).append('\n');
+						} else {
+							break;
+						}
 					}
+					builder.addField("", description.toString(), true);
 				}
-				builder.setDescription(description);
 				embedBuilders.add(builder);
 			}
+		}
+
+		if (!blueprintStrings.isEmpty() && !embedBuilders.isEmpty()) {
+			List<String> links = new ArrayList<>();
+			for (int i = 0; i < blueprintStrings.size(); i++) {
+				BlueprintStringData blueprintString = blueprintStrings.get(i);
+				String label = blueprintString.getLabel().orElse(
+						(blueprintString.getBlueprints().size() > 1 ? "Blueprint Book " : "Blueprint ") + (i + 1));
+				String link = WebUtils.uploadToHostingService("blueprint.txt", blueprintString.toString().getBytes());
+				links.add("[" + label + "](" + link + ")");
+			}
+
+			embedBuilders.get(0).getFields().add(0,
+					new Field("Blueprint String" + (blueprintStrings.size() > 1 ? "s" : ""),
+							links.stream().collect(Collectors.joining("\n")), false));
 		}
 
 		return embedBuilders;
@@ -633,8 +641,8 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		json.put("version", FBSR.getVersion());
 		json.put("data", Utils.<JSONObject>convertLuaToJson(lua));
 		String fileName = category + "_" + name + "_dump_" + FBSR.getVersion() + ".json";
-		URL url = WebUtils.uploadToHostingService(fileName, json.toString(2).getBytes());
-		event.reply(category + " " + name + " lua dump: [" + fileName + "](" + url.toString() + ")");
+		String url = WebUtils.uploadToHostingService(fileName, json.toString(2).getBytes());
+		event.reply(category + " " + name + " lua dump: [" + fileName + "](" + url + ")");
 	}
 
 	@Override
@@ -846,16 +854,6 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 	public URL useDiscordForFileHosting(String fileName, byte[] fileData) throws IOException {
 		TextChannel channel = bot.getJDA().getTextChannelById(hostingChannelID);
 		Message message = channel.sendFile(fileData, fileName).complete();
-		return new URL(message.getAttachments().get(0).getUrl());
-	}
-
-	public URL useDiscordForImageHosting(String fileName, BufferedImage image, boolean downscaleIfNeeded)
-			throws IOException {
-		TextChannel channel = bot.getJDA().getTextChannelById(hostingChannelID);
-		Message message = channel
-				.sendFile(downscaleIfNeeded ? generateDiscordFriendlyPNGImage(image) : WebUtils.getImageData(image),
-						fileName)
-				.complete();
 		return new URL(message.getAttachments().get(0).getUrl());
 	}
 }

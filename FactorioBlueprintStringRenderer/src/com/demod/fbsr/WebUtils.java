@@ -1,37 +1,40 @@
 package com.demod.fbsr;
 
 import java.awt.image.BufferedImage;
-import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.Map.Entry;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 
 import javax.imageio.ImageIO;
 
-import org.json.JSONArray;
+import org.apache.commons.codec.binary.Hex;
+import org.dizitart.no2.Document;
+import org.dizitart.no2.IndexOptions;
+import org.dizitart.no2.IndexType;
+import org.dizitart.no2.Nitrite;
+import org.dizitart.no2.NitriteCollection;
+import org.dizitart.no2.filters.Filters;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import com.demod.factorio.Utils;
 import com.demod.fbsr.app.BlueprintBotDiscordService;
 import com.demod.fbsr.app.ServiceFinder;
-import com.google.common.util.concurrent.Uninterruptibles;
 
 import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 
 public final class WebUtils {
+	private static Nitrite db = initializeDatabase();
+	private static NitriteCollection dbUploads = db.getCollection("uploads");
+
 	public static void addPossiblyLargeEmbedField(EmbedBuilder builder, String name, String value, boolean inline)
 			throws IOException {
 		if (value.length() <= MessageEmbed.VALUE_MAX_LENGTH) {
@@ -42,6 +45,35 @@ public final class WebUtils {
 		}
 	}
 
+	private static void addToUploadedDatabase(String fileHash, String url) {
+		dbUploads.insert(Document.createDocument("hash", fileHash).put("url", url));
+	}
+
+	private static Optional<String> checkIfUploadedAlready(String fileHash) {
+		return Optional.ofNullable(dbUploads.find(Filters.eq("hash", fileHash)).firstOrDefault())
+				.flatMap(d -> Optional.ofNullable(d.get("url").toString()));
+	}
+
+	private static byte[] generateDiscordFriendlyPNGImage(BufferedImage image) {
+		byte[] imageData = WebUtils.getImageData(image);
+
+		while (imageData.length > Message.MAX_FILE_SIZE) {
+			image = RenderUtils.scaleImage(image, image.getWidth() / 2, image.getHeight() / 2);
+			imageData = WebUtils.getImageData(image);
+		}
+
+		return imageData;
+	}
+
+	private static String generateFileHash(byte[] fileData) {
+		try {
+			return Hex.encodeHexString(MessageDigest.getInstance("MD5").digest(fileData));
+		} catch (NoSuchAlgorithmException e) {
+			throw new InternalError(e);
+		}
+
+	}
+
 	public static byte[] getImageData(BufferedImage image) {
 		try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
 			ImageIO.write(image, "PNG", baos);
@@ -49,6 +81,22 @@ public final class WebUtils {
 		} catch (IOException e) {
 			e.printStackTrace();
 			throw new InternalError(e);
+		}
+	}
+
+	private static Nitrite initializeDatabase() {
+		try {
+			Nitrite db = Nitrite.builder().compressed().filePath("database.db").openOrCreate();
+
+			NitriteCollection dbUploads = db.getCollection("uploads");
+			if (!dbUploads.hasIndex("hash")) {
+				dbUploads.createIndex("hash", IndexOptions.indexOptions(IndexType.Unique));
+			}
+
+			return db;
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw e;
 		}
 	}
 
@@ -90,110 +138,31 @@ public final class WebUtils {
 		return Utils.readJsonFromStream(new URL(url).openStream());
 	}
 
-	public static URL uploadToBundly_BROKEN(String title, String description, List<Entry<URL, String>> links)
-			throws IOException {
-		JSONObject request = new JSONObject();
-		request.put("title", title);
-		request.put("desc", description);
-
-		JSONArray items = new JSONArray();
-		for (Entry<URL, String> pair : links) {
-			JSONObject item = new JSONObject();
-			item.put("url", pair.getKey().toString());
-			item.put("id", Long.toString(System.currentTimeMillis()));
-			item.put("caption", pair.getValue());
-			items.put(item);
-
-			// XXX Lazy approach to make sure id is unique...
-			Uninterruptibles.sleepUninterruptibly(1, TimeUnit.MILLISECONDS);
-		}
-		request.put("items", items);
-
-		URL url = new URL("http://bundly.io/createBundle");
-		URLConnection connection = url.openConnection();
-		connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
-		connection.setDoOutput(true);
-		connection.getOutputStream().write(request.toString().getBytes(StandardCharsets.UTF_8));
-		connection.getOutputStream().flush();
-		try (BufferedReader br = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
-			String line = br.readLine();
-			if (line == null || line.length() > 8) {
-				throw new IOException("Bundly.io returned an invalid response: " + line);
-			}
-
-			URL resultUrl = new URL("http://bundly.io/" + line);
-			HttpURLConnection resultTestConnection = (HttpURLConnection) resultUrl.openConnection();
-			resultTestConnection.setRequestMethod("GET");
-			resultTestConnection.connect();
-			if (resultTestConnection.getResponseCode() == 500) {
-				throw new IOException("Bundly.io is still broken. :(");
-			}
-
-			return resultUrl;
-		}
+	public static String uploadToHostingService(String fileName, BufferedImage image) throws IOException {
+		return uploadToHostingService(fileName, generateDiscordFriendlyPNGImage(image));
 	}
 
-	public static URL uploadToHostingService(String fileName, BufferedImage image) throws IOException {
+	public static String uploadToHostingService(String fileName, byte[] fileData) throws IOException {
+		String fileHash = generateFileHash(fileData);
+
+		Optional<String> alreadyUploaded = checkIfUploadedAlready(fileHash);
+
+		if (alreadyUploaded.isPresent()) {
+			return alreadyUploaded.get();
+		}
+
 		Optional<BlueprintBotDiscordService> discordService = ServiceFinder
 				.findService(BlueprintBotDiscordService.class);
-
 		if (discordService.isPresent()) {
-			// Discord original -> image hosting -> Discord scaled
 			try {
-				return discordService.get().useDiscordForImageHosting(fileName, image, false);
-			} catch (Exception e) {
-				try {
-					return uploadToRemoteHosting(fileName, getImageData(image));
-				} catch (Exception e1) {
-					return discordService.get().useDiscordForImageHosting(fileName, image, true);
-				}
+				String url = discordService.get().useDiscordForFileHosting(fileName, fileData).toString();
+				addToUploadedDatabase(fileHash, url);
+				return url;
+			} catch (Exception e2) {
+				throw new IOException("File hosting failed!", e2);
 			}
-		} else {
-			return uploadToRemoteHosting(fileName, getImageData(image));
 		}
-	}
-
-	public static URL uploadToHostingService(String fileName, byte[] fileData) throws IOException {
-		try {
-			return uploadToRemoteHosting(fileName, fileData);
-		} catch (Exception e) {
-			Optional<BlueprintBotDiscordService> discordService = ServiceFinder
-					.findService(BlueprintBotDiscordService.class);
-			if (discordService.isPresent()) {
-				try {
-					return discordService.get().useDiscordForFileHosting(fileName, fileData);
-				} catch (Exception e2) {
-					throw new IOException("File hosting failed!", e2);
-				}
-			}
-			throw new IOException("File hosting failed!");
-		}
-	}
-
-	@SuppressWarnings("unused")
-	private static URL uploadToMixtapeMoe_BROKEN(String fileName, byte[] fileData) throws IOException {
-		try (ByteArrayInputStream bais = new ByteArrayInputStream(fileData)) {
-			MultipartUtility utility = new MultipartUtility("https://mixtape.moe/upload.php", "UTF-8");
-			utility.addFormField("name", fileName);
-			utility.addFilePart("files[]", fileName, bais);
-			return new URL(
-					new JSONObject(utility.finish().get(0)).getJSONArray("files").getJSONObject(0).getString("url"));
-		}
-	}
-
-	@SuppressWarnings("unused")
-	private static URL uploadToNyaIs_BROKEN(String fileName, byte[] fileData) throws IOException {
-		try (ByteArrayInputStream bais = new ByteArrayInputStream(fileData)) {
-			MultipartUtility utility = new MultipartUtility("https://nya.is/upload", "UTF-8");
-			utility.addFormField("name", fileName);
-			utility.addFilePart("files[]", fileName, bais);
-			return new URL(
-					new JSONObject(utility.finish().get(0)).getJSONArray("files").getJSONObject(0).getString("url"));
-		}
-	}
-
-	private static URL uploadToRemoteHosting(String fileName, byte[] fileData) throws IOException {
-		throw new IOException("No Image Host available!");// FIXME
+		throw new IOException("File hosting failed! (Discord not available)");
 	}
 
 	private WebUtils() {

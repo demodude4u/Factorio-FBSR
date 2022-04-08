@@ -59,7 +59,10 @@ public class BlueprintStringData {
 	private final Optional<String> label;
 	private final MapVersion version;
 
+	private final String blueprintStringRaw;
+
 	public BlueprintStringData(String blueprintString) throws IllegalArgumentException, IOException {
+		this.blueprintStringRaw = blueprintString;
 		String versionChar = blueprintString.substring(0, 1);
 		try {
 			if (Integer.parseInt(versionChar) != 0) {
@@ -137,5 +140,10 @@ public class BlueprintStringData {
 
 	public JSONObject json() {
 		return json;
+	}
+
+	@Override
+	public String toString() {
+		return blueprintStringRaw;
 	}
 }
