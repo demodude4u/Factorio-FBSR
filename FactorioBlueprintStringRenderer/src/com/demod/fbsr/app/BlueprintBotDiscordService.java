@@ -829,14 +829,14 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		ServiceFinder.addService(WatchdogReporter.class, new WatchdogReporter() {
 			@Override
 			public void notifyInactive(String label) {
-				CommandReporting reporting = new CommandReporting("Watchdog Reporter", null);
+				CommandReporting reporting = new CommandReporting("Watchdog Reporter", null, null);
 				reporting.addWarning(label + " has gone inactive!");
 				bot.submitReport(reporting);
 			}
 
 			@Override
 			public void notifyReactive(String label) {
-				CommandReporting reporting = new CommandReporting("Watchdog Reporter", null);
+				CommandReporting reporting = new CommandReporting("Watchdog Reporter", null, null);
 				reporting.addWarning(label + " is now active again!");
 				bot.submitReport(reporting);
 			}

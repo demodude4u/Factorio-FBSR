@@ -7,6 +7,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.time.Instant;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -133,7 +134,8 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 			return ImmutableList.of();
 		}
 
-		CommandReporting reporting = new CommandReporting("Reddit / " + category + " / " + author, REDDIT_AUTHOR_URL);
+		CommandReporting reporting = new CommandReporting("Reddit / " + category + " / " + author, REDDIT_AUTHOR_URL,
+				Instant.now());
 		reporting.setCommand(content);
 
 		List<String> infos = new ArrayList<>();

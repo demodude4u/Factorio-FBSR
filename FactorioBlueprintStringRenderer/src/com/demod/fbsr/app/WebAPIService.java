@@ -4,6 +4,7 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.time.Instant;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -74,8 +75,10 @@ public class WebAPIService extends AbstractIdleService {
 
 		On.post("/blueprint").serve((req, resp) -> {
 			System.out.println("Web API POST!");
-			CommandReporting reporting = new CommandReporting("Web API / " + req.clientIpAddress() + " / "
-					+ Optional.ofNullable(req.header("User-Agent", null)).orElse("<Unknown>"), null);
+			CommandReporting reporting = new CommandReporting(
+					"Web API / " + req.clientIpAddress() + " / "
+							+ Optional.ofNullable(req.header("User-Agent", null)).orElse("<Unknown>"),
+					null, Instant.now());
 			try {
 				JSONObject body = null;
 				BufferedImage returnSingleImage = null;
