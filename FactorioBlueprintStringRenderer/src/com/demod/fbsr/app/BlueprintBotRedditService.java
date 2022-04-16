@@ -137,6 +137,7 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 		CommandReporting reporting = new CommandReporting("Reddit / " + category + " / " + author, REDDIT_AUTHOR_URL,
 				Instant.now());
 		reporting.setCommand(content);
+		reporting.addField(new Field("Reddit Link", link, false));
 
 		List<String> infos = new ArrayList<>();
 		List<Entry<Optional<String>, String>> imageLinks = new ArrayList<>();
