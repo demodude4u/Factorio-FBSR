@@ -58,10 +58,11 @@ import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.Message.Attachment;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.MessageEmbed.Field;
-import net.dv8tion.jda.api.entities.TextChannel;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import net.dv8tion.jda.api.utils.ChunkingFilter;
+import net.dv8tion.jda.api.utils.FileUpload;
 
 public class BlueprintBotDiscordService extends AbstractIdleService {
 
@@ -853,7 +854,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 	public URL useDiscordForFileHosting(String fileName, byte[] fileData) throws IOException {
 		TextChannel channel = bot.getJDA().getTextChannelById(hostingChannelID);
-		Message message = channel.sendFile(fileData, fileName).complete();
+		Message message = channel.sendFiles(FileUpload.fromData(fileData, fileName)).complete();
 		return new URL(message.getAttachments().get(0).getUrl());
 	}
 }
