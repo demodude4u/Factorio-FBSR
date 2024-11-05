@@ -168,7 +168,8 @@ public class SplitterRendering extends EntityRendererFactory {
 		setLogisticMoveAndAcceptFilter(map, rightPos, dir.frontLeft(), dir, dir);
 		setLogisticMoveAndAcceptFilter(map, rightPos, dir.frontRight(), dir, dir);
 
-		if (entity.json().has("output_priority") && entity.json().has("filter")) {
+		// TODO new format filter
+		if (!entity.isJsonNewFormat() && entity.json().has("output_priority") && entity.json().has("filter")) {
 			boolean right = entity.json().getString("output_priority").equals("right");
 			Point2D.Double outPos = right ? rightPos : leftPos;
 			Point2D.Double notOutPos = !right ? rightPos : leftPos;
