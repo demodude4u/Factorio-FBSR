@@ -14,7 +14,9 @@ public class BlueprintEntity {
 	private final Point2D.Double position;
 	private final Direction direction;
 
-	public BlueprintEntity(JSONObject entityJson) {
+	private final boolean jsonNewFormat;
+
+	public BlueprintEntity(JSONObject entityJson, MapVersion version) {
 		json = entityJson;
 
 		id = entityJson.getInt("entity_number");
@@ -22,7 +24,9 @@ public class BlueprintEntity {
 
 		position = Utils.parsePoint2D(entityJson.getJSONObject("position"));
 
-		direction = Direction.values()[entityJson.optInt("direction", 0)];
+		direction = Direction.fromEntityJSON(entityJson, version);
+
+		jsonNewFormat = version.greaterOrEquals(Blueprint.VERSION_NEW_FORMAT);
 	}
 
 	public void debugPrint() {
@@ -64,6 +68,10 @@ public class BlueprintEntity {
 	@Override
 	public int hashCode() {
 		return id;
+	}
+
+	public boolean isJsonNewFormat() {
+		return jsonNewFormat;
 	}
 
 	public JSONObject json() {

@@ -12,6 +12,9 @@ import com.demod.factorio.Utils;
 
 public class Blueprint {
 
+	// FIXME Earliest version number I can find with the new format (space age)
+	public static final MapVersion VERSION_NEW_FORMAT = new MapVersion(562949954142211L);
+
 	private final JSONObject json;
 
 	private final List<BlueprintEntity> entities = new ArrayList<>();
@@ -27,9 +30,15 @@ public class Blueprint {
 
 		JSONObject blueprintJson = json.getJSONObject("blueprint");
 
+		if (blueprintJson.has("version")) {
+			version = new MapVersion(blueprintJson.getLong("version"));
+		} else {
+			version = new MapVersion();
+		}
+
 		if (blueprintJson.has("entities")) {
 			Utils.forEach(blueprintJson.getJSONArray("entities"), (JSONObject j) -> {
-				entities.add(new BlueprintEntity(j));
+				entities.add(new BlueprintEntity(j, version));
 			});
 		}
 
@@ -51,11 +60,6 @@ public class Blueprint {
 			icons = Optional.empty();
 		}
 
-		if (blueprintJson.has("version")) {
-			version = new MapVersion(blueprintJson.getLong("version"));
-		} else {
-			version = new MapVersion();
-		}
 	}
 
 	public List<BlueprintEntity> getEntities() {

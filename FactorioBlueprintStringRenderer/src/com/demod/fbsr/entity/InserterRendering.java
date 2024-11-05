@@ -196,7 +196,8 @@ public class InserterRendering extends EntityRendererFactory {
 			}
 		});
 
-		if (entity.json().has("filters")) {
+		// TODO new format filtering
+		if (!entity.isJsonNewFormat() && entity.json().has("filters")) {
 			List<String> items = new ArrayList<>();
 			Utils.forEach(entity.json().getJSONArray("filters"), (JSONObject j) -> {
 				items.add(j.getString("name"));
@@ -250,7 +251,8 @@ public class InserterRendering extends EntityRendererFactory {
 			cellDir = dir.frontRight();
 		}
 
-		if (entity.json().has("filters")) {
+		// TODO figure out new format filtering
+		if (!entity.isJsonNewFormat() && entity.json().has("filters")) {
 			LogisticGridCell cell = map.getOrCreateLogisticGridCell(cellDir.offset(outPos, 0.25));
 			Utils.forEach(entity.json().getJSONArray("filters"), (JSONObject j) -> {
 				cell.addOutput(j.getString("name"));

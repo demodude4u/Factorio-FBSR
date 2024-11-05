@@ -144,7 +144,8 @@ public final class RenderUtils {
 	}
 
 	public static Optional<Multiset<String>> getModules(BlueprintEntity entity, DataTable table) {
-		if (!entity.json().has("items")) {
+		// TODO new format
+		if (entity.isJsonNewFormat() || !entity.json().has("items")) {
 			return Optional.empty();
 		}
 
