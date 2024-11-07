@@ -34,7 +34,8 @@ public class LogisticContainerRendering extends EntityRendererFactory {
 			EntityPrototype prototype) {
 		super.createRenderers(register, map, dataTable, entity, prototype);
 
-		if (entity.json().has("request_filters")) {
+		// TODO new format
+		if (!entity.isJsonNewFormat() && entity.json().has("request_filters")) {
 			List<String> items = new ArrayList<>();
 			Utils.<JSONObject>forEach(entity.json().getJSONArray("request_filters"), j -> {
 				items.add(j.getString("name"));
@@ -68,7 +69,8 @@ public class LogisticContainerRendering extends EntityRendererFactory {
 			EntityPrototype prototype) {
 		Point2D.Double pos = entity.getPosition();
 
-		if (entity.json().has("request_filters")) {
+		// TODO new format
+		if (!entity.isJsonNewFormat() && entity.json().has("request_filters")) {
 
 			Set<String> outputs = new LinkedHashSet<>();
 			Utils.<JSONObject>forEach(entity.json().getJSONArray("request_filters"), j -> {
