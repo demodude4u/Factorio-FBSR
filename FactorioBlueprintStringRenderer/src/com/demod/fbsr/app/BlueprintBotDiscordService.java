@@ -420,6 +420,10 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			embedBuilders.get(embedBuilders.size() - 1).setFooter("(Modded features are shown as question marks)");
 		}
 
+		if (event.getReporting().isNewFormatDetected()) {
+			embedBuilders.get(embedBuilders.size() - 1).setFooter("(Space Age is not supported yet, sorry!)");
+		}
+
 		List<MessageEmbed> embeds = embedBuilders.stream().map(EmbedBuilder::build).collect(Collectors.toList());
 		for (MessageEmbed embed : embeds) {
 			event.replyEmbed(embed);
@@ -445,6 +449,10 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 		if (blueprintStringDatas.stream().anyMatch(d -> d.getBlueprints().stream().anyMatch(b -> b.isModsDetected()))) {
 			embedBuilders.get(embedBuilders.size() - 1).setFooter("(Modded features are shown as question marks)");
+		}
+
+		if (event.getReporting().isNewFormatDetected()) {
+			embedBuilders.get(embedBuilders.size() - 1).setFooter("(Space Age is not supported yet, sorry!)");
 		}
 
 		List<MessageEmbed> embeds = embedBuilders.stream().map(EmbedBuilder::build).collect(Collectors.toList());

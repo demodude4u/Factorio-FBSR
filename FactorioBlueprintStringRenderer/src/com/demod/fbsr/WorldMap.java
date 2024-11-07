@@ -241,6 +241,8 @@ public class WorldMap {
 
 	private final List<Entry<RailEdge, RailEdge>> railEdges = new ArrayList<>();
 
+	private boolean newFormatDetected = false;
+
 	private int flag(Direction facing) {
 		return 1 << facing.cardinal();
 	}
@@ -373,6 +375,10 @@ public class WorldMap {
 				.filter(p -> p.getKey().equals(name) && p.getValue().ordinal() == dir.ordinal()).isPresent();
 	}
 
+	public boolean isNewFormatDetected() {
+		return newFormatDetected;
+	}
+
 	public boolean isPipe(Point2D.Double pos, Direction facing) {
 		int kr = (int) Math.floor(pos.x);
 		int kc = (int) Math.floor(pos.y);
@@ -425,6 +431,10 @@ public class WorldMap {
 		int kr = (int) Math.floor(pos.x);
 		int kc = (int) Math.floor(pos.y);
 		gates.put(kr, kc, false);
+	}
+
+	public void setNewFormatDetected(boolean newFormatDetected) {
+		this.newFormatDetected = newFormatDetected;
 	}
 
 	public void setPipe(Point2D.Double pos, Direction... facings) {

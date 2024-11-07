@@ -936,6 +936,10 @@ public class FBSR {
 		DataTable table = FactorioData.getTable();
 		WorldMap map = new WorldMap();
 
+		boolean newFormatDetected = blueprint.getVersion().greaterOrEquals(Blueprint.VERSION_NEW_FORMAT);
+		map.setNewFormatDetected(newFormatDetected);
+		reporting.setNewFormatDetected(newFormatDetected);
+
 		List<EntityRenderingTuple> entityRenderingTuples = new ArrayList<EntityRenderingTuple>();
 		List<TileRenderingTuple> tileRenderingTuples = new ArrayList<TileRenderingTuple>();
 
