@@ -666,6 +666,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		configJson = Config.get().getJSONObject("discord");
 
 		DataTable table = FactorioData.getTable();
+		FBSR.initialize();
 		System.out.println("Factorio " + FBSR.getVersion() + " Data Loaded.");
 
 		bot = DCBA.builder()//

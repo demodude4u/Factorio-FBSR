@@ -9,15 +9,25 @@ import com.demod.fbsr.BlueprintEntity;
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
-import com.demod.fbsr.Sprite;
 import com.demod.fbsr.Renderer.Layer;
+import com.demod.fbsr.SpriteDef;
 import com.demod.fbsr.WorldMap;
 
 public class ProgrammableSpeakerRendering extends EntityRendererFactory {
+
+	private List<SpriteDef> protoSprites;
+
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
-			EntityPrototype prototype) {
-		List<Sprite> sprites = RenderUtils.getSpritesFromAnimation(prototype.lua().get("sprite"));
-		register.accept(RenderUtils.spriteRenderer(Layer.ENTITY3, sprites, entity, prototype));
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
+			BlueprintEntity entity) {
+
+		register.accept(RenderUtils.spriteDefRenderer(Layer.ENTITY3, protoSprites, entity, protoSelectionBox));
+	}
+
+	@Override
+	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
+		super.initFromPrototype(dataTable, prototype);
+
+		protoSprites = RenderUtils.getSpritesFromAnimation(prototype.lua().get("sprite"));
 	}
 }

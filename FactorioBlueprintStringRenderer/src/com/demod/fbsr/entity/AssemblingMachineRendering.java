@@ -29,16 +29,14 @@ import com.demod.fbsr.WorldMap;
 
 public class AssemblingMachineRendering extends EntityRendererFactory {
 
-	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
-			EntityPrototype prototype) {
-		LuaValue animationLua = prototype.lua().get("idle_animation");
-		if (animationLua.isnil()) {
-			animationLua = prototype.lua().get("animation");
-		}
-		List<Sprite> sprites = RenderUtils.getSpritesFromAnimation(animationLua, entity.getDirection());
+	private boolean protoOffWhenNoFluidRecipe;
+	private List<Point2D.Double> protoFluidBoxes;
 
-		register.accept(RenderUtils.spriteRenderer(sprites, entity, prototype));
+	@Override
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
+			BlueprintEntity entity) {
+
+		register.accept(RenderUtils.spriteDirDefRenderer(protoDirSprites, entity, protoSelectionBox));
 
 		Sprite spriteIcon = new Sprite();
 
@@ -66,7 +64,7 @@ public class AssemblingMachineRendering extends EntityRendererFactory {
 				spriteIcon.source = new Rectangle(0, 0, spriteIcon.image.getWidth(), spriteIcon.image.getHeight());
 				spriteIcon.bounds = new Rectangle2D.Double(-0.7, -1.0, 1.4, 1.4);
 
-				Renderer delegate = RenderUtils.spriteRenderer(spriteIcon, entity, prototype);
+				Renderer delegate = RenderUtils.spriteRenderer(spriteIcon, entity, protoSelectionBox);
 				register.accept(new Renderer(Layer.OVERLAY2, delegate.getBounds()) {
 					@Override
 					public void render(Graphics2D g) throws Exception {
@@ -80,20 +78,54 @@ public class AssemblingMachineRendering extends EntityRendererFactory {
 	}
 
 	@Override
-	public void populateLogistics(WorldMap map, DataTable dataTable, BlueprintEntity entity,
-			EntityPrototype prototype) {
+	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
+		super.initFromPrototype(dataTable, prototype);
+
+		LuaValue animationLua = prototype.lua().get("idle_animation");
+		if (animationLua.isnil()) {
+			animationLua = prototype.lua().get("animation");
+		}
+		protoDirSprites = RenderUtils.getDirSpritesFromAnimation(animationLua);
+
+		LuaValue fluidBoxesLua = prototype.lua().get("fluid_boxes");
+
+		if (!fluidBoxesLua.isnil()) {
+			protoFluidBoxes = new ArrayList<>();
+			protoOffWhenNoFluidRecipe = fluidBoxesLua.get("off_when_no_fluid_recipe").optboolean(false);
+			Utils.forEach(fluidBoxesLua, fluidBoxLua -> {
+				if (!fluidBoxLua.istable()) {
+					return;
+				}
+				Utils.forEach(fluidBoxLua.get("pipe_connections"), pipeConnectionLua -> {
+					Point2D.Double offset = Utils.parsePoint2D(pipeConnectionLua.get("position"));
+					if (Math.abs(offset.y) > Math.abs(offset.x)) {
+						offset.y += -Math.signum(offset.y);
+					} else {
+						offset.x += -Math.signum(offset.x);
+					}
+					protoFluidBoxes.add(offset);
+				});
+			});
+		} else {
+			protoFluidBoxes = null;
+			protoOffWhenNoFluidRecipe = true;
+		}
+	}
+
+	@Override
+	public void populateLogistics(WorldMap map, DataTable dataTable, BlueprintEntity entity) {
 		String recipeName = entity.json().optString("recipe", null);
 		if (recipeName != null) {
 			Optional<RecipePrototype> optRecipe = dataTable.getRecipe(recipeName);
 			if (optRecipe.isPresent()) {
 				RecipePrototype protoRecipe = optRecipe.get();
-				setLogisticMachine(map, dataTable, entity, prototype, protoRecipe);
+				setLogisticMachine(map, dataTable, entity, protoRecipe);
 			}
 		}
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity, EntityPrototype prototype) {
+	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity) {
 		String recipeName = entity.json().optString("recipe", null);
 		boolean hasFluid = false;
 		if (recipeName != null) {
@@ -114,28 +146,13 @@ public class AssemblingMachineRendering extends EntityRendererFactory {
 			}
 		}
 
-		LuaValue fluidBoxesLua = prototype.lua().get("fluid_boxes");
-		boolean offWhenNoFluidRecipe = fluidBoxesLua.isnil() ? true
-				: fluidBoxesLua.get("off_when_no_fluid_recipe").optboolean(false);
-
-		if (!fluidBoxesLua.isnil() && (!offWhenNoFluidRecipe || hasFluid)) {
-			Utils.forEach(fluidBoxesLua, fluidBoxLua -> {
-				if (!fluidBoxLua.istable()) {
-					return;
-				}
-				Utils.forEach(fluidBoxLua.get("pipe_connections"), pipeConnectionLua -> {
-					Point2D.Double offset = Utils.parsePoint2D(pipeConnectionLua.get("position"));
-					if (Math.abs(offset.y) > Math.abs(offset.x)) {
-						offset.y += -Math.signum(offset.y);
-					} else {
-						offset.x += -Math.signum(offset.x);
-					}
-					Point2D.Double pos = entity.getDirection().left()
-							.offset(entity.getDirection().back().offset(entity.getPosition(), offset.y), offset.x);
-					Direction direction = offset.y > 0 ? entity.getDirection().back() : entity.getDirection();
-					map.setPipe(pos, direction);
-				});
-			});
+		if ((protoFluidBoxes != null) && (!protoOffWhenNoFluidRecipe || hasFluid)) {
+			for (Point2D.Double offset : protoFluidBoxes) {
+				Point2D.Double pos = entity.getDirection().left()
+						.offset(entity.getDirection().back().offset(entity.getPosition(), offset.y), offset.x);
+				Direction direction = offset.y > 0 ? entity.getDirection().back() : entity.getDirection();
+				map.setPipe(pos, direction);
+			}
 		}
 	}
 

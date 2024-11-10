@@ -1,6 +1,8 @@
 package com.demod.fbsr.entity;
 
 import java.awt.geom.Point2D;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.function.Consumer;
 
@@ -14,10 +16,15 @@ import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
 import com.demod.fbsr.Renderer.Layer;
-import com.demod.fbsr.Sprite;
+import com.demod.fbsr.SpriteDef;
 import com.demod.fbsr.WorldMap;
 
 public class CurvedRailRendering extends EntityRendererFactory {
+	private static class LayeredSpriteDef {
+		Layer layer;
+		SpriteDef sprite;
+	}
+
 	private static final String[] railNames = { //
 			"curved_rail_vertical_left_bottom", //
 			"curved_rail_vertical_right_bottom", //
@@ -41,19 +48,39 @@ public class CurvedRailRendering extends EntityRendererFactory {
 					{ { 4, 1, 6 }, { -3, -2, 3 } }, // NW
 			};
 
+	private List<List<LayeredSpriteDef>> protoDirRailLayers;
+
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
-			EntityPrototype prototype) {
-		String railName = railNames[entity.getDirection().ordinal()];
-		LuaValue pictureRailLua = prototype.lua().get("pictures").get(railName);
-		for (Entry<String, Layer> entry : StraightRailRendering.railLayers.entrySet()) {
-			Sprite railLayerSprite = RenderUtils.getSpriteFromAnimation(pictureRailLua.get(entry.getKey()));
-			register.accept(RenderUtils.spriteRenderer(entry.getValue(), railLayerSprite, entity, prototype));
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
+			BlueprintEntity entity) {
+
+		List<LayeredSpriteDef> railLayers = protoDirRailLayers.get(entity.getDirection().ordinal());
+		for (LayeredSpriteDef lsd : railLayers) {
+			register.accept(RenderUtils.spriteDefRenderer(lsd.layer, lsd.sprite, entity, protoSelectionBox));
 		}
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity, EntityPrototype prototype) {
+	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
+		super.initFromPrototype(dataTable, prototype);
+
+		protoDirRailLayers = new ArrayList<>();
+		for (int i = 0; i < Direction.values().length; i++) {
+			String railName = railNames[i];
+			LuaValue pictureRailLua = prototype.lua().get("pictures").get(railName);
+			List<LayeredSpriteDef> sprites = new ArrayList<>();
+			for (Entry<String, Layer> entry : StraightRailRendering.railLayers.entrySet()) {
+				LayeredSpriteDef lsd = new LayeredSpriteDef();
+				lsd.layer = entry.getValue();
+				lsd.sprite = RenderUtils.getSpriteFromAnimation(pictureRailLua.get(entry.getKey())).get();
+				sprites.add(lsd);
+			}
+			protoDirRailLayers.add(sprites);
+		}
+	}
+
+	@Override
+	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity) {
 		Point2D.Double pos = entity.getPosition();
 		Direction dir = entity.getDirection();
 

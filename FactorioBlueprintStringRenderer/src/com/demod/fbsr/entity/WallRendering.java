@@ -2,8 +2,10 @@ package com.demod.fbsr.entity;
 
 import java.awt.geom.Point2D;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import org.luaj.vm2.LuaValue;
 
@@ -15,7 +17,7 @@ import com.demod.fbsr.Direction;
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
-import com.demod.fbsr.Sprite;
+import com.demod.fbsr.SpriteDef;
 import com.demod.fbsr.WorldMap;
 
 public class WallRendering extends EntityRendererFactory {
@@ -39,10 +41,12 @@ public class WallRendering extends EntityRendererFactory {
 					"t_up", // WSE.
 					"t_up",// WSEN
 			};
+	private List<List<SpriteDef>> protoWallSprites;
+	private SpriteDef protoWallDiodeSprite;
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
-			EntityPrototype prototype) {
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
+			BlueprintEntity entity) {
 		Point2D.Double pos = entity.getPosition();
 
 		boolean northGate = map.isVerticalGate(Direction.NORTH.offset(pos));
@@ -55,33 +59,46 @@ public class WallRendering extends EntityRendererFactory {
 		adjCode |= ((map.isWall(Direction.EAST.offset(pos)) || eastGate ? 1 : 0) << 1);
 		adjCode |= ((map.isWall(Direction.SOUTH.offset(pos)) || southGate ? 1 : 0) << 2);
 		adjCode |= ((map.isWall(Direction.WEST.offset(pos)) || westGate ? 1 : 0) << 3);
-		String spriteName = wallSpriteNameMapping[adjCode];
 
-		LuaValue spriteLua = prototype.lua().get("pictures").get(spriteName);
+		List<SpriteDef> wallSprites = protoWallSprites.get(adjCode);
+		int variation = Math.abs((int) pos.x + (int) pos.y) % (wallSprites.size() / 2);
 
-		List<LuaValue> layersChoices = new ArrayList<>();
-		if (spriteLua.get("layers") != LuaValue.NIL) {
-			layersChoices.add(spriteLua.get("layers"));
-		} else {
-			Utils.forEach(spriteLua, l -> layersChoices.add(l.get("layers")));
-		}
-		LuaValue layersLua = layersChoices.get(Math.abs((int) pos.x + (int) pos.y) % layersChoices.size());
-
-		Sprite sprite = RenderUtils.getSpriteFromAnimation(layersLua.get(1));
-		Sprite spriteShadow = RenderUtils.getSpriteFromAnimation(layersLua.get(2));
-
-		register.accept(RenderUtils.spriteRenderer(spriteShadow, entity, prototype));
-		register.accept(RenderUtils.spriteRenderer(sprite, entity, prototype));
+		register.accept(RenderUtils.spriteDefRenderer(wallSprites.get(variation * 2), entity, protoSelectionBox));
+		register.accept(RenderUtils.spriteDefRenderer(wallSprites.get(variation * 2 + 1), entity, protoSelectionBox));
 
 		if (northGate || eastGate || southGate || westGate) {
-			Sprite wallDiodeSprite = RenderUtils.getSpriteFromAnimation(prototype.lua().get("wall_diode_red"));
-			register.accept(RenderUtils.spriteRenderer(wallDiodeSprite, entity, prototype));
+			register.accept(RenderUtils.spriteDefRenderer(protoWallDiodeSprite, entity, protoSelectionBox));
 		}
 
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity, EntityPrototype prototype) {
+	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
+		super.initFromPrototype(dataTable, prototype);
+
+		protoWallSprites = Arrays.stream(wallSpriteNameMapping).map(s -> {
+			LuaValue spriteLua = prototype.lua().get("pictures").get(s);
+			List<LuaValue> layersChoices = new ArrayList<>();
+			if (spriteLua.get("layers") != LuaValue.NIL) {
+				layersChoices.add(spriteLua.get("layers"));
+			} else {
+				Utils.forEach(spriteLua, l -> layersChoices.add(l.get("layers")));
+			}
+			List<SpriteDef> sprites = new ArrayList<>();
+			for (LuaValue layersLua : layersChoices) {
+				SpriteDef sprite = RenderUtils.getSpriteFromAnimation(layersLua.get(1)).get();
+				SpriteDef spriteShadow = RenderUtils.getSpriteFromAnimation(layersLua.get(2)).get();
+				sprites.add(sprite);
+				sprites.add(spriteShadow);
+			}
+			return sprites;
+		}).collect(Collectors.toList());
+
+		protoWallDiodeSprite = RenderUtils.getSpriteFromAnimation(prototype.lua().get("wall_diode_red")).get();
+	}
+
+	@Override
+	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity) {
 		map.setWall(entity.getPosition());
 	}
 }

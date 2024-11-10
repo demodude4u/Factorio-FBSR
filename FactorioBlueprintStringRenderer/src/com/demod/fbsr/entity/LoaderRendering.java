@@ -26,43 +26,35 @@ import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
 import com.demod.fbsr.Renderer.Layer;
 import com.demod.fbsr.Sprite;
+import com.demod.fbsr.SpriteDef;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.WorldMap.BeltBend;
 
 public class LoaderRendering extends EntityRendererFactory {
 
-	private static Point2D.Double getBeltShift(BlueprintEntity entity, EntityPrototype prototype) {
-		boolean input = entity.json().getString("type").equals("input");
-		Direction oppositeStructDir = input ? entity.getDirection().back() : entity.getDirection();
-		double beltDistance = prototype.getType().equals("loader-1x1") ? 0 : 0.5;
-		return new Point2D.Double(beltDistance * oppositeStructDir.getDx(), beltDistance * oppositeStructDir.getDy());
-	}
-
-	private static Point2D.Double getContainerShift(BlueprintEntity entity, EntityPrototype prototype, double offset) {
-		boolean input = entity.json().getString("type").equals("input");
-		Direction structDir = input ? entity.getDirection() : entity.getDirection().back();
-		double containerDistance = prototype.lua().get("container_distance").optdouble(1.5);
-		containerDistance += offset;
-		return new Point2D.Double(containerDistance * structDir.getDx(), containerDistance * structDir.getDy());
-	}
+	private double protoBeltDistance;
+	private double protoContainerDistance;
+	private SpriteDef[][] protoBeltSprites;
+	private SpriteDef protoInputSprite;
+	private SpriteDef protoOutputSprite;
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
-			EntityPrototype prototype) {
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
+			BlueprintEntity entity) {
 		boolean input = entity.json().getString("type").equals("input");
 		Direction structDir = input ? entity.getDirection() : entity.getDirection().back();
 
-		Point2D.Double beltShift = getBeltShift(entity, prototype);
-		Sprite beltSprite = TransportBeltRendering.getBeltSprite(prototype, entity.getDirection(), BeltBend.NONE);
+		Point2D.Double beltShift = getBeltShift(entity);
+
+		Sprite beltSprite = protoBeltSprites[entity.getDirection().cardinal()][BeltBend.NONE.ordinal()].createSprite();
 		beltSprite.bounds.x += beltShift.x;
 		beltSprite.bounds.y += beltShift.y;
 
-		Sprite sprite = RenderUtils.getSpriteFromAnimation(
-				prototype.lua().get("structure").get(input ? "direction_in" : "direction_out").get("sheet"));
+		Sprite sprite = (input ? protoInputSprite : protoOutputSprite).createSprite();
 		sprite.source.x += sprite.source.width * (structDir.cardinal());
 
-		register.accept(RenderUtils.spriteRenderer(Layer.ENTITY, beltSprite, entity, prototype));
-		register.accept(RenderUtils.spriteRenderer(Layer.ENTITY2, sprite, entity, prototype));
+		register.accept(RenderUtils.spriteRenderer(Layer.ENTITY, beltSprite, entity, protoSelectionBox));
+		register.accept(RenderUtils.spriteRenderer(Layer.ENTITY2, sprite, entity, protoSelectionBox));
 
 		if (entity.json().has("filters")) {
 			List<String> items = new ArrayList<>();
@@ -79,7 +71,7 @@ public class LoaderRendering extends EntityRendererFactory {
 					spriteIcon.source = new Rectangle(0, 0, spriteIcon.image.getWidth(), spriteIcon.image.getHeight());
 					spriteIcon.bounds = new Rectangle2D.Double(-0.3, -0.3, 0.6, 0.6);
 
-					Renderer delegate = RenderUtils.spriteRenderer(spriteIcon, entity, prototype);
+					Renderer delegate = RenderUtils.spriteRenderer(spriteIcon, entity, protoSelectionBox);
 					register.accept(new Renderer(Layer.OVERLAY4, delegate.getBounds()) {
 						@Override
 						public void render(Graphics2D g) throws Exception {
@@ -93,13 +85,40 @@ public class LoaderRendering extends EntityRendererFactory {
 		}
 	}
 
+	private Point2D.Double getBeltShift(BlueprintEntity entity) {
+		boolean input = entity.json().getString("type").equals("input");
+		Direction oppositeStructDir = input ? entity.getDirection().back() : entity.getDirection();
+		return new Point2D.Double(protoBeltDistance * oppositeStructDir.getDx(),
+				protoBeltDistance * oppositeStructDir.getDy());
+	}
+
+	private Point2D.Double getContainerShift(BlueprintEntity entity, double offset) {
+		boolean input = entity.json().getString("type").equals("input");
+		Direction structDir = input ? entity.getDirection() : entity.getDirection().back();
+		double containerDistance = protoContainerDistance;
+		containerDistance += offset;
+		return new Point2D.Double(containerDistance * structDir.getDx(), containerDistance * structDir.getDy());
+	}
+
 	@Override
-	public void populateLogistics(WorldMap map, DataTable dataTable, BlueprintEntity entity,
-			EntityPrototype prototype) {
+	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
+		super.initFromPrototype(dataTable, prototype);
+
+		protoBeltSprites = TransportBeltRendering.getBeltSprites(prototype);
+		protoBeltDistance = prototype.getType().equals("loader-1x1") ? 0 : 0.5;
+		protoContainerDistance = prototype.lua().get("container_distance").optdouble(1.5);
+		protoInputSprite = RenderUtils
+				.getSpriteFromAnimation(prototype.lua().get("structure").get("direction_in").get("sheet")).get();
+		protoOutputSprite = RenderUtils
+				.getSpriteFromAnimation(prototype.lua().get("structure").get("direction_out").get("sheet")).get();
+	}
+
+	@Override
+	public void populateLogistics(WorldMap map, DataTable dataTable, BlueprintEntity entity) {
 		Direction dir = entity.getDirection();
 		Point2D.Double pos = entity.getPosition();
-		Point2D.Double beltShift = getBeltShift(entity, prototype);
-		Point2D.Double containerShift = getContainerShift(entity, prototype, -0.5);
+		Point2D.Double beltShift = getBeltShift(entity);
+		Point2D.Double containerShift = getContainerShift(entity, -0.5);
 		boolean input = entity.json().getString("type").equals("input");
 
 		if (input) {
@@ -171,9 +190,9 @@ public class LoaderRendering extends EntityRendererFactory {
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity, EntityPrototype prototype) {
+	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity) {
 		boolean input = entity.json().getString("type").equals("input");
-		Point2D.Double beltShift = getBeltShift(entity, prototype);
+		Point2D.Double beltShift = getBeltShift(entity);
 
 		if (input) {
 			map.setBelt(new Point2D.Double(entity.getPosition().x + beltShift.x, entity.getPosition().y + beltShift.y),

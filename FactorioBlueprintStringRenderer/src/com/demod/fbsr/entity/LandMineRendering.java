@@ -9,14 +9,22 @@ import com.demod.fbsr.BlueprintEntity;
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
-import com.demod.fbsr.Sprite;
+import com.demod.fbsr.SpriteDef;
 import com.demod.fbsr.WorldMap;
 
 public class LandMineRendering extends EntityRendererFactory {
+
+	private List<SpriteDef> protoSprites;
+
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
-			EntityPrototype prototype) {
-		List<Sprite> sprites = RenderUtils.getSpritesFromAnimation(prototype.lua().get("picture_safe"));
-		register.accept(RenderUtils.spriteRenderer(sprites, entity, prototype));
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
+			BlueprintEntity entity) {
+		register.accept(RenderUtils.spriteDefRenderer(protoSprites, entity, protoSelectionBox));
+	}
+
+	@Override
+	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
+		super.initFromPrototype(dataTable, prototype);
+		protoSprites = RenderUtils.getSpritesFromAnimation(prototype.lua().get("picture_safe"));
 	}
 }

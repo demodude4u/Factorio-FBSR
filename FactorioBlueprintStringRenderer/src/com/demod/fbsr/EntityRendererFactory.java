@@ -9,7 +9,6 @@ import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.util.AbstractMap.SimpleEntry;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -31,6 +30,7 @@ import com.demod.factorio.FactorioData;
 import com.demod.factorio.Utils;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.factorio.prototype.RecipePrototype;
+import com.demod.fbsr.RenderUtils.SpriteDirDefList;
 import com.demod.fbsr.Renderer.Layer;
 import com.demod.fbsr.entity.AccumulatorRendering;
 import com.demod.fbsr.entity.ArithmeticCombinatorRendering;
@@ -98,12 +98,12 @@ public class EntityRendererFactory {
 
 		@Override
 		public void createModuleIcons(Consumer<Renderer> register, WorldMap map, DataTable table,
-				BlueprintEntity entity, EntityPrototype prototype) {
+				BlueprintEntity entity) {
 		}
 
 		@Override
 		public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
-				BlueprintEntity entity, EntityPrototype prototype) {
+				BlueprintEntity entity) {
 			Point2D.Double pos = entity.getPosition();
 			Rectangle2D.Double bounds = new Rectangle2D.Double(pos.x - 0.5, pos.y - 0.5, 1.0, 1.0);
 			register.accept(new Renderer(Layer.OVERLAY3, bounds) {
@@ -136,82 +136,116 @@ public class EntityRendererFactory {
 
 		@Override
 		public void createWireConnections(Consumer<Renderer> register, WorldMap map, DataTable table,
-				BlueprintEntity entity, EntityPrototype prototype) {
+				BlueprintEntity entity) {
 		}
 
 		@Override
-		public void populateLogistics(WorldMap map, DataTable dataTable, BlueprintEntity entity,
-				EntityPrototype prototype) {
+		public void populateLogistics(WorldMap map, DataTable dataTable, BlueprintEntity entity) {
 		}
 
 		@Override
-		public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity,
-				EntityPrototype prototype) {
+		public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity) {
 			if (!labeledTypes.isEmpty()) {
 				labeledTypes.clear();
 			}
 		}
 	};
 
-	private static Map<String, EntityRendererFactory> byType = new HashMap<>();
+	private static Map<String, EntityRendererFactory> byName = new LinkedHashMap<>();
 	static {
-		byType.put("accumulator", new AccumulatorRendering());
-		byType.put("ammo-turret", new TurretRendering());
-		byType.put("arithmetic-combinator", new ArithmeticCombinatorRendering());
-		byType.put("artillery-turret", new ArtilleryTurretRendering());
-		byType.put("artillery-wagon", new ArtilleryWagonRendering());
-		byType.put("assembling-machine", new AssemblingMachineRendering());
-		byType.put("beacon", new BeaconRendering());
-		byType.put("boiler", new BoilerRendering());
-		byType.put("burner-generator", new BurnerGeneratorRendering());
-		byType.put("cargo-wagon", new RollingStockRendering());
-		byType.put("constant-combinator", new ConstantCombinatorRendering());
-		byType.put("container", new ContainerRendering());
-		byType.put("curved-rail", new CurvedRailRendering());
-		byType.put("decider-combinator", new DeciderCombinatorRendering());
-		byType.put("electric-energy-interface", new ElectricEnergyInterfaceRendering());
-		byType.put("electric-pole", new ElectricPoleRendering());
-		byType.put("electric-turret", new TurretRendering());
-		byType.put("fluid-turret", new FluidTurretRendering());
-		byType.put("fluid-wagon", new RollingStockRendering());
-		byType.put("furnace", new FurnaceRendering());
-		byType.put("gate", new GateRendering());
-		byType.put("generator", new GeneratorRendering());
-		byType.put("heat-interface", new HeatInterfaceRendering());
-		byType.put("heat-pipe", new HeatPipeRendering());
-		byType.put("infinity-container", new InfinityContainerRendering());
-		byType.put("infinity-pipe", new PipeRendering());
-		byType.put("inserter", new InserterRendering());
-		byType.put("lab", new LabRendering());
-		byType.put("lamp", new LampRendering());
-		byType.put("land-mine", new LandMineRendering());
-		byType.put("loader", new LoaderRendering());
-		byType.put("loader-1x1", new LoaderRendering());
-		byType.put("locomotive", new RollingStockRendering());
-		byType.put("logistic-container", new LogisticContainerRendering());
-		byType.put("linked-belt", new LinkedBeltRendering());
-		byType.put("linked-container", new LinkedContainerRendering());
-		byType.put("mining-drill", new MiningDrillRendering());
-		byType.put("offshore-pump", new OffshorePumpRendering());
-		byType.put("pipe", new PipeRendering());
-		byType.put("pipe-to-ground", new PipeToGroundRendering());
-		byType.put("power-switch", new PowerSwitchRendering());
-		byType.put("programmable-speaker", new ProgrammableSpeakerRendering());
-		byType.put("pump", new PumpRendering());
-		byType.put("radar", new RadarRendering());
-		byType.put("rail-chain-signal", new RailChainSignalRendering());
-		byType.put("rail-signal", new RailSignalRendering());
-		byType.put("reactor", new ReactorRendering());
-		byType.put("roboport", new RoboportRendering());
-		byType.put("rocket-silo", new RocketSiloRendering());
-		byType.put("solar-panel", new SolarPanelRendering());
-		byType.put("splitter", new SplitterRendering());
-		byType.put("storage-tank", new StorageTankRendering());
-		byType.put("straight-rail", new StraightRailRendering());
-		byType.put("train-stop", new TrainStopRendering());
-		byType.put("transport-belt", new TransportBeltRendering());
-		byType.put("underground-belt", new UndergroundBeltRendering());
-		byType.put("wall", new WallRendering());
+		byName.put("accumulator", new AccumulatorRendering());
+		byName.put("arithmetic-combinator", new ArithmeticCombinatorRendering());
+		byName.put("artillery-turret", new ArtilleryTurretRendering());
+		byName.put("artillery-wagon", new ArtilleryWagonRendering());
+		byName.put("assembling-machine-1", new AssemblingMachineRendering());
+		byName.put("assembling-machine-2", new AssemblingMachineRendering());
+		byName.put("assembling-machine-3", new AssemblingMachineRendering());
+		byName.put("centrifuge", new AssemblingMachineRendering());
+		byName.put("chemical-plant", new AssemblingMachineRendering());
+		byName.put("oil-refinery", new AssemblingMachineRendering());
+		byName.put("beacon", new BeaconRendering());
+		byName.put("boiler", new BoilerRendering());
+		byName.put("heat-exchanger", new BoilerRendering());
+		byName.put("burner-generator", new BurnerGeneratorRendering());
+		byName.put("cargo-wagon", new RollingStockRendering());
+		byName.put("constant-combinator", new ConstantCombinatorRendering());
+//		byName.put("blue-chest", new ContainerRendering());
+		byName.put("gun-turret", new TurretRendering());
+		byName.put("iron-chest", new ContainerRendering());
+//		byName.put("red-chest", new ContainerRendering());
+		byName.put("steel-chest", new ContainerRendering());
+		byName.put("wooden-chest", new ContainerRendering());
+		byName.put("curved-rail", new CurvedRailRendering());
+		byName.put("decider-combinator", new DeciderCombinatorRendering());
+		byName.put("electric-energy-interface", new ElectricEnergyInterfaceRendering());
+		byName.put("big-electric-pole", new ElectricPoleRendering());
+		byName.put("medium-electric-pole", new ElectricPoleRendering());
+		byName.put("small-electric-pole", new ElectricPoleRendering());
+		byName.put("substation", new ElectricPoleRendering());
+		byName.put("laser-turret", new TurretRendering());
+		byName.put("flamethrower-turret", new FluidTurretRendering());
+		byName.put("fluid-wagon", new RollingStockRendering());
+		byName.put("electric-furnace", new FurnaceRendering());
+		byName.put("steel-furnace", new FurnaceRendering());
+		byName.put("stone-furnace", new FurnaceRendering());
+		byName.put("gate", new GateRendering());
+		byName.put("steam-engine", new GeneratorRendering());
+		byName.put("steam-turbine", new GeneratorRendering());
+		byName.put("heat-interface", new HeatInterfaceRendering());
+		byName.put("heat-pipe", new HeatPipeRendering());
+		byName.put("infinity-chest", new InfinityContainerRendering());
+		byName.put("infinity-pipe", new PipeRendering());
+		byName.put("burner-inserter", new InserterRendering());
+		byName.put("fast-inserter", new InserterRendering());
+		byName.put("filter-inserter", new InserterRendering());
+		byName.put("inserter", new InserterRendering());
+		byName.put("long-handed-inserter", new InserterRendering());
+		byName.put("stack-filter-inserter", new InserterRendering());
+		byName.put("stack-inserter", new InserterRendering());
+		byName.put("lab", new LabRendering());
+		byName.put("small-lamp", new LampRendering());
+		byName.put("land-mine", new LandMineRendering());
+		byName.put("linked-belt", new LinkedBeltRendering());
+		byName.put("linked-chest", new LinkedContainerRendering());
+		byName.put("express-loader", new LoaderRendering());
+		byName.put("fast-loader", new LoaderRendering());
+		byName.put("loader", new LoaderRendering());
+		byName.put("loader-1x1", new LoaderRendering());
+		byName.put("locomotive", new RollingStockRendering());
+		byName.put("logistic-chest-active-provider", new LogisticContainerRendering());
+		byName.put("logistic-chest-buffer", new LogisticContainerRendering());
+		byName.put("logistic-chest-passive-provider", new LogisticContainerRendering());
+		byName.put("logistic-chest-requester", new LogisticContainerRendering());
+		byName.put("logistic-chest-storage", new LogisticContainerRendering());
+		byName.put("burner-mining-drill", new MiningDrillRendering());
+		byName.put("electric-mining-drill", new MiningDrillRendering());
+		byName.put("pumpjack", new MiningDrillRendering());
+		byName.put("offshore-pump", new OffshorePumpRendering());
+		byName.put("pipe", new PipeRendering());
+		byName.put("pipe-to-ground", new PipeToGroundRendering());
+		byName.put("power-switch", new PowerSwitchRendering());
+		byName.put("programmable-speaker", new ProgrammableSpeakerRendering());
+		byName.put("pump", new PumpRendering());
+		byName.put("radar", new RadarRendering());
+		byName.put("rail-chain-signal", new RailChainSignalRendering());
+		byName.put("rail-signal", new RailSignalRendering());
+		byName.put("nuclear-reactor", new ReactorRendering());
+		byName.put("roboport", new RoboportRendering());
+		byName.put("rocket-silo", new RocketSiloRendering());
+		byName.put("solar-panel", new SolarPanelRendering());
+		byName.put("express-splitter", new SplitterRendering());
+		byName.put("fast-splitter", new SplitterRendering());
+		byName.put("splitter", new SplitterRendering());
+		byName.put("storage-tank", new StorageTankRendering());
+		byName.put("straight-rail", new StraightRailRendering());
+		byName.put("train-stop", new TrainStopRendering());
+		byName.put("express-transport-belt", new TransportBeltRendering());
+		byName.put("fast-transport-belt", new TransportBeltRendering());
+		byName.put("transport-belt", new TransportBeltRendering());
+		byName.put("express-underground-belt", new UndergroundBeltRendering());
+		byName.put("fast-underground-belt", new UndergroundBeltRendering());
+		byName.put("underground-belt", new UndergroundBeltRendering());
+		byName.put("stone-wall", new WallRendering());
 	}
 
 	private static final Map<String, Integer> wireConnectionCircuitId = new LinkedHashMap<>();
@@ -223,17 +257,36 @@ public class EntityRendererFactory {
 		wireConnectionCircuitId.put("output_connection_points", 2);
 	}
 
-	public static EntityRendererFactory forType(String type) {
-		return Optional.ofNullable(byType.get(type)).orElse(UNKNOWN);
+	private static boolean prototypesInitialized = false;
+
+	public static EntityRendererFactory forName(String name) {
+		return Optional.ofNullable(byName.get(name)).orElse(UNKNOWN);
 	}
+
+	public static void initPrototypes(DataTable table) {
+		if (prototypesInitialized) {
+			return;
+		}
+		for (Entry<String, EntityRendererFactory> entry : byName.entrySet()) {
+			System.out.println("Initializing " + entry.getKey());
+			EntityPrototype prototype = table.getEntity(entry.getKey()).get();
+			entry.getValue().setPrototype(prototype);
+			entry.getValue().initFromPrototype(table, prototype);
+		}
+		prototypesInitialized = true;
+	}
+
+	private EntityPrototype prototype = null;
+	protected Rectangle2D.Double protoSelectionBox;
+	protected boolean protoBeaconed;
+	protected SpriteDirDefList protoDirSprites;
 
 	protected void addLogisticWarp(WorldMap map, Point2D.Double gridPos1, Direction cellDir1, Point2D.Double gridPos2,
 			Direction cellDir2) {
 		map.getOrCreateLogisticGridCell(cellDir1.offset(gridPos1, 0.25)).addWarp(cellDir2.offset(gridPos2, 0.25));
 	}
 
-	public void createModuleIcons(Consumer<Renderer> register, WorldMap map, DataTable table, BlueprintEntity entity,
-			EntityPrototype prototype) {
+	public void createModuleIcons(Consumer<Renderer> register, WorldMap map, DataTable table, BlueprintEntity entity) {
 		Optional<Multiset<String>> modulesOpt = RenderUtils.getModules(entity, table);
 		if (modulesOpt.isPresent()) {
 			Multiset<String> modules = modulesOpt.get();
@@ -247,7 +300,7 @@ public class EntityRendererFactory {
 				@Override
 				public void render(Graphics2D g) {
 					Point2D.Double pos = entity.getPosition();
-					Rectangle2D.Double box = prototype.getSelectionBox();
+					Rectangle2D.Double box = protoSelectionBox;
 
 					double startX = pos.x + box.x + box.width / 2.0 - spacing * (modules.size() / 2.0) + spacing / 2.0;
 					double startY = pos.y + box.y + box.height - vpad;
@@ -272,12 +325,9 @@ public class EntityRendererFactory {
 			});
 		}
 
-		boolean weirdBeaconedCriteria = (!prototype.lua().get("module_specification").isnil()
-				|| entity.getName().equals("assembling-machine-1") || entity.getName().equals("burner-mining-drill"))
-				&& !entity.getName().equals("beacon");
-		if (weirdBeaconedCriteria) {
+		if (protoBeaconed) {
 			Point2D.Double pos = entity.getPosition();
-			Rectangle2D.Double beaconedBounds = Utils.parseRectangle(prototype.lua().get("selection_box"));
+			Rectangle2D.Double beaconedBounds = protoSelectionBox;
 			beaconedBounds.x += pos.x;
 			beaconedBounds.y += pos.y;
 			Set<BlueprintEntity> beacons = new LinkedHashSet<>();
@@ -321,7 +371,7 @@ public class EntityRendererFactory {
 					@Override
 					public void render(Graphics2D g) {
 						Point2D.Double pos = entity.getPosition();
-						Rectangle2D.Double box = prototype.getSelectionBox();
+						Rectangle2D.Double box = protoSelectionBox;
 
 						double startX = pos.x + box.x + box.width / 2.0 - spacing * (modules.size() / 2.0)
 								+ spacing / 2.0;
@@ -349,32 +399,10 @@ public class EntityRendererFactory {
 		}
 	}
 
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
-			EntityPrototype prototype) {
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
+			BlueprintEntity entity) {
 		try {
-			List<Sprite> sprites;
-
-			Optional<LuaValue> findSpriteLua = defaultProperties.stream().map(p -> prototype.lua().get(p))
-					.filter(l -> l != LuaValue.NIL).findAny();
-
-			if (findSpriteLua.isPresent()) {
-				LuaValue spriteLua = findSpriteLua.get();
-
-				boolean hasDir = spriteLua.get(entity.getDirection().name().toLowerCase()) != LuaValue.NIL;
-				if (hasDir) {
-					spriteLua = spriteLua.get(entity.getDirection().name().toLowerCase());
-				}
-
-				sprites = RenderUtils.getSpritesFromAnimation(spriteLua, entity.getDirection());
-			} else {
-				Sprite sprite = new Sprite();
-				sprite.image = FactorioData.getModImage(prototype.lua().get("icon").tojstring());
-				sprite.source = new Rectangle(0, 0, sprite.image.getWidth(), sprite.image.getHeight());
-				sprite.bounds = (Rectangle2D.Double) prototype.getSelectionBox().clone();
-				sprites = ImmutableList.of(sprite);
-			}
-
-			register.accept(RenderUtils.spriteRenderer(sprites, entity, prototype));
+			register.accept(RenderUtils.spriteDirDefRenderer(protoDirSprites, entity, protoSelectionBox));
 		} catch (RuntimeException e) {
 			debugPrintContext(entity, prototype);
 			throw e;
@@ -382,7 +410,7 @@ public class EntityRendererFactory {
 	}
 
 	public void createWireConnections(Consumer<Renderer> register, WorldMap map, DataTable table,
-			BlueprintEntity entity, EntityPrototype prototype) {
+			BlueprintEntity entity) {
 		int entityId = entity.getId();
 
 		JSONObject connectionsJson = entity.json().optJSONObject("connections");
@@ -408,16 +436,15 @@ public class EntityRendererFactory {
 							}
 
 							if (!map.hasWire(key)) {
-								map.setWire(key,
-										new SimpleEntry<>(getWirePositionFor(entity, prototype, colorName, circuitId),
-												new Point2D.Double()));
+								map.setWire(key, new SimpleEntry<>(getWirePositionFor(entity, colorName, circuitId),
+										new Point2D.Double()));
 
 							} else {
 								Entry<Point2D.Double, Point2D.Double> pair = map.getWire(key);
 
 								Point2D.Double p1 = pair.getKey();
 								Point2D.Double p2 = pair.getValue();
-								p2.setLocation(getWirePositionFor(entity, prototype, colorName, circuitId));
+								p2.setLocation(getWirePositionFor(entity, colorName, circuitId));
 
 								Color color;
 								switch (colorName) {
@@ -453,8 +480,13 @@ public class EntityRendererFactory {
 		Utils.debugPrintJson(entity.json());
 	}
 
-	protected Point2D.Double getWirePositionFor(BlueprintEntity entity, EntityPrototype prototype, String colorName,
-			int circuitId) {
+	public EntityPrototype getPrototype() {
+		return prototype;
+	}
+
+	protected Point2D.Double getWirePositionFor(BlueprintEntity entity, String colorName, int circuitId) {
+		// TODO find a way to preload lua
+
 		LuaValue connectionPointLua = wireConnectionCircuitId.entrySet().stream().filter(e -> e.getValue() == circuitId)
 				.map(e -> prototype.lua().get(e.getKey())).filter(l -> !l.isnil()).findAny().get();
 
@@ -469,12 +501,45 @@ public class EntityRendererFactory {
 		return new Point2D.Double(pos.x + offset.x, pos.y + offset.y);
 	}
 
-	public void populateLogistics(WorldMap map, DataTable dataTable, BlueprintEntity entity,
-			EntityPrototype prototype) {
+	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
+		protoSelectionBox = prototype.getSelectionBox();
+
+		// XXX Hard-coding
+		protoBeaconed = (!prototype.lua().get("module_specification").isnil()
+				|| prototype.getName().equals("assembling-machine-1")
+				|| prototype.getName().equals("burner-mining-drill")) && !prototype.getName().equals("beacon");
+
+		// XXX Janky
+		Optional<LuaValue> findSpriteLua = defaultProperties.stream().map(p -> prototype.lua().get(p))
+				.filter(l -> l != LuaValue.NIL).findAny();
+		protoDirSprites = new SpriteDirDefList();
+		for (Direction dir : Direction.values()) {
+			if (findSpriteLua.isPresent()) {
+				LuaValue spriteLua = findSpriteLua.get().get(dir.name().toLowerCase());
+				if (spriteLua == LuaValue.NIL) {
+					spriteLua = findSpriteLua.get();
+				}
+				protoDirSprites.set(dir, RenderUtils.getSpritesFromAnimation(spriteLua, dir));
+			} else {
+				LuaValue iconLua = prototype.lua().get("icon");
+				if (!iconLua.isnil()) {
+					BufferedImage image = FactorioData.getModImage(iconLua.tojstring());
+					SpriteDef sprite = new SpriteDef(image, new Rectangle(0, 0, image.getWidth(), image.getHeight()),
+							prototype.getSelectionBox());
+					protoDirSprites.set(dir, ImmutableList.of(sprite));
+				} else {
+					protoDirSprites.set(dir, ImmutableList.of());
+				}
+			}
+		}
+
+	}
+
+	public void populateLogistics(WorldMap map, DataTable dataTable, BlueprintEntity entity) {
 		// default do nothing
 	}
 
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity, EntityPrototype prototype) {
+	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity) {
 		// default do nothing
 	}
 
@@ -485,9 +550,9 @@ public class EntityRendererFactory {
 	}
 
 	protected void setLogisticMachine(WorldMap map, DataTable dataTable, BlueprintEntity entity,
-			EntityPrototype prototype, RecipePrototype recipe) {
+			RecipePrototype recipe) {
 		Point2D.Double entityPos = entity.getPosition();
-		Rectangle2D.Double box = prototype.getSelectionBox();
+		Rectangle2D.Double box = protoSelectionBox;
 		double xStart = entityPos.x + box.x;
 		double yStart = entityPos.y + box.y;
 		double xEnd = xStart + box.width;
@@ -518,6 +583,10 @@ public class EntityRendererFactory {
 		LogisticGridCell cell = map.getOrCreateLogisticGridCell(cellDir.offset(gridPos, 0.25));
 		cell.setMove(Optional.of(moveDir));
 		cell.setAcceptFilter(Optional.of(acceptFilter));
+	}
+
+	public void setPrototype(EntityPrototype prototype) {
+		this.prototype = prototype;
 	}
 
 }

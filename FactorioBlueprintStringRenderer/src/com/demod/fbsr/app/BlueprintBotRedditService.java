@@ -19,6 +19,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import com.demod.dcba.CommandReporting;
@@ -525,7 +526,10 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 	}
 
 	@Override
-	protected void startUp() {
+	protected void startUp() throws JSONException, IOException {
+
+		FBSR.initialize();
+
 		reddit = new RedditClient(UserAgent.of("server", "com.demod.fbsr", "0.0.1", "demodude4u"));
 		account = new AccountManager(reddit);
 

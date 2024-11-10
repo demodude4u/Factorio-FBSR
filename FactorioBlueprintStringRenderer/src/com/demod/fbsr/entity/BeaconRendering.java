@@ -15,42 +15,54 @@ import com.demod.fbsr.BlueprintEntity;
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
-import com.demod.fbsr.Sprite;
+import com.demod.fbsr.SpriteDef;
 import com.demod.fbsr.WorldMap;
 
 public class BeaconRendering extends EntityRendererFactory {
+
+	private ArrayList<SpriteDef> protoAnimations;
+	private double protoSupplyAreaDistance;
+	private double protoDistributionEffectivity;
+
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
-			EntityPrototype prototype) {
-		List<Sprite> animations = new ArrayList<>();
-		LuaValue animationList = prototype.lua().get("graphics_set").get("animation_list");
-		if (!animationList.isnil()) {
-			Utils.forEach(animationList.checktable(), (i, l) -> {
-				List<Sprite> animation = RenderUtils.getSpritesFromAnimation(l.get("animation"));
-				for (Sprite s : animation)
-					s.order = i.toint();
-				animations.addAll(animation);
-			});
-		} else {
-			animations.addAll(RenderUtils.getSpritesFromAnimation(prototype.lua().get("base_picture")));
-			animations.addAll(RenderUtils.getSpritesFromAnimation(prototype.lua().get("animation")));
-		}
-		register.accept(RenderUtils.spriteRenderer(animations, entity, prototype));
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
+			BlueprintEntity entity) {
+		register.accept(RenderUtils.spriteDefRenderer(protoAnimations, entity, protoSelectionBox));
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity, EntityPrototype prototype) {
+	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
+		super.initFromPrototype(dataTable, prototype);
+
+		protoAnimations = new ArrayList<>();
+		LuaValue animationList = prototype.lua().get("graphics_set").get("animation_list");
+		if (!animationList.isnil()) {
+			Utils.forEach(animationList.checktable(), (i, l) -> {
+				List<SpriteDef> animation = RenderUtils.getSpritesFromAnimation(l.get("animation"));
+				for (SpriteDef s : animation)
+					s.withOrder(i.toint());
+				protoAnimations.addAll(animation);
+			});
+		} else {
+			protoAnimations.addAll(RenderUtils.getSpritesFromAnimation(prototype.lua().get("base_picture")));
+			protoAnimations.addAll(RenderUtils.getSpritesFromAnimation(prototype.lua().get("animation")));
+		}
+
+		protoSupplyAreaDistance = prototype.lua().get("supply_area_distance").todouble();
+		protoDistributionEffectivity = prototype.lua().get("distribution_effectivity").todouble();
+	}
+
+	@Override
+	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity) {
 		Point2D.Double pos = entity.getPosition();
 
-		double supplyAreaDistance = prototype.lua().get("supply_area_distance").todouble();
-		Rectangle2D.Double supplyBounds = Utils.parseRectangle(prototype.lua().get("selection_box"));
-		supplyBounds.x += pos.x - supplyAreaDistance;
-		supplyBounds.y += pos.y - supplyAreaDistance;
-		supplyBounds.width += supplyAreaDistance * 2;
-		supplyBounds.height += supplyAreaDistance * 2;
+		Rectangle2D.Double supplyBounds = new Rectangle2D.Double(protoSelectionBox.x + pos.x - protoSupplyAreaDistance,
+				protoSelectionBox.y + pos.y - protoSupplyAreaDistance,
+				protoSelectionBox.width + protoSupplyAreaDistance * 2,
+				protoSelectionBox.height + protoSupplyAreaDistance * 2);
 
-		// XXX
-		entity.json().put("distribution_effectivity", prototype.lua().get("distribution_effectivity").todouble());
+		// XXX jank
+		entity.json().put("distribution_effectivity", protoDistributionEffectivity);
 
 		double x2 = supplyBounds.x + supplyBounds.width;
 		double y2 = supplyBounds.y + supplyBounds.height;

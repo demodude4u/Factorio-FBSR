@@ -9,29 +9,39 @@ import com.demod.fbsr.BlueprintEntity;
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
-import com.demod.fbsr.Sprite;
+import com.demod.fbsr.SpriteDef;
 import com.demod.fbsr.WorldMap;
 
 public class GateRendering extends EntityRendererFactory {
 
+	private List<SpriteDef> protoVerticalSprites;
+	private List<SpriteDef> protoHorizontalSprites;
+
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
-			EntityPrototype prototype) {
-		boolean vertical = isVerticalGate(entity);
-
-		String orientation = vertical ? "vertical" : "horizontal";
-
-		List<Sprite> sprites = RenderUtils.getSpritesFromAnimation(prototype.lua().get(orientation + "_animation"));
-		register.accept(RenderUtils.spriteRenderer(sprites, entity, prototype));
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
+			BlueprintEntity entity) {
+		if (isVertical(entity)) {
+			register.accept(RenderUtils.spriteDefRenderer(protoVerticalSprites, entity, protoSelectionBox));
+		} else {
+			register.accept(RenderUtils.spriteDefRenderer(protoHorizontalSprites, entity, protoSelectionBox));
+		}
 	}
 
-	private boolean isVerticalGate(BlueprintEntity entity) {
+	@Override
+	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
+		super.initFromPrototype(dataTable, prototype);
+
+		protoVerticalSprites = RenderUtils.getSpritesFromAnimation(prototype.lua().get("vertical_animation"));
+		protoHorizontalSprites = RenderUtils.getSpritesFromAnimation(prototype.lua().get("horizontal_animation"));
+	}
+
+	private boolean isVertical(BlueprintEntity entity) {
 		return entity.getDirection().cardinal() % 2 == 0;
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity, EntityPrototype prototype) {
-		if (isVerticalGate(entity)) {
+	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity) {
+		if (isVertical(entity)) {
 			map.setVerticalGate(entity.getPosition());
 		} else {
 			map.setHorizontalGate(entity.getPosition());

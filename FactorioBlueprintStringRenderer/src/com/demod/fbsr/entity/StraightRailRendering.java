@@ -1,6 +1,7 @@
 package com.demod.fbsr.entity;
 
 import java.awt.geom.Point2D;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.Map.Entry;
 import java.util.function.Consumer;
@@ -15,7 +16,7 @@ import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
 import com.demod.fbsr.Renderer.Layer;
-import com.demod.fbsr.Sprite;
+import com.demod.fbsr.SpriteDef;
 import com.demod.fbsr.WorldMap;
 
 public class StraightRailRendering extends EntityRendererFactory {
@@ -44,6 +45,7 @@ public class StraightRailRendering extends EntityRendererFactory {
 			};
 
 	public static final LinkedHashMap<String, Layer> railLayers = new LinkedHashMap<>();
+
 	static {
 		railLayers.put("stone_path_background", Layer.RAIL_STONE_BACKGROUND);
 		railLayers.put("stone_path", Layer.RAIL_STONE);
@@ -51,21 +53,37 @@ public class StraightRailRendering extends EntityRendererFactory {
 		railLayers.put("backplates", Layer.RAIL_BACKPLATES);
 		railLayers.put("metals", Layer.RAIL_METALS);
 	}
+	private ArrayList<LinkedHashMap<Layer, SpriteDef>> protoDirRailLayers;
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
-			EntityPrototype prototype) {
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
+			BlueprintEntity entity) {
 
-		String railName = railNames[entity.getDirection().ordinal()];
-		LuaValue pictureRailLua = prototype.lua().get("pictures").get(railName);
-		for (Entry<String, Layer> entry : railLayers.entrySet()) {
-			Sprite railLayerSprite = RenderUtils.getSpriteFromAnimation(pictureRailLua.get(entry.getKey()));
-			register.accept(RenderUtils.spriteRenderer(entry.getValue(), railLayerSprite, entity, prototype));
+		LinkedHashMap<Layer, SpriteDef> railLayers = protoDirRailLayers.get(entity.getDirection().ordinal());
+		for (Entry<Layer, SpriteDef> entry : railLayers.entrySet()) {
+			register.accept(RenderUtils.spriteDefRenderer(entry.getKey(), entry.getValue(), entity, protoSelectionBox));
 		}
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity, EntityPrototype prototype) {
+	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
+		super.initFromPrototype(dataTable, prototype);
+
+		protoDirRailLayers = new ArrayList<>();
+		for (int i = 0; i < Direction.values().length; i++) {
+			String railName = railNames[i];
+			LuaValue pictureRailLua = prototype.lua().get("pictures").get(railName);
+			LinkedHashMap<Layer, SpriteDef> layers = new LinkedHashMap<>();
+			for (Entry<String, Layer> entry : StraightRailRendering.railLayers.entrySet()) {
+				layers.put(entry.getValue(),
+						RenderUtils.getSpriteFromAnimation(pictureRailLua.get(entry.getKey())).get());
+			}
+			protoDirRailLayers.add(layers);
+		}
+	}
+
+	@Override
+	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity) {
 		Point2D.Double pos = entity.getPosition();
 		Direction dir = entity.getDirection();
 

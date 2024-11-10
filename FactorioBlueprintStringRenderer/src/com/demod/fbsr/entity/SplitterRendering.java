@@ -8,7 +8,6 @@ import java.awt.geom.Path2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Point2D.Double;
 import java.awt.geom.Rectangle2D;
-import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 
@@ -22,9 +21,11 @@ import com.demod.fbsr.BlueprintEntity;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.RenderUtils;
+import com.demod.fbsr.RenderUtils.SpriteDirDefList;
 import com.demod.fbsr.Renderer;
 import com.demod.fbsr.Renderer.Layer;
 import com.demod.fbsr.Sprite;
+import com.demod.fbsr.SpriteDef;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.WorldMap.BeltBend;
 
@@ -38,12 +39,15 @@ public class SplitterRendering extends EntityRendererFactory {
 		markerShape.closePath();
 	}
 
+	private SpriteDef[][] protoBeltSprites;
+	private SpriteDirDefList protoPatch;
+
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
-			EntityPrototype prototype) {
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
+			BlueprintEntity entity) {
 		Direction dir = entity.getDirection();
 
-		Sprite belt1Sprite = TransportBeltRendering.getBeltSprite(prototype, dir, BeltBend.NONE);
+		Sprite belt1Sprite = protoBeltSprites[dir.cardinal()][BeltBend.NONE.ordinal()].createSprite();
 		Sprite belt2Sprite = new Sprite(belt1Sprite);
 
 		Point2D.Double beltShift = dir.left().offset(new Point2D.Double(), 0.5);
@@ -53,17 +57,14 @@ public class SplitterRendering extends EntityRendererFactory {
 		belt2Sprite.bounds.x -= beltShift.x;
 		belt2Sprite.bounds.y -= beltShift.y;
 
-		register.accept(RenderUtils.spriteRenderer(Layer.ENTITY, belt1Sprite, entity, prototype));
-		register.accept(RenderUtils.spriteRenderer(Layer.ENTITY, belt2Sprite, entity, prototype));
+		register.accept(RenderUtils.spriteRenderer(Layer.ENTITY, belt1Sprite, entity, protoSelectionBox));
+		register.accept(RenderUtils.spriteRenderer(Layer.ENTITY, belt2Sprite, entity, protoSelectionBox));
 
-		LuaValue structurePatch = prototype.lua().get("structure_patch");
-		if (!structurePatch.isnil() && (dir == Direction.WEST || dir == Direction.EAST)) {
-			List<Sprite> patch = RenderUtils.getSpritesFromAnimation(structurePatch, dir);
-			register.accept(RenderUtils.spriteRenderer(Layer.ENTITY2, patch, entity, prototype));
+		if ((protoPatch != null) && (dir == Direction.WEST || dir == Direction.EAST)) {
+			register.accept(RenderUtils.spriteDirDefRenderer(Layer.ENTITY2, protoPatch, entity, protoSelectionBox));
 		}
 
-		List<Sprite> sprites = RenderUtils.getSpritesFromAnimation(prototype.lua().get("structure"), dir);
-		register.accept(RenderUtils.spriteRenderer(Layer.ENTITY2, sprites, entity, prototype));
+		register.accept(RenderUtils.spriteDirDefRenderer(Layer.ENTITY2, protoDirSprites, entity, protoSelectionBox));
 
 		Double pos = entity.getPosition();
 		Point2D.Double leftPos = dir.left().offset(pos, 0.5);
@@ -104,7 +105,8 @@ public class SplitterRendering extends EntityRendererFactory {
 			boolean right = entity.json().getString("output_priority").equals("right");
 			Point2D.Double outputPos = dir.offset(right ? rightPos : leftPos, 0.6);
 
-			if (entity.json().has("filter")) {
+			// TODO new format filter
+			if (!entity.isJsonNewFormat() && entity.json().has("filter")) {
 				Point2D.Double iconPos = right ? rightPos : leftPos;
 				String itemName = entity.json().getString("filter");
 				Sprite spriteIcon = new Sprite();
@@ -114,7 +116,7 @@ public class SplitterRendering extends EntityRendererFactory {
 					spriteIcon.source = new Rectangle(0, 0, spriteIcon.image.getWidth(), spriteIcon.image.getHeight());
 					spriteIcon.bounds = new Rectangle2D.Double(-0.3, -0.3, 0.6, 0.6);
 
-					Renderer delegate = RenderUtils.spriteRenderer(spriteIcon, entity, prototype);
+					Renderer delegate = RenderUtils.spriteRenderer(spriteIcon, entity, protoSelectionBox);
 					spriteIcon.bounds = new Rectangle2D.Double(iconPos.x - 0.3, iconPos.y - 0.3, 0.6, 0.6);
 					register.accept(new Renderer(Layer.OVERLAY2, delegate.getBounds()) {
 						@Override
@@ -156,8 +158,24 @@ public class SplitterRendering extends EntityRendererFactory {
 	}
 
 	@Override
-	public void populateLogistics(WorldMap map, DataTable dataTable, BlueprintEntity entity,
-			EntityPrototype prototype) {
+	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
+		super.initFromPrototype(dataTable, prototype);
+
+		protoBeltSprites = TransportBeltRendering.getBeltSprites(prototype);
+
+		LuaValue structurePatch = prototype.lua().get("structure_patch");
+		if (!structurePatch.isnil()) {
+			protoPatch = RenderUtils.getDirSpritesFromAnimation(structurePatch);
+		} else {
+			protoPatch = null;
+		}
+
+		protoDirSprites = RenderUtils.getDirSpritesFromAnimation(prototype.lua().get("structure"));
+
+	}
+
+	@Override
+	public void populateLogistics(WorldMap map, DataTable dataTable, BlueprintEntity entity) {
 		Direction dir = entity.getDirection();
 		Double pos = entity.getPosition();
 		Point2D.Double leftPos = dir.left().offset(pos, 0.5);
@@ -204,7 +222,7 @@ public class SplitterRendering extends EntityRendererFactory {
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity, EntityPrototype prototype) {
+	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity) {
 		Direction direction = entity.getDirection();
 		Point2D.Double belt1Pos = direction.left().offset(entity.getPosition(), 0.5);
 		Point2D.Double belt2Pos = direction.right().offset(entity.getPosition(), 0.5);

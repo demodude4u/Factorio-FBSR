@@ -17,7 +17,6 @@ import org.json.JSONObject;
 import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
 import com.demod.factorio.Utils;
-import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.factorio.prototype.ItemPrototype;
 import com.demod.fbsr.BlueprintEntity;
 import com.demod.fbsr.Direction;
@@ -30,9 +29,9 @@ import com.demod.fbsr.WorldMap;
 
 public class InfinityContainerRendering extends EntityRendererFactory {
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
-			EntityPrototype prototype) {
-		super.createRenderers(register, map, dataTable, entity, prototype);
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
+			BlueprintEntity entity) {
+		super.createRenderers(register, map, dataTable, entity);
 
 		if (entity.json().has("infinity_settings") && entity.json().getJSONObject("infinity_settings").has("filters")) {
 			List<String> items = new ArrayList<>();
@@ -50,7 +49,7 @@ public class InfinityContainerRendering extends EntityRendererFactory {
 					spriteIcon.source = new Rectangle(0, 0, spriteIcon.image.getWidth(), spriteIcon.image.getHeight());
 					spriteIcon.bounds = new Rectangle2D.Double(-0.3, -0.3, 0.6, 0.6);
 
-					Renderer delegate = RenderUtils.spriteRenderer(spriteIcon, entity, prototype);
+					Renderer delegate = RenderUtils.spriteRenderer(spriteIcon, entity, protoSelectionBox);
 					register.accept(new Renderer(Layer.OVERLAY4, delegate.getBounds()) {
 						@Override
 						public void render(Graphics2D g) throws Exception {
@@ -65,8 +64,7 @@ public class InfinityContainerRendering extends EntityRendererFactory {
 	}
 
 	@Override
-	public void populateLogistics(WorldMap map, DataTable dataTable, BlueprintEntity entity,
-			EntityPrototype prototype) {
+	public void populateLogistics(WorldMap map, DataTable dataTable, BlueprintEntity entity) {
 		Point2D.Double pos = entity.getPosition();
 
 		if (entity.json().has("infinity_settings") && entity.json().getJSONObject("infinity_settings").has("filters")) {

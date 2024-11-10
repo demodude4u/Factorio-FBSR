@@ -1,7 +1,6 @@
 package com.demod.fbsr.entity;
 
 import java.awt.geom.Point2D;
-import java.util.List;
 import java.util.function.Consumer;
 
 import com.demod.factorio.DataTable;
@@ -11,20 +10,26 @@ import com.demod.fbsr.Direction;
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
-import com.demod.fbsr.Sprite;
 import com.demod.fbsr.WorldMap;
 
 public class PumpRendering extends EntityRendererFactory {
+
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
-			EntityPrototype prototype) {
-		List<Sprite> sprite = RenderUtils.getSpritesFromAnimation(prototype.lua().get("animations"),
-				entity.getDirection());
-		register.accept(RenderUtils.spriteRenderer(sprite, entity, prototype));
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
+			BlueprintEntity entity) {
+
+		register.accept(RenderUtils.spriteDirDefRenderer(protoDirSprites, entity, protoSelectionBox));
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity, EntityPrototype prototype) {
+	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
+		super.initFromPrototype(dataTable, prototype);
+
+		protoDirSprites = RenderUtils.getDirSpritesFromAnimation(prototype.lua().get("animations"));
+	}
+
+	@Override
+	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity) {
 		Point2D.Double pos = entity.getPosition();
 		Direction dir = entity.getDirection();
 

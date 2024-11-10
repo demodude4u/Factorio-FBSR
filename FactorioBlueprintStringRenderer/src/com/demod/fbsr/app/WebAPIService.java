@@ -16,6 +16,7 @@ import java.util.stream.Collectors;
 import javax.imageio.ImageIO;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.rapidoid.http.MediaType;
 import org.rapidoid.setup.App;
@@ -63,7 +64,10 @@ public class WebAPIService extends AbstractIdleService {
 	}
 
 	@Override
-	protected void startUp() {
+	protected void startUp() throws JSONException, IOException {
+
+		FBSR.initialize();
+
 		ServiceFinder.addService(this);
 
 		configJson = Config.get().getJSONObject("webapi");

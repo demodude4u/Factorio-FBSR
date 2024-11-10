@@ -8,23 +8,34 @@ import com.demod.fbsr.BlueprintEntity;
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
-import com.demod.fbsr.Sprite;
-import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.Renderer.Layer;
+import com.demod.fbsr.SpriteDef;
+import com.demod.fbsr.WorldMap;
 
 public class RocketSiloRendering extends EntityRendererFactory {
 
-	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
-			EntityPrototype prototype) {
-		Sprite baseSprite = RenderUtils.getSpriteFromAnimation(prototype.lua().get("base_day_sprite"));
-		Sprite shadowSprite = RenderUtils.getSpriteFromAnimation(prototype.lua().get("shadow_sprite"));
-		Sprite doorFrontSprite = RenderUtils.getSpriteFromAnimation(prototype.lua().get("door_front_sprite"));
-		Sprite doorBackSprite = RenderUtils.getSpriteFromAnimation(prototype.lua().get("door_back_sprite"));
+	private SpriteDef protoBaseSprite;
+	private SpriteDef protoShadowSprite;
+	private SpriteDef protoDoorFrontSprite;
+	private SpriteDef protoDoorBackSprite;
 
-		register.accept(RenderUtils.spriteRenderer(Layer.ENTITY, shadowSprite, entity, prototype));
-		register.accept(RenderUtils.spriteRenderer(Layer.ENTITY, doorFrontSprite, entity, prototype));
-		register.accept(RenderUtils.spriteRenderer(Layer.ENTITY, doorBackSprite, entity, prototype));
-		register.accept(RenderUtils.spriteRenderer(Layer.ENTITY2, baseSprite, entity, prototype));
+	@Override
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
+			BlueprintEntity entity) {
+
+		register.accept(RenderUtils.spriteDefRenderer(Layer.ENTITY, protoShadowSprite, entity, protoSelectionBox));
+		register.accept(RenderUtils.spriteDefRenderer(Layer.ENTITY, protoDoorFrontSprite, entity, protoSelectionBox));
+		register.accept(RenderUtils.spriteDefRenderer(Layer.ENTITY, protoDoorBackSprite, entity, protoSelectionBox));
+		register.accept(RenderUtils.spriteDefRenderer(Layer.ENTITY2, protoBaseSprite, entity, protoSelectionBox));
+	}
+
+	@Override
+	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
+		super.initFromPrototype(dataTable, prototype);
+
+		protoBaseSprite = RenderUtils.getSpriteFromAnimation(prototype.lua().get("base_day_sprite")).get();
+		protoShadowSprite = RenderUtils.getSpriteFromAnimation(prototype.lua().get("shadow_sprite")).get();
+		protoDoorFrontSprite = RenderUtils.getSpriteFromAnimation(prototype.lua().get("door_front_sprite")).get();
+		protoDoorBackSprite = RenderUtils.getSpriteFromAnimation(prototype.lua().get("door_back_sprite")).get();
 	}
 }

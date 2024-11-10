@@ -12,7 +12,6 @@ import com.demod.fbsr.BlueprintEntity;
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
-import com.demod.fbsr.Sprite;
 import com.demod.fbsr.WorldMap;
 import com.google.common.collect.ImmutableList;
 
@@ -20,16 +19,25 @@ public class ElectricEnergyInterfaceRendering extends EntityRendererFactory {
 	private static List<String> imageProperties = ImmutableList.of("picture", "pictures", "animation", "animations");
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
-			EntityPrototype prototype) {
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
+			BlueprintEntity entity) {
+
+		if (protoDirSprites != null) {
+			register.accept(RenderUtils.spriteDirDefRenderer(protoDirSprites, entity, protoSelectionBox));
+		}
+	}
+
+	@Override
+	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
+		super.initFromPrototype(dataTable, prototype);
 
 		Optional<LuaValue> findImageLua = imageProperties.stream().map(p -> prototype.lua().get(p))
 				.filter(l -> l != LuaValue.NIL).findAny();
 
 		if (findImageLua.isPresent()) {
-			List<Sprite> sprites = RenderUtils.getSpritesFromAnimation(findImageLua.get(), entity.getDirection());
-			register.accept(RenderUtils.spriteRenderer(sprites, entity, prototype));
+			protoDirSprites = RenderUtils.getDirSpritesFromAnimation(findImageLua.get());
+		} else {
+			protoDirSprites = null;
 		}
-
 	}
 }

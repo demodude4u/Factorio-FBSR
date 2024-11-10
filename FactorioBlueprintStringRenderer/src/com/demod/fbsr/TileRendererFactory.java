@@ -10,6 +10,7 @@ import java.awt.geom.Rectangle2D;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
@@ -28,8 +29,8 @@ public class TileRendererFactory {
 		Set<String> labeledTypes = new HashSet<>();
 
 		@Override
-		public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintTile tile,
-				TilePrototype prototype) {
+		public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
+				BlueprintTile tile) {
 			Point2D.Double pos = tile.getPosition();
 			Rectangle2D.Double bounds = new Rectangle2D.Double(pos.x - 0.25, pos.y - 0.25, 0.5, 0.5);
 			float randomFactor = new Random(tile.getName().hashCode()).nextFloat();
@@ -60,28 +61,97 @@ public class TileRendererFactory {
 		}
 
 		@Override
-		public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintTile tile, TilePrototype prototype) {
+		public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintTile tile) {
 			if (!labeledTypes.isEmpty()) {
 				labeledTypes.clear();
 			}
 		}
 	};
 
-	private static Map<String, TileRendererFactory> byType = new HashMap<>();
+	private static Map<String, TileRendererFactory> byName = new HashMap<>();
+
 	static {
-		byType.put("tile", new TileRendererFactory());
+		// TODO determine which ones don't go in a blueprint...
+		byName.put("acid-refined-concrete", new TileRendererFactory());
+		byName.put("black-refined-concrete", new TileRendererFactory());
+		byName.put("blue-refined-concrete", new TileRendererFactory());
+		byName.put("brown-refined-concrete", new TileRendererFactory());
+		byName.put("concrete", new TileRendererFactory());
+		byName.put("cyan-refined-concrete", new TileRendererFactory());
+		byName.put("deepwater", new TileRendererFactory());
+		byName.put("deepwater-green", new TileRendererFactory());
+		byName.put("dirt-1", new TileRendererFactory());
+		byName.put("dirt-2", new TileRendererFactory());
+		byName.put("dirt-3", new TileRendererFactory());
+		byName.put("dirt-4", new TileRendererFactory());
+		byName.put("dirt-5", new TileRendererFactory());
+		byName.put("dirt-6", new TileRendererFactory());
+		byName.put("dirt-7", new TileRendererFactory());
+		byName.put("dry-dirt", new TileRendererFactory());
+		byName.put("grass-1", new TileRendererFactory());
+		byName.put("grass-2", new TileRendererFactory());
+		byName.put("grass-3", new TileRendererFactory());
+		byName.put("grass-4", new TileRendererFactory());
+		byName.put("green-refined-concrete", new TileRendererFactory());
+		byName.put("hazard-concrete-left", new TileRendererFactory());
+		byName.put("hazard-concrete-right", new TileRendererFactory());
+		byName.put("lab-dark-1", new TileRendererFactory());
+		byName.put("lab-dark-2", new TileRendererFactory());
+		byName.put("lab-white", new TileRendererFactory());
+		byName.put("landfill", new TileRendererFactory());
+		byName.put("nuclear-ground", new TileRendererFactory());
+		byName.put("orange-refined-concrete", new TileRendererFactory());
+		byName.put("out-of-map", new TileRendererFactory());
+		byName.put("pink-refined-concrete", new TileRendererFactory());
+		byName.put("purple-refined-concrete", new TileRendererFactory());
+		byName.put("red-desert-0", new TileRendererFactory());
+		byName.put("red-desert-1", new TileRendererFactory());
+		byName.put("red-desert-2", new TileRendererFactory());
+		byName.put("red-desert-3", new TileRendererFactory());
+		byName.put("red-refined-concrete", new TileRendererFactory());
+		byName.put("refined-concrete", new TileRendererFactory());
+		byName.put("refined-hazard-concrete-left", new TileRendererFactory());
+		byName.put("refined-hazard-concrete-right", new TileRendererFactory());
+		byName.put("sand-1", new TileRendererFactory());
+		byName.put("sand-2", new TileRendererFactory());
+		byName.put("sand-3", new TileRendererFactory());
+		byName.put("stone-path", new TileRendererFactory());
+		byName.put("tile-unknown", new TileRendererFactory());
+		byName.put("tutorial-grid", new TileRendererFactory());
+		byName.put("water", new TileRendererFactory());
+		byName.put("water-green", new TileRendererFactory());
+		byName.put("water-mud", new TileRendererFactory());
+		byName.put("water-shallow", new TileRendererFactory());
+		byName.put("water-wube", new TileRendererFactory());
+		byName.put("yellow-refined-concrete", new TileRendererFactory());
 	}
 
 	public static final double tileSize = 32.0;
 
-	public static TileRendererFactory forType(String type) {
-		return Optional.ofNullable(byType.get(type)).orElse(UNKNOWN);
+	private static boolean prototypesInitialized = false;
+
+	public static TileRendererFactory forName(String name) {
+		return Optional.ofNullable(byName.get(name)).orElse(UNKNOWN);
+	}
+
+	public static void initPrototypes(DataTable table) {
+		if (prototypesInitialized) {
+			return;
+		}
+		for (Entry<String, TileRendererFactory> entry : byName.entrySet()) {
+			System.out.println("Initializing " + entry.getKey());
+			TilePrototype prototype = table.getTile(entry.getKey()).get();
+			entry.getValue().setPrototype(prototype);
+			entry.getValue().initFromPrototype(table, prototype);
+		}
+		prototypesInitialized = true;
 	}
 
 	private final Random rand = new Random();
 
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintTile tile,
-			TilePrototype prototype) {
+	protected TilePrototype prototype;
+
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintTile tile) {
 		LuaValue sheetLua = prototype.lua().get("variants").get("material_background");
 		if (sheetLua.isnil()) {
 			sheetLua = prototype.lua().get("variants").get("main").get(1);
@@ -92,10 +162,22 @@ public class TileRendererFactory {
 		sprite.source = new Rectangle(0, 0, 32, 32);
 		sprite.source.x = rand.nextInt(sheetLua.get("count").toint()) * sprite.source.width;
 
-		register.accept(RenderUtils.spriteRenderer(Layer.TILE1, sprite, tile, prototype));
+		register.accept(RenderUtils.spriteRenderer(Layer.TILE1, sprite, tile));
 	}
 
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintTile tile, TilePrototype prototype) {
+	public TilePrototype getPrototype() {
+		return prototype;
+	}
+
+	public void initFromPrototype(DataTable table, TilePrototype prototype) {
+
+	}
+
+	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintTile tile) {
 		// default do nothing
+	}
+
+	public void setPrototype(TilePrototype prototype) {
+		this.prototype = prototype;
 	}
 }

@@ -7,6 +7,7 @@ import java.awt.Rectangle;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
+import java.awt.geom.Point2D.Double;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
@@ -30,6 +31,7 @@ import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
 import com.demod.fbsr.Renderer.Layer;
 import com.demod.fbsr.Sprite;
+import com.demod.fbsr.SpriteDef;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.WorldMap.BeltBend;
 import com.demod.fbsr.WorldMap.BeltCell;
@@ -44,27 +46,22 @@ public class InserterRendering extends EntityRendererFactory {
 					{ 1, 1, -1 },// West
 			};
 
-	private static final Sprite getGrabMarker(DataTable dataTable) {
-		Optional<LuaValue> optUtilityConstantsLua = dataTable.getRaw("utility-sprites", "default");
-		return RenderUtils.getSpriteFromAnimation(optUtilityConstantsLua.get().get("indication_line"));
-	}
-
-	private static final Sprite getPlaceMarker(DataTable dataTable) {
-		Optional<LuaValue> optUtilityConstantsLua = dataTable.getRaw("utility-sprites", "default");
-		return RenderUtils.getSpriteFromAnimation(optUtilityConstantsLua.get().get("indication_arrow"));
-	}
+	private SpriteDef protoSprite;
+	private SpriteDef protoSpriteArmHand;
+	private double protoArmStretch;
+	private Double protoPickupPosition;
+	private Double protoInsertPosition;
+	private SpriteDef protoPlaceMarkerSprite;
+	private SpriteDef protoGrabMarkerSprite;
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
-			EntityPrototype prototype) {
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
+			BlueprintEntity entity) {
 		Point2D.Double pos = entity.getPosition();
 		Direction dir = entity.getDirection();
 
-		Sprite sprite = RenderUtils.getSpriteFromAnimation(prototype.lua().get("platform_picture").get("sheet"));
+		Sprite sprite = protoSprite.createSprite();
 		sprite.source.x += sprite.source.width * (dir.back().cardinal());
-
-		Sprite spriteArmHand = RenderUtils.getSpriteFromAnimation(prototype.lua().get("hand_open_picture"));
-		double armStretch = -prototype.lua().get("pickup_position").get(2).todouble();
 
 		boolean modded = entity.json().has("pickup_position") || entity.json().has("drop_position");
 
@@ -78,12 +75,12 @@ public class InserterRendering extends EntityRendererFactory {
 			inPos = new Point2D.Double(pos.x + pickupPos.x, pos.y + pickupPos.y);
 
 		} else if (modded) {
-			inPos = dir.offset(pos, armStretch);
+			inPos = dir.offset(pos, protoArmStretch);
 			pickupPos = new Point2D.Double(inPos.x - pos.x, inPos.y - pos.y);
 
 		} else {
-			pickupPos = Utils.parsePoint2D(prototype.lua().get("pickup_position"));
-			inPos = dir.offset(pos, armStretch);
+			pickupPos = protoPickupPosition;
+			inPos = dir.offset(pos, protoArmStretch);
 		}
 
 		if (entity.json().has("drop_position")) {
@@ -91,28 +88,28 @@ public class InserterRendering extends EntityRendererFactory {
 			outPos = new Point2D.Double(pos.x + insertPos.x, pos.y + insertPos.y);
 
 		} else if (modded) {
-			outPos = dir.offset(pos, -armStretch);
+			outPos = dir.offset(pos, -protoArmStretch);
 			insertPos = new Point2D.Double(outPos.x - pos.x, outPos.y - pos.y);
 
 		} else {
-			insertPos = Utils.parsePoint2D(prototype.lua().get("insert_position"));
-			outPos = dir.offset(pos, -armStretch);
+			insertPos = protoInsertPosition;
+			outPos = dir.offset(pos, -protoArmStretch);
 		}
 
-		register.accept(RenderUtils.spriteRenderer(sprite, entity, prototype));
+		register.accept(RenderUtils.spriteRenderer(sprite, entity, protoSelectionBox));
 		register.accept(new Renderer(Layer.ENTITY2, sprite.bounds) {
 			@Override
 			public void render(Graphics2D g) {
 				AffineTransform pat = g.getTransform();
 
-				Rectangle2D.Double bounds = spriteArmHand.bounds;
-				Rectangle source = spriteArmHand.source;
-				BufferedImage image = spriteArmHand.image;
+				Rectangle2D.Double bounds = protoSpriteArmHand.getBounds();
+				Rectangle source = protoSpriteArmHand.getSource();
+				BufferedImage image = protoSpriteArmHand.getImage();
 
 				g.translate(pos.x, pos.y);
 				g.rotate(dir.back().ordinal() * Math.PI / 4.0);
 				g.translate(bounds.x, 0);
-				g.scale(bounds.width, armStretch);
+				g.scale(bounds.width, protoArmStretch);
 				g.drawImage(image, 0, 1, 1, 0, source.x, source.y, source.x + source.width, source.y + source.height,
 						null);
 
@@ -124,10 +121,9 @@ public class InserterRendering extends EntityRendererFactory {
 			public void render(Graphics2D g) {
 				AffineTransform pat = g.getTransform();
 
-				Sprite grabberMarker = getGrabMarker(dataTable);
-				Rectangle2D.Double bounds = grabberMarker.bounds;
-				Rectangle source = grabberMarker.source;
-				BufferedImage image = grabberMarker.image;
+				Rectangle2D.Double bounds = protoGrabMarkerSprite.getBounds();
+				Rectangle source = protoGrabMarkerSprite.getSource();
+				BufferedImage image = protoGrabMarkerSprite.getImage();
 
 				double pickupRotate = Math.atan2(pickupPos.y, pickupPos.x);
 
@@ -162,10 +158,9 @@ public class InserterRendering extends EntityRendererFactory {
 			public void render(Graphics2D g) {
 				AffineTransform pat = g.getTransform();
 
-				Sprite placeMarker = getPlaceMarker(dataTable);
-				Rectangle2D.Double bounds = placeMarker.bounds;
-				Rectangle source = placeMarker.source;
-				BufferedImage image = placeMarker.image;
+				Rectangle2D.Double bounds = protoPlaceMarkerSprite.getBounds();
+				Rectangle source = protoPlaceMarkerSprite.getSource();
+				BufferedImage image = protoPlaceMarkerSprite.getImage();
 
 				double insertRotate = Math.atan2(insertPos.y, insertPos.x);
 
@@ -212,7 +207,7 @@ public class InserterRendering extends EntityRendererFactory {
 					spriteIcon.source = new Rectangle(0, 0, spriteIcon.image.getWidth(), spriteIcon.image.getHeight());
 					spriteIcon.bounds = new Rectangle2D.Double(-0.3, -0.3, 0.6, 0.6);
 
-					Renderer delegate = RenderUtils.spriteRenderer(spriteIcon, entity, prototype);
+					Renderer delegate = RenderUtils.spriteRenderer(spriteIcon, entity, protoSelectionBox);
 					register.accept(new Renderer(Layer.OVERLAY2, delegate.getBounds()) {
 						@Override
 						public void render(Graphics2D g) throws Exception {
@@ -227,8 +222,24 @@ public class InserterRendering extends EntityRendererFactory {
 	}
 
 	@Override
-	public void populateLogistics(WorldMap map, DataTable dataTable, BlueprintEntity entity,
-			EntityPrototype prototype) {
+	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
+		super.initFromPrototype(dataTable, prototype);
+
+		protoSprite = RenderUtils.getSpriteFromAnimation(prototype.lua().get("platform_picture").get("sheet")).get();
+		protoSpriteArmHand = RenderUtils.getSpriteFromAnimation(prototype.lua().get("hand_open_picture")).get();
+		protoArmStretch = -prototype.lua().get("pickup_position").get(2).todouble();
+		protoPickupPosition = Utils.parsePoint2D(prototype.lua().get("pickup_position"));
+		protoInsertPosition = Utils.parsePoint2D(prototype.lua().get("insert_position"));
+
+		Optional<LuaValue> optUtilityConstantsLua = dataTable.getRaw("utility-sprites", "default");
+		protoGrabMarkerSprite = RenderUtils.getSpriteFromAnimation(optUtilityConstantsLua.get().get("indication_line"))
+				.get();
+		protoPlaceMarkerSprite = RenderUtils
+				.getSpriteFromAnimation(optUtilityConstantsLua.get().get("indication_arrow")).get();
+	}
+
+	@Override
+	public void populateLogistics(WorldMap map, DataTable dataTable, BlueprintEntity entity) {
 		if (entity.json().has("pickup_position") || entity.json().has("drop_position")) {
 			return; // TODO Modded inserter logistics
 		}
@@ -236,9 +247,8 @@ public class InserterRendering extends EntityRendererFactory {
 		Point2D.Double pos = entity.getPosition();
 		Direction dir = entity.getDirection();
 
-		double armStretch = -prototype.lua().get("pickup_position").get(2).todouble();
-		Point2D.Double inPos = dir.offset(pos, armStretch);
-		Point2D.Double outPos = dir.offset(pos, -armStretch);
+		Point2D.Double inPos = dir.offset(pos, protoArmStretch);
+		Point2D.Double outPos = dir.offset(pos, -protoArmStretch);
 
 		Direction cellDir;
 

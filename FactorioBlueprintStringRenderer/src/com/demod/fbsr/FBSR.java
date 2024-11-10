@@ -45,10 +45,8 @@ import com.demod.factorio.ModInfo;
 import com.demod.factorio.TotalRawCalculator;
 import com.demod.factorio.Utils;
 import com.demod.factorio.prototype.DataPrototype;
-import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.factorio.prototype.ItemPrototype;
 import com.demod.factorio.prototype.RecipePrototype;
-import com.demod.factorio.prototype.TilePrototype;
 import com.demod.fbsr.Renderer.Layer;
 import com.demod.fbsr.WorldMap.RailEdge;
 import com.demod.fbsr.WorldMap.RailNode;
@@ -62,13 +60,11 @@ public class FBSR {
 
 	private static class EntityRenderingTuple {
 		BlueprintEntity entity;
-		EntityPrototype prototype;
 		EntityRendererFactory factory;
 	}
 
 	private static class TileRenderingTuple {
 		BlueprintTile tile;
-		TilePrototype prototype;
 		TileRendererFactory factory;
 	}
 
@@ -94,6 +90,8 @@ public class FBSR {
 
 	public static final double tileSize = 32.0;
 
+	private static volatile boolean initialized = false;
+
 	private static void addToItemAmount(Map<String, Double> items, String itemName, double add) {
 		double amount = items.getOrDefault(itemName, 0.0);
 		amount += add;
@@ -116,8 +114,8 @@ public class FBSR {
 
 			Point2D.Double pos = tuple.entity.getPosition();
 			Rectangle2D selectionBox;
-			if (tuple.prototype != null) {
-				selectionBox = tuple.entity.getDirection().rotateBounds(tuple.prototype.getSelectionBox());
+			if (tuple.factory.getPrototype() != null) {
+				selectionBox = tuple.entity.getDirection().rotateBounds(tuple.factory.getPrototype().getSelectionBox());
 			} else {
 				selectionBox = new Rectangle2D.Double();
 			}
@@ -715,6 +713,15 @@ public class FBSR {
 		return version;
 	}
 
+	public static synchronized void initialize() throws JSONException, IOException {
+		if (initialized) {
+			return;
+		}
+		DataTable table = FactorioData.getTable();
+		EntityRendererFactory.initPrototypes(table);
+		TileRendererFactory.initPrototypes(table);
+	}
+
 	private static void populateRailBlocking(WorldMap map) {
 		map.getRailNodes().cellSet().stream().filter(c -> c.getValue().hasSignals()).forEach(c -> {
 			RailNode blockingNode = c.getValue();
@@ -946,16 +953,10 @@ public class FBSR {
 		for (BlueprintEntity entity : blueprint.getEntities()) {
 			EntityRenderingTuple tuple = new EntityRenderingTuple();
 			tuple.entity = entity;
-			Optional<EntityPrototype> prototype = table.getEntity(entity.getName());
-			if (!prototype.isPresent()) {
-				tuple.prototype = null;
-				tuple.factory = EntityRendererFactory.UNKNOWN;
-				blueprint.setModsDetected();
-			} else {
-				tuple.prototype = prototype.get();
-				tuple.factory = EntityRendererFactory.forType(tuple.prototype.getType());
+			tuple.factory = EntityRendererFactory.forName(entity.getName());
+			if (tuple.factory == EntityRendererFactory.UNKNOWN) {
 				if (options.optBoolean("debug-typeMapping")) {
-					reporting.addDebug(entity.getName() + " -> " + tuple.factory.getClass().getSimpleName());
+					reporting.addDebug("Unknown Entity! " + entity.getName());
 				}
 			}
 			entityRenderingTuples.add(tuple);
@@ -963,16 +964,10 @@ public class FBSR {
 		for (BlueprintTile tile : blueprint.getTiles()) {
 			TileRenderingTuple tuple = new TileRenderingTuple();
 			tuple.tile = tile;
-			Optional<TilePrototype> prototype = table.getTile(tile.getName());
-			if (!prototype.isPresent()) {
-				tuple.prototype = null;
-				tuple.factory = TileRendererFactory.UNKNOWN;
-				blueprint.setModsDetected();
-			} else {
-				tuple.prototype = prototype.get();
-				tuple.factory = TileRendererFactory.forType(tuple.prototype.getType());
+			tuple.factory = TileRendererFactory.forName(tile.getName());
+			if (tuple.factory == TileRendererFactory.UNKNOWN) {
 				if (options.optBoolean("debug-typeMapping")) {
-					reporting.addDebug(tile.getName() + " -> " + tuple.factory.getClass().getSimpleName());
+					reporting.addDebug("Unknown Tile! " + tile.getName());
 				}
 			}
 			tileRenderingTuples.add(tuple);
@@ -985,14 +980,14 @@ public class FBSR {
 
 		entityRenderingTuples.forEach(t -> {
 			try {
-				t.factory.populateWorldMap(map, table, t.entity, t.prototype);
+				t.factory.populateWorldMap(map, table, t.entity);
 			} catch (Exception e) {
 				reporting.addException(e);
 			}
 		});
 		tileRenderingTuples.forEach(t -> {
 			try {
-				t.factory.populateWorldMap(map, table, t.tile, t.prototype);
+				t.factory.populateWorldMap(map, table, t.tile);
 			} catch (Exception e) {
 				reporting.addException(e);
 			}
@@ -1000,7 +995,7 @@ public class FBSR {
 
 		entityRenderingTuples.forEach(t -> {
 			try {
-				t.factory.populateLogistics(map, table, t.entity, t.prototype);
+				t.factory.populateLogistics(map, table, t.entity);
 			} catch (Exception e) {
 				reporting.addException(e);
 			}
@@ -1016,14 +1011,14 @@ public class FBSR {
 
 		entityRenderingTuples.forEach(t -> {
 			try {
-				t.factory.createRenderers(renderers::add, map, table, t.entity, t.prototype);
+				t.factory.createRenderers(renderers::add, map, table, t.entity);
 			} catch (Exception e) {
 				reporting.addException(e);
 			}
 		});
 		tileRenderingTuples.forEach(t -> {
 			try {
-				t.factory.createRenderers(renderers::add, map, table, t.tile, t.prototype);
+				t.factory.createRenderers(renderers::add, map, table, t.tile);
 			} catch (Exception e) {
 				reporting.addException(e);
 			}
@@ -1031,7 +1026,7 @@ public class FBSR {
 
 		entityRenderingTuples.forEach(t -> {
 			try {
-				t.factory.createModuleIcons(renderers::add, map, table, t.entity, t.prototype);
+				t.factory.createModuleIcons(renderers::add, map, table, t.entity);
 			} catch (Exception e) {
 				reporting.addException(e);
 			}
@@ -1039,7 +1034,7 @@ public class FBSR {
 
 		entityRenderingTuples.forEach(t -> {
 			try {
-				t.factory.createWireConnections(renderers::add, map, table, t.entity, t.prototype);
+				t.factory.createWireConnections(renderers::add, map, table, t.entity);
 			} catch (Exception e) {
 				reporting.addException(e);
 			}

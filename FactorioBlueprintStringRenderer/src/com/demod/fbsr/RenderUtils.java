@@ -25,21 +25,41 @@ import org.luaj.vm2.LuaValue;
 import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
 import com.demod.factorio.Utils;
-import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.factorio.prototype.ItemPrototype;
-import com.demod.factorio.prototype.TilePrototype;
 import com.demod.fbsr.Renderer.Layer;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.Multiset;
 
 public final class RenderUtils {
+	public static class SpriteDirDefList {
+		@SuppressWarnings("unchecked")
+		private final List<SpriteDef>[] dirSprites = new List[Direction.values().length];
+
+		public List<SpriteDef> get(Direction direction) {
+			return dirSprites[direction.ordinal()];
+		}
+
+		public void set(Direction direction, List<SpriteDef> sprites) {
+			dirSprites[direction.ordinal()] = sprites;
+		}
+	}
+
 	public static final BufferedImage EMPTY_IMAGE = new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
+
 	static {
 		EMPTY_IMAGE.setRGB(0, 0, 0x00000000);
 	}
 
 	private static final DecimalFormat DECIMAL_FORMAT_2_PLACES = new DecimalFormat("#,##0.##");
+
+	public static List<Sprite> createSprites(List<List<SpriteDef>> sprites, Direction dir) {
+		return createSprites(sprites.get(dir.ordinal()));
+	}
+
+	public static List<Sprite> createSprites(List<SpriteDef> sprites) {
+		return sprites.stream().map(SpriteDef::createSprite).collect(Collectors.toList());
+	}
 
 	public static Renderer createWireRenderer(Point2D.Double p1, Point2D.Double p2, Color color) {
 		Rectangle2D.Double bounds = new Rectangle2D.Double();
@@ -143,6 +163,14 @@ public final class RenderUtils {
 		return new Color(sumR / sumA, sumG / sumA, sumB / sumA);
 	}
 
+	public static SpriteDirDefList getDirSpritesFromAnimation(LuaValue lua) {
+		SpriteDirDefList ret = new SpriteDirDefList();
+		for (Direction direction : Direction.values()) {
+			ret.set(direction, getSpritesFromAnimation(lua, direction));
+		}
+		return ret;
+	}
+
 	public static Optional<Multiset<String>> getModules(BlueprintEntity entity, DataTable table) {
 		// TODO new format
 		if (entity.isJsonNewFormat() || !entity.json().has("items")) {
@@ -170,7 +198,7 @@ public final class RenderUtils {
 		return Optional.of(modules);
 	}
 
-	public static Sprite getSpriteFromAnimation(LuaValue lua) {
+	public static Optional<SpriteDef> getSpriteFromAnimation(LuaValue lua) {
 		return getSpriteFromAnimation(lua, 0);
 	}
 
@@ -179,7 +207,7 @@ public final class RenderUtils {
 	 *                         "filenames" array. Used only if "filenames" property
 	 *                         exists.
 	 */
-	public static Sprite getSpriteFromAnimation(LuaValue lua, int fileNameSelector) {
+	public static Optional<SpriteDef> getSpriteFromAnimation(LuaValue lua, int fileNameSelector) {
 		LuaValue sheetLua = lua.get("sheet");
 		if (!sheetLua.isnil()) {
 			lua = sheetLua;
@@ -199,6 +227,9 @@ public final class RenderUtils {
 			imagePath = lua.get("filenames").get(fileNameSelector).tojstring();
 		} else {
 			imagePath = lua.get("filename").tojstring();
+		}
+		if (imagePath.equals("nil")) {
+			return Optional.empty();
 		}
 		ret.image = FactorioData.getModImage(imagePath);
 
@@ -223,14 +254,14 @@ public final class RenderUtils {
 		Point2D.Double shift = Utils.parsePoint2D(lua.get("shift"));
 		ret.source = new Rectangle(srcX, srcY, srcWidth, srcHeight);
 		ret.bounds = new Rectangle2D.Double(shift.x - width / 2.0, shift.y - height / 2.0, width, height);
-		return ret;
+		return Optional.of(new SpriteDef(ret));
 	}
 
-	public static List<Sprite> getSpritesFromAnimation(LuaValue lua) {
+	public static List<SpriteDef> getSpritesFromAnimation(LuaValue lua) {
 		return getSpritesFromAnimation(lua, 0);
 	}
 
-	public static List<Sprite> getSpritesFromAnimation(LuaValue lua, Direction direction) {
+	public static List<SpriteDef> getSpritesFromAnimation(LuaValue lua, Direction direction) {
 		LuaValue dirLua = lua.get(direction.name().toLowerCase());
 		if (!dirLua.isnil()) {
 			return getSpritesFromAnimation(dirLua, 0);
@@ -244,27 +275,29 @@ public final class RenderUtils {
 	 *                         "filenames" array. Used only if "filenames" property
 	 *                         exists.
 	 */
-	public static List<Sprite> getSpritesFromAnimation(LuaValue lua, int fileNameSelector) {
-		List<Sprite> sprites = new ArrayList<>();
+	public static List<SpriteDef> getSpritesFromAnimation(LuaValue lua, int fileNameSelector) {
+		List<SpriteDef> sprites = new ArrayList<>();
 		LuaValue layersLua = lua.get("layers");
 		if (layersLua.isnil()) {
 			layersLua = lua.get("sheets");
 		}
 		if (!layersLua.isnil()) {
 			Utils.forEach(layersLua.checktable(), (i, l) -> {
-				Sprite sprite = getSpriteFromAnimation(l, fileNameSelector);
-				sprite.order = i.toint();
-				sprites.add(sprite);
+				Optional<SpriteDef> spriteOpt = getSpriteFromAnimation(l, fileNameSelector);
+				if (spriteOpt.isPresent()) {
+					SpriteDef sprite = spriteOpt.get().withOrder(i.toint());
+					sprites.add(sprite);
+				}
 			});
 		} else {
-			sprites.add(getSpriteFromAnimation(lua, fileNameSelector));
+			getSpriteFromAnimation(lua, fileNameSelector).ifPresent(sprites::add);
 		}
 
 		sprites.sort((s1, s2) -> {
-			if (s1.shadow != s2.shadow) {
-				return Boolean.compare(s2.shadow, s1.shadow);
+			if (s1.isShadow() != s2.isShadow()) {
+				return Boolean.compare(s2.isShadow(), s1.isShadow());
 			}
-			return Integer.compare(s2.order, s1.order);
+			return Integer.compare(s2.getOrder(), s1.getOrder());
 		});
 
 		return sprites;
@@ -304,19 +337,50 @@ public final class RenderUtils {
 		}
 	}
 
+	public static EntityRenderer spriteDefRenderer(Layer layer, List<SpriteDef> sprites, BlueprintEntity entity,
+			Rectangle2D.Double bounds) {
+		return spriteRenderer(layer, createSprites(sprites), entity, bounds);
+	}
+
+	public static EntityRenderer spriteDefRenderer(Layer layer, SpriteDef sprite, BlueprintEntity entity,
+			Rectangle2D.Double bounds) {
+		return spriteRenderer(layer, sprite.createSprite(), entity, bounds);
+	}
+
+	public static Renderer spriteDefRenderer(Layer layer, SpriteDef sprite, BlueprintTile tile) {
+		return spriteRenderer(layer, sprite.createSprite(), tile);
+	}
+
+	public static EntityRenderer spriteDefRenderer(List<SpriteDef> sprites, BlueprintEntity entity,
+			Rectangle2D.Double bounds) {
+		return spriteRenderer(createSprites(sprites), entity, bounds);
+	}
+
+	public static EntityRenderer spriteDefRenderer(SpriteDef sprite, BlueprintEntity entity,
+			Rectangle2D.Double bounds) {
+		return spriteRenderer(sprite.createSprite(), entity, bounds);
+	}
+
+	public static EntityRenderer spriteDirDefRenderer(Layer layer, SpriteDirDefList sprites, BlueprintEntity entity,
+			Rectangle2D.Double bounds) {
+		return spriteRenderer(layer, createSprites(sprites.get(entity.getDirection())), entity, bounds);
+	}
+
+	public static EntityRenderer spriteDirDefRenderer(SpriteDirDefList sprites, BlueprintEntity entity,
+			Rectangle2D.Double bounds) {
+		return spriteRenderer(createSprites(sprites.get(entity.getDirection())), entity, bounds);
+	}
+
 	public static EntityRenderer spriteRenderer(Layer layer, List<Sprite> sprites, BlueprintEntity entity,
-			EntityPrototype prototype) {
+			Rectangle2D.Double bounds) {
 		Point2D.Double pos = entity.getPosition();
 		RenderUtils.shiftSprites(sprites, pos);
 
 		Map<Boolean, List<Sprite>> groupedSprites = sprites.stream()
 				.collect(Collectors.partitioningBy(sprite -> sprite.shadow));
 
-		// Rectangle2D.Double groundBounds =
-		// Utils.parseRectangle(prototype.lua().get("collision_box"));
-		Rectangle2D.Double groundBounds = Utils.parseRectangle(prototype.lua().get("selection_box"));
-		groundBounds.x += pos.x;
-		groundBounds.y += pos.y;
+		Rectangle2D.Double groundBounds = new Rectangle2D.Double(pos.x + bounds.x, pos.y + bounds.y, bounds.width,
+				bounds.height);
 		return new EntityRenderer(layer, groundBounds) {
 			@SuppressWarnings("unused")
 			private void debugShowBounds(Rectangle2D.Double groundBounds, Graphics2D g) {
@@ -359,11 +423,11 @@ public final class RenderUtils {
 	}
 
 	public static EntityRenderer spriteRenderer(Layer layer, Sprite sprite, BlueprintEntity entity,
-			EntityPrototype prototype) {
-		return spriteRenderer(layer, ImmutableList.of(sprite), entity, prototype);
+			Rectangle2D.Double bounds) {
+		return spriteRenderer(layer, ImmutableList.of(sprite), entity, bounds);
 	}
 
-	public static Renderer spriteRenderer(Layer layer, Sprite sprite, BlueprintTile tile, TilePrototype prototype) {
+	public static Renderer spriteRenderer(Layer layer, Sprite sprite, BlueprintTile tile) {
 		Point2D.Double pos = tile.getPosition();
 		sprite.bounds.x += pos.x;
 		sprite.bounds.y += pos.y;
@@ -401,12 +465,12 @@ public final class RenderUtils {
 	}
 
 	public static EntityRenderer spriteRenderer(List<Sprite> sprites, BlueprintEntity entity,
-			EntityPrototype prototype) {
-		return spriteRenderer(Layer.ENTITY, sprites, entity, prototype);
+			Rectangle2D.Double bounds) {
+		return spriteRenderer(Layer.ENTITY, sprites, entity, bounds);
 	}
 
-	public static EntityRenderer spriteRenderer(Sprite sprite, BlueprintEntity entity, EntityPrototype prototype) {
-		return spriteRenderer(Layer.ENTITY, sprite, entity, prototype);
+	public static EntityRenderer spriteRenderer(Sprite sprite, BlueprintEntity entity, Rectangle2D.Double bounds) {
+		return spriteRenderer(Layer.ENTITY, sprite, entity, bounds);
 	}
 
 	public static Color withAlpha(Color color, int alpha) {

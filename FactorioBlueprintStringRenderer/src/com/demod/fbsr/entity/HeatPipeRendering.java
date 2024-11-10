@@ -1,6 +1,9 @@
 package com.demod.fbsr.entity;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import com.demod.factorio.DataTable;
 import com.demod.factorio.prototype.EntityPrototype;
@@ -9,7 +12,7 @@ import com.demod.fbsr.Direction;
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
-import com.demod.fbsr.Sprite;
+import com.demod.fbsr.SpriteDef;
 import com.demod.fbsr.WorldMap;
 
 public class HeatPipeRendering extends EntityRendererFactory {
@@ -34,19 +37,19 @@ public class HeatPipeRendering extends EntityRendererFactory {
 					"cross",// WSEN
 			};
 
+	private List<SpriteDef> protoPipeSprites;
+
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintEntity entity,
-			EntityPrototype prototype) {
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
+			BlueprintEntity entity) {
 		int adjCode = 0;
 		adjCode |= ((heatPipeFacingMeFrom(Direction.NORTH, map, entity) ? 1 : 0) << 0);
 		adjCode |= ((heatPipeFacingMeFrom(Direction.EAST, map, entity) ? 1 : 0) << 1);
 		adjCode |= ((heatPipeFacingMeFrom(Direction.SOUTH, map, entity) ? 1 : 0) << 2);
 		adjCode |= ((heatPipeFacingMeFrom(Direction.WEST, map, entity) ? 1 : 0) << 3);
-		String spriteName = heatPipeSpriteNameMapping[adjCode];
+		SpriteDef sprite = protoPipeSprites.get(adjCode);
 
-		Sprite sprite = RenderUtils.getSpriteFromAnimation(prototype.lua().get("connection_sprites").get(spriteName).get(1));
-
-		register.accept(RenderUtils.spriteRenderer(sprite, entity, prototype));
+		register.accept(RenderUtils.spriteDefRenderer(sprite, entity, protoSelectionBox));
 	}
 
 	public boolean heatPipeFacingMeFrom(Direction direction, WorldMap map, BlueprintEntity entity) {
@@ -54,7 +57,16 @@ public class HeatPipeRendering extends EntityRendererFactory {
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity, EntityPrototype prototype) {
+	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
+		super.initFromPrototype(dataTable, prototype);
+
+		protoPipeSprites = Arrays.stream(heatPipeSpriteNameMapping).map(
+				s -> RenderUtils.getSpriteFromAnimation(prototype.lua().get("connection_sprites").get(s).get(1)).get())
+				.collect(Collectors.toList());
+	}
+
+	@Override
+	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity) {
 		map.setHeatPipe(entity.getPosition());
 	}
 }
