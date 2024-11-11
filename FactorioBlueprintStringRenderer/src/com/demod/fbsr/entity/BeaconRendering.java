@@ -56,10 +56,11 @@ public class BeaconRendering extends EntityRendererFactory {
 	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity) {
 		Point2D.Double pos = entity.getPosition();
 
-		Rectangle2D.Double supplyBounds = new Rectangle2D.Double(protoSelectionBox.x + pos.x - protoSupplyAreaDistance,
-				protoSelectionBox.y + pos.y - protoSupplyAreaDistance,
-				protoSelectionBox.width + protoSupplyAreaDistance * 2,
-				protoSelectionBox.height + protoSupplyAreaDistance * 2);
+		Rectangle2D.Double supplyBounds = protoSelectionBox.createRect();
+		supplyBounds.x += pos.x - protoSupplyAreaDistance;
+		supplyBounds.y += pos.y - protoSupplyAreaDistance;
+		supplyBounds.width += protoSupplyAreaDistance * 2;
+		supplyBounds.height += protoSupplyAreaDistance * 2;
 
 		// XXX jank
 		entity.json().put("distribution_effectivity", protoDistributionEffectivity);

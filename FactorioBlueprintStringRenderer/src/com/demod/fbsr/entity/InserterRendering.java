@@ -102,7 +102,7 @@ public class InserterRendering extends EntityRendererFactory {
 			public void render(Graphics2D g) {
 				AffineTransform pat = g.getTransform();
 
-				Rectangle2D.Double bounds = protoSpriteArmHand.getBounds();
+				Rectangle2D.Double bounds = protoSpriteArmHand.getBounds().createRect();
 				Rectangle source = protoSpriteArmHand.getSource();
 				BufferedImage image = protoSpriteArmHand.getImage();
 
@@ -121,7 +121,7 @@ public class InserterRendering extends EntityRendererFactory {
 			public void render(Graphics2D g) {
 				AffineTransform pat = g.getTransform();
 
-				Rectangle2D.Double bounds = protoGrabMarkerSprite.getBounds();
+				Rectangle2D.Double bounds = protoGrabMarkerSprite.getBounds().createRect();
 				Rectangle source = protoGrabMarkerSprite.getSource();
 				BufferedImage image = protoGrabMarkerSprite.getImage();
 
@@ -158,7 +158,7 @@ public class InserterRendering extends EntityRendererFactory {
 			public void render(Graphics2D g) {
 				AffineTransform pat = g.getTransform();
 
-				Rectangle2D.Double bounds = protoPlaceMarkerSprite.getBounds();
+				Rectangle2D.Double bounds = protoPlaceMarkerSprite.getBounds().createRect();
 				Rectangle source = protoPlaceMarkerSprite.getSource();
 				BufferedImage image = protoPlaceMarkerSprite.getImage();
 

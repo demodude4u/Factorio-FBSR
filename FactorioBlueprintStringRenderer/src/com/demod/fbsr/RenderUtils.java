@@ -338,12 +338,12 @@ public final class RenderUtils {
 	}
 
 	public static EntityRenderer spriteDefRenderer(Layer layer, List<SpriteDef> sprites, BlueprintEntity entity,
-			Rectangle2D.Double bounds) {
+			RectDef bounds) {
 		return spriteRenderer(layer, createSprites(sprites), entity, bounds);
 	}
 
 	public static EntityRenderer spriteDefRenderer(Layer layer, SpriteDef sprite, BlueprintEntity entity,
-			Rectangle2D.Double bounds) {
+			RectDef bounds) {
 		return spriteRenderer(layer, sprite.createSprite(), entity, bounds);
 	}
 
@@ -351,36 +351,36 @@ public final class RenderUtils {
 		return spriteRenderer(layer, sprite.createSprite(), tile);
 	}
 
-	public static EntityRenderer spriteDefRenderer(List<SpriteDef> sprites, BlueprintEntity entity,
-			Rectangle2D.Double bounds) {
+	public static EntityRenderer spriteDefRenderer(List<SpriteDef> sprites, BlueprintEntity entity, RectDef bounds) {
 		return spriteRenderer(createSprites(sprites), entity, bounds);
 	}
 
-	public static EntityRenderer spriteDefRenderer(SpriteDef sprite, BlueprintEntity entity,
-			Rectangle2D.Double bounds) {
+	public static EntityRenderer spriteDefRenderer(SpriteDef sprite, BlueprintEntity entity, RectDef bounds) {
 		return spriteRenderer(sprite.createSprite(), entity, bounds);
 	}
 
 	public static EntityRenderer spriteDirDefRenderer(Layer layer, SpriteDirDefList sprites, BlueprintEntity entity,
-			Rectangle2D.Double bounds) {
+			RectDef bounds) {
 		return spriteRenderer(layer, createSprites(sprites.get(entity.getDirection())), entity, bounds);
 	}
 
 	public static EntityRenderer spriteDirDefRenderer(SpriteDirDefList sprites, BlueprintEntity entity,
-			Rectangle2D.Double bounds) {
+			RectDef bounds) {
 		return spriteRenderer(createSprites(sprites.get(entity.getDirection())), entity, bounds);
 	}
 
 	public static EntityRenderer spriteRenderer(Layer layer, List<Sprite> sprites, BlueprintEntity entity,
-			Rectangle2D.Double bounds) {
+			RectDef bounds) {
 		Point2D.Double pos = entity.getPosition();
 		RenderUtils.shiftSprites(sprites, pos);
 
 		Map<Boolean, List<Sprite>> groupedSprites = sprites.stream()
 				.collect(Collectors.partitioningBy(sprite -> sprite.shadow));
 
-		Rectangle2D.Double groundBounds = new Rectangle2D.Double(pos.x + bounds.x, pos.y + bounds.y, bounds.width,
-				bounds.height);
+		Rectangle2D.Double groundBounds = bounds.createRect();
+		groundBounds.x += pos.x;
+		groundBounds.y += pos.y;
+
 		return new EntityRenderer(layer, groundBounds) {
 			@SuppressWarnings("unused")
 			private void debugShowBounds(Rectangle2D.Double groundBounds, Graphics2D g) {
@@ -422,8 +422,7 @@ public final class RenderUtils {
 		};
 	}
 
-	public static EntityRenderer spriteRenderer(Layer layer, Sprite sprite, BlueprintEntity entity,
-			Rectangle2D.Double bounds) {
+	public static EntityRenderer spriteRenderer(Layer layer, Sprite sprite, BlueprintEntity entity, RectDef bounds) {
 		return spriteRenderer(layer, ImmutableList.of(sprite), entity, bounds);
 	}
 
@@ -464,12 +463,11 @@ public final class RenderUtils {
 		};
 	}
 
-	public static EntityRenderer spriteRenderer(List<Sprite> sprites, BlueprintEntity entity,
-			Rectangle2D.Double bounds) {
+	public static EntityRenderer spriteRenderer(List<Sprite> sprites, BlueprintEntity entity, RectDef bounds) {
 		return spriteRenderer(Layer.ENTITY, sprites, entity, bounds);
 	}
 
-	public static EntityRenderer spriteRenderer(Sprite sprite, BlueprintEntity entity, Rectangle2D.Double bounds) {
+	public static EntityRenderer spriteRenderer(Sprite sprite, BlueprintEntity entity, RectDef bounds) {
 		return spriteRenderer(Layer.ENTITY, sprite, entity, bounds);
 	}
 

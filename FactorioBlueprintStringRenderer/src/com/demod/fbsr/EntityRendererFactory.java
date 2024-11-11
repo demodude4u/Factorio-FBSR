@@ -277,7 +277,7 @@ public class EntityRendererFactory {
 	}
 
 	private EntityPrototype prototype = null;
-	protected Rectangle2D.Double protoSelectionBox;
+	protected RectDef protoSelectionBox;
 	protected boolean protoBeaconed;
 	protected SpriteDirDefList protoDirSprites;
 
@@ -300,7 +300,7 @@ public class EntityRendererFactory {
 				@Override
 				public void render(Graphics2D g) {
 					Point2D.Double pos = entity.getPosition();
-					Rectangle2D.Double box = protoSelectionBox;
+					Rectangle2D.Double box = protoSelectionBox.createRect();
 
 					double startX = pos.x + box.x + box.width / 2.0 - spacing * (modules.size() / 2.0) + spacing / 2.0;
 					double startY = pos.y + box.y + box.height - vpad;
@@ -327,7 +327,7 @@ public class EntityRendererFactory {
 
 		if (protoBeaconed) {
 			Point2D.Double pos = entity.getPosition();
-			Rectangle2D.Double beaconedBounds = protoSelectionBox;
+			Rectangle2D.Double beaconedBounds = protoSelectionBox.createRect();
 			beaconedBounds.x += pos.x;
 			beaconedBounds.y += pos.y;
 			Set<BlueprintEntity> beacons = new LinkedHashSet<>();
@@ -371,7 +371,7 @@ public class EntityRendererFactory {
 					@Override
 					public void render(Graphics2D g) {
 						Point2D.Double pos = entity.getPosition();
-						Rectangle2D.Double box = protoSelectionBox;
+						Rectangle2D.Double box = protoSelectionBox.createRect();
 
 						double startX = pos.x + box.x + box.width / 2.0 - spacing * (modules.size() / 2.0)
 								+ spacing / 2.0;
@@ -502,7 +502,7 @@ public class EntityRendererFactory {
 	}
 
 	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
-		protoSelectionBox = prototype.getSelectionBox();
+		protoSelectionBox = new RectDef(prototype.getSelectionBox());
 
 		// XXX Hard-coding
 		protoBeaconed = (!prototype.lua().get("module_specification").isnil()
@@ -525,7 +525,7 @@ public class EntityRendererFactory {
 				if (!iconLua.isnil()) {
 					BufferedImage image = FactorioData.getModImage(iconLua.tojstring());
 					SpriteDef sprite = new SpriteDef(image, new Rectangle(0, 0, image.getWidth(), image.getHeight()),
-							prototype.getSelectionBox());
+							protoSelectionBox);
 					protoDirSprites.set(dir, ImmutableList.of(sprite));
 				} else {
 					protoDirSprites.set(dir, ImmutableList.of());
@@ -552,7 +552,7 @@ public class EntityRendererFactory {
 	protected void setLogisticMachine(WorldMap map, DataTable dataTable, BlueprintEntity entity,
 			RecipePrototype recipe) {
 		Point2D.Double entityPos = entity.getPosition();
-		Rectangle2D.Double box = protoSelectionBox;
+		Rectangle2D.Double box = protoSelectionBox.createRect();
 		double xStart = entityPos.x + box.x;
 		double yStart = entityPos.y + box.y;
 		double xEnd = xStart + box.width;
