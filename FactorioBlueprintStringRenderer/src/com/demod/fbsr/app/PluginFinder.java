@@ -11,6 +11,7 @@ public class PluginFinder {
 		public void run();
 	}
 
+	@SuppressWarnings("deprecation")
 	public static List<Plugin> loadPlugins() {
 		List<Plugin> ret = new ArrayList<>();
 		File folder = new File("plugins");
