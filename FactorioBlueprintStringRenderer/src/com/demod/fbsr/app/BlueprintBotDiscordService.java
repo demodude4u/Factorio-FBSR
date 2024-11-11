@@ -697,6 +697,28 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				//
 				.addMessageCommand("Blueprint Image", event -> handleBlueprintMessageCommand(event))
 				//
+				.addSlashCommand("bp/string", "Renders an image of the blueprint string.",
+						event -> handleBlueprintSlashCommand(event))//
+				.withParam(OptionType.STRING, "string", "Blueprint string.")//
+				.withOptionalParam(OptionType.BOOLEAN, "simple", "Set True to show just the image, no side panels.")
+				.withOptionalParam(OptionType.INTEGER, "max-width", "Maximum width of image, in pixels.")
+				.withOptionalParam(OptionType.INTEGER, "max-height", "Maximum height of image, in pixels.")
+				.withLegacyWarning("blueprint", "bp")//
+				//
+				.addSlashCommand("bp/url", "Renders an image of the blueprint url.",
+						event -> handleBlueprintSlashCommand(event))//
+				.withParam(OptionType.STRING, "url", "Url containing blueprint string.")//
+				.withOptionalParam(OptionType.BOOLEAN, "simple", "Set True to show just the image, no side panels.")
+				.withOptionalParam(OptionType.INTEGER, "max-width", "Maximum width of image, in pixels.")
+				.withOptionalParam(OptionType.INTEGER, "max-height", "Maximum height of image, in pixels.")
+				//
+				.addSlashCommand("bp/file", "Renders an image of the blueprint attachment.",
+						event -> handleBlueprintSlashCommand(event))//
+				.withParam(OptionType.ATTACHMENT, "file", "File containing blueprint string.")//
+				.withOptionalParam(OptionType.BOOLEAN, "simple", "Set True to show just the image, no side panels.")
+				.withOptionalParam(OptionType.INTEGER, "max-width", "Maximum width of image, in pixels.")
+				.withOptionalParam(OptionType.INTEGER, "max-height", "Maximum height of image, in pixels.")
+				//
 				.addSlashCommand("blueprint/string", "Renders an image of the blueprint string.",
 						event -> handleBlueprintSlashCommand(event))//
 				.withParam(OptionType.STRING, "string", "Blueprint string.")//
