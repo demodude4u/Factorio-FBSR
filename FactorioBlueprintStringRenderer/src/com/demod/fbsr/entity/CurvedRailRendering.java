@@ -25,17 +25,6 @@ public class CurvedRailRendering extends EntityRendererFactory {
 		SpriteDef sprite;
 	}
 
-	private static final String[] railNames = { //
-			"curved_rail_vertical_left_bottom", //
-			"curved_rail_vertical_right_bottom", //
-			"curved_rail_horizontal_left_top", //
-			"curved_rail_horizontal_left_bottom", //
-			"curved_rail_vertical_right_top", //
-			"curved_rail_vertical_left_top", //
-			"curved_rail_horizontal_right_bottom", //
-			"curved_rail_horizontal_right_top", //
-	};
-
 	private static final int[][][] pathEnds = //
 			new int[/* dir */][/* points */][/* x,y,dir */] { //
 					{ { 1, 4, 0 }, { -2, -3, 3 } }, // N
@@ -65,9 +54,8 @@ public class CurvedRailRendering extends EntityRendererFactory {
 		super.initFromPrototype(dataTable, prototype);
 
 		protoDirRailLayers = new ArrayList<>();
-		for (int i = 0; i < Direction.values().length; i++) {
-			String railName = railNames[i];
-			LuaValue pictureRailLua = prototype.lua().get("pictures").get(railName);
+		for (Direction direction : Direction.values()) {
+			LuaValue pictureRailLua = prototype.lua().get("pictures").get(direction.name().toLowerCase());
 			List<LayeredSpriteDef> sprites = new ArrayList<>();
 			for (Entry<String, Layer> entry : StraightRailRendering.railLayers.entrySet()) {
 				LayeredSpriteDef lsd = new LayeredSpriteDef();

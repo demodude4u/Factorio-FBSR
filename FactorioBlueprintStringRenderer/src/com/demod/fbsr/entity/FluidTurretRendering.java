@@ -29,7 +29,8 @@ public class FluidTurretRendering extends EntityRendererFactory {
 	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
 		super.initFromPrototype(dataTable, prototype);
 
-		protoBaseSprites = RenderUtils.getDirSpritesFromAnimation(prototype.lua().get("base_picture"));
+		protoBaseSprites = RenderUtils
+				.getDirSpritesFromAnimation(prototype.lua().get("graphics_set").get("base_visualisation"));
 		protoTurretSprites = RenderUtils.getDirSpritesFromAnimation(prototype.lua().get("folded_animation"));
 	}
 

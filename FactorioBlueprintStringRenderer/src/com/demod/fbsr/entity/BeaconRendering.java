@@ -4,50 +4,63 @@ import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Consumer;
 
 import org.luaj.vm2.LuaValue;
 
 import com.demod.factorio.DataTable;
-import com.demod.factorio.Utils;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.BlueprintEntity;
 import com.demod.fbsr.EntityRendererFactory;
+import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
-import com.demod.fbsr.SpriteDef;
+import com.demod.fbsr.Sprite;
 import com.demod.fbsr.WorldMap;
+import com.demod.fbsr.fp.FPAnimation;
+import com.demod.fbsr.fp.FPAnimationElement;
 
 public class BeaconRendering extends EntityRendererFactory {
 
-	private ArrayList<SpriteDef> protoAnimations;
+	public static class FPBeaconGraphicsSet {
+		public final List<FPAnimationElement> animationList;
+
+		public FPBeaconGraphicsSet(LuaValue lua) {
+			animationList = FPUtils.list(lua.get("animation_list"), FPAnimationElement::new);
+		}
+
+		public List<Sprite> createSprites(int frame) {
+			List<Sprite> ret = new ArrayList<>();
+			for (FPAnimationElement element : animationList) {
+				element.animation.createSprites(ret::add, frame);
+			}
+			return ret;
+		}
+	}
+
+	private Optional<FPBeaconGraphicsSet> protoGraphicsSet;
+	private Optional<FPAnimation> protoBasePicture;
 	private double protoSupplyAreaDistance;
 	private double protoDistributionEffectivity;
 
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
 			BlueprintEntity entity) {
-		register.accept(RenderUtils.spriteDefRenderer(protoAnimations, entity, protoSelectionBox));
+		if (protoGraphicsSet.isPresent()) {
+			register.accept(
+					RenderUtils.spriteRenderer(protoGraphicsSet.get().createSprites(0), entity, protoSelectionBox));
+		} else {
+			register.accept(
+					RenderUtils.spriteRenderer(protoBasePicture.get().createSprites(0), entity, protoSelectionBox));
+		}
 	}
 
 	@Override
 	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
-		super.initFromPrototype(dataTable, prototype);
 
-		protoAnimations = new ArrayList<>();
-		LuaValue animationList = prototype.lua().get("graphics_set").get("animation_list");
-		if (!animationList.isnil()) {
-			Utils.forEach(animationList.checktable(), (i, l) -> {
-				List<SpriteDef> animation = RenderUtils.getSpritesFromAnimation(l.get("animation"));
-				for (SpriteDef s : animation)
-					s.withOrder(i.toint());
-				protoAnimations.addAll(animation);
-			});
-		} else {
-			protoAnimations.addAll(RenderUtils.getSpritesFromAnimation(prototype.lua().get("base_picture")));
-			protoAnimations.addAll(RenderUtils.getSpritesFromAnimation(prototype.lua().get("animation")));
-		}
-
+		protoGraphicsSet = FPUtils.opt(prototype.lua().get("graphics_set"), FPBeaconGraphicsSet::new);
+		protoBasePicture = FPUtils.opt(prototype.lua().get("base_picture"), FPAnimation::new);
 		protoSupplyAreaDistance = prototype.lua().get("supply_area_distance").todouble();
 		protoDistributionEffectivity = prototype.lua().get("distribution_effectivity").todouble();
 	}

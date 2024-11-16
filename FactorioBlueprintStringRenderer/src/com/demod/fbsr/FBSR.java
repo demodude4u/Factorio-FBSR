@@ -954,6 +954,8 @@ public class FBSR {
 			EntityRenderingTuple tuple = new EntityRenderingTuple();
 			tuple.entity = entity;
 			tuple.factory = EntityRendererFactory.forName(entity.getName());
+			System.out.println("DEBUG ENTITY " + entity.getId() + " " + entity.getName() + " -> "
+					+ tuple.factory.getClass().getSimpleName());// XXX
 			if (tuple.factory == EntityRendererFactory.UNKNOWN) {
 				if (options.optBoolean("debug-typeMapping")) {
 					reporting.addDebug("Unknown Entity! " + entity.getName());

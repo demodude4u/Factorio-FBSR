@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+import org.luaj.vm2.LuaValue;
+
 import com.demod.factorio.DataTable;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.BlueprintEntity;
@@ -17,6 +19,7 @@ import com.demod.fbsr.SpriteDef;
 import com.demod.fbsr.WorldMap;
 
 public class RailChainSignalRendering extends EntityRendererFactory {
+	// TODO elevated versions
 
 	private SpriteDef protoRailPiece;
 	private List<SpriteDef> protoSprites;
@@ -52,8 +55,9 @@ public class RailChainSignalRendering extends EntityRendererFactory {
 	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
 		super.initFromPrototype(dataTable, prototype);
 
-		protoRailPiece = RenderUtils.getSpriteFromAnimation(prototype.lua().get("rail_piece")).get();
-		protoSprites = RenderUtils.getSpritesFromAnimation(prototype.lua().get("animation"));
+		LuaValue groundLua = prototype.lua().get("ground_picture_set");
+		protoRailPiece = RenderUtils.getSpriteFromAnimation(groundLua.get("rail_piece").get("sprites")).get();
+		protoSprites = RenderUtils.getSpritesFromAnimation(groundLua.get("structure"));
 	}
 
 	@Override

@@ -12,7 +12,6 @@ import java.util.AbstractMap.SimpleEntry;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
@@ -30,7 +29,6 @@ import com.demod.factorio.FactorioData;
 import com.demod.factorio.Utils;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.factorio.prototype.RecipePrototype;
-import com.demod.fbsr.RenderUtils.SpriteDirDefList;
 import com.demod.fbsr.Renderer.Layer;
 import com.demod.fbsr.entity.AccumulatorRendering;
 import com.demod.fbsr.entity.ArithmeticCombinatorRendering;
@@ -57,6 +55,8 @@ import com.demod.fbsr.entity.InserterRendering;
 import com.demod.fbsr.entity.LabRendering;
 import com.demod.fbsr.entity.LampRendering;
 import com.demod.fbsr.entity.LandMineRendering;
+import com.demod.fbsr.entity.LegacyCurvedRailRendering;
+import com.demod.fbsr.entity.LegacyStraightRailRendering;
 import com.demod.fbsr.entity.LinkedBeltRendering;
 import com.demod.fbsr.entity.LinkedContainerRendering;
 import com.demod.fbsr.entity.LoaderRendering;
@@ -84,14 +84,10 @@ import com.demod.fbsr.entity.TransportBeltRendering;
 import com.demod.fbsr.entity.TurretRendering;
 import com.demod.fbsr.entity.UndergroundBeltRendering;
 import com.demod.fbsr.entity.WallRendering;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.Multiset;
 
-public class EntityRendererFactory {
-
-	private static List<String> defaultProperties = ImmutableList.of("animation", "off_animation", "structure",
-			"picture");
+public abstract class EntityRendererFactory {
 
 	public static final EntityRendererFactory UNKNOWN = new EntityRendererFactory() {
 		Set<String> labeledTypes = new HashSet<>();
@@ -140,6 +136,10 @@ public class EntityRendererFactory {
 		}
 
 		@Override
+		public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
+		}
+
+		@Override
 		public void populateLogistics(WorldMap map, DataTable dataTable, BlueprintEntity entity) {
 		}
 
@@ -151,7 +151,7 @@ public class EntityRendererFactory {
 		}
 	};
 
-	private static Map<String, EntityRendererFactory> byName = new LinkedHashMap<>();
+	private static final Map<String, EntityRendererFactory> byName = new LinkedHashMap<>();
 	static {
 		byName.put("accumulator", new AccumulatorRendering());
 		byName.put("arithmetic-combinator", new ArithmeticCombinatorRendering());
@@ -175,7 +175,9 @@ public class EntityRendererFactory {
 //		byName.put("red-chest", new ContainerRendering());
 		byName.put("steel-chest", new ContainerRendering());
 		byName.put("wooden-chest", new ContainerRendering());
-		byName.put("curved-rail", new CurvedRailRendering());
+		byName.put("curved-rail-a", new CurvedRailRendering());
+		byName.put("curved-rail-b", new CurvedRailRendering());
+		byName.put("legacy-curved-rail", new LegacyCurvedRailRendering());
 		byName.put("decider-combinator", new DeciderCombinatorRendering());
 		byName.put("electric-energy-interface", new ElectricEnergyInterfaceRendering());
 		byName.put("big-electric-pole", new ElectricPoleRendering());
@@ -197,10 +199,9 @@ public class EntityRendererFactory {
 		byName.put("infinity-pipe", new PipeRendering());
 		byName.put("burner-inserter", new InserterRendering());
 		byName.put("fast-inserter", new InserterRendering());
-		byName.put("filter-inserter", new InserterRendering());
 		byName.put("inserter", new InserterRendering());
 		byName.put("long-handed-inserter", new InserterRendering());
-		byName.put("stack-filter-inserter", new InserterRendering());
+		byName.put("bulk-inserter", new InserterRendering());
 		byName.put("stack-inserter", new InserterRendering());
 		byName.put("lab", new LabRendering());
 		byName.put("small-lamp", new LampRendering());
@@ -212,11 +213,11 @@ public class EntityRendererFactory {
 		byName.put("loader", new LoaderRendering());
 		byName.put("loader-1x1", new LoaderRendering());
 		byName.put("locomotive", new RollingStockRendering());
-		byName.put("logistic-chest-active-provider", new LogisticContainerRendering());
-		byName.put("logistic-chest-buffer", new LogisticContainerRendering());
-		byName.put("logistic-chest-passive-provider", new LogisticContainerRendering());
-		byName.put("logistic-chest-requester", new LogisticContainerRendering());
-		byName.put("logistic-chest-storage", new LogisticContainerRendering());
+		byName.put("active-provider-chest", new LogisticContainerRendering());
+		byName.put("buffer-chest", new LogisticContainerRendering());
+		byName.put("passive-provider-chest", new LogisticContainerRendering());
+		byName.put("requester-chest", new LogisticContainerRendering());
+		byName.put("storage-chest", new LogisticContainerRendering());
 		byName.put("burner-mining-drill", new MiningDrillRendering());
 		byName.put("electric-mining-drill", new MiningDrillRendering());
 		byName.put("pumpjack", new MiningDrillRendering());
@@ -238,6 +239,7 @@ public class EntityRendererFactory {
 		byName.put("splitter", new SplitterRendering());
 		byName.put("storage-tank", new StorageTankRendering());
 		byName.put("straight-rail", new StraightRailRendering());
+		byName.put("legacy-straight-rail", new LegacyStraightRailRendering());
 		byName.put("train-stop", new TrainStopRendering());
 		byName.put("express-transport-belt", new TransportBeltRendering());
 		byName.put("fast-transport-belt", new TransportBeltRendering());
@@ -271,7 +273,12 @@ public class EntityRendererFactory {
 			System.out.println("Initializing " + entry.getKey());
 			EntityPrototype prototype = table.getEntity(entry.getKey()).get();
 			entry.getValue().setPrototype(prototype);
-			entry.getValue().initFromPrototype(table, prototype);
+			try {
+				entry.getValue().initFromPrototype(table, prototype);
+			} catch (Exception e) {
+				prototype.debugPrint();
+				throw e;
+			}
 		}
 		prototypesInitialized = true;
 	}
@@ -279,7 +286,6 @@ public class EntityRendererFactory {
 	private EntityPrototype prototype = null;
 	protected RectDef protoSelectionBox;
 	protected boolean protoBeaconed;
-	protected SpriteDirDefList protoDirSprites;
 
 	protected void addLogisticWarp(WorldMap map, Point2D.Double gridPos1, Direction cellDir1, Point2D.Double gridPos2,
 			Direction cellDir2) {
@@ -399,15 +405,8 @@ public class EntityRendererFactory {
 		}
 	}
 
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
-			BlueprintEntity entity) {
-		try {
-			register.accept(RenderUtils.spriteDirDefRenderer(protoDirSprites, entity, protoSelectionBox));
-		} catch (RuntimeException e) {
-			debugPrintContext(entity, prototype);
-			throw e;
-		}
-	}
+	public abstract void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
+			BlueprintEntity entity);
 
 	public void createWireConnections(Consumer<Renderer> register, WorldMap map, DataTable table,
 			BlueprintEntity entity) {
@@ -501,39 +500,7 @@ public class EntityRendererFactory {
 		return new Point2D.Double(pos.x + offset.x, pos.y + offset.y);
 	}
 
-	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
-		protoSelectionBox = new RectDef(prototype.getSelectionBox());
-
-		// XXX Hard-coding
-		protoBeaconed = (!prototype.lua().get("module_specification").isnil()
-				|| prototype.getName().equals("assembling-machine-1")
-				|| prototype.getName().equals("burner-mining-drill")) && !prototype.getName().equals("beacon");
-
-		// XXX Janky
-		Optional<LuaValue> findSpriteLua = defaultProperties.stream().map(p -> prototype.lua().get(p))
-				.filter(l -> l != LuaValue.NIL).findAny();
-		protoDirSprites = new SpriteDirDefList();
-		for (Direction dir : Direction.values()) {
-			if (findSpriteLua.isPresent()) {
-				LuaValue spriteLua = findSpriteLua.get().get(dir.name().toLowerCase());
-				if (spriteLua == LuaValue.NIL) {
-					spriteLua = findSpriteLua.get();
-				}
-				protoDirSprites.set(dir, RenderUtils.getSpritesFromAnimation(spriteLua, dir));
-			} else {
-				LuaValue iconLua = prototype.lua().get("icon");
-				if (!iconLua.isnil()) {
-					BufferedImage image = FactorioData.getModImage(iconLua.tojstring());
-					SpriteDef sprite = new SpriteDef(image, new Rectangle(0, 0, image.getWidth(), image.getHeight()),
-							protoSelectionBox);
-					protoDirSprites.set(dir, ImmutableList.of(sprite));
-				} else {
-					protoDirSprites.set(dir, ImmutableList.of());
-				}
-			}
-		}
-
-	}
+	public abstract void initFromPrototype(DataTable dataTable, EntityPrototype prototype);
 
 	public void populateLogistics(WorldMap map, DataTable dataTable, BlueprintEntity entity) {
 		// default do nothing
@@ -587,6 +554,14 @@ public class EntityRendererFactory {
 
 	public void setPrototype(EntityPrototype prototype) {
 		this.prototype = prototype;
+
+		// FIXME ideally there shouldn't be a need for selection box and beaconed check
+
+		protoSelectionBox = new RectDef(prototype.getSelectionBox());
+		// XXX Hard-coding
+		protoBeaconed = (!prototype.lua().get("module_specification").isnil()
+				|| prototype.getName().equals("assembling-machine-1")
+				|| prototype.getName().equals("burner-mining-drill")) && !prototype.getName().equals("beacon");
 	}
 
 }

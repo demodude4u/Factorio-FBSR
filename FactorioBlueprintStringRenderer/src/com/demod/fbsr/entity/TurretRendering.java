@@ -35,7 +35,8 @@ public class TurretRendering extends EntityRendererFactory {
 	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
 		super.initFromPrototype(dataTable, prototype);
 
-		protoBaseSprites = RenderUtils.getSpritesFromAnimation(prototype.lua().get("base_picture"));
+		protoBaseSprites = RenderUtils
+				.getSpritesFromAnimation(prototype.lua().get("graphics_set").get("base_visualisation"));
 		protoTurretSprites = RenderUtils.getSpritesFromAnimation(prototype.lua().get("folded_animation"));
 	}
 

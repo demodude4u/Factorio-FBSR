@@ -21,17 +21,6 @@ import com.demod.fbsr.WorldMap;
 
 public class StraightRailRendering extends EntityRendererFactory {
 
-	private static final String[] railNames = { //
-			"straight_rail_vertical", // N
-			"straight_rail_diagonal_right_top", // NE
-			"straight_rail_horizontal", // E
-			"straight_rail_diagonal_right_bottom", // SE
-			"straight_rail_vertical", // S
-			"straight_rail_diagonal_left_bottom", // SW
-			"straight_rail_horizontal", // W
-			"straight_rail_diagonal_left_top", // NW
-	};
-
 	private static final int[][][] pathEnds = //
 			new int[/* dir */][/* points */][/* x,y,dir */] { //
 					{ { 0, -1, 4 }, { 0, 1, 0 } }, // N
@@ -70,9 +59,11 @@ public class StraightRailRendering extends EntityRendererFactory {
 		super.initFromPrototype(dataTable, prototype);
 
 		protoDirRailLayers = new ArrayList<>();
-		for (int i = 0; i < Direction.values().length; i++) {
-			String railName = railNames[i];
-			LuaValue pictureRailLua = prototype.lua().get("pictures").get(railName);
+		for (Direction direction : Direction.values()) {
+			if (direction.ordinal() > 3) {
+				direction = direction.back();
+			}
+			LuaValue pictureRailLua = prototype.lua().get("pictures").get(direction.name().toLowerCase());
 			LinkedHashMap<Layer, SpriteDef> layers = new LinkedHashMap<>();
 			for (Entry<String, Layer> entry : StraightRailRendering.railLayers.entrySet()) {
 				layers.put(entry.getValue(),

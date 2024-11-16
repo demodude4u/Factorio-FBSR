@@ -53,6 +53,30 @@ public final class RenderUtils {
 
 	private static final DecimalFormat DECIMAL_FORMAT_2_PLACES = new DecimalFormat("#,##0.##");
 
+	public static Sprite createSprite(String filename, boolean shadow, String blendMode, Color tint, int srcX, int srcY,
+			int srcWidth, int srcHeight, double dstX, double dstY, double dstScale) {
+
+		Sprite ret = new Sprite();
+		ret.image = FactorioData.getModImage(filename);
+		ret.shadow = shadow;
+
+		if (!blendMode.equals("normal")) { // FIXME blending will take effort
+			ret.image = RenderUtils.EMPTY_IMAGE;
+		}
+
+		if (!tint.equals(Color.white)) {
+			ret.image = Utils.tintImage(ret.image, tint);
+		}
+
+		double scaledWidth = dstScale * srcWidth / FBSR.tileSize;
+		double scaledHeight = dstScale * srcHeight / FBSR.tileSize;
+		ret.source = new Rectangle(srcX, srcY, srcWidth, srcHeight);
+		ret.bounds = new Rectangle2D.Double(dstX - scaledWidth / 2.0, dstY - scaledHeight / 2.0, scaledWidth,
+				scaledHeight);
+
+		return ret;
+	}
+
 	public static List<Sprite> createSprites(List<List<SpriteDef>> sprites, Direction dir) {
 		return createSprites(sprites.get(dir.ordinal()));
 	}
@@ -247,9 +271,17 @@ public final class RenderUtils {
 		double scale = lua.get("scale").optdouble(1.0);
 		int srcX = lua.get("x").optint(0);
 		int srcY = lua.get("y").optint(0);
-		int srcWidth = lua.get("width").checkint();
+		int size = lua.get("size").optint(0);
+		int srcWidth;
+		int srcHeight;
+		if (size > 0) {
+			srcWidth = size;
+			srcHeight = size;
+		} else {
+			srcWidth = lua.get("width").checkint();
+			srcHeight = lua.get("height").checkint();
+		}
 		double width = scale * srcWidth / FBSR.tileSize;
-		int srcHeight = lua.get("height").checkint();
 		double height = scale * srcHeight / FBSR.tileSize;
 		Point2D.Double shift = Utils.parsePoint2D(lua.get("shift"));
 		ret.source = new Rectangle(srcX, srcY, srcWidth, srcHeight);

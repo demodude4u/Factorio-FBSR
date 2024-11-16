@@ -71,6 +71,10 @@ public enum Direction {
 		return dy;
 	}
 
+	public double getOrientation() {
+		return ordinal() / 8.0;
+	}
+
 	public boolean isCardinal() {
 		return (ordinal() % 2) == 0;
 	}
