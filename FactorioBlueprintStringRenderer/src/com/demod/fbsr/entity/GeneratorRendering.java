@@ -1,7 +1,6 @@
 package com.demod.fbsr.entity;
 
 import java.awt.geom.Point2D;
-import java.util.List;
 import java.util.function.Consumer;
 
 import com.demod.factorio.DataTable;
@@ -11,30 +10,30 @@ import com.demod.fbsr.Direction;
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
-import com.demod.fbsr.SpriteDef;
 import com.demod.fbsr.WorldMap;
+import com.demod.fbsr.fp.FPAnimation;
 
 public class GeneratorRendering extends EntityRendererFactory {
 
-	private List<SpriteDef> protoVerticalSprites;
-	private List<SpriteDef> protoHorizontalSprites;
+	private FPAnimation protoVerticalAnimation;
+	private FPAnimation protoHorizontalAnimation;
 
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
 			BlueprintEntity entity) {
 		if (isVertical(entity)) {
-			register.accept(RenderUtils.spriteDefRenderer(protoVerticalSprites, entity, protoSelectionBox));
+			register.accept(
+					RenderUtils.spriteRenderer(protoVerticalAnimation.createSprites(0), entity, protoSelectionBox));
 		} else {
-			register.accept(RenderUtils.spriteDefRenderer(protoHorizontalSprites, entity, protoSelectionBox));
+			register.accept(
+					RenderUtils.spriteRenderer(protoHorizontalAnimation.createSprites(0), entity, protoSelectionBox));
 		}
 	}
 
 	@Override
 	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
-		super.initFromPrototype(dataTable, prototype);
-
-		protoVerticalSprites = RenderUtils.getSpritesFromAnimation(prototype.lua().get("vertical_animation"));
-		protoHorizontalSprites = RenderUtils.getSpritesFromAnimation(prototype.lua().get("horizontal_animation"));
+		protoVerticalAnimation = new FPAnimation(prototype.lua().get("vertical_animation"));
+		protoHorizontalAnimation = new FPAnimation(prototype.lua().get("horizontal_animation"));
 	}
 
 	private boolean isVertical(BlueprintEntity entity) {

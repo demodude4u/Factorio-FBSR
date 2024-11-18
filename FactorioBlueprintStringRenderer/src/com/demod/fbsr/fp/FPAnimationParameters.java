@@ -2,6 +2,9 @@ package com.demod.fbsr.fp;
 
 import org.luaj.vm2.LuaValue;
 
+import com.demod.fbsr.RenderUtils;
+import com.demod.fbsr.Sprite;
+
 public class FPAnimationParameters extends FPSpriteParameters {
 
 	public final int frameCount;
@@ -11,7 +14,19 @@ public class FPAnimationParameters extends FPSpriteParameters {
 		super(lua);
 
 		frameCount = lua.get("frame_count").optint(1);
-		lineLength = lua.get("line_length").optint(0);
+		int lineLength = lua.get("line_length").optint(0);
+		if (lineLength == 0) {
+			lineLength = frameCount;
+		}
+		this.lineLength = lineLength;
 	}
 
+	protected Sprite createSprite(int frame) {
+
+		int x = width * (frame % lineLength);
+		int y = height * (frame / lineLength);
+
+		return RenderUtils.createSprite(filename.get(), drawAsShadow, blendMode, getEffectiveTint(), x, y, width,
+				height, shift.x, shift.y, scale);
+	}
 }

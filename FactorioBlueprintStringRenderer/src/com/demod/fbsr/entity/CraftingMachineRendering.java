@@ -30,13 +30,7 @@ import com.demod.fbsr.fp.FPWorkingVisualisations;
 
 public abstract class CraftingMachineRendering extends EntityRendererFactory {
 
-	public static class FPCraftingMachineGraphicsSet extends FPWorkingVisualisations {
-		public FPCraftingMachineGraphicsSet(LuaValue lua) {
-			super(lua);
-		}
-	}
-
-	private FPCraftingMachineGraphicsSet protoGraphicsSet;
+	private FPWorkingVisualisations protoGraphicsSet;
 	private boolean protoOffWhenNoFluidRecipe;
 	private List<Point2D.Double> protoFluidBoxes;
 
@@ -44,8 +38,8 @@ public abstract class CraftingMachineRendering extends EntityRendererFactory {
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
 			BlueprintEntity entity) {
 
-		register.accept(RenderUtils.spriteRenderer(protoGraphicsSet.animation.createSprites(entity.getDirection(), 0),
-				entity, protoSelectionBox));
+		register.accept(RenderUtils.spriteRenderer(protoGraphicsSet.createSprites(entity.getDirection(), 0), entity,
+				protoSelectionBox));
 
 		Sprite spriteIcon = new Sprite();
 
@@ -89,7 +83,7 @@ public abstract class CraftingMachineRendering extends EntityRendererFactory {
 	@Override
 	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
 
-		protoGraphicsSet = new FPCraftingMachineGraphicsSet(prototype.lua().get("graphics_set"));
+		protoGraphicsSet = new FPWorkingVisualisations(prototype.lua().get("graphics_set"));
 
 		LuaValue fluidBoxesLua = prototype.lua().get("fluid_boxes");
 

@@ -22,7 +22,6 @@ public class FPAnimation4Way {
 	public final Optional<FPAnimation> south;
 	public final Optional<FPAnimation> southWest;
 	public final Optional<FPAnimation> west;
-
 	public final Optional<FPAnimation> northWest;
 
 	public final Optional<FPAnimation> animation;

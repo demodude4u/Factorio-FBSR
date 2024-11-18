@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+import org.luaj.vm2.LuaValue;
+
 import com.demod.factorio.DataTable;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.BlueprintEntity;
@@ -12,8 +14,8 @@ import com.demod.fbsr.Direction;
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
-import com.demod.fbsr.SpriteDef;
 import com.demod.fbsr.WorldMap;
+import com.demod.fbsr.fp.FPSprite;
 
 public class PipeRendering extends EntityRendererFactory {
 
@@ -37,7 +39,7 @@ public class PipeRendering extends EntityRendererFactory {
 					"cross",// WSEN
 			};
 
-	private List<SpriteDef> protoPipeSprites;
+	private List<FPSprite> protoPipeSprites;
 
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
@@ -47,17 +49,15 @@ public class PipeRendering extends EntityRendererFactory {
 		adjCode |= ((pipeFacingMeFrom(Direction.EAST, map, entity) ? 1 : 0) << 1);
 		adjCode |= ((pipeFacingMeFrom(Direction.SOUTH, map, entity) ? 1 : 0) << 2);
 		adjCode |= ((pipeFacingMeFrom(Direction.WEST, map, entity) ? 1 : 0) << 3);
-		SpriteDef sprite = protoPipeSprites.get(adjCode);
-
-		register.accept(RenderUtils.spriteDefRenderer(sprite, entity, protoSelectionBox));
+		register.accept(
+				RenderUtils.spriteRenderer(protoPipeSprites.get(adjCode).createSprites(), entity, protoSelectionBox));
 	}
 
 	@Override
 	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
-		super.initFromPrototype(dataTable, prototype);
 
-		protoPipeSprites = Arrays.stream(pipeSpriteNameMapping)
-				.map(s -> RenderUtils.getSpriteFromAnimation(prototype.lua().get("pictures").get(s)).get())
+		LuaValue luaPictures = prototype.lua().get("pictures");
+		protoPipeSprites = Arrays.stream(pipeSpriteNameMapping).map(s -> new FPSprite(luaPictures.get(s)))
 				.collect(Collectors.toList());
 	}
 

@@ -3,6 +3,7 @@ package com.demod.fbsr.entity;
 import java.awt.geom.Point2D;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Consumer;
 
 import org.luaj.vm2.LuaValue;
@@ -11,82 +12,56 @@ import com.demod.factorio.DataTable;
 import com.demod.factorio.Utils;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.BlueprintEntity;
-import com.demod.fbsr.Direction;
 import com.demod.fbsr.EntityRendererFactory;
+import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.RenderUtils;
-import com.demod.fbsr.RenderUtils.SpriteDirDefList;
 import com.demod.fbsr.Renderer;
-import com.demod.fbsr.SpriteDef;
 import com.demod.fbsr.WorldMap;
+import com.demod.fbsr.fp.FPSprite4Way;
+import com.demod.fbsr.fp.FPWorkingVisualisations;
 
 public class MiningDrillRendering extends EntityRendererFactory {
 
+	private Optional<FPSprite4Way> protoBasePicture;
+	private Optional<FPWorkingVisualisations> protoGraphicsSet;
 	private List<Point2D.Double> protoFluidBoxOffsets;
+
+	// pumpjack:
+	// - base_picture
+	// - graphics_set.animation
+
+	// electric-mining-drill:
+	// - graphics_set.animation
+	// - graphics_set.working_visualisations.N/S/E/W
+
+	// burner-mining-drill:
+	// - graphics_set.animation
 
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
 			BlueprintEntity entity) {
+		if (protoBasePicture.isPresent()) {
+			register.accept(RenderUtils.spriteRenderer(protoBasePicture.get().createSprites(entity.getDirection()),
+					entity, protoSelectionBox));
+		}
 
-		register.accept(RenderUtils.spriteDirDefRenderer(protoDirSprites, entity, protoSelectionBox));
+		if (protoGraphicsSet.isPresent()) {
+			register.accept(RenderUtils.spriteRenderer(protoGraphicsSet.get().createSprites(entity.getDirection(), 0),
+					entity, protoSelectionBox));
+		}
 	}
 
 	@Override
 	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
-		super.initFromPrototype(dataTable, prototype);
-
-		LuaValue graphicsSet = prototype.lua().get("graphics_set");
-
-		protoDirSprites = new SpriteDirDefList();
-
-		for (int c = 0; c < 4; c++) {
-			Direction dir = Direction.fromCardinal(c);
-
-			List<SpriteDef> animations = new ArrayList<>();
-
-			if (!prototype.lua().get("base_picture").isnil()) {
-				List<SpriteDef> baseSprites = RenderUtils.getSpritesFromAnimation(prototype.lua().get("base_picture"));
-				baseSprites.forEach(s -> s.getSource().x = s.getSource().width * dir.cardinal());
-				animations.addAll(baseSprites);
-			}
-
-			if (!graphicsSet.isnil()) {
-				if (!graphicsSet.checktable().get("idle_animation").isnil())
-					animations.addAll(
-							RenderUtils.getSpritesFromAnimation(graphicsSet.checktable().get("idle_animation"), dir));
-				else if (!graphicsSet.checktable().get("animation").isnil())
-					animations.addAll(
-							RenderUtils.getSpritesFromAnimation(graphicsSet.checktable().get("animation"), dir));
-
-				if (!graphicsSet.checktable().get("working_visualisations").isnil()) {
-					Utils.forEach(graphicsSet.checktable().get("working_visualisations").checktable(), (i, l) -> {
-						if (!l.get("always_draw").isnil() && l.get("always_draw").checkboolean()) {
-							if (!l.get(dir.name().toLowerCase() + "_animation").isnil()) {
-								List<SpriteDef> animation = RenderUtils
-										.getSpritesFromAnimation(l.get(dir.name().toLowerCase() + "_animation"));
-								for (SpriteDef s : animation)
-									animations.add(s.withOrder(i.toint()));
-							}
-							// TODO Handle "animation" and direction + "_position"
-						}
-					});
-				}
-			} else if (!prototype.lua().get("animations").isnil()) {
-				LuaValue ani = prototype.lua().get("animations");
-				if (ani.get(dir.name().toLowerCase()).isnil()) {
-					animations.addAll(RenderUtils.getSpritesFromAnimation(ani.get("north")));
-				} else
-					animations.addAll(RenderUtils.getSpritesFromAnimation(ani, dir));
-			}
-
-			protoDirSprites.set(dir, animations);
-		}
+		protoBasePicture = FPUtils.opt(prototype.lua().get("base_picture"), FPSprite4Way::new);
+		protoGraphicsSet = FPUtils.opt(prototype.lua().get("graphics_set"), FPWorkingVisualisations::new);
 
 		protoFluidBoxOffsets = new ArrayList<>();
-		if (prototype.getName().equals("pumpjack")) {
-			Utils.forEach(prototype.lua().get("output_fluid_box").get("pipe_connections").get(1).get("positions"),
-					l -> {
-						protoFluidBoxOffsets.add(Utils.parsePoint2D(l));
-					});
+		LuaValue luaOutputFluidBox = prototype.lua().get("output_fluid_box");
+		if (!luaOutputFluidBox.isnil()) {
+			Utils.forEach(luaOutputFluidBox.get("pipe_connections").get(1).get("positions"), l -> {
+				protoFluidBoxOffsets.add(Utils.parsePoint2D(l));
+			});
 		}
 	}
 

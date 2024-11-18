@@ -12,6 +12,8 @@ import com.demod.factorio.Utils;
 
 public final class FPUtils {
 
+	public static double PROJECTION_CONSTANT = 0.7071067811865;
+
 	public static <T> List<T> list(LuaValue lua, Function<LuaValue, T> factory) {
 		List<T> ret = new ArrayList<>();
 		Utils.forEach(lua, l -> ret.add(factory.apply(l)));
@@ -32,6 +34,14 @@ public final class FPUtils {
 		return OptionalInt.of(lua.checkint());
 	}
 
+	// Yo dawg
+	public static OptionalInt optInt(LuaValue lua, int defaultValue) {
+		if (lua.isnil()) {
+			return OptionalInt.empty();
+		}
+		return OptionalInt.of(lua.optint(defaultValue));
+	}
+
 	public static <T> Optional<List<T>> optList(LuaValue lua, Function<LuaValue, T> factory) {
 		if (lua.isnil()) {
 			return Optional.empty();
@@ -46,6 +56,30 @@ public final class FPUtils {
 			return Optional.empty();
 		}
 		return Optional.of(lua.toString());
+	}
+
+	public static double projectedOrientation(double orientation) {
+		if (orientation == 0 || orientation == 0.25 || orientation == 0.5 || orientation == 0.75)
+			return orientation;
+		if (orientation < 0.5)
+			if (orientation < 0.25) {
+				double ratio = Math.tan(orientation * 2 * Math.PI);
+				ratio *= PROJECTION_CONSTANT;
+				return Math.atan(ratio) / 2.0 / Math.PI;
+			} else {
+				double ratio = Math.tan((orientation - 0.25) * 2 * Math.PI);
+				ratio *= 1 / PROJECTION_CONSTANT;
+				return Math.atan(ratio) / 2.0 / Math.PI + 0.25;
+			}
+		else if (orientation < 0.75) {
+			double ratio = Math.tan((0.75 - orientation) * 2 * Math.PI);
+			ratio *= 1 / PROJECTION_CONSTANT;
+			return 0.75 - Math.atan(ratio) / 2.0 / Math.PI;
+		} else {
+			double ratio = Math.tan((orientation - 0.75) * 2 * Math.PI);
+			ratio *= 1 / PROJECTION_CONSTANT;
+			return Math.atan(ratio) / 2.0 / Math.PI + 0.75;
+		}
 	}
 
 }

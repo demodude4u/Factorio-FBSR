@@ -14,8 +14,6 @@ import com.google.common.collect.ImmutableList;
 
 public class FPRotatedSprite extends FPSpriteParameters {
 
-	private static double PROJECTION_CONSTANT = 0.7071067811865;
-
 	public final Optional<List<FPRotatedSprite>> layers;
 	public final int directionCount;
 	public final Optional<List<String>> filenames;
@@ -84,8 +82,8 @@ public class FPRotatedSprite extends FPSpriteParameters {
 			shiftY += frame.shift.y;
 		}
 
-		Sprite sprite = RenderUtils.createSprite(filename, drawAsShadow, blendMode,
-				tint.createColorIgnorePreMultipliedAlpha(), x, y, width, height, shiftX, shiftY, scale);
+		Sprite sprite = RenderUtils.createSprite(filename, drawAsShadow, blendMode, getEffectiveTint(), x, y, width,
+				height, shiftX, shiftY, scale);
 		consumer.accept(sprite);
 	}
 
@@ -105,7 +103,7 @@ public class FPRotatedSprite extends FPSpriteParameters {
 		}
 		int index;
 		if (applyProjection) {
-			index = (int) (projectedFraction(orientation) * directionCount);
+			index = (int) (FPUtils.projectedOrientation(orientation) * directionCount);
 		} else {
 			index = (int) (orientation * directionCount);
 		}
@@ -113,30 +111,6 @@ public class FPRotatedSprite extends FPSpriteParameters {
 			index = index % (directionCount / 2);
 		}
 		return index;
-	}
-
-	private double projectedFraction(double orientation) {
-		if (orientation == 0 || orientation == 0.25 || orientation == 0.5 || orientation == 0.75)
-			return orientation;
-		if (orientation < 0.5)
-			if (orientation < 0.25) {
-				double ratio = Math.tan(orientation * 2 * Math.PI);
-				ratio *= PROJECTION_CONSTANT;
-				return Math.atan(ratio) / 2.0 / Math.PI;
-			} else {
-				double ratio = Math.tan((orientation - 0.25) * 2 * Math.PI);
-				ratio *= 1 / PROJECTION_CONSTANT;
-				return Math.atan(ratio) / 2.0 / Math.PI + 0.25;
-			}
-		else if (orientation < 0.75) {
-			double ratio = Math.tan((0.75 - orientation) * 2 * Math.PI);
-			ratio *= 1 / PROJECTION_CONSTANT;
-			return 0.75 - Math.atan(ratio) / 2.0 / Math.PI;
-		} else {
-			double ratio = Math.tan((orientation - 0.75) * 2 * Math.PI);
-			ratio *= 1 / PROJECTION_CONSTANT;
-			return Math.atan(ratio) / 2.0 / Math.PI + 0.75;
-		}
 	}
 
 }

@@ -1,6 +1,10 @@
 package com.demod.fbsr.entity;
 
-import com.demod.fbsr.EntityRendererFactory;
+import org.luaj.vm2.LuaValue;
 
-public class LinkedContainerRendering extends EntityRendererFactory {
+public class LinkedContainerRendering extends SimpleEntityRendering {
+	@Override
+	public void defineEntity(Bindings bind, LuaValue lua) {
+		bind.sprite(lua.get("picture"));
+	}
 }

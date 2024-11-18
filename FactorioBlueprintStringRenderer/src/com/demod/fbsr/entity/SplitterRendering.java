@@ -8,10 +8,9 @@ import java.awt.geom.Path2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Point2D.Double;
 import java.awt.geom.Rectangle2D;
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
-
-import org.luaj.vm2.LuaValue;
 
 import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
@@ -19,17 +18,16 @@ import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.factorio.prototype.ItemPrototype;
 import com.demod.fbsr.BlueprintEntity;
 import com.demod.fbsr.Direction;
-import com.demod.fbsr.EntityRendererFactory;
+import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.RenderUtils;
-import com.demod.fbsr.RenderUtils.SpriteDirDefList;
 import com.demod.fbsr.Renderer;
 import com.demod.fbsr.Renderer.Layer;
 import com.demod.fbsr.Sprite;
-import com.demod.fbsr.SpriteDef;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.WorldMap.BeltBend;
+import com.demod.fbsr.fp.FPAnimation4Way;
 
-public class SplitterRendering extends EntityRendererFactory {
+public class SplitterRendering extends TransportBeltConnectableRendering {
 
 	private static final Path2D.Double markerShape = new Path2D.Double();
 	static {
@@ -39,32 +37,33 @@ public class SplitterRendering extends EntityRendererFactory {
 		markerShape.closePath();
 	}
 
-	private SpriteDef[][] protoBeltSprites;
-	private SpriteDirDefList protoPatch;
+	private FPAnimation4Way protoStructure;
+	private Optional<FPAnimation4Way> protoStructurePatch;
 
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
 			BlueprintEntity entity) {
 		Direction dir = entity.getDirection();
 
-		Sprite belt1Sprite = protoBeltSprites[dir.cardinal()][BeltBend.NONE.ordinal()].createSprite();
-		Sprite belt2Sprite = new Sprite(belt1Sprite);
+		List<Sprite> belt1Sprites = createBeltSprites(dir.cardinal(), BeltBend.NONE.ordinal(), 0);
+		List<Sprite> belt2Sprites = createBeltSprites(dir.cardinal(), BeltBend.NONE.ordinal(), 0);
 
-		Point2D.Double beltShift = dir.left().offset(new Point2D.Double(), 0.5);
+		Point2D.Double belt1Shift = dir.left().offset(new Point2D.Double(), 0.5);
+		Point2D.Double belt2Shift = dir.right().offset(new Point2D.Double(), 0.5);
 
-		belt1Sprite.bounds.x += beltShift.x;
-		belt1Sprite.bounds.y += beltShift.y;
-		belt2Sprite.bounds.x -= beltShift.x;
-		belt2Sprite.bounds.y -= beltShift.y;
+		RenderUtils.shiftSprites(belt1Sprites, belt1Shift);
+		RenderUtils.shiftSprites(belt2Sprites, belt2Shift);
 
-		register.accept(RenderUtils.spriteRenderer(Layer.ENTITY, belt1Sprite, entity, protoSelectionBox));
-		register.accept(RenderUtils.spriteRenderer(Layer.ENTITY, belt2Sprite, entity, protoSelectionBox));
+		register.accept(RenderUtils.spriteRenderer(belt1Sprites, entity, protoSelectionBox));
+		register.accept(RenderUtils.spriteRenderer(belt2Sprites, entity, protoSelectionBox));
 
-		if ((protoPatch != null) && (dir == Direction.WEST || dir == Direction.EAST)) {
-			register.accept(RenderUtils.spriteDirDefRenderer(Layer.ENTITY2, protoPatch, entity, protoSelectionBox));
+		if (protoStructurePatch.isPresent() && (dir == Direction.WEST || dir == Direction.EAST)) {
+			register.accept(RenderUtils.spriteRenderer(Layer.ENTITY2,
+					protoStructurePatch.get().createSprites(entity.getDirection(), 0), entity, protoSelectionBox));
 		}
 
-		register.accept(RenderUtils.spriteDirDefRenderer(Layer.ENTITY2, protoDirSprites, entity, protoSelectionBox));
+		register.accept(RenderUtils.spriteRenderer(Layer.ENTITY2,
+				protoStructure.createSprites(entity.getDirection(), 0), entity, protoSelectionBox));
 
 		Double pos = entity.getPosition();
 		Point2D.Double leftPos = dir.left().offset(pos, 0.5);
@@ -161,17 +160,8 @@ public class SplitterRendering extends EntityRendererFactory {
 	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
 		super.initFromPrototype(dataTable, prototype);
 
-		protoBeltSprites = TransportBeltRendering.getBeltSprites(prototype);
-
-		LuaValue structurePatch = prototype.lua().get("structure_patch");
-		if (!structurePatch.isnil()) {
-			protoPatch = RenderUtils.getDirSpritesFromAnimation(structurePatch);
-		} else {
-			protoPatch = null;
-		}
-
-		protoDirSprites = RenderUtils.getDirSpritesFromAnimation(prototype.lua().get("structure"));
-
+		protoStructurePatch = FPUtils.opt(prototype.lua().get("structure_patch"), FPAnimation4Way::new);
+		protoStructure = new FPAnimation4Way(prototype.lua().get("structure"));
 	}
 
 	@Override

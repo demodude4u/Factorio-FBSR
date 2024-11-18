@@ -13,6 +13,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 
 import org.json.JSONObject;
+import org.luaj.vm2.LuaValue;
 
 import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
@@ -21,42 +22,42 @@ import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.factorio.prototype.ItemPrototype;
 import com.demod.fbsr.BlueprintEntity;
 import com.demod.fbsr.Direction;
-import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
 import com.demod.fbsr.Renderer.Layer;
 import com.demod.fbsr.Sprite;
-import com.demod.fbsr.SpriteDef;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.WorldMap.BeltBend;
+import com.demod.fbsr.fp.FPSprite4Way;
 
-public class LoaderRendering extends EntityRendererFactory {
+public abstract class LoaderRendering extends TransportBeltConnectableRendering {
 
-	private double protoBeltDistance;
+	private final double beltDistance;
+
 	private double protoContainerDistance;
-	private SpriteDef[][] protoBeltSprites;
-	private SpriteDef protoInputSprite;
-	private SpriteDef protoOutputSprite;
+	private FPSprite4Way protoStructureDirectionIn;
+	private FPSprite4Way protoStructureDirectionOut;
+
+	public LoaderRendering(double beltDistance) {
+		this.beltDistance = beltDistance;
+	}
 
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
 			BlueprintEntity entity) {
+		Point2D.Double beltShift = getBeltShift(entity);
+		List<Sprite> beltSprites = createBeltSprites(entity.getDirection().cardinal(), BeltBend.NONE.ordinal(), 0);
+		RenderUtils.shiftSprites(beltSprites, beltShift);
+		register.accept(RenderUtils.spriteRenderer(beltSprites, entity, protoSelectionBox));
+
 		boolean input = entity.json().getString("type").equals("input");
 		Direction structDir = input ? entity.getDirection() : entity.getDirection().back();
+		List<Sprite> structureSprites = (input ? protoStructureDirectionIn : protoStructureDirectionOut)
+				.createSprites(structDir);
+		register.accept(RenderUtils.spriteRenderer(Layer.ENTITY2, structureSprites, entity, protoSelectionBox));
 
-		Point2D.Double beltShift = getBeltShift(entity);
-
-		Sprite beltSprite = protoBeltSprites[entity.getDirection().cardinal()][BeltBend.NONE.ordinal()].createSprite();
-		beltSprite.bounds.x += beltShift.x;
-		beltSprite.bounds.y += beltShift.y;
-
-		Sprite sprite = (input ? protoInputSprite : protoOutputSprite).createSprite();
-		sprite.source.x += sprite.source.width * (structDir.cardinal());
-
-		register.accept(RenderUtils.spriteRenderer(Layer.ENTITY, beltSprite, entity, protoSelectionBox));
-		register.accept(RenderUtils.spriteRenderer(Layer.ENTITY2, sprite, entity, protoSelectionBox));
-
-		if (entity.json().has("filters")) {
+		// TODO new format filters
+		if (!entity.isJsonNewFormat() && entity.json().has("filters")) {
 			List<String> items = new ArrayList<>();
 			Utils.<JSONObject>forEach(entity.json().getJSONArray("filters"), j -> {
 				items.add(j.getString("name"));
@@ -88,8 +89,7 @@ public class LoaderRendering extends EntityRendererFactory {
 	private Point2D.Double getBeltShift(BlueprintEntity entity) {
 		boolean input = entity.json().getString("type").equals("input");
 		Direction oppositeStructDir = input ? entity.getDirection().back() : entity.getDirection();
-		return new Point2D.Double(protoBeltDistance * oppositeStructDir.getDx(),
-				protoBeltDistance * oppositeStructDir.getDy());
+		return new Point2D.Double(beltDistance * oppositeStructDir.getDx(), beltDistance * oppositeStructDir.getDy());
 	}
 
 	private Point2D.Double getContainerShift(BlueprintEntity entity, double offset) {
@@ -104,13 +104,10 @@ public class LoaderRendering extends EntityRendererFactory {
 	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
 		super.initFromPrototype(dataTable, prototype);
 
-		protoBeltSprites = TransportBeltRendering.getBeltSprites(prototype);
-		protoBeltDistance = prototype.getType().equals("loader-1x1") ? 0 : 0.5;
 		protoContainerDistance = prototype.lua().get("container_distance").optdouble(1.5);
-		protoInputSprite = RenderUtils
-				.getSpriteFromAnimation(prototype.lua().get("structure").get("direction_in").get("sheet")).get();
-		protoOutputSprite = RenderUtils
-				.getSpriteFromAnimation(prototype.lua().get("structure").get("direction_out").get("sheet")).get();
+		LuaValue luaStructure = prototype.lua().get("structure");
+		protoStructureDirectionIn = new FPSprite4Way(luaStructure.get("direction_in"));
+		protoStructureDirectionOut = new FPSprite4Way(luaStructure.get("direction_out"));
 	}
 
 	@Override
@@ -173,7 +170,8 @@ public class LoaderRendering extends EntityRendererFactory {
 			map.getOrCreateLogisticGridCell(dir.frontRight().offset(inPos, 0.25)).setBlockWarpToIfMove(true);
 		}
 
-		if (entity.json().has("filters") && !input) {
+		// TODO new format filters
+		if (!entity.isJsonNewFormat() && entity.json().has("filters") && !input) {
 
 			Set<String> outputs = new LinkedHashSet<>();
 			Utils.<JSONObject>forEach(entity.json().getJSONArray("filters"), j -> {

@@ -1,6 +1,5 @@
 package com.demod.fbsr.entity;
 
-import com.demod.fbsr.EntityRendererFactory;
+public class FurnaceRendering extends CraftingMachineRendering {
 
-public class FurnaceRendering extends EntityRendererFactory {
 }

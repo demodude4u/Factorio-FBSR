@@ -6,13 +6,6 @@ import org.luaj.vm2.LuaValue;
 
 public class FPColor {
 
-	public static FPColor opt(LuaValue lua, double r, double g, double b, double a) {
-		if (lua.isnil()) {
-			return new FPColor(r, g, b, a);
-		}
-		return new FPColor(lua);
-	}
-
 	public final double r;
 	public final double g;
 	public final double b;

@@ -20,19 +20,19 @@ import com.demod.factorio.Utils;
 import com.demod.factorio.prototype.ItemPrototype;
 import com.demod.fbsr.BlueprintEntity;
 import com.demod.fbsr.Direction;
-import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
 import com.demod.fbsr.Renderer.Layer;
 import com.demod.fbsr.Sprite;
 import com.demod.fbsr.WorldMap;
 
-public class InfinityContainerRendering extends EntityRendererFactory {
+public class InfinityContainerRendering extends ContainerRendering {
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
 			BlueprintEntity entity) {
 		super.createRenderers(register, map, dataTable, entity);
 
+		// TODO check if this broke with new format filters
 		if (entity.json().has("infinity_settings") && entity.json().getJSONObject("infinity_settings").has("filters")) {
 			List<String> items = new ArrayList<>();
 			Utils.<JSONObject>forEach(entity.json().getJSONObject("infinity_settings").getJSONArray("filters"), j -> {

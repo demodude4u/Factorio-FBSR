@@ -1,31 +1,18 @@
 package com.demod.fbsr.entity;
 
 import java.awt.geom.Point2D;
-import java.util.function.Consumer;
+
+import org.luaj.vm2.LuaValue;
 
 import com.demod.factorio.DataTable;
-import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.BlueprintEntity;
 import com.demod.fbsr.Direction;
-import com.demod.fbsr.EntityRendererFactory;
-import com.demod.fbsr.RenderUtils;
-import com.demod.fbsr.Renderer;
 import com.demod.fbsr.WorldMap;
 
-public class PumpRendering extends EntityRendererFactory {
-
+public class PumpRendering extends SimpleEntityRendering {
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
-			BlueprintEntity entity) {
-
-		register.accept(RenderUtils.spriteDirDefRenderer(protoDirSprites, entity, protoSelectionBox));
-	}
-
-	@Override
-	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
-		super.initFromPrototype(dataTable, prototype);
-
-		protoDirSprites = RenderUtils.getDirSpritesFromAnimation(prototype.lua().get("animations"));
+	public void defineEntity(Bindings bind, LuaValue lua) {
+		bind.animation4Way(lua.get("animations"));
 	}
 
 	@Override

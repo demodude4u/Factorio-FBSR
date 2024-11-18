@@ -5,28 +5,22 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-import org.luaj.vm2.LuaValue;
-
 import com.demod.factorio.DataTable;
-import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.BlueprintEntity;
 import com.demod.fbsr.Direction;
-import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
 import com.demod.fbsr.Sprite;
 import com.demod.fbsr.SpriteDef;
 import com.demod.fbsr.WorldMap;
 
-public class RailChainSignalRendering extends EntityRendererFactory {
+public class RailChainSignalRendering extends RailSignalBaseRendering {
 	// TODO elevated versions
-
-	private SpriteDef protoRailPiece;
-	private List<SpriteDef> protoSprites;
 
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
 			BlueprintEntity entity) {
+		// TODO figure out wtf is going on with rail sprites... animation? indices?
 		Sprite railSprite = protoRailPiece.createSprite();
 		railSprite.source.x += railSprite.source.width * (entity.getDirection().ordinal());
 
@@ -49,15 +43,6 @@ public class RailChainSignalRendering extends EntityRendererFactory {
 
 		register.accept(RenderUtils.spriteRenderer(railSprite, entity, protoSelectionBox));
 		register.accept(RenderUtils.spriteRenderer(sprites, entity, protoSelectionBox));
-	}
-
-	@Override
-	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
-		super.initFromPrototype(dataTable, prototype);
-
-		LuaValue groundLua = prototype.lua().get("ground_picture_set");
-		protoRailPiece = RenderUtils.getSpriteFromAnimation(groundLua.get("rail_piece").get("sprites")).get();
-		protoSprites = RenderUtils.getSpritesFromAnimation(groundLua.get("structure"));
 	}
 
 	@Override

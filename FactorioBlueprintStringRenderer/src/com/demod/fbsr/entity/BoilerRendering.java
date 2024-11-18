@@ -75,9 +75,9 @@ public class BoilerRendering extends EntityRendererFactory {
 		protoHasEnergySource = !prototype.lua().get("energy_source").isnil();
 	}
 
-	public boolean pipeFacingMeFrom(Direction direction, WorldMap map, BlueprintEntity entity) {
-		return map.isPipe(direction.offset(entity.getPosition()), direction.back());
-	}
+//	public boolean pipeFacingMeFrom(Direction direction, WorldMap map, BlueprintEntity entity) {
+//		return map.isPipe(direction.offset(entity.getPosition()), direction.back());
+//	}
 
 	@Override
 	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity) {

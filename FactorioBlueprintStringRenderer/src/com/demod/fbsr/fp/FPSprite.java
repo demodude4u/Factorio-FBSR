@@ -8,7 +8,6 @@ import java.util.function.Consumer;
 import org.luaj.vm2.LuaValue;
 
 import com.demod.fbsr.FPUtils;
-import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Sprite;
 
 public class FPSprite extends FPSpriteParameters {
@@ -36,9 +35,7 @@ public class FPSprite extends FPSpriteParameters {
 			return;
 		}
 
-		Sprite sprite = RenderUtils.createSprite(filename.get(), drawAsShadow, blendMode,
-				tint.createColorIgnorePreMultipliedAlpha(), x, y, width, height, shift.x, shift.y, scale);
-		consumer.accept(sprite);
+		consumer.accept(super.createSprite());
 	}
 
 }

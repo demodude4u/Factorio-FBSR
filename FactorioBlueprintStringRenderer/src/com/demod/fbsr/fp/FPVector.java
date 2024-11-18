@@ -6,15 +6,7 @@ import org.luaj.vm2.LuaValue;
 
 public class FPVector {
 
-	public static FPVector opt(LuaValue lua, double x, double y) {
-		if (lua.isnil()) {
-			return new FPVector(x, y);
-		}
-		return new FPVector(lua);
-	}
-
 	public final double x;
-
 	public final double y;
 
 	public FPVector(double x, double y) {

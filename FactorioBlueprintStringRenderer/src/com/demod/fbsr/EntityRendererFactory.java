@@ -31,6 +31,7 @@ import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.factorio.prototype.RecipePrototype;
 import com.demod.fbsr.Renderer.Layer;
 import com.demod.fbsr.entity.AccumulatorRendering;
+import com.demod.fbsr.entity.AmmoTurretRendering;
 import com.demod.fbsr.entity.ArithmeticCombinatorRendering;
 import com.demod.fbsr.entity.ArtilleryTurretRendering;
 import com.demod.fbsr.entity.ArtilleryWagonRendering;
@@ -44,6 +45,7 @@ import com.demod.fbsr.entity.CurvedRailRendering;
 import com.demod.fbsr.entity.DeciderCombinatorRendering;
 import com.demod.fbsr.entity.ElectricEnergyInterfaceRendering;
 import com.demod.fbsr.entity.ElectricPoleRendering;
+import com.demod.fbsr.entity.ElectricTurretRendering;
 import com.demod.fbsr.entity.FluidTurretRendering;
 import com.demod.fbsr.entity.FurnaceRendering;
 import com.demod.fbsr.entity.GateRendering;
@@ -59,7 +61,8 @@ import com.demod.fbsr.entity.LegacyCurvedRailRendering;
 import com.demod.fbsr.entity.LegacyStraightRailRendering;
 import com.demod.fbsr.entity.LinkedBeltRendering;
 import com.demod.fbsr.entity.LinkedContainerRendering;
-import com.demod.fbsr.entity.LoaderRendering;
+import com.demod.fbsr.entity.Loader1x1Rendering;
+import com.demod.fbsr.entity.Loader1x2Rendering;
 import com.demod.fbsr.entity.LogisticContainerRendering;
 import com.demod.fbsr.entity.MiningDrillRendering;
 import com.demod.fbsr.entity.OffshorePumpRendering;
@@ -81,9 +84,9 @@ import com.demod.fbsr.entity.StorageTankRendering;
 import com.demod.fbsr.entity.StraightRailRendering;
 import com.demod.fbsr.entity.TrainStopRendering;
 import com.demod.fbsr.entity.TransportBeltRendering;
-import com.demod.fbsr.entity.TurretRendering;
 import com.demod.fbsr.entity.UndergroundBeltRendering;
 import com.demod.fbsr.entity.WallRendering;
+import com.demod.fbsr.fp.FPBoundingBox;
 import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.Multiset;
 
@@ -170,7 +173,7 @@ public abstract class EntityRendererFactory {
 		byName.put("cargo-wagon", new RollingStockRendering());
 		byName.put("constant-combinator", new ConstantCombinatorRendering());
 //		byName.put("blue-chest", new ContainerRendering());
-		byName.put("gun-turret", new TurretRendering());
+		byName.put("gun-turret", new AmmoTurretRendering());
 		byName.put("iron-chest", new ContainerRendering());
 //		byName.put("red-chest", new ContainerRendering());
 		byName.put("steel-chest", new ContainerRendering());
@@ -184,7 +187,7 @@ public abstract class EntityRendererFactory {
 		byName.put("medium-electric-pole", new ElectricPoleRendering());
 		byName.put("small-electric-pole", new ElectricPoleRendering());
 		byName.put("substation", new ElectricPoleRendering());
-		byName.put("laser-turret", new TurretRendering());
+		byName.put("laser-turret", new ElectricTurretRendering());
 		byName.put("flamethrower-turret", new FluidTurretRendering());
 		byName.put("fluid-wagon", new RollingStockRendering());
 		byName.put("electric-furnace", new FurnaceRendering());
@@ -208,10 +211,10 @@ public abstract class EntityRendererFactory {
 		byName.put("land-mine", new LandMineRendering());
 		byName.put("linked-belt", new LinkedBeltRendering());
 		byName.put("linked-chest", new LinkedContainerRendering());
-		byName.put("express-loader", new LoaderRendering());
-		byName.put("fast-loader", new LoaderRendering());
-		byName.put("loader", new LoaderRendering());
-		byName.put("loader-1x1", new LoaderRendering());
+		byName.put("express-loader", new Loader1x2Rendering());
+		byName.put("fast-loader", new Loader1x2Rendering());
+		byName.put("loader", new Loader1x2Rendering());
+		byName.put("loader-1x1", new Loader1x1Rendering());
 		byName.put("locomotive", new RollingStockRendering());
 		byName.put("active-provider-chest", new LogisticContainerRendering());
 		byName.put("buffer-chest", new LogisticContainerRendering());
@@ -284,7 +287,7 @@ public abstract class EntityRendererFactory {
 	}
 
 	private EntityPrototype prototype = null;
-	protected RectDef protoSelectionBox;
+	protected FPBoundingBox protoSelectionBox;
 	protected boolean protoBeaconed;
 
 	protected void addLogisticWarp(WorldMap map, Point2D.Double gridPos1, Direction cellDir1, Point2D.Double gridPos2,
@@ -557,8 +560,11 @@ public abstract class EntityRendererFactory {
 
 		// FIXME ideally there shouldn't be a need for selection box and beaconed check
 
-		protoSelectionBox = new RectDef(prototype.getSelectionBox());
-		// XXX Hard-coding
+		// TODO should move FPBoundingBox to data wrapper repo
+		Rectangle2D.Double sb = prototype.getSelectionBox();
+		protoSelectionBox = new FPBoundingBox(sb.getMinX(), sb.getMinY(), sb.getMaxX(), sb.getMaxY());
+
+		// FIXME Hard-coding
 		protoBeaconed = (!prototype.lua().get("module_specification").isnil()
 				|| prototype.getName().equals("assembling-machine-1")
 				|| prototype.getName().equals("burner-mining-drill")) && !prototype.getName().equals("beacon");
