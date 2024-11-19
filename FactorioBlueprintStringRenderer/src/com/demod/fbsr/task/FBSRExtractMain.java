@@ -15,7 +15,7 @@ public class FBSRExtractMain {
 		DataTable table = FactorioData.getTable();
 
 		try (PrintStream ps = new PrintStream("proto.txt")) {
-			Utils.debugPrintLua(table.getEntity("rail-chain-signal").get().lua(), ps);
+			Utils.debugPrintLua(table.getEntity("rail-signal").get().lua(), ps);
 		}
 		Desktop.getDesktop().edit(new File("proto.txt"));
 	}

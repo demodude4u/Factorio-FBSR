@@ -1,29 +1,17 @@
 package com.demod.fbsr.entity;
 
 import java.awt.geom.Point2D;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map.Entry;
 import java.util.function.Consumer;
 
-import org.luaj.vm2.LuaValue;
-
 import com.demod.factorio.DataTable;
-import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.BlueprintEntity;
 import com.demod.fbsr.Direction;
-import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
 import com.demod.fbsr.Renderer.Layer;
-import com.demod.fbsr.SpriteDef;
 import com.demod.fbsr.WorldMap;
 
-public class CurvedRailRendering extends EntityRendererFactory {
-	private static class LayeredSpriteDef {
-		Layer layer;
-		SpriteDef sprite;
-	}
+public class CurvedRailRendering extends RailRendering {
 
 	private static final int[][][] pathEnds = //
 			new int[/* dir */][/* points */][/* x,y,dir */] { //
@@ -37,34 +25,21 @@ public class CurvedRailRendering extends EntityRendererFactory {
 					{ { 4, 1, 6 }, { -3, -2, 3 } }, // NW
 			};
 
-	private List<List<LayeredSpriteDef>> protoDirRailLayers;
-
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
 			BlueprintEntity entity) {
 
-		List<LayeredSpriteDef> railLayers = protoDirRailLayers.get(entity.getDirection().ordinal());
-		for (LayeredSpriteDef lsd : railLayers) {
-			register.accept(RenderUtils.spriteDefRenderer(lsd.layer, lsd.sprite, entity, protoSelectionBox));
-		}
-	}
-
-	@Override
-	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
-		super.initFromPrototype(dataTable, prototype);
-
-		protoDirRailLayers = new ArrayList<>();
-		for (Direction direction : Direction.values()) {
-			LuaValue pictureRailLua = prototype.lua().get("pictures").get(direction.name().toLowerCase());
-			List<LayeredSpriteDef> sprites = new ArrayList<>();
-			for (Entry<String, Layer> entry : StraightRailRendering.railLayers.entrySet()) {
-				LayeredSpriteDef lsd = new LayeredSpriteDef();
-				lsd.layer = entry.getValue();
-				lsd.sprite = RenderUtils.getSpriteFromAnimation(pictureRailLua.get(entry.getKey())).get();
-				sprites.add(lsd);
-			}
-			protoDirRailLayers.add(sprites);
-		}
+		FPRailPieceLayers railPieceLayers = protoPictures.get(entity.getDirection());
+		register.accept(RenderUtils.spriteRenderer(Layer.RAIL_STONE_BACKGROUND,
+				railPieceLayers.stonePathBackground.createSprites(0), entity, protoSelectionBox));
+		register.accept(RenderUtils.spriteRenderer(Layer.RAIL_STONE, railPieceLayers.stonePath.createSprites(0), entity,
+				protoSelectionBox));
+		register.accept(RenderUtils.spriteRenderer(Layer.RAIL_TIES, railPieceLayers.ties.createSprites(0), entity,
+				protoSelectionBox));
+		register.accept(RenderUtils.spriteRenderer(Layer.RAIL_BACKPLATES, railPieceLayers.backplates.createSprites(0),
+				entity, protoSelectionBox));
+		register.accept(RenderUtils.spriteRenderer(Layer.RAIL_METALS, railPieceLayers.metals.createSprites(0), entity,
+				protoSelectionBox));
 	}
 
 	@Override

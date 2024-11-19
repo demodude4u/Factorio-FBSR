@@ -23,8 +23,8 @@ public class FPAnimationParameters extends FPSpriteParameters {
 
 	protected Sprite createSprite(int frame) {
 
-		int x = width * (frame % lineLength);
-		int y = height * (frame / lineLength);
+		int x = this.x + width * (frame % lineLength);
+		int y = this.y + height * (frame / lineLength);
 
 		return RenderUtils.createSprite(filename.get(), drawAsShadow, blendMode, getEffectiveTint(), x, y, width,
 				height, shift.x, shift.y, scale);

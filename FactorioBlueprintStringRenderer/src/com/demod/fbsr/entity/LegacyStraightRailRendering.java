@@ -1,25 +1,17 @@
 package com.demod.fbsr.entity;
 
 import java.awt.geom.Point2D;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.Map.Entry;
 import java.util.function.Consumer;
 
-import org.luaj.vm2.LuaValue;
-
 import com.demod.factorio.DataTable;
-import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.BlueprintEntity;
 import com.demod.fbsr.Direction;
-import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
 import com.demod.fbsr.Renderer.Layer;
-import com.demod.fbsr.SpriteDef;
 import com.demod.fbsr.WorldMap;
 
-public class LegacyStraightRailRendering extends EntityRendererFactory {
+public class LegacyStraightRailRendering extends RailRendering {
 
 	private static final int[][][] pathEnds = //
 			new int[/* dir */][/* points */][/* x,y,dir */] { //
@@ -33,44 +25,21 @@ public class LegacyStraightRailRendering extends EntityRendererFactory {
 					{ { -1, 0, 1 }, { 0, -1, 5 } }, // NW
 			};
 
-	public static final LinkedHashMap<String, Layer> railLayers = new LinkedHashMap<>();
-
-	static {
-		railLayers.put("stone_path_background", Layer.RAIL_STONE_BACKGROUND);
-		railLayers.put("stone_path", Layer.RAIL_STONE);
-		railLayers.put("ties", Layer.RAIL_TIES);
-		railLayers.put("backplates", Layer.RAIL_BACKPLATES);
-		railLayers.put("metals", Layer.RAIL_METALS);
-	}
-	private ArrayList<LinkedHashMap<Layer, SpriteDef>> protoDirRailLayers;
-
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
 			BlueprintEntity entity) {
 
-		LinkedHashMap<Layer, SpriteDef> railLayers = protoDirRailLayers.get(entity.getDirection().ordinal());
-		for (Entry<Layer, SpriteDef> entry : railLayers.entrySet()) {
-			register.accept(RenderUtils.spriteDefRenderer(entry.getKey(), entry.getValue(), entity, protoSelectionBox));
-		}
-	}
-
-	@Override
-	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
-		super.initFromPrototype(dataTable, prototype);
-
-		protoDirRailLayers = new ArrayList<>();
-		for (Direction direction : Direction.values()) {
-			if (direction.ordinal() > 3) {
-				direction = direction.back();
-			}
-			LuaValue pictureRailLua = prototype.lua().get("pictures").get(direction.name().toLowerCase());
-			LinkedHashMap<Layer, SpriteDef> layers = new LinkedHashMap<>();
-			for (Entry<String, Layer> entry : LegacyStraightRailRendering.railLayers.entrySet()) {
-				layers.put(entry.getValue(),
-						RenderUtils.getSpriteFromAnimation(pictureRailLua.get(entry.getKey())).get());
-			}
-			protoDirRailLayers.add(layers);
-		}
+		FPRailPieceLayers railPieceLayers = protoPictures.get(entity.getDirection());
+		register.accept(RenderUtils.spriteRenderer(Layer.RAIL_STONE_BACKGROUND,
+				railPieceLayers.stonePathBackground.createSprites(0), entity, protoSelectionBox));
+		register.accept(RenderUtils.spriteRenderer(Layer.RAIL_STONE, railPieceLayers.stonePath.createSprites(0), entity,
+				protoSelectionBox));
+		register.accept(RenderUtils.spriteRenderer(Layer.RAIL_TIES, railPieceLayers.ties.createSprites(0), entity,
+				protoSelectionBox));
+		register.accept(RenderUtils.spriteRenderer(Layer.RAIL_BACKPLATES, railPieceLayers.backplates.createSprites(0),
+				entity, protoSelectionBox));
+		register.accept(RenderUtils.spriteRenderer(Layer.RAIL_METALS, railPieceLayers.metals.createSprites(0), entity,
+				protoSelectionBox));
 	}
 
 	@Override

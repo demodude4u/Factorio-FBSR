@@ -46,16 +46,16 @@ public class FPSpriteSheet extends FPSpriteParameters {
 			int fileFrameCount = (linesPerFile * lineLength);
 			int fileFrame = frame % fileFrameCount;
 			int fileIndex = frame / fileFrameCount;
-			int x = width * (fileFrame % lineLength);
-			int y = height * (fileFrame / lineLength);
+			int x = this.x + width * (fileFrame % lineLength);
+			int y = this.y + height * (fileFrame / lineLength);
 
 			consumer.accept(RenderUtils.createSprite(filenames.get().get(fileIndex), drawAsShadow, blendMode,
 					getEffectiveTint(), x, y, width, height, shift.x, shift.y, scale));
 			return;
 		}
 
-		int x = width * (frame % lineLength);
-		int y = height * (frame / lineLength);
+		int x = this.x + width * (frame % lineLength);
+		int y = this.y + height * (frame / lineLength);
 
 		consumer.accept(RenderUtils.createSprite(filename.get(), drawAsShadow, blendMode, getEffectiveTint(), x, y,
 				width, height, shift.x, shift.y, scale));

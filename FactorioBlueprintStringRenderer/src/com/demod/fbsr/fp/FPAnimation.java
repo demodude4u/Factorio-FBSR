@@ -49,9 +49,8 @@ public class FPAnimation extends FPAnimationParameters {
 				int width = image.getWidth() / stripe.widthInFrames;
 				int height = image.getHeight() / stripe.heightInFrames;
 
-				// TODO how does X and Y work in Stripe?
-				int x = width * (frame % stripe.widthInFrames);
-				int y = height * (frame / stripe.heightInFrames);
+				int x = stripe.x + width * (frame % stripe.widthInFrames);
+				int y = stripe.y + height * (frame / stripe.heightInFrames);
 
 				consumer.accept(RenderUtils.createSprite(stripe.filename, drawAsShadow, blendMode, getEffectiveTint(),
 						x, y, width, height, shift.x, shift.y, scale));
@@ -66,8 +65,8 @@ public class FPAnimation extends FPAnimationParameters {
 			int fileFrameCount = (linesPerFile * lineLength);
 			int fileFrame = frame % fileFrameCount;
 			int fileIndex = frame / fileFrameCount;
-			int x = width * (fileFrame % lineLength);
-			int y = height * (fileFrame / lineLength);
+			int x = this.x + width * (fileFrame % lineLength);
+			int y = this.y + height * (fileFrame / lineLength);
 
 			consumer.accept(RenderUtils.createSprite(filenames.get().get(fileIndex), drawAsShadow, blendMode,
 					getEffectiveTint(), x, y, width, height, shift.x, shift.y, scale));
