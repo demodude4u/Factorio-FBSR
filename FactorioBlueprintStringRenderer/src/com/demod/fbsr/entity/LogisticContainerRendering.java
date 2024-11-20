@@ -13,6 +13,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 
 import org.json.JSONObject;
+import org.luaj.vm2.LuaValue;
 
 import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
@@ -27,6 +28,7 @@ import com.demod.fbsr.Sprite;
 import com.demod.fbsr.WorldMap;
 
 public class LogisticContainerRendering extends ContainerRendering {
+
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
 			BlueprintEntity entity) {
@@ -60,6 +62,13 @@ public class LogisticContainerRendering extends ContainerRendering {
 				}
 			}
 		}
+	}
+
+	@Override
+	public void defineEntity(Bindings bind, LuaValue lua) {
+		super.defineEntity(bind, lua);
+
+		bind.animation(lua.get("animation"));
 	}
 
 	@Override

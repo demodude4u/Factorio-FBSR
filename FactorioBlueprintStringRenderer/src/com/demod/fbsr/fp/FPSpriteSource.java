@@ -20,10 +20,10 @@ public class FPSpriteSource {
 
 		LuaValue luaSize = lua.get("size");
 		if (luaSize.isnil()) {
-			width = lua.get("width").checkint();
-			height = lua.get("height").checkint();
+			width = lua.get("width").optint(0);
+			height = lua.get("height").optint(0);
 		} else {
-			width = lua.get(1).checkint();
+			width = lua.get(1).optint(0);
 			height = lua.get(2).optint(width);
 		}
 
@@ -32,8 +32,8 @@ public class FPSpriteSource {
 		if (x == 0 && y == 0) {
 			LuaValue luaPosition = lua.get("position");
 			if (!luaPosition.isnil()) {
-				x = luaPosition.get(1).checkint();
-				y = luaPosition.get(2).checkint();
+				x = luaPosition.get(1).optint(0);
+				y = luaPosition.get(2).optint(0);
 			}
 		}
 		this.x = x;

@@ -28,12 +28,12 @@ public class FPSprite4Way {
 		south = FPUtils.opt(lua.get("south"), FPSprite::new);
 		west = FPUtils.opt(lua.get("west"), FPSprite::new);
 		sheet = FPSpriteNWaySheet.opt(lua.get("sheet"), 4);
-		sheets = FPUtils.optList(lua.get("sheets"), l -> new FPSpriteNWaySheet(lua, 4));
+		sheets = FPUtils.optList(lua.get("sheets"), l -> new FPSpriteNWaySheet(l, 4));
 	}
 
 	public List<Sprite> createSprites(Direction direction) {
 		if (sheets.isPresent()) {
-			return sheets.get().stream().map(FPSpriteNWaySheet::createSprite).collect(Collectors.toList());
+			return sheets.get().stream().map(s -> s.createSprite(direction)).collect(Collectors.toList());
 		} else if (sheet.isPresent()) {
 			return ImmutableList.of(sheet.get().createSprite());
 		} else {

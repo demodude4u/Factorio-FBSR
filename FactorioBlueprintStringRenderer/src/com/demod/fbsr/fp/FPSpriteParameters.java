@@ -27,12 +27,11 @@ public class FPSpriteParameters extends FPSpriteSource {
 		drawAsShadow = lua.get("draw_as_shadow").optboolean(false);
 		scale = lua.get("scale").optdouble(1);
 		shift = FPUtils.opt(lua.get("shift"), FPVector::new).orElseGet(() -> new FPVector(0, 0));
-		tint = FPUtils.opt(lua, FPColor::new).orElseGet(() -> new FPColor(1, 1, 1, 1));
+		tint = FPUtils.opt(lua.get("tint"), FPColor::new).orElseGet(() -> new FPColor(1, 1, 1, 1));
 		applyRuntimeTint = lua.get("apply_runtime_tint").optboolean(false);
 	}
 
 	protected Sprite createSprite() {
-
 		return RenderUtils.createSprite(filename.get(), drawAsShadow, blendMode, getEffectiveTint(), x, y, width,
 				height, shift.x, shift.y, scale);
 	}

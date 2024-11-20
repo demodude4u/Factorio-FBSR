@@ -637,6 +637,7 @@ public class FBSR {
 			}
 		}
 		for (BlueprintTile tile : blueprint.getTiles()) {
+			// TODO get rid of hard-coding
 			String itemName = tile.getName();
 			if (itemName.startsWith("hazard-concrete")) {
 				itemName = "hazard-concrete";
@@ -984,14 +985,14 @@ public class FBSR {
 			try {
 				t.factory.populateWorldMap(map, table, t.entity);
 			} catch (Exception e) {
-				reporting.addException(e);
+				reporting.addException(e, t.factory.getClass().getSimpleName() + ", " + t.entity.getName());
 			}
 		});
 		tileRenderingTuples.forEach(t -> {
 			try {
 				t.factory.populateWorldMap(map, table, t.tile);
 			} catch (Exception e) {
-				reporting.addException(e);
+				reporting.addException(e, t.factory.getClass().getSimpleName() + ", " + t.tile.getName());
 			}
 		});
 
@@ -999,7 +1000,7 @@ public class FBSR {
 			try {
 				t.factory.populateLogistics(map, table, t.entity);
 			} catch (Exception e) {
-				reporting.addException(e);
+				reporting.addException(e, t.factory.getClass().getSimpleName() + ", " + t.entity.getName());
 			}
 		});
 
@@ -1015,14 +1016,14 @@ public class FBSR {
 			try {
 				t.factory.createRenderers(renderers::add, map, table, t.entity);
 			} catch (Exception e) {
-				reporting.addException(e);
+				reporting.addException(e, t.factory.getClass().getSimpleName() + ", " + t.entity.getName());
 			}
 		});
 		tileRenderingTuples.forEach(t -> {
 			try {
 				t.factory.createRenderers(renderers::add, map, table, t.tile);
 			} catch (Exception e) {
-				reporting.addException(e);
+				reporting.addException(e, t.factory.getClass().getSimpleName() + ", " + t.tile.getName());
 			}
 		});
 
@@ -1030,7 +1031,7 @@ public class FBSR {
 			try {
 				t.factory.createModuleIcons(renderers::add, map, table, t.entity);
 			} catch (Exception e) {
-				reporting.addException(e);
+				reporting.addException(e, t.factory.getClass().getSimpleName() + ", " + t.entity.getName());
 			}
 		});
 
@@ -1038,7 +1039,7 @@ public class FBSR {
 			try {
 				t.factory.createWireConnections(renderers::add, map, table, t.entity);
 			} catch (Exception e) {
-				reporting.addException(e);
+				reporting.addException(e, t.factory.getClass().getSimpleName() + ", " + t.entity.getName());
 			}
 		});
 

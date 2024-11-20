@@ -13,7 +13,6 @@ import com.demod.factorio.FactorioData;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Sprite;
-import com.google.common.collect.ImmutableList;
 
 public class FPRotatedAnimation extends FPAnimationParameters {
 
@@ -32,11 +31,7 @@ public class FPRotatedAnimation extends FPAnimationParameters {
 		layers = FPUtils.optList(lua.get("layers"), FPRotatedAnimation::new);
 		directionCount = lua.get("direction_count").optint(1);
 		stripes = FPUtils.optList(lua.get("stripes"), l -> new FPStripe(lua, OptionalInt.of(directionCount)));
-		Optional<List<String>> filenames = FPUtils.optList(lua.get("filenames"), LuaValue::toString);
-		if (!filenames.isPresent() && filename.isPresent()) {
-			filenames = Optional.of(ImmutableList.of(filename.get()));
-		}
-		this.filenames = filenames;
+		filenames = FPUtils.optList(lua.get("filenames"), LuaValue::toString);
 		slice = lua.get("slice").optint(frameCount);
 		linesPerFile = lua.get("lines_per_file").optint(0);
 		applyProjection = lua.get("apply_projection").optboolean(true);

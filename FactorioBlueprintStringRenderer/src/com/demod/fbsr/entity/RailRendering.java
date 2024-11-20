@@ -1,11 +1,20 @@
 package com.demod.fbsr.entity;
 
+import java.util.Optional;
+import java.util.function.Consumer;
+
 import org.luaj.vm2.LuaValue;
 
 import com.demod.factorio.DataTable;
 import com.demod.factorio.prototype.EntityPrototype;
+import com.demod.fbsr.BlueprintEntity;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.EntityRendererFactory;
+import com.demod.fbsr.FPUtils;
+import com.demod.fbsr.RenderUtils;
+import com.demod.fbsr.Renderer;
+import com.demod.fbsr.Renderer.Layer;
+import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.fp.FPSpriteVariations;
 import com.google.common.collect.ImmutableList;
 
@@ -42,22 +51,49 @@ public abstract class RailRendering extends EntityRendererFactory {
 	}
 
 	public static class FPRailPieceLayers {
-		public final FPSpriteVariations stonePathBackground;
-		public final FPSpriteVariations stonePath;
-		public final FPSpriteVariations ties;
-		public final FPSpriteVariations backplates;
-		public final FPSpriteVariations metals;
+		public final Optional<FPSpriteVariations> stonePathBackground;
+		public final Optional<FPSpriteVariations> stonePath;
+		public final Optional<FPSpriteVariations> ties;
+		public final Optional<FPSpriteVariations> backplates;
+		public final Optional<FPSpriteVariations> metals;
 
 		public FPRailPieceLayers(LuaValue lua) {
-			stonePathBackground = new FPSpriteVariations(lua.get("stone_path_background"));
-			stonePath = new FPSpriteVariations(lua.get("stone_path"));
-			ties = new FPSpriteVariations(lua.get("ties"));
-			backplates = new FPSpriteVariations(lua.get("backplates"));
-			metals = new FPSpriteVariations(lua.get("metals"));
+			stonePathBackground = FPUtils.opt(lua.get("stone_path_background"), FPSpriteVariations::new);
+			stonePath = FPUtils.opt(lua.get("stone_path"), FPSpriteVariations::new);
+			ties = FPUtils.opt(lua.get("ties"), FPSpriteVariations::new);
+			backplates = FPUtils.opt(lua.get("backplates"), FPSpriteVariations::new);
+			metals = FPUtils.opt(lua.get("metals"), FPSpriteVariations::new);
 		}
 	}
 
 	protected FPRailPictureSet protoPictures;
+
+	@Override
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
+			BlueprintEntity entity) {
+
+		FPRailPieceLayers railPieceLayers = protoPictures.get(entity.getDirection());
+		if (railPieceLayers.stonePathBackground.isPresent()) {
+			register.accept(RenderUtils.spriteRenderer(Layer.RAIL_STONE_BACKGROUND,
+					railPieceLayers.stonePathBackground.get().createSprites(0), entity, protoSelectionBox));
+		}
+		if (railPieceLayers.stonePath.isPresent()) {
+			register.accept(RenderUtils.spriteRenderer(Layer.RAIL_STONE,
+					railPieceLayers.stonePath.get().createSprites(0), entity, protoSelectionBox));
+		}
+		if (railPieceLayers.ties.isPresent()) {
+			register.accept(RenderUtils.spriteRenderer(Layer.RAIL_TIES, railPieceLayers.ties.get().createSprites(0),
+					entity, protoSelectionBox));
+		}
+		if (railPieceLayers.backplates.isPresent()) {
+			register.accept(RenderUtils.spriteRenderer(Layer.RAIL_BACKPLATES,
+					railPieceLayers.backplates.get().createSprites(0), entity, protoSelectionBox));
+		}
+		if (railPieceLayers.metals.isPresent()) {
+			register.accept(RenderUtils.spriteRenderer(Layer.RAIL_METALS, railPieceLayers.metals.get().createSprites(0),
+					entity, protoSelectionBox));
+		}
+	}
 
 	@Override
 	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {

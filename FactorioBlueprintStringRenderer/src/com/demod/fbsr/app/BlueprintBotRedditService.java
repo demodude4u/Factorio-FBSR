@@ -212,7 +212,7 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 			lines.add("    " + info);
 		}
 
-		if (!reporting.getExceptions().isEmpty()) {
+		if (!reporting.getExceptionsWithBlame().isEmpty()) {
 			lines.add("    Sorry, There was a problem completing your request.");
 		}
 

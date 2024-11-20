@@ -10,7 +10,7 @@ public class HeatInterfaceRendering extends SimpleEntityRendering {
 
 	@Override
 	public void defineEntity(Bindings bind, LuaValue lua) {
-		bind.sprite(lua.get("sprite"));
+		bind.sprite(lua.get("picture"));
 	}
 
 	@Override

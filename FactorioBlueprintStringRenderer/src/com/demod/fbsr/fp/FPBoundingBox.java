@@ -29,4 +29,8 @@ public class FPBoundingBox {
 	public Rectangle2D.Double createRect() {
 		return new Rectangle2D.Double(leftTop.x, leftTop.y, rightBottom.x - leftTop.x, rightBottom.y - leftTop.y);
 	}
+
+	public FPBoundingBox shift(FPVector v) {
+		return new FPBoundingBox(leftTop.x + v.x, leftTop.y + v.y, rightBottom.x + v.x, rightBottom.y + v.y);
+	}
 }

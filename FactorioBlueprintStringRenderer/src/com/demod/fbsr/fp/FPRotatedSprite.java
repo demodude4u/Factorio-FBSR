@@ -65,8 +65,12 @@ public class FPRotatedSprite extends FPSpriteParameters {
 			tileIndex = index % fileLength;
 		}
 		String filename = filenames.get().get(fileIndex);
-		x += (tileIndex % lineLength) * width;
-		y += (tileIndex / lineLength) * height;
+		if (lineLength > 0) {
+			x += (tileIndex % lineLength) * width;
+			y += (tileIndex / lineLength) * height;
+		} else {
+			x += tileIndex * width;
+		}
 
 		int width = this.width;
 		int height = this.height;

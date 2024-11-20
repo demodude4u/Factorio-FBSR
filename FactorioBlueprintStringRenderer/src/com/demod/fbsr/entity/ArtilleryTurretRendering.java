@@ -30,10 +30,10 @@ public class ArtilleryTurretRendering extends EntityRendererFactory {
 		register.accept(RenderUtils.spriteRenderer(protoBaseSprites.createSprites(entity.getDirection(), 0), entity,
 				protoSelectionBox));
 		register.accept(RenderUtils.spriteRenderer(Layer.ENTITY2,
-				protoCannonBaseSprites.createSprites(entity.getDirection().getOrientation()), entity,
+				protoCannonBarrelSprites.createSprites(entity.getDirection().getOrientation()), entity,
 				protoSelectionBox));
 		register.accept(RenderUtils.spriteRenderer(Layer.ENTITY2,
-				protoCannonBarrelSprites.createSprites(entity.getDirection().getOrientation()), entity,
+				protoCannonBaseSprites.createSprites(entity.getDirection().getOrientation()), entity,
 				protoSelectionBox));
 	}
 

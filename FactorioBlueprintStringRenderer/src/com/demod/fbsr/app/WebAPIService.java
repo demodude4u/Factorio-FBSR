@@ -181,10 +181,10 @@ public class WebAPIService extends AbstractIdleService {
 					JSONObject result = new JSONObject();
 					Utils.terribleHackToHaveOrderedJSONObject(result);
 
-					if (!reporting.getExceptions().isEmpty()) {
+					if (!reporting.getExceptionsWithBlame().isEmpty()) {
 						resp.code(400);
 						infos.add("There was a problem completing your request.");
-						reporting.getExceptions().forEach(Exception::printStackTrace);
+						reporting.getExceptionsWithBlame().forEach(e -> e.getException().printStackTrace());
 					}
 
 					if (!infos.isEmpty()) {

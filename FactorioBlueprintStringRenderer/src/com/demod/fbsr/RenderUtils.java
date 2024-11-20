@@ -51,6 +51,7 @@ public final class RenderUtils {
 			ret.image = RenderUtils.EMPTY_IMAGE;
 		}
 
+		// FIXME
 		if (!tint.equals(Color.white)) {
 			ret.image = Utils.tintImage(ret.image, tint);
 		}

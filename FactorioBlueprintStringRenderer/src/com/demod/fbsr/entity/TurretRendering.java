@@ -27,7 +27,8 @@ public abstract class TurretRendering extends SimpleEntityRendering {
 	@Override
 	public void defineEntity(Bindings bind, LuaValue lua) {
 		LuaValue luaBaseVis = lua.get("graphics_set").get("base_visualisation");
-		if (luaBaseVis.istable()) {
+		LuaValue luaBaseVisAnimation = luaBaseVis.get("animation");
+		if (luaBaseVisAnimation.isnil()) {
 			Utils.forEach(luaBaseVis, l -> {
 				// TODO verify states is correctly used
 				LuaValue luaStates = l.get("enabled_states");
@@ -36,7 +37,7 @@ public abstract class TurretRendering extends SimpleEntityRendering {
 				}
 			});
 		} else {
-			bind.animation4Way(luaBaseVis.get("animation"));
+			bind.animation4Way(luaBaseVisAnimation);
 		}
 
 		bind.rotatedAnimation8Way(lua.get("folded_animation"));

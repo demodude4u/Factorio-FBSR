@@ -1,14 +1,10 @@
 package com.demod.fbsr.entity;
 
 import java.awt.geom.Point2D;
-import java.util.function.Consumer;
 
 import com.demod.factorio.DataTable;
 import com.demod.fbsr.BlueprintEntity;
 import com.demod.fbsr.Direction;
-import com.demod.fbsr.RenderUtils;
-import com.demod.fbsr.Renderer;
-import com.demod.fbsr.Renderer.Layer;
 import com.demod.fbsr.WorldMap;
 
 public class CurvedRailRendering extends RailRendering {
@@ -24,23 +20,6 @@ public class CurvedRailRendering extends RailRendering {
 					{ { 4, -1, 6 }, { -3, 2, 1 } }, // W
 					{ { 4, 1, 6 }, { -3, -2, 3 } }, // NW
 			};
-
-	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
-			BlueprintEntity entity) {
-
-		FPRailPieceLayers railPieceLayers = protoPictures.get(entity.getDirection());
-		register.accept(RenderUtils.spriteRenderer(Layer.RAIL_STONE_BACKGROUND,
-				railPieceLayers.stonePathBackground.createSprites(0), entity, protoSelectionBox));
-		register.accept(RenderUtils.spriteRenderer(Layer.RAIL_STONE, railPieceLayers.stonePath.createSprites(0), entity,
-				protoSelectionBox));
-		register.accept(RenderUtils.spriteRenderer(Layer.RAIL_TIES, railPieceLayers.ties.createSprites(0), entity,
-				protoSelectionBox));
-		register.accept(RenderUtils.spriteRenderer(Layer.RAIL_BACKPLATES, railPieceLayers.backplates.createSprites(0),
-				entity, protoSelectionBox));
-		register.accept(RenderUtils.spriteRenderer(Layer.RAIL_METALS, railPieceLayers.metals.createSprites(0), entity,
-				protoSelectionBox));
-	}
 
 	@Override
 	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity) {
