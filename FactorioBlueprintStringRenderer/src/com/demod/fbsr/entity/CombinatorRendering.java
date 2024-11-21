@@ -3,6 +3,7 @@ package com.demod.fbsr.entity;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.function.Consumer;
 
 import org.luaj.vm2.LuaValue;
@@ -24,9 +25,12 @@ public abstract class CombinatorRendering extends SimpleEntityRendering {
 			BlueprintEntity entity) {
 		super.createRenderers(register, map, dataTable, entity);
 
-		register.accept(RenderUtils.spriteRenderer(
-				protoOperationSprites.get(getOperation(entity)).createSprites(entity.getDirection()), entity,
-				protoSelectionBox));
+		Optional<String> operation = getOperation(entity);
+		if (operation.isPresent()) {
+			register.accept(RenderUtils.spriteRenderer(
+					protoOperationSprites.get(operation.get()).createSprites(entity.getDirection()), entity,
+					protoSelectionBox));
+		}
 	}
 
 	@Override
@@ -36,7 +40,7 @@ public abstract class CombinatorRendering extends SimpleEntityRendering {
 
 	public abstract void defineOperations(Map<String, String> operations);
 
-	public abstract String getOperation(BlueprintEntity entity);
+	public abstract Optional<String> getOperation(BlueprintEntity entity);
 
 	@Override
 	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
