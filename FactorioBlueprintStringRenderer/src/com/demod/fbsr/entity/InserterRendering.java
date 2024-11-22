@@ -109,7 +109,7 @@ public class InserterRendering extends EntityRendererFactory {
 					BufferedImage image = sprite.image;
 
 					g.translate(pos.x, pos.y);
-					g.rotate(dir.back().ordinal() * Math.PI / 4.0);
+					g.rotate(dir.ordinal() * Math.PI / 4.0);
 					g.translate(bounds.x, 0);
 					g.scale(bounds.width, armStretch);
 					g.drawImage(image, 0, 1, 1, 0, source.x, source.y, source.x + source.width,
