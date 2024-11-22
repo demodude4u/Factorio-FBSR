@@ -1,6 +1,5 @@
 package com.demod.fbsr;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -9,15 +8,17 @@ import java.util.function.Function;
 import org.luaj.vm2.LuaValue;
 
 import com.demod.factorio.Utils;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 
 public final class FPUtils {
 
 	public static double PROJECTION_CONSTANT = 0.7071067811865;
 
 	public static <T> List<T> list(LuaValue lua, Function<LuaValue, T> factory) {
-		List<T> ret = new ArrayList<>();
-		Utils.forEach(lua, l -> ret.add(factory.apply(l)));
-		return ret;
+		Builder<T> builder = ImmutableList.builder();
+		Utils.forEach(lua, l -> builder.add(factory.apply(l)));
+		return builder.build();
 	}
 
 	public static <T> Optional<T> opt(LuaValue lua, Function<LuaValue, T> factory) {
@@ -46,9 +47,9 @@ public final class FPUtils {
 		if (lua.isnil()) {
 			return Optional.empty();
 		}
-		List<T> ret = new ArrayList<>();
-		Utils.forEach(lua, l -> ret.add(factory.apply(l)));
-		return Optional.of(ret);
+		Builder<T> builder = ImmutableList.builder();
+		Utils.forEach(lua, l -> builder.add(factory.apply(l)));
+		return Optional.of(builder.build());
 	}
 
 	public static Optional<String> optString(LuaValue lua) {

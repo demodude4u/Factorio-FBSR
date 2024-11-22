@@ -2,6 +2,7 @@ package com.demod.fbsr.bs;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalInt;
 
 import org.json.JSONObject;
 
@@ -13,6 +14,13 @@ public class BSBlueprint {
 	public final MapVersion version;
 	public final Optional<String> description;
 	public final List<BSIcon> icons;
+	public final List<BSEntity> entities;
+	public final List<BSTile> tiles;
+	public final List<BSSchedule> schedules;
+	public final List<BSParameter> parameters;
+	public final Optional<BSPosition> snapToGrid;
+	public final boolean absoluteSnapping;
+	public final OptionalInt index;
 
 	public BSBlueprint(JSONObject json) {
 		label = BSUtils.optString(json, "label");
@@ -25,5 +33,6 @@ public class BSBlueprint {
 		parameters = BSUtils.list(json, "parameters", BSParameter::new);
 		snapToGrid = BSUtils.opt(json, "snap_to_grid", BSPosition::new);
 		absoluteSnapping = json.optBoolean("absolute_snapping");
+		index = BSUtils.optInt(json, "index");
 	}
 }

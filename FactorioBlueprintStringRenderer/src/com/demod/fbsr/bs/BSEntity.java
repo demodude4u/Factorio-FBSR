@@ -1,16 +1,42 @@
 package com.demod.fbsr.bs;
 
+import java.util.List;
+import java.util.Optional;
+import java.util.OptionalInt;
+
 import org.json.JSONObject;
 
 import com.demod.fbsr.BSUtils;
 import com.demod.fbsr.Direction;
+import com.demod.fbsr.ItemQuality;
 
 public class BSEntity {
-	private final int entityNumber;
-	private final String name;
-	private final BSPosition position;
-	private final Direction direction;
-	private final int directionRaw;
+	public final int entityNumber;
+	public final String name;
+	public final BSPosition position;
+	public final Direction direction;
+	public final int directionRaw;
+	public final Optional<BSControlBehavior> controlBehavior;
+	public final Optional<String> recipe;
+	public final Optional<ItemQuality> recipeQuality;
+	public final Optional<BSEntityRequestFilters> requestFilters;
+	public final Optional<String> filterMode;
+	public final boolean useFilters;
+	public final OptionalInt overrideStackSize;
+	public final OptionalInt bar;
+	public final List<BSFilter> filters;
+	public final List<BSItemStack> items;
+	public final OptionalInt transitionalRequestIndex;
+	public final Optional<BSSignalID> icon;
+	public final boolean alwaysShow;
+	public final Optional<BSColor> color;
+	public final Optional<String> spoilPriority;
+	public final Optional<String> type;
+	public final OptionalInt manualTrainsLimit;
+	public final OptionalInt priority;
+	public final Optional<String> station;
+	public final Optional<String> text;
+	public final Optional<ItemQuality> quality;
 
 	public BSEntity(JSONObject json) {
 		entityNumber = json.getInt("entity_number");
