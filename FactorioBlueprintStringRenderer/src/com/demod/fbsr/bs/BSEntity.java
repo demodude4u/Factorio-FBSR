@@ -38,6 +38,8 @@ public class BSEntity {
 	public final Optional<String> text;
 	public final Optional<ItemQuality> quality;
 
+	private final JSONObject debugJson;
+
 	public BSEntity(JSONObject json) {
 		entityNumber = json.getInt("entity_number");
 		name = json.getString("name");
@@ -65,5 +67,11 @@ public class BSEntity {
 		station = BSUtils.optString(json, "station");
 		text = BSUtils.optString(json, "text");
 		quality = BSUtils.optQuality(json, "quality");
+
+		debugJson = json;
+	}
+
+	public JSONObject getDebugJson() {
+		return debugJson;
 	}
 }

@@ -50,27 +50,34 @@ import com.demod.factorio.prototype.RecipePrototype;
 import com.demod.fbsr.Renderer.Layer;
 import com.demod.fbsr.WorldMap.RailEdge;
 import com.demod.fbsr.WorldMap.RailNode;
+import com.demod.fbsr.bs.BSBlueprint;
+import com.demod.fbsr.bs.BSEntity;
+import com.demod.fbsr.bs.BSTile;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Table;
 
 public class FBSR {
 
 	private static class EntityRenderingTuple {
-		BlueprintEntity entity;
+		BSEntity entity;
 		EntityRendererFactory factory;
 	}
 
+	public static class RenderResult {
+		public BufferedImage image;
+		public long renderTime;
+	}
+
 	private static class TileRenderingTuple {
-		BlueprintTile tile;
+		BSTile tile;
 		TileRendererFactory factory;
 	}
 
 	private static final int MAX_WORLD_RENDER_PIXELS = 10000 * 10000;
-
 	private static final Color GROUND_COLOR = new Color(40, 40, 40);
+
 	private static final Color GRID_COLOR = new Color(60, 60, 60);
 
 	private static final BasicStroke GRID_STROKE = new BasicStroke((float) (3 / FBSR.tileSize));
@@ -78,8 +85,9 @@ public class FBSR {
 	private static volatile String version = null;
 
 	private static final Map<String, Color> itemColorCache = new HashMap<>();
-
+	// TODO find this in the factorio install
 	private static BufferedImage timeIcon = null;
+
 	static {
 		try {
 			timeIcon = ImageIO.read(FBSR.class.getClassLoader().getResourceAsStream("Time_icon.png"));
@@ -96,80 +104,6 @@ public class FBSR {
 		double amount = items.getOrDefault(itemName, 0.0);
 		amount += add;
 		items.put(itemName, amount);
-	}
-
-	// Used before MapVersion(0, 18, 37, 3)
-	private static void alignRenderingTuplesToGrid(List<EntityRenderingTuple> entityRenderingTuples,
-			List<TileRenderingTuple> tileRenderingTuples) {
-		Multiset<Boolean> xAligned = LinkedHashMultiset.create();
-		Multiset<Boolean> yAligned = LinkedHashMultiset.create();
-
-		boolean anyRails = false;
-
-		for (EntityRenderingTuple tuple : entityRenderingTuples) {
-			if (tuple.entity.getName().equals("straight-rail") || tuple.entity.getName().equals("curved-rail")) {
-				anyRails = true; // no entity shifting if there are rails
-				break;
-			}
-
-			Point2D.Double pos = tuple.entity.getPosition();
-			Rectangle2D selectionBox;
-			if (tuple.factory.getPrototype() != null) {
-				selectionBox = tuple.entity.getDirection().rotateBounds(tuple.factory.getPrototype().getSelectionBox());
-			} else {
-				selectionBox = new Rectangle2D.Double();
-			}
-			Rectangle2D.Double bounds = new Rectangle2D.Double(selectionBox.getX() + pos.x, selectionBox.getY() + pos.y,
-					selectionBox.getWidth(), selectionBox.getHeight());
-
-			// Everything is doubled and rounded to the closest original 0.5
-			// increment
-			long x = Math.round(bounds.getCenterX() * 2);
-			long y = Math.round(bounds.getCenterY() * 2);
-			long w = Math.round(bounds.width * 2);
-			long h = Math.round(bounds.height * 2);
-
-			// If size/2 is odd, pos should be odd, and vice versa
-			xAligned.add(((w / 2) % 2 == 0) == (x % 2 == 0));
-			yAligned.add(((h / 2) % 2 == 0) == (y % 2 == 0));
-		}
-
-		// System.out.println("X ALIGNED: " + xAligned.count(true) + " yes, " +
-		// xAligned.count(false) + " no");
-		// System.out.println("Y ALIGNED: " + yAligned.count(true) + " yes, " +
-		// yAligned.count(false) + " no");
-
-		boolean shiftX = xAligned.count(true) < xAligned.count(false);
-		boolean shiftY = yAligned.count(true) < yAligned.count(false);
-		if (!anyRails && (shiftX || shiftY)) {
-			// System.out.println("SHIFTING!");
-			for (EntityRenderingTuple tuple : entityRenderingTuples) {
-				Point2D.Double position = tuple.entity.getPosition();
-				if (shiftX) {
-					position.x += 0.5;
-				}
-				if (shiftY) {
-					position.y += 0.5;
-				}
-			}
-		}
-
-		// Always shift tiles
-		for (TileRenderingTuple tuple : tileRenderingTuples) {
-			Point2D.Double position = tuple.tile.getPosition();
-			position.x += 0.5;
-			position.y += 0.5;
-		}
-
-	}
-
-	// Used since MapVersion(0, 18, 37, 3), due to game-internal bp string changes
-	private static void alignTileRenderingTuplesToGrid(List<TileRenderingTuple> tileRenderingTuples) {
-		for (TileRenderingTuple tuple : tileRenderingTuples) {
-			Point2D.Double position = tuple.tile.getPosition();
-			position.x += 0.5;
-			position.y += 0.5;
-		}
 	}
 
 	private static BufferedImage applyRendering(CommandReporting reporting, int tileSize, List<Renderer> renderers,
@@ -578,21 +512,20 @@ public class FBSR {
 		};
 	}
 
-	public static Map<String, Double> generateSummedTotalItems(DataTable table, Blueprint blueprint) {
+	public static Map<String, Double> generateSummedTotalItems(DataTable table, BSBlueprint blueprint) {
 		Map<String, Double> ret = new LinkedHashMap<>();
-		if (!blueprint.getEntities().isEmpty())
-			ret.put("Entities", (double) blueprint.getEntities().size());
+		if (!blueprint.entities.isEmpty())
+			ret.put("Entities", (double) blueprint.entities.size());
 
-		for (BlueprintEntity entity : blueprint.getEntities()) {
-			Optional<Multiset<String>> modules = RenderUtils.getModules(entity, table);
-			if (modules.isPresent()) {
-				for (Multiset.Entry<String> entry : modules.get().entrySet()) {
-					addToItemAmount(ret, "Modules", entry.getCount());
-				}
+		for (BSEntity entity : blueprint.entities) {
+			Multiset<String> modules = RenderUtils.getModules(entity, table);
+			for (Multiset.Entry<String> entry : modules.entrySet()) {
+				addToItemAmount(ret, "Modules", entry.getCount());
 			}
 		}
-		for (BlueprintTile tile : blueprint.getTiles()) {
-			String itemName = tile.getName();
+		for (BSTile tile : blueprint.tiles) {
+			String itemName = tile.name;
+			// TODO hard-coded
 			if (itemName.startsWith("hazard-concrete")) {
 				itemName = "hazard-concrete";
 			}
@@ -615,10 +548,10 @@ public class FBSR {
 		return ret;
 	}
 
-	public static Map<String, Double> generateTotalItems(DataTable table, Blueprint blueprint) {
+	public static Map<String, Double> generateTotalItems(DataTable table, BSBlueprint blueprint) {
 		Map<String, Double> ret = new LinkedHashMap<>();
-		for (BlueprintEntity entity : blueprint.getEntities()) {
-			String entityName = entity.getName();
+		for (BSEntity entity : blueprint.entities) {
+			String entityName = entity.name;
 			List<ItemPrototype> items = table.getItemsForEntity(entityName);
 			if (items.isEmpty()) {
 				// reporting.addWarning("Cannot find items for entity: " +
@@ -629,16 +562,14 @@ public class FBSR {
 				addToItemAmount(ret, i.getName(), 1);
 			});
 
-			Optional<Multiset<String>> modules = RenderUtils.getModules(entity, table);
-			if (modules.isPresent()) {
-				for (Multiset.Entry<String> entry : modules.get().entrySet()) {
-					addToItemAmount(ret, entry.getElement(), entry.getCount());
-				}
+			Multiset<String> modules = RenderUtils.getModules(entity, table);
+			for (Multiset.Entry<String> entry : modules.entrySet()) {
+				addToItemAmount(ret, entry.getElement(), entry.getCount());
 			}
 		}
-		for (BlueprintTile tile : blueprint.getTiles()) {
-			// TODO get rid of hard-coding
-			String itemName = tile.getName();
+		for (BSTile tile : blueprint.tiles) {
+			String itemName = tile.name;
+			// TODO hard-coded
 			if (itemName.startsWith("hazard-concrete")) {
 				itemName = "hazard-concrete";
 			}
@@ -931,68 +862,57 @@ public class FBSR {
 
 	}
 
-	public static BufferedImage renderBlueprint(Blueprint blueprint, CommandReporting reporting)
+	public static RenderResult renderBlueprint(BSBlueprint blueprint, CommandReporting reporting)
 			throws JSONException, IOException {
 		return renderBlueprint(blueprint, reporting, new JSONObject());
 	}
 
-	public static BufferedImage renderBlueprint(Blueprint blueprint, CommandReporting reporting, JSONObject options)
+	public static RenderResult renderBlueprint(BSBlueprint blueprint, CommandReporting reporting, JSONObject options)
 			throws JSONException, IOException {
-		System.out.println("Rendering " + blueprint.getLabel().orElse("(No Name)"));
+		System.out.println("Rendering " + blueprint.label.orElse("(No Name)"));
 		long startMillis = System.currentTimeMillis();
 
 		DataTable table = FactorioData.getTable();
 		WorldMap map = new WorldMap();
 
-		boolean newFormatDetected = blueprint.getVersion().greaterOrEquals(Blueprint.VERSION_NEW_FORMAT);
-		map.setNewFormatDetected(newFormatDetected);
-		reporting.setNewFormatDetected(newFormatDetected);
-
 		List<EntityRenderingTuple> entityRenderingTuples = new ArrayList<EntityRenderingTuple>();
 		List<TileRenderingTuple> tileRenderingTuples = new ArrayList<TileRenderingTuple>();
 
-		for (BlueprintEntity entity : blueprint.getEntities()) {
+		for (BSEntity entity : blueprint.entities) {
 			EntityRenderingTuple tuple = new EntityRenderingTuple();
 			tuple.entity = entity;
-			tuple.factory = EntityRendererFactory.forName(entity.getName());
-			System.out.println("DEBUG ENTITY " + entity.getId() + " " + entity.getName() + " -> "
-					+ tuple.factory.getClass().getSimpleName());// XXX
+			tuple.factory = EntityRendererFactory.forName(entity.name);
 			if (tuple.factory == EntityRendererFactory.UNKNOWN) {
 				if (options.optBoolean("debug-typeMapping")) {
-					reporting.addDebug("Unknown Entity! " + entity.getName());
+					reporting.addDebug("Unknown Entity! " + entity.name);
 				}
 			}
 			entityRenderingTuples.add(tuple);
 		}
-		for (BlueprintTile tile : blueprint.getTiles()) {
+		for (BSTile tile : blueprint.tiles) {
 			TileRenderingTuple tuple = new TileRenderingTuple();
 			tuple.tile = tile;
-			tuple.factory = TileRendererFactory.forName(tile.getName());
+			tuple.factory = TileRendererFactory.forName(tile.name);
 			if (tuple.factory == TileRendererFactory.UNKNOWN) {
 				if (options.optBoolean("debug-typeMapping")) {
-					reporting.addDebug("Unknown Tile! " + tile.getName());
+					reporting.addDebug("Unknown Tile! " + tile.name);
 				}
 			}
 			tileRenderingTuples.add(tuple);
 		}
 
-		if (blueprint.getVersion().greaterOrEquals(new MapVersion(0, 18, 37, 3)))
-			alignTileRenderingTuplesToGrid(tileRenderingTuples);
-		else // legacy
-			alignRenderingTuplesToGrid(entityRenderingTuples, tileRenderingTuples);
-
 		entityRenderingTuples.forEach(t -> {
 			try {
 				t.factory.populateWorldMap(map, table, t.entity);
 			} catch (Exception e) {
-				reporting.addException(e, t.factory.getClass().getSimpleName() + ", " + t.entity.getName());
+				reporting.addException(e, t.factory.getClass().getSimpleName() + ", " + t.entity.name);
 			}
 		});
 		tileRenderingTuples.forEach(t -> {
 			try {
 				t.factory.populateWorldMap(map, table, t.tile);
 			} catch (Exception e) {
-				reporting.addException(e, t.factory.getClass().getSimpleName() + ", " + t.tile.getName());
+				reporting.addException(e, t.factory.getClass().getSimpleName() + ", " + t.tile.name);
 			}
 		});
 
@@ -1000,7 +920,7 @@ public class FBSR {
 			try {
 				t.factory.populateLogistics(map, table, t.entity);
 			} catch (Exception e) {
-				reporting.addException(e, t.factory.getClass().getSimpleName() + ", " + t.entity.getName());
+				reporting.addException(e, t.factory.getClass().getSimpleName() + ", " + t.entity.name);
 			}
 		});
 
@@ -1016,14 +936,14 @@ public class FBSR {
 			try {
 				t.factory.createRenderers(renderers::add, map, table, t.entity);
 			} catch (Exception e) {
-				reporting.addException(e, t.factory.getClass().getSimpleName() + ", " + t.entity.getName());
+				reporting.addException(e, t.factory.getClass().getSimpleName() + ", " + t.entity.name);
 			}
 		});
 		tileRenderingTuples.forEach(t -> {
 			try {
 				t.factory.createRenderers(renderers::add, map, table, t.tile);
 			} catch (Exception e) {
-				reporting.addException(e, t.factory.getClass().getSimpleName() + ", " + t.tile.getName());
+				reporting.addException(e, t.factory.getClass().getSimpleName() + ", " + t.tile.name);
 			}
 		});
 
@@ -1031,7 +951,7 @@ public class FBSR {
 			try {
 				t.factory.createModuleIcons(renderers::add, map, table, t.entity);
 			} catch (Exception e) {
-				reporting.addException(e, t.factory.getClass().getSimpleName() + ", " + t.entity.getName());
+				reporting.addException(e, t.factory.getClass().getSimpleName() + ", " + t.entity.name);
 			}
 		});
 
@@ -1039,7 +959,7 @@ public class FBSR {
 			try {
 				t.factory.createWireConnections(renderers::add, map, table, t.entity);
 			} catch (Exception e) {
-				reporting.addException(e, t.factory.getClass().getSimpleName() + ", " + t.entity.getName());
+				reporting.addException(e, t.factory.getClass().getSimpleName() + ", " + t.entity.name);
 			}
 		});
 
@@ -1048,7 +968,7 @@ public class FBSR {
 
 		ArrayListMultimap<Direction, PanelRenderer> borderPanels = ArrayListMultimap.create();
 		if (options.optBoolean("show-info-panels", true)) {
-			blueprint.getLabel().ifPresent(label -> {
+			blueprint.label.ifPresent(label -> {
 				borderPanels.put(Direction.NORTH, createHeaderPanel(label));
 			});
 			borderPanels.put(Direction.SOUTH, createFooterPanel());
@@ -1061,7 +981,7 @@ public class FBSR {
 
 		if (options.optBoolean("debug-placement")) {
 			entityRenderingTuples.forEach(t -> {
-				Point2D.Double pos = t.entity.getPosition();
+				Point2D.Double pos = t.entity.position.createPoint();
 				renderers.add(new Renderer(Layer.DEBUG_P, pos) {
 					@Override
 					public void render(Graphics2D g) {
@@ -1070,13 +990,13 @@ public class FBSR {
 						Stroke ps = g.getStroke();
 						g.setStroke(new BasicStroke(3f / 32f));
 						g.setColor(Color.green);
-						g.draw(new Line2D.Double(pos, t.entity.getDirection().offset(pos, 0.3)));
+						g.draw(new Line2D.Double(pos, t.entity.direction.offset(pos, 0.3)));
 						g.setStroke(ps);
 					}
 				});
 			});
 			tileRenderingTuples.forEach(t -> {
-				Point2D.Double pos = t.tile.getPosition();
+				Point2D.Double pos = t.tile.position.createPoint();
 				renderers.add(new Renderer(Layer.DEBUG_P, pos) {
 					@Override
 					public void render(Graphics2D g) {
@@ -1087,12 +1007,14 @@ public class FBSR {
 			});
 		}
 
-		BufferedImage result = applyRendering(reporting, (int) Math.round(tileSize), renderers, borderPanels, options);
+		BufferedImage image = applyRendering(reporting, (int) Math.round(tileSize), renderers, borderPanels, options);
 
 		long endMillis = System.currentTimeMillis();
 		System.out.println("\tRender Time " + (endMillis - startMillis) + " ms");
-		blueprint.setRenderTime(endMillis - startMillis);
 
+		RenderResult result = new RenderResult();
+		result.image = image;
+		result.renderTime = endMillis - startMillis;
 		return result;
 	}
 

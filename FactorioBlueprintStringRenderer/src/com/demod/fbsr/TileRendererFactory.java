@@ -22,6 +22,7 @@ import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
 import com.demod.factorio.prototype.TilePrototype;
 import com.demod.fbsr.Renderer.Layer;
+import com.demod.fbsr.bs.BSTile;
 
 public class TileRendererFactory {
 
@@ -29,11 +30,10 @@ public class TileRendererFactory {
 		Set<String> labeledTypes = new HashSet<>();
 
 		@Override
-		public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
-				BlueprintTile tile) {
-			Point2D.Double pos = tile.getPosition();
-			Rectangle2D.Double bounds = new Rectangle2D.Double(pos.x - 0.25, pos.y - 0.25, 0.5, 0.5);
-			float randomFactor = new Random(tile.getName().hashCode()).nextFloat();
+		public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSTile tile) {
+			Point2D.Double pos = tile.position.createPoint();
+			Rectangle2D.Double bounds = new Rectangle2D.Double(pos.x + 0.25, pos.y + 0.25, 0.5, 0.5);
+			float randomFactor = new Random(tile.name.hashCode()).nextFloat();
 			register.accept(new Renderer(Layer.TILE3, bounds) {
 				@Override
 				public void render(Graphics2D g) {
@@ -47,21 +47,21 @@ public class TileRendererFactory {
 			register.accept(new Renderer(Layer.OVERLAY4, bounds) {
 				@Override
 				public void render(Graphics2D g) {
-					if (labeledTypes.add(tile.getName())) {
+					if (labeledTypes.add(tile.name)) {
 						g.setFont(g.getFont().deriveFont(0.4f));
 						float textX = (float) bounds.x;
 						float textY = (float) (bounds.y + bounds.height * randomFactor);
 						g.setColor(Color.darkGray);
-						g.drawString(tile.getName(), textX + 0.05f, textY + 0.05f);
+						g.drawString(tile.name, textX + 0.05f, textY + 0.05f);
 						g.setColor(Color.white);
-						g.drawString(tile.getName(), textX, textY);
+						g.drawString(tile.name, textX, textY);
 					}
 				}
 			});
 		}
 
 		@Override
-		public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintTile tile) {
+		public void populateWorldMap(WorldMap map, DataTable dataTable, BSTile tile) {
 			if (!labeledTypes.isEmpty()) {
 				labeledTypes.clear();
 			}
@@ -151,7 +151,7 @@ public class TileRendererFactory {
 
 	protected TilePrototype prototype;
 
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BlueprintTile tile) {
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSTile tile) {
 		LuaValue sheetLua = prototype.lua().get("variants").get("material_background");
 		if (sheetLua.isnil()) {
 			sheetLua = prototype.lua().get("variants").get("main").get(1);
@@ -173,7 +173,7 @@ public class TileRendererFactory {
 
 	}
 
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintTile tile) {
+	public void populateWorldMap(WorldMap map, DataTable dataTable, BSTile tile) {
 		// default do nothing
 	}
 

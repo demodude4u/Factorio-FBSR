@@ -5,8 +5,6 @@ import java.awt.geom.Point2D;
 import java.awt.geom.Point2D.Double;
 import java.awt.geom.Rectangle2D;
 
-import org.json.JSONObject;
-
 public enum Direction {
 	NORTH(0, -1), //
 	NORTHEAST(1, -1), //
@@ -19,16 +17,6 @@ public enum Direction {
 
 	public static Direction fromCardinal(int cardinal) {
 		return values()[cardinal * 2];
-	}
-
-	public static Direction fromEntityJSON(JSONObject entityJson, MapVersion version) {
-		int dir = entityJson.optInt("direction", 0);
-		if (version.greaterOrEquals(Blueprint.VERSION_NEW_FORMAT)) {
-			// TODO need to support the new direction angles
-			return Direction.values()[dir / 2];
-		} else {
-			return Direction.values()[dir];
-		}
 	}
 
 	private final int dx;

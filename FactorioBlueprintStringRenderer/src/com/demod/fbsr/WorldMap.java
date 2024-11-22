@@ -14,6 +14,7 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 
+import com.demod.fbsr.bs.BSEntity;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -23,6 +24,36 @@ import com.google.common.collect.Table;
 import com.google.common.collect.Table.Cell;
 
 public class WorldMap {
+
+	public static class BeaconSource {
+		private final int row;
+		private final int col;
+		private final BSEntity beacon;
+		private final double distributionEffectivity;
+
+		public BeaconSource(int row, int col, BSEntity beacon, double distributionEffectivity) {
+			this.row = row;
+			this.col = col;
+			this.beacon = beacon;
+			this.distributionEffectivity = distributionEffectivity;
+		}
+
+		public BSEntity getBeacon() {
+			return beacon;
+		}
+
+		public int getCol() {
+			return col;
+		}
+
+		public double getDistributionEffectivity() {
+			return distributionEffectivity;
+		}
+
+		public int getRow() {
+			return row;
+		}
+	}
 
 	public static enum BeltBend {
 		FROM_LEFT, NONE, FROM_RIGHT;
@@ -229,7 +260,7 @@ public class WorldMap {
 	private final Table<Integer, Integer, Object> walls = HashBasedTable.create();
 	private final Table<Integer, Integer, Boolean> gates = HashBasedTable.create();
 	private final Table<Integer, Integer, Entry<String, Direction>> undergroundBeltEndings = HashBasedTable.create();
-	private final Table<Integer, Integer, List<BlueprintEntity>> beaconed = HashBasedTable.create();
+	private final Table<Integer, Integer, List<BeaconSource>> beaconed = HashBasedTable.create();
 
 	// Row: X*2
 	// Column: Y*2
@@ -241,13 +272,11 @@ public class WorldMap {
 
 	private final List<Entry<RailEdge, RailEdge>> railEdges = new ArrayList<>();
 
-	private boolean newFormatDetected = false;
-
 	private int flag(Direction facing) {
 		return 1 << facing.cardinal();
 	}
 
-	public Optional<List<BlueprintEntity>> getBeaconed(Point2D.Double pos) {
+	public Optional<List<BeaconSource>> getBeaconed(Point2D.Double pos) {
 		int kr = (int) Math.floor(pos.x);
 		int kc = (int) Math.floor(pos.y);
 		return Optional.ofNullable(beaconed.get(kr, kc));
@@ -375,10 +404,6 @@ public class WorldMap {
 				.filter(p -> p.getKey().equals(name) && p.getValue().ordinal() == dir.ordinal()).isPresent();
 	}
 
-	public boolean isNewFormatDetected() {
-		return newFormatDetected;
-	}
-
 	public boolean isPipe(Point2D.Double pos, Direction facing) {
 		int kr = (int) Math.floor(pos.x);
 		int kc = (int) Math.floor(pos.y);
@@ -397,14 +422,14 @@ public class WorldMap {
 		return walls.contains(kr, kc);
 	}
 
-	public void setBeaconed(Point2D.Double pos, BlueprintEntity beacon) {
+	public void setBeaconed(Point2D.Double pos, BSEntity beacon, double distributionEffectivity) {
 		int kr = (int) Math.floor(pos.x);
 		int kc = (int) Math.floor(pos.y);
-		List<BlueprintEntity> list = beaconed.get(kr, kc);
+		List<BeaconSource> list = beaconed.get(kr, kc);
 		if (list == null) {
 			beaconed.put(kr, kc, list = new LinkedList<>());
 		}
-		list.add(beacon);
+		list.add(new BeaconSource(kr, kc, beacon, distributionEffectivity));
 	}
 
 	public void setBelt(Point2D.Double pos, Direction facing, boolean bendable, boolean bendOthers) {
@@ -431,10 +456,6 @@ public class WorldMap {
 		int kr = (int) Math.floor(pos.x);
 		int kc = (int) Math.floor(pos.y);
 		gates.put(kr, kc, false);
-	}
-
-	public void setNewFormatDetected(boolean newFormatDetected) {
-		this.newFormatDetected = newFormatDetected;
 	}
 
 	public void setPipe(Point2D.Double pos, Direction... facings) {

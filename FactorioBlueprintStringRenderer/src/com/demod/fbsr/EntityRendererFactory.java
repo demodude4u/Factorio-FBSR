@@ -30,6 +30,8 @@ import com.demod.factorio.Utils;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.factorio.prototype.RecipePrototype;
 import com.demod.fbsr.Renderer.Layer;
+import com.demod.fbsr.WorldMap.BeaconSource;
+import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.entity.AccumulatorRendering;
 import com.demod.fbsr.entity.AmmoTurretRendering;
 import com.demod.fbsr.entity.ArithmeticCombinatorRendering;
@@ -96,20 +98,18 @@ public abstract class EntityRendererFactory {
 		Set<String> labeledTypes = new HashSet<>();
 
 		@Override
-		public void createModuleIcons(Consumer<Renderer> register, WorldMap map, DataTable table,
-				BlueprintEntity entity) {
+		public void createModuleIcons(Consumer<Renderer> register, WorldMap map, DataTable table, BSEntity entity) {
 		}
 
 		@Override
-		public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
-				BlueprintEntity entity) {
-			Point2D.Double pos = entity.getPosition();
+		public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSEntity entity) {
+			Point2D.Double pos = entity.position.createPoint();
 			Rectangle2D.Double bounds = new Rectangle2D.Double(pos.x - 0.5, pos.y - 0.5, 1.0, 1.0);
 			register.accept(new Renderer(Layer.OVERLAY3, bounds) {
 				@Override
 				public void render(Graphics2D g) {
 					g.setColor(RenderUtils.withAlpha(
-							Color.getHSBColor(new Random(entity.getName().hashCode()).nextFloat(), 0.6f, 0.4f), 128));
+							Color.getHSBColor(new Random(entity.name.hashCode()).nextFloat(), 0.6f, 0.4f), 128));
 					g.fill(new Ellipse2D.Double(bounds.x, bounds.y, bounds.width, bounds.height));
 					g.setColor(Color.gray);
 					g.setFont(new Font("Monospaced", Font.BOLD, 1).deriveFont(1f));
@@ -119,23 +119,22 @@ public abstract class EntityRendererFactory {
 			register.accept(new Renderer(Layer.OVERLAY4, bounds) {
 				@Override
 				public void render(Graphics2D g) {
-					if (labeledTypes.add(entity.getName())) {
+					if (labeledTypes.add(entity.name)) {
 						g.setFont(new Font("Monospaced", Font.BOLD, 1).deriveFont(0.4f));
 						float textX = (float) bounds.x;
 						float textY = (float) (bounds.y
-								+ bounds.height * new Random(entity.getName().hashCode()).nextFloat());
+								+ bounds.height * new Random(entity.name.hashCode()).nextFloat());
 						g.setColor(Color.darkGray);
-						g.drawString(entity.getName(), textX + 0.05f, textY + 0.05f);
+						g.drawString(entity.name, textX + 0.05f, textY + 0.05f);
 						g.setColor(Color.white);
-						g.drawString(entity.getName(), textX, textY);
+						g.drawString(entity.name, textX, textY);
 					}
 				}
 			});
 		}
 
 		@Override
-		public void createWireConnections(Consumer<Renderer> register, WorldMap map, DataTable table,
-				BlueprintEntity entity) {
+		public void createWireConnections(Consumer<Renderer> register, WorldMap map, DataTable table, BSEntity entity) {
 		}
 
 		@Override
@@ -143,11 +142,11 @@ public abstract class EntityRendererFactory {
 		}
 
 		@Override
-		public void populateLogistics(WorldMap map, DataTable dataTable, BlueprintEntity entity) {
+		public void populateLogistics(WorldMap map, DataTable dataTable, BSEntity entity) {
 		}
 
 		@Override
-		public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity) {
+		public void populateWorldMap(WorldMap map, DataTable dataTable, BSEntity entity) {
 			if (!labeledTypes.isEmpty()) {
 				labeledTypes.clear();
 			}
@@ -295,12 +294,11 @@ public abstract class EntityRendererFactory {
 		map.getOrCreateLogisticGridCell(cellDir1.offset(gridPos1, 0.25)).addWarp(cellDir2.offset(gridPos2, 0.25));
 	}
 
-	public void createModuleIcons(Consumer<Renderer> register, WorldMap map, DataTable table, BlueprintEntity entity) {
-		Optional<Multiset<String>> modulesOpt = RenderUtils.getModules(entity, table);
-		if (modulesOpt.isPresent()) {
-			Multiset<String> modules = modulesOpt.get();
+	public void createModuleIcons(Consumer<Renderer> register, WorldMap map, DataTable table, BSEntity entity) {
+		Multiset<String> renderModules = RenderUtils.getModules(entity, table);
+		if (!renderModules.isEmpty()) {
 
-			register.accept(new Renderer(Layer.OVERLAY3, entity.getPosition()) {
+			register.accept(new Renderer(Layer.OVERLAY3, entity.position.createPoint()) {
 				final double spacing = 0.7;
 				final double shadow = 0.6;
 				final double size = 0.5;
@@ -308,10 +306,11 @@ public abstract class EntityRendererFactory {
 
 				@Override
 				public void render(Graphics2D g) {
-					Point2D.Double pos = entity.getPosition();
+					Point2D.Double pos = entity.position.createPoint();
 					Rectangle2D.Double box = protoSelectionBox.createRect();
 
-					double startX = pos.x + box.x + box.width / 2.0 - spacing * (modules.size() / 2.0) + spacing / 2.0;
+					double startX = pos.x + box.x + box.width / 2.0 - spacing * (renderModules.size() / 2.0)
+							+ spacing / 2.0;
 					double startY = pos.y + box.y + box.height - vpad;
 
 					Rectangle2D.Double shadowBox = new Rectangle2D.Double(startX - shadow / 2.0, startY - shadow / 2.0,
@@ -319,7 +318,7 @@ public abstract class EntityRendererFactory {
 					Rectangle2D.Double spriteBox = new Rectangle2D.Double(startX - size / 2.0, startY - size / 2.0,
 							size, size);
 
-					for (String itemName : modules) {
+					for (String itemName : renderModules) {
 						g.setColor(new Color(0, 0, 0, 180));
 						g.fill(shadowBox);
 						BufferedImage image = table.getItem(itemName).map(FactorioData::getIcon)
@@ -335,11 +334,11 @@ public abstract class EntityRendererFactory {
 		}
 
 		if (protoBeaconed) {
-			Point2D.Double pos = entity.getPosition();
+			Point2D.Double pos = entity.position.createPoint();
 			Rectangle2D.Double beaconedBounds = protoSelectionBox.createRect();
 			beaconedBounds.x += pos.x;
 			beaconedBounds.y += pos.y;
-			Set<BlueprintEntity> beacons = new LinkedHashSet<>();
+			Set<BeaconSource> beacons = new LinkedHashSet<>();
 			map.getBeaconed(new Point2D.Double(beaconedBounds.x + 0.5, beaconedBounds.y + 0.5))
 					.ifPresent(beacons::addAll);
 			map.getBeaconed(new Point2D.Double(beaconedBounds.x + 0.5, beaconedBounds.y + beaconedBounds.height - 0.5))
@@ -351,16 +350,15 @@ public abstract class EntityRendererFactory {
 
 			if (!beacons.isEmpty()) {
 				Map<String, Double> beaconModules = new LinkedHashMap<>();
-				for (BlueprintEntity beacon : beacons) {
-					double distributionEffectivity = beacon.json().getDouble("distribution_effectivity");
-					Optional<Multiset<String>> modulesOpt2 = RenderUtils.getModules(beacon, table);
-					if (modulesOpt2.isPresent()) {
-						Multiset<String> modules = modulesOpt2.get();
-						for (Multiset.Entry<String> entry : modules.entrySet()) {
-							double amount = beaconModules.getOrDefault(entry.getElement(), 0.0);
-							amount += distributionEffectivity * entry.getCount();
-							beaconModules.put(entry.getElement(), amount);
-						}
+				for (BeaconSource bs : beacons) {
+					BSEntity beacon = bs.getBeacon();
+					double distributionEffectivity = bs.getDistributionEffectivity();
+
+					Multiset<String> modules2 = RenderUtils.getModules(beacon, table);
+					for (Multiset.Entry<String> entry : modules2.entrySet()) {
+						double amount = beaconModules.getOrDefault(entry.getElement(), 0.0);
+						amount += distributionEffectivity * entry.getCount();
+						beaconModules.put(entry.getElement(), amount);
 					}
 				}
 
@@ -371,7 +369,7 @@ public abstract class EntityRendererFactory {
 					}
 				}
 
-				register.accept(new Renderer(Layer.OVERLAY3, entity.getPosition()) {
+				register.accept(new Renderer(Layer.OVERLAY3, entity.position.createPoint()) {
 					final double spacing = 0.3;
 					final double shadow = 0.3;
 					final double size = 0.25;
@@ -379,7 +377,7 @@ public abstract class EntityRendererFactory {
 
 					@Override
 					public void render(Graphics2D g) {
-						Point2D.Double pos = entity.getPosition();
+						Point2D.Double pos = entity.position.createPoint();
 						Rectangle2D.Double box = protoSelectionBox.createRect();
 
 						double startX = pos.x + box.x + box.width / 2.0 - spacing * (modules.size() / 2.0)
@@ -409,11 +407,12 @@ public abstract class EntityRendererFactory {
 	}
 
 	public abstract void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
-			BlueprintEntity entity);
+			BSEntity entity);
 
-	public void createWireConnections(Consumer<Renderer> register, WorldMap map, DataTable table,
-			BlueprintEntity entity) {
-		int entityId = entity.getId();
+	public void createWireConnections(Consumer<Renderer> register, WorldMap map, DataTable table, BSEntity entity) {
+		int entityId = entity.entityNumber;
+
+		// TODO redo this to use the new wires structure
 
 		JSONObject connectionsJson = entity.json().optJSONObject("connections");
 		if (connectionsJson != null) {
@@ -471,7 +470,7 @@ public abstract class EntityRendererFactory {
 		}
 	}
 
-	protected void debugPrintContext(BlueprintEntity entity, EntityPrototype prototype) {
+	protected void debugPrintContext(BSEntity entity, EntityPrototype prototype) {
 		System.out.println("=================================================================");
 		System.out.println("=========================== PROTOTYPE ===========================");
 		System.out.println("=================================================================");
@@ -479,24 +478,24 @@ public abstract class EntityRendererFactory {
 		System.out.println("=================================================================");
 		System.out.println("============================ ENTITY =============================");
 		System.out.println("=================================================================");
-		Utils.debugPrintJson(entity.json());
+		Utils.debugPrintJson(entity.getDebugJson());
 	}
 
 	public EntityPrototype getPrototype() {
 		return prototype;
 	}
 
-	protected Point2D.Double getWirePositionFor(BlueprintEntity entity, String colorName, int circuitId) {
+	protected Point2D.Double getWirePositionFor(BSEntity entity, String colorName, int circuitId) {
 		// TODO find a way to preload lua
 
 		LuaValue connectionPointLua = wireConnectionCircuitId.entrySet().stream().filter(e -> e.getValue() == circuitId)
 				.map(e -> prototype.lua().get(e.getKey())).filter(l -> !l.isnil()).findAny().get();
 
 		if (connectionPointLua.get("wire").isnil()) {
-			connectionPointLua = connectionPointLua.get(entity.getDirection().cardinal() + 1);
+			connectionPointLua = connectionPointLua.get(entity.direction.cardinal() + 1);
 		}
 
-		Point2D.Double pos = entity.getPosition();
+		Point2D.Double pos = entity.position.createPoint();
 		Point2D.Double offset;
 		offset = Utils.parsePoint2D(connectionPointLua.get("wire").get(colorName));
 
@@ -505,11 +504,11 @@ public abstract class EntityRendererFactory {
 
 	public abstract void initFromPrototype(DataTable dataTable, EntityPrototype prototype);
 
-	public void populateLogistics(WorldMap map, DataTable dataTable, BlueprintEntity entity) {
+	public void populateLogistics(WorldMap map, DataTable dataTable, BSEntity entity) {
 		// default do nothing
 	}
 
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity) {
+	public void populateWorldMap(WorldMap map, DataTable dataTable, BSEntity entity) {
 		// default do nothing
 	}
 
@@ -519,9 +518,8 @@ public abstract class EntityRendererFactory {
 		cell.setAcceptFilter(Optional.of(acceptFilter));
 	}
 
-	protected void setLogisticMachine(WorldMap map, DataTable dataTable, BlueprintEntity entity,
-			RecipePrototype recipe) {
-		Point2D.Double entityPos = entity.getPosition();
+	protected void setLogisticMachine(WorldMap map, DataTable dataTable, BSEntity entity, RecipePrototype recipe) {
+		Point2D.Double entityPos = entity.position.createPoint();
 		Rectangle2D.Double box = protoSelectionBox.createRect();
 		double xStart = entityPos.x + box.x;
 		double yStart = entityPos.y + box.y;

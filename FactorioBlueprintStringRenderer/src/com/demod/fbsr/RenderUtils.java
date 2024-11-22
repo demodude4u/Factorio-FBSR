@@ -17,7 +17,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import org.json.JSONArray;
 import org.json.JSONObject;
 
 import com.demod.factorio.DataTable;
@@ -25,6 +24,9 @@ import com.demod.factorio.FactorioData;
 import com.demod.factorio.Utils;
 import com.demod.factorio.prototype.ItemPrototype;
 import com.demod.fbsr.Renderer.Layer;
+import com.demod.fbsr.bs.BSEntity;
+import com.demod.fbsr.bs.BSItemStack;
+import com.demod.fbsr.bs.BSTile;
 import com.demod.fbsr.fp.FPBoundingBox;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.LinkedHashMultiset;
@@ -167,31 +169,19 @@ public final class RenderUtils {
 		return new Color(sumR / sumA, sumG / sumA, sumB / sumA);
 	}
 
-	public static Optional<Multiset<String>> getModules(BlueprintEntity entity, DataTable table) {
-		// TODO new format
-		if (entity.isJsonNewFormat() || !entity.json().has("items")) {
-			return Optional.empty();
-		}
+	public static Multiset<String> getModules(BSEntity entity, DataTable table) {
 
 		Multiset<String> modules = LinkedHashMultiset.create();
 
-		Object itemsJson = entity.json().get("items");
-		if (itemsJson instanceof JSONObject) {
-			Utils.forEach(entity.json().getJSONObject("items"), (String itemName, Integer count) -> {
-				modules.add(itemName, count);
-			});
-		} else if (itemsJson instanceof JSONArray) {
-			Utils.<JSONObject>forEach(entity.json().getJSONArray("items"), j -> {
-				modules.add(j.getString("item"), j.getInt("count"));
-			});
+		for (BSItemStack itemStack : entity.items) {
+			String itemName = itemStack.id.name;
+			Optional<ItemPrototype> item = table.getItem(itemName);
+			if (item.isPresent() && item.get().getType().equals("module")) {
+				modules.add(itemName, itemStack.itemsInInventory.size());
+			}
 		}
 
-		modules.entrySet().removeIf(e -> {
-			Optional<ItemPrototype> item = table.getItem(e.getElement());
-			return !item.isPresent() || !item.get().getType().equals("module");
-		});
-
-		return Optional.of(modules);
+		return modules;
 	}
 
 	public static void halveAlpha(BufferedImage image) {
@@ -228,9 +218,9 @@ public final class RenderUtils {
 		}
 	}
 
-	public static EntityRenderer spriteRenderer(Layer layer, List<Sprite> sprites, BlueprintEntity entity,
+	public static EntityRenderer spriteRenderer(Layer layer, List<Sprite> sprites, BSEntity entity,
 			FPBoundingBox bounds) {
-		Point2D.Double pos = entity.getPosition();
+		Point2D.Double pos = entity.position.createPoint();
 		RenderUtils.shiftSprites(sprites, pos);
 
 		Map<Boolean, List<Sprite>> groupedSprites = sprites.stream()
@@ -281,13 +271,16 @@ public final class RenderUtils {
 		};
 	}
 
-	public static EntityRenderer spriteRenderer(Layer layer, Sprite sprite, BlueprintEntity entity,
-			FPBoundingBox bounds) {
+	public static EntityRenderer spriteRenderer(Layer layer, Sprite sprite, BSEntity entity, FPBoundingBox bounds) {
 		return spriteRenderer(layer, ImmutableList.of(sprite), entity, bounds);
 	}
 
-	public static Renderer spriteRenderer(Layer layer, Sprite sprite, BlueprintTile tile) {
-		Point2D.Double pos = tile.getPosition();
+	public static Renderer spriteRenderer(Layer layer, Sprite sprite, BSTile tile) {
+		Point2D.Double pos = tile.position.createPoint();
+
+		pos.x += 0.5;
+		pos.y += 0.5;
+
 		sprite.bounds.x += pos.x;
 		sprite.bounds.y += pos.y;
 
@@ -323,11 +316,11 @@ public final class RenderUtils {
 		};
 	}
 
-	public static EntityRenderer spriteRenderer(List<Sprite> sprites, BlueprintEntity entity, FPBoundingBox bounds) {
+	public static EntityRenderer spriteRenderer(List<Sprite> sprites, BSEntity entity, FPBoundingBox bounds) {
 		return spriteRenderer(Layer.ENTITY, sprites, entity, bounds);
 	}
 
-	public static EntityRenderer spriteRenderer(Sprite sprite, BlueprintEntity entity, FPBoundingBox bounds) {
+	public static EntityRenderer spriteRenderer(Sprite sprite, BSEntity entity, FPBoundingBox bounds) {
 		return spriteRenderer(Layer.ENTITY, sprite, entity, bounds);
 	}
 

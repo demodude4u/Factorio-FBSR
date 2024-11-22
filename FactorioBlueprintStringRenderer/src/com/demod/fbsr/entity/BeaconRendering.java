@@ -75,15 +75,12 @@ public class BeaconRendering extends EntityRendererFactory {
 		supplyBounds.width += protoSupplyAreaDistance * 2;
 		supplyBounds.height += protoSupplyAreaDistance * 2;
 
-		// XXX jank
-		entity.json().put("distribution_effectivity", protoDistributionEffectivity);
-
 		double x2 = supplyBounds.x + supplyBounds.width;
 		double y2 = supplyBounds.y + supplyBounds.height;
 		Point2D.Double bPos = new Point2D.Double();
 		for (bPos.x = supplyBounds.x + 0.5; bPos.x < x2; bPos.x++) {
 			for (bPos.y = supplyBounds.y + 0.5; bPos.y < y2; bPos.y++) {
-				map.setBeaconed(bPos, entity);
+				map.setBeaconed(bPos, entity, protoDistributionEffectivity);
 			}
 		}
 	}

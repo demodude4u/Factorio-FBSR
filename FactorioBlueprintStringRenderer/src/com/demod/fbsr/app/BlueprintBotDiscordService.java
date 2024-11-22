@@ -40,8 +40,6 @@ import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
 import com.demod.factorio.Utils;
 import com.demod.factorio.prototype.DataPrototype;
-import com.demod.fbsr.Blueprint;
-import com.demod.fbsr.BlueprintEntity;
 import com.demod.fbsr.BlueprintFinder;
 import com.demod.fbsr.BlueprintStringData;
 import com.demod.fbsr.FBSR;
@@ -200,7 +198,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				bookJson.put("label", bookLabel);
 			}
 
-			if (!latestVersion.isEmpty()) {
+			if (!latestVersion.isInvalid()) {
 				bookJson.put("version", latestVersion.getSerialized());
 			}
 

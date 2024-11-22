@@ -17,6 +17,8 @@ import org.apache.commons.codec.binary.Base64;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import com.demod.fbsr.bs.BSBlueprint;
+import com.demod.fbsr.bs.BSBlueprintString;
 import com.google.common.base.Charsets;
 
 public class BlueprintStringData {
@@ -52,7 +54,7 @@ public class BlueprintStringData {
 		}
 	}
 
-	private final List<Blueprint> blueprints = new ArrayList<>();
+	private final List<BSBlueprint> blueprints = new ArrayList<>();
 
 	private final JSONObject json;
 
@@ -61,9 +63,9 @@ public class BlueprintStringData {
 
 	private final String blueprintStringRaw;
 
-	public BlueprintStringData(String blueprintString) throws IllegalArgumentException, IOException {
-		this.blueprintStringRaw = blueprintString;
-		String versionChar = blueprintString.substring(0, 1);
+	public BlueprintStringData(String string) throws IllegalArgumentException, IOException {
+		this.blueprintStringRaw = string;
+		String versionChar = string.substring(0, 1);
 		try {
 			if (Integer.parseInt(versionChar) != 0) {
 				throw new IllegalArgumentException("Only Version 0 is supported! (" + versionChar + ")");
@@ -72,7 +74,10 @@ public class BlueprintStringData {
 			throw new IllegalArgumentException("Version is not valid! (" + versionChar + ")");
 		}
 
-		json = decode(blueprintString);
+		json = decode(string);
+		BSBlueprintString blueprintString = new BSBlueprintString(json);
+
+		// TODO from here
 
 		boolean first = true;
 		Optional<String> firstLabel = null;

@@ -10,6 +10,7 @@ import com.demod.fbsr.BSUtils;
 import com.demod.fbsr.MapVersion;
 
 public class BSBlueprint {
+
 	public final Optional<String> label;
 	public final MapVersion version;
 	public final Optional<String> description;
@@ -20,11 +21,12 @@ public class BSBlueprint {
 	public final List<BSParameter> parameters;
 	public final Optional<BSPosition> snapToGrid;
 	public final boolean absoluteSnapping;
+
 	public final OptionalInt index;
 
 	public BSBlueprint(JSONObject json) {
-		label = BSUtils.optString(json, "label");
 		version = new MapVersion(json.getInt("version"));
+		label = BSUtils.optString(json, "label");
 		description = BSUtils.optString(json, "description");
 		icons = BSUtils.list(json, "icons", BSIcon::new);
 		entities = BSUtils.list(json, "entities", BSEntity::new);
