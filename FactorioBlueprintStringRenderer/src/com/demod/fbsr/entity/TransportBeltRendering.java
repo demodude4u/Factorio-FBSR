@@ -4,18 +4,17 @@ import java.awt.geom.Point2D;
 import java.util.List;
 import java.util.function.Consumer;
 
-import org.json.JSONObject;
 import org.luaj.vm2.LuaValue;
 
 import com.demod.factorio.DataTable;
 import com.demod.factorio.prototype.EntityPrototype;
-import com.demod.fbsr.BlueprintEntity;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
 import com.demod.fbsr.Sprite;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.WorldMap.BeltBend;
+import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.fp.FPAnimationVariations;
 
 public class TransportBeltRendering extends TransportBeltConnectableRendering {
@@ -23,16 +22,17 @@ public class TransportBeltRendering extends TransportBeltConnectableRendering {
 	private FPAnimationVariations protoConnectorFrameMain;
 	private FPAnimationVariations protoConnectorFrameShadow;
 
+	// TODO circuit connectors
+
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
-			BlueprintEntity entity) {
-		BeltBend bend = map.getBeltBend(entity.getPosition()).get();
-		List<Sprite> beltSprites = createBeltSprites(entity.getDirection().cardinal(), bend.ordinal(), 0);
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSEntity entity) {
+		BeltBend bend = map.getBeltBend(entity.position.createPoint()).get();
+		List<Sprite> beltSprites = createBeltSprites(entity.direction.cardinal(), bend.ordinal(), 0);
 		register.accept(RenderUtils.spriteRenderer(beltSprites, entity, protoSelectionBox));
 
-		JSONObject connectionsJson = entity.json().optJSONObject("connections");
-		if (connectionsJson != null && connectionsJson.length() > 0) {
-			int index = transportBeltConnectorFrameMappingIndex[entity.getDirection().cardinal()][bend.ordinal()];
+		// TODO switch this over to the wire connector logic
+		if (entity.controlBehavior.isPresent()) {
+			int index = transportBeltConnectorFrameMappingIndex[entity.direction.cardinal()][bend.ordinal()];
 			register.accept(RenderUtils.spriteRenderer(protoConnectorFrameShadow.createSprites(index, 0), entity,
 					protoSelectionBox));
 			register.accept(RenderUtils.spriteRenderer(protoConnectorFrameMain.createSprites(index, 0), entity,
@@ -50,9 +50,9 @@ public class TransportBeltRendering extends TransportBeltConnectableRendering {
 	}
 
 	@Override
-	public void populateLogistics(WorldMap map, DataTable dataTable, BlueprintEntity entity) {
-		Direction dir = entity.getDirection();
-		Point2D.Double pos = entity.getPosition();
+	public void populateLogistics(WorldMap map, DataTable dataTable, BSEntity entity) {
+		Direction dir = entity.direction;
+		Point2D.Double pos = entity.position.createPoint();
 
 		setLogisticMove(map, pos, dir.frontLeft(), dir);
 		setLogisticMove(map, pos, dir.frontRight(), dir);
@@ -75,8 +75,8 @@ public class TransportBeltRendering extends TransportBeltConnectableRendering {
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity) {
-		map.setBelt(entity.getPosition(), entity.getDirection(), true, true);
+	public void populateWorldMap(WorldMap map, DataTable dataTable, BSEntity entity) {
+		map.setBelt(entity.position.createPoint(), entity.direction, true, true);
 	}
 
 }

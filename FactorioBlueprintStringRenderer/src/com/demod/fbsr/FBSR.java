@@ -23,6 +23,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -48,11 +49,13 @@ import com.demod.factorio.prototype.DataPrototype;
 import com.demod.factorio.prototype.ItemPrototype;
 import com.demod.factorio.prototype.RecipePrototype;
 import com.demod.fbsr.Renderer.Layer;
+import com.demod.fbsr.WirePoints.WirePoint;
 import com.demod.fbsr.WorldMap.RailEdge;
 import com.demod.fbsr.WorldMap.RailNode;
 import com.demod.fbsr.bs.BSBlueprint;
 import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.bs.BSTile;
+import com.demod.fbsr.bs.BSWire;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multiset;
@@ -877,6 +880,7 @@ public class FBSR {
 
 		List<EntityRenderingTuple> entityRenderingTuples = new ArrayList<EntityRenderingTuple>();
 		List<TileRenderingTuple> tileRenderingTuples = new ArrayList<TileRenderingTuple>();
+		Map<Integer, EntityRenderingTuple> entityByNumber = new HashMap<>();
 
 		for (BSEntity entity : blueprint.entities) {
 			EntityRenderingTuple tuple = new EntityRenderingTuple();
@@ -888,6 +892,7 @@ public class FBSR {
 				}
 			}
 			entityRenderingTuples.add(tuple);
+			entityByNumber.put(entity.entityNumber, tuple);
 		}
 		for (BSTile tile : blueprint.tiles) {
 			TileRenderingTuple tuple = new TileRenderingTuple();
@@ -955,13 +960,35 @@ public class FBSR {
 			}
 		});
 
-		entityRenderingTuples.forEach(t -> {
+		Set<Integer> initializedWireConnectors = new HashSet<>();
+		for (BSWire wire : blueprint.wires) {
 			try {
-				t.factory.createWireConnections(renderers::add, map, table, t.entity);
+				EntityRenderingTuple first = entityByNumber.get(wire.firstEntityNumber);
+				EntityRenderingTuple second = entityByNumber.get(wire.secondEntityNumber);
+
+				if (initializedWireConnectors.add(wire.firstEntityNumber)) {
+					first.factory.createWireConnector(renderers::add, first.entity);
+				}
+				if (initializedWireConnectors.add(wire.secondEntityNumber)) {
+					second.factory.createWireConnector(renderers::add, second.entity);
+				}
+
+				Optional<WirePoint> firstPoint = first.factory.createWirePoint(renderers::add, first.entity,
+						wire.firstWireConnectorId);
+				Optional<WirePoint> secondPoint = second.factory.createWirePoint(renderers::add, second.entity,
+						wire.secondWireConnectorId);
+
+				if (!firstPoint.isPresent() || !secondPoint.isPresent()) {
+					continue;// Probably something modded
+				}
+
+				renderers.add(RenderUtils.createWireRenderer(firstPoint.get().getPosition(),
+						secondPoint.get().getPosition(), firstPoint.get().getColor().getColor()));
 			} catch (Exception e) {
-				reporting.addException(e, t.factory.getClass().getSimpleName() + ", " + t.entity.name);
+				reporting.addException(e, "Wire " + wire.firstEntityNumber + ", " + wire.firstWireConnectorId + ", "
+						+ wire.secondEntityNumber + ", " + wire.secondWireConnectorId);
 			}
-		});
+		}
 
 		showLogisticGrid(renderers::add, table, map, options);
 		showRailLogistics(renderers::add, table, map, options);

@@ -1,34 +1,39 @@
 package com.demod.fbsr.entity;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import org.luaj.vm2.LuaValue;
 
 import com.demod.factorio.DataTable;
 import com.demod.factorio.prototype.EntityPrototype;
-import com.demod.fbsr.BlueprintEntity;
+import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
+import com.demod.fbsr.WirePoints;
+import com.demod.fbsr.WirePoints.WireColor;
 import com.demod.fbsr.WorldMap;
+import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.fp.FPSprite4Way;
+import com.demod.fbsr.fp.FPWireConnectionPoint;
 
 public abstract class CombinatorRendering extends SimpleEntityRendering {
 
 	private Map<String, FPSprite4Way> protoOperationSprites;
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
-			BlueprintEntity entity) {
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSEntity entity) {
 		super.createRenderers(register, map, dataTable, entity);
 
 		Optional<String> operation = getOperation(entity);
 		if (operation.isPresent()) {
 			register.accept(RenderUtils.spriteRenderer(
-					protoOperationSprites.get(operation.get()).createSprites(entity.getDirection()), entity,
+					protoOperationSprites.get(operation.get()).createSprites(entity.direction), entity,
 					protoSelectionBox));
 		}
 	}
@@ -40,7 +45,19 @@ public abstract class CombinatorRendering extends SimpleEntityRendering {
 
 	public abstract void defineOperations(Map<String, String> operations);
 
-	public abstract Optional<String> getOperation(BlueprintEntity entity);
+	public void defineWirePoints(BiConsumer<Integer, WirePoints> consumer, LuaValue lua) {
+		List<FPWireConnectionPoint> protoInputConnectionPoints = FPUtils.list(lua.get("input_connection_points"),
+				FPWireConnectionPoint::new);
+		List<FPWireConnectionPoint> protoOutputConnectionPoints = FPUtils.list(lua.get("output_connection_points"),
+				FPWireConnectionPoint::new);
+
+		consumer.accept(1, WirePoints.fromWireConnectionPoints(protoInputConnectionPoints, WireColor.RED));
+		consumer.accept(2, WirePoints.fromWireConnectionPoints(protoInputConnectionPoints, WireColor.GREEN));
+		consumer.accept(3, WirePoints.fromWireConnectionPoints(protoOutputConnectionPoints, WireColor.RED));
+		consumer.accept(4, WirePoints.fromWireConnectionPoints(protoOutputConnectionPoints, WireColor.GREEN));
+	}
+
+	public abstract Optional<String> getOperation(BSEntity entity);;
 
 	@Override
 	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {

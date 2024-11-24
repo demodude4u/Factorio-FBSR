@@ -8,13 +8,13 @@ import org.luaj.vm2.LuaValue;
 
 import com.demod.factorio.DataTable;
 import com.demod.factorio.prototype.EntityPrototype;
-import com.demod.fbsr.BlueprintEntity;
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
 import com.demod.fbsr.Renderer.Layer;
 import com.demod.fbsr.Sprite;
 import com.demod.fbsr.WorldMap;
+import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.fp.FPRotatedSprite;
 
 public class RollingStockRendering extends EntityRendererFactory {
@@ -38,13 +38,12 @@ public class RollingStockRendering extends EntityRendererFactory {
 	private FPRollingStockRotatedSlopedGraphics protoWheels;
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
-			BlueprintEntity entity) {
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSEntity entity) {
 
 		// TODO sloped
 		// TODO mask tinting with entity color
 
-		double orientation = entity.json().getDouble("orientation");
+		double orientation = entity.orientation.getAsDouble();
 		double orientation180 = orientation < 0.5 ? orientation + 0.5 : orientation - 0.5;
 		double rotation = orientation * Math.PI * 2 + Math.PI * 0.5;
 		double jointX = (protoJointDistance / 2.0) * Math.cos(rotation);

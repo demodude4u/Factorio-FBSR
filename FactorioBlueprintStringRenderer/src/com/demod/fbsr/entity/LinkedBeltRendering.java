@@ -7,7 +7,6 @@ import org.luaj.vm2.LuaValue;
 
 import com.demod.factorio.DataTable;
 import com.demod.factorio.prototype.EntityPrototype;
-import com.demod.fbsr.BlueprintEntity;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
@@ -15,6 +14,7 @@ import com.demod.fbsr.Renderer.Layer;
 import com.demod.fbsr.Sprite;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.WorldMap.BeltBend;
+import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.fp.FPSprite4Way;
 
 public class LinkedBeltRendering extends TransportBeltConnectableRendering {
@@ -23,13 +23,12 @@ public class LinkedBeltRendering extends TransportBeltConnectableRendering {
 	private FPSprite4Way protoStructureDirectionOut;
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
-			BlueprintEntity entity) {
-		List<Sprite> beltSprites = createBeltSprites(entity.getDirection().cardinal(), BeltBend.NONE.ordinal(), 0);
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSEntity entity) {
+		List<Sprite> beltSprites = createBeltSprites(entity.direction.cardinal(), BeltBend.NONE.ordinal(), 0);
 		register.accept(RenderUtils.spriteRenderer(beltSprites, entity, protoSelectionBox));
 
-		boolean input = entity.json().getString("type").equals("input");
-		Direction structDir = input ? entity.getDirection() : entity.getDirection().back();
+		boolean input = entity.type.get().equals("input");
+		Direction structDir = input ? entity.direction : entity.direction.back();
 		List<Sprite> structureSprites = (input ? protoStructureDirectionIn : protoStructureDirectionOut)
 				.createSprites(structDir);
 		register.accept(RenderUtils.spriteRenderer(Layer.ENTITY2, structureSprites, entity, protoSelectionBox));

@@ -1,6 +1,5 @@
 package com.demod.fbsr.app;
 
-import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileWriter;
@@ -25,11 +24,12 @@ import org.json.JSONObject;
 import com.demod.dcba.CommandReporting;
 import com.demod.factorio.Config;
 import com.demod.factorio.Utils;
-import com.demod.fbsr.Blueprint;
 import com.demod.fbsr.BlueprintFinder;
 import com.demod.fbsr.BlueprintStringData;
 import com.demod.fbsr.FBSR;
+import com.demod.fbsr.FBSR.RenderResult;
 import com.demod.fbsr.WebUtils;
+import com.demod.fbsr.bs.BSBlueprint;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.AbstractScheduledService;
 import com.google.common.util.concurrent.Uninterruptibles;
@@ -145,24 +145,22 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 
 		try {
 			List<BlueprintStringData> blueprintStrings = BlueprintFinder.search(content, reporting);
-			List<Blueprint> blueprints = blueprintStrings.stream().flatMap(s -> s.getBlueprints().stream())
+			List<BSBlueprint> blueprints = blueprintStrings.stream().flatMap(s -> s.getBlueprints().stream())
 					.collect(Collectors.toList());
+			List<Long> renderTimes = new ArrayList<>();
 
-			for (Blueprint blueprint : blueprints) {
+			for (BSBlueprint blueprint : blueprints) {
 				watchdog.ifPresent(w -> w.notifyActive(WATCHDOG_LABEL));
 				try {
-					BufferedImage image = FBSR.renderBlueprint(blueprint, reporting);
-					imageLinks.add(new SimpleEntry<>(blueprint.getLabel(),
-							WebUtils.uploadToHostingService("blueprint.png", image).toString()));
+					RenderResult result = FBSR.renderBlueprint(blueprint, reporting);
+					imageLinks.add(new SimpleEntry<>(blueprint.label,
+							WebUtils.uploadToHostingService("blueprint.png", result.image).toString()));
+					renderTimes.add(result.renderTime);
 				} catch (Exception e) {
 					reporting.addException(e);
 				}
 			}
 
-			List<Long> renderTimes = blueprintStrings.stream().flatMap(d -> d.getBlueprints().stream())
-					.flatMap(b -> (b.getRenderTime().isPresent() ? Arrays.asList(b.getRenderTime().getAsLong())
-							: ImmutableList.<Long>of()).stream())
-					.collect(Collectors.toList());
 			if (!renderTimes.isEmpty()) {
 				reporting.addField(new Field("Render Time", renderTimes.stream().mapToLong(l -> l).sum() + " ms"
 						+ (renderTimes.size() > 1
@@ -170,10 +168,6 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 										+ "]")
 								: ""),
 						true));
-			}
-
-			if (blueprintStrings.stream().anyMatch(d -> d.getBlueprints().stream().anyMatch(b -> b.isModsDetected()))) {
-				infos.add("(Modded features are shown as question marks)");
 			}
 		} catch (Exception e) {
 			reporting.addException(e);

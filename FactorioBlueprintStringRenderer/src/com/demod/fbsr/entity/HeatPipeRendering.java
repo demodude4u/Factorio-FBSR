@@ -7,12 +7,12 @@ import java.util.stream.Collectors;
 
 import com.demod.factorio.DataTable;
 import com.demod.factorio.prototype.EntityPrototype;
-import com.demod.fbsr.BlueprintEntity;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
 import com.demod.fbsr.WorldMap;
+import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.fp.FPSpriteVariations;
 
 public class HeatPipeRendering extends EntityRendererFactory {
@@ -40,8 +40,7 @@ public class HeatPipeRendering extends EntityRendererFactory {
 	private List<FPSpriteVariations> protoConnectionSprites;
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
-			BlueprintEntity entity) {
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSEntity entity) {
 		int adjCode = 0;
 		adjCode |= ((heatPipeFacingMeFrom(Direction.NORTH, map, entity) ? 1 : 0) << 0);
 		adjCode |= ((heatPipeFacingMeFrom(Direction.EAST, map, entity) ? 1 : 0) << 1);
@@ -52,8 +51,8 @@ public class HeatPipeRendering extends EntityRendererFactory {
 				protoSelectionBox));
 	}
 
-	public boolean heatPipeFacingMeFrom(Direction direction, WorldMap map, BlueprintEntity entity) {
-		return map.isHeatPipe(direction.offset(entity.getPosition()), direction.back());
+	public boolean heatPipeFacingMeFrom(Direction direction, WorldMap map, BSEntity entity) {
+		return map.isHeatPipe(direction.offset(entity.position.createPoint()), direction.back());
 	}
 
 	@Override
@@ -64,7 +63,7 @@ public class HeatPipeRendering extends EntityRendererFactory {
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity) {
-		map.setHeatPipe(entity.getPosition());
+	public void populateWorldMap(WorldMap map, DataTable dataTable, BSEntity entity) {
+		map.setHeatPipe(entity.position.createPoint());
 	}
 }

@@ -39,8 +39,8 @@ public abstract class TurretRendering extends SimpleEntityRendering {
 		} else {
 			bind.animation4Way(luaBaseVisAnimation);
 		}
-
 		bind.rotatedAnimation8Way(lua.get("folded_animation"));
+		bind.circuitConnectorNWay(lua.get("circuit_connector"));
 	}
 
 }

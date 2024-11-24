@@ -11,13 +11,13 @@ import org.luaj.vm2.LuaValue;
 
 import com.demod.factorio.DataTable;
 import com.demod.factorio.prototype.EntityPrototype;
-import com.demod.fbsr.BlueprintEntity;
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
 import com.demod.fbsr.Sprite;
 import com.demod.fbsr.WorldMap;
+import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.fp.FPAnimation;
 import com.demod.fbsr.fp.FPAnimationElement;
 
@@ -45,8 +45,7 @@ public class BeaconRendering extends EntityRendererFactory {
 	private double protoDistributionEffectivity;
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
-			BlueprintEntity entity) {
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSEntity entity) {
 		if (protoGraphicsSet.isPresent()) {
 			register.accept(
 					RenderUtils.spriteRenderer(protoGraphicsSet.get().createSprites(0), entity, protoSelectionBox));
@@ -66,8 +65,8 @@ public class BeaconRendering extends EntityRendererFactory {
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity) {
-		Point2D.Double pos = entity.getPosition();
+	public void populateWorldMap(WorldMap map, DataTable dataTable, BSEntity entity) {
+		Point2D.Double pos = entity.position.createPoint();
 
 		Rectangle2D.Double supplyBounds = protoSelectionBox.createRect();
 		supplyBounds.x += pos.x - protoSupplyAreaDistance;

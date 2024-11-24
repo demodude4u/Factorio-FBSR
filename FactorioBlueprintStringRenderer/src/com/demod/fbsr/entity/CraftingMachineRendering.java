@@ -18,34 +18,33 @@ import com.demod.factorio.Utils;
 import com.demod.factorio.prototype.DataPrototype;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.factorio.prototype.RecipePrototype;
-import com.demod.fbsr.BlueprintEntity;
 import com.demod.fbsr.Direction;
-import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
 import com.demod.fbsr.Renderer.Layer;
 import com.demod.fbsr.Sprite;
 import com.demod.fbsr.WorldMap;
+import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.fp.FPWorkingVisualisations;
 
-public abstract class CraftingMachineRendering extends EntityRendererFactory {
+public abstract class CraftingMachineRendering extends SimpleEntityRendering {
 
 	private FPWorkingVisualisations protoGraphicsSet;
 	private boolean protoOffWhenNoFluidRecipe;
 	private List<Point2D.Double> protoFluidBoxes;
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
-			BlueprintEntity entity) {
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSEntity entity) {
+		super.createRenderers(register, map, dataTable, entity);
 
-		register.accept(RenderUtils.spriteRenderer(protoGraphicsSet.createSprites(entity.getDirection(), 0), entity,
+		register.accept(RenderUtils.spriteRenderer(protoGraphicsSet.createSprites(entity.direction, 0), entity,
 				protoSelectionBox));
 
 		Sprite spriteIcon = new Sprite();
 
-		String recipe = entity.json().optString("recipe", null);
-		if (recipe != null) {
-			Optional<RecipePrototype> optRecipe = dataTable.getRecipe(recipe);
+		Optional<String> recipe = entity.recipe;
+		if (recipe.isPresent()) {
+			Optional<RecipePrototype> optRecipe = dataTable.getRecipe(recipe.get());
 			if (optRecipe.isPresent()) {
 				RecipePrototype protoRecipe = optRecipe.get();
 				if (!protoRecipe.lua().get("icon").isnil() || !protoRecipe.lua().get("icons").isnil()) {
@@ -81,7 +80,12 @@ public abstract class CraftingMachineRendering extends EntityRendererFactory {
 	}
 
 	@Override
+	public void defineEntity(Bindings bind, LuaValue lua) {
+	}
+
+	@Override
 	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
+		super.initFromPrototype(dataTable, prototype);
 
 		protoGraphicsSet = new FPWorkingVisualisations(prototype.lua().get("graphics_set"));
 
@@ -111,10 +115,10 @@ public abstract class CraftingMachineRendering extends EntityRendererFactory {
 	}
 
 	@Override
-	public void populateLogistics(WorldMap map, DataTable dataTable, BlueprintEntity entity) {
-		String recipeName = entity.json().optString("recipe", null);
-		if (recipeName != null) {
-			Optional<RecipePrototype> optRecipe = dataTable.getRecipe(recipeName);
+	public void populateLogistics(WorldMap map, DataTable dataTable, BSEntity entity) {
+		Optional<String> recipe = entity.recipe;
+		if (recipe.isPresent()) {
+			Optional<RecipePrototype> optRecipe = dataTable.getRecipe(recipe.get());
 			if (optRecipe.isPresent()) {
 				RecipePrototype protoRecipe = optRecipe.get();
 				setLogisticMachine(map, dataTable, entity, protoRecipe);
@@ -123,11 +127,11 @@ public abstract class CraftingMachineRendering extends EntityRendererFactory {
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity) {
-		String recipeName = entity.json().optString("recipe", null);
+	public void populateWorldMap(WorldMap map, DataTable dataTable, BSEntity entity) {
+		Optional<String> recipe = entity.recipe;
 		boolean hasFluid = false;
-		if (recipeName != null) {
-			Optional<RecipePrototype> optRecipe = dataTable.getRecipe(recipeName);
+		if (recipe.isPresent()) {
+			Optional<RecipePrototype> optRecipe = dataTable.getRecipe(recipe.get());
 			if (optRecipe.isPresent()) {
 				RecipePrototype protoRecipe = optRecipe.get();
 
@@ -146,9 +150,9 @@ public abstract class CraftingMachineRendering extends EntityRendererFactory {
 
 		if ((protoFluidBoxes != null) && (!protoOffWhenNoFluidRecipe || hasFluid)) {
 			for (Point2D.Double offset : protoFluidBoxes) {
-				Point2D.Double pos = entity.getDirection().left()
-						.offset(entity.getDirection().back().offset(entity.getPosition(), offset.y), offset.x);
-				Direction direction = offset.y > 0 ? entity.getDirection().back() : entity.getDirection();
+				Point2D.Double pos = entity.direction.left()
+						.offset(entity.direction.back().offset(entity.position.createPoint(), offset.y), offset.x);
+				Direction direction = offset.y > 0 ? entity.direction.back() : entity.direction;
 				map.setPipe(pos, direction);
 			}
 		}

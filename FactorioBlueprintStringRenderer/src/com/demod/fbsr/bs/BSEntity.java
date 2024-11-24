@@ -2,6 +2,7 @@ package com.demod.fbsr.bs;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalDouble;
 import java.util.OptionalInt;
 
 import org.json.JSONObject;
@@ -11,10 +12,17 @@ import com.demod.fbsr.Direction;
 import com.demod.fbsr.ItemQuality;
 
 public class BSEntity {
+	private final JSONObject debugJson;
+
+	// TODO change this to load dynamically the structure that matches the prototype
+	// (some things like "filter" are used with different structures)
+	// setup functions to cache dynamic parsing
+
 	public final int entityNumber;
 	public final String name;
 	public final BSPosition position;
 	public final Direction direction;
+	public final OptionalDouble orientation;
 	public final int directionRaw;
 	public final Optional<BSControlBehavior> controlBehavior;
 	public final Optional<String> recipe;
@@ -37,21 +45,26 @@ public class BSEntity {
 	public final Optional<String> station;
 	public final Optional<String> text;
 	public final Optional<ItemQuality> quality;
-
-	private final JSONObject debugJson;
+	public final Optional<BSInfinitySettings> infinitySettings;
+	public final Optional<BSPosition> pickupPosition;
+	public final Optional<BSPosition> dropPosition;
+	public final Optional<String> inputPriority;
+	public final Optional<String> outputPriority;
+	public final Optional<BSFilter> filter;
 
 	public BSEntity(JSONObject json) {
 		entityNumber = json.getInt("entity_number");
 		name = json.getString("name");
 		position = new BSPosition(json.getJSONObject("position"));
 		direction = BSUtils.direction(json, "direction");
+		orientation = BSUtils.optDouble(json, "orientation");
 		directionRaw = json.optInt("direction");
 		controlBehavior = BSUtils.opt(json, "control_behavior", BSControlBehavior::new);
 		recipe = BSUtils.optString(json, "recipe");
 		recipeQuality = BSUtils.optQuality(json, "recipe_quality");
 		requestFilters = BSUtils.opt(json, "request_filters", BSEntityRequestFilters::new);
 		filterMode = BSUtils.optString(json, "filter_mode");
-		useFilters = json.optBoolean("use_filters");
+		useFilters = json.optBoolean("use_filters");// only sometimes checked
 		overrideStackSize = BSUtils.optInt(json, "override_stack_size");
 		bar = BSUtils.optInt(json, "bar");
 		filters = BSUtils.list(json, "filters", BSFilter::new);
@@ -67,6 +80,12 @@ public class BSEntity {
 		station = BSUtils.optString(json, "station");
 		text = BSUtils.optString(json, "text");
 		quality = BSUtils.optQuality(json, "quality");
+		infinitySettings = BSUtils.opt(json, "infinity_settings", BSInfinitySettings::new);
+		pickupPosition = BSUtils.opt(json, "pickup_position", BSPosition::new);
+		dropPosition = BSUtils.opt(json, "drop_position", BSPosition::new);
+		inputPriority = BSUtils.optString(json, "input_priority");
+		outputPriority = BSUtils.optString(json, "output_priority");
+		filter = BSUtils.opt(json, "filter", BSFilter::new);
 
 		debugJson = json;
 	}

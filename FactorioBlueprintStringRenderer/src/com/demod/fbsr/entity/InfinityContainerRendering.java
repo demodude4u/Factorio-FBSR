@@ -5,41 +5,33 @@ import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
-
-import org.json.JSONObject;
+import java.util.stream.Collectors;
 
 import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
-import com.demod.factorio.Utils;
 import com.demod.factorio.prototype.ItemPrototype;
-import com.demod.fbsr.BlueprintEntity;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
 import com.demod.fbsr.Renderer.Layer;
 import com.demod.fbsr.Sprite;
 import com.demod.fbsr.WorldMap;
+import com.demod.fbsr.bs.BSEntity;
 
 public class InfinityContainerRendering extends ContainerRendering {
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
-			BlueprintEntity entity) {
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSEntity entity) {
 		super.createRenderers(register, map, dataTable, entity);
 
-		// TODO check if this broke with new format filters
-		if (entity.json().has("infinity_settings") && entity.json().getJSONObject("infinity_settings").has("filters")) {
-			List<String> items = new ArrayList<>();
-			Utils.<JSONObject>forEach(entity.json().getJSONObject("infinity_settings").getJSONArray("filters"), j -> {
-				if (j.getInt("count") > 0)
-					items.add(j.getString("name"));
-			});
+		if (entity.infinitySettings.isPresent()) {
+			List<String> items = entity.infinitySettings.get().filters.stream().filter(bs -> bs.count > 0)
+					.map(bs -> bs.name).collect(Collectors.toList());
 
+			// TODO show double/quad icons if more than one
 			if (!items.isEmpty()) {
 				String itemName = items.get(0);
 				Optional<ItemPrototype> optItem = dataTable.getItem(itemName);
@@ -64,16 +56,13 @@ public class InfinityContainerRendering extends ContainerRendering {
 	}
 
 	@Override
-	public void populateLogistics(WorldMap map, DataTable dataTable, BlueprintEntity entity) {
-		Point2D.Double pos = entity.getPosition();
+	public void populateLogistics(WorldMap map, DataTable dataTable, BSEntity entity) {
+		Point2D.Double pos = entity.position.createPoint();
 
-		if (entity.json().has("infinity_settings") && entity.json().getJSONObject("infinity_settings").has("filters")) {
+		if (entity.infinitySettings.isPresent()) {
 
-			Set<String> outputs = new LinkedHashSet<>();
-			Utils.<JSONObject>forEach(entity.json().getJSONObject("infinity_settings").getJSONArray("filters"), j -> {
-				if (j.getInt("count") > 0)
-					outputs.add(j.getString("name"));
-			});
+			Set<String> outputs = entity.infinitySettings.get().filters.stream().filter(bs -> bs.count > 0)
+					.map(bs -> bs.name).collect(Collectors.toSet());
 
 			map.getOrCreateLogisticGridCell(Direction.NORTHEAST.offset(pos, 0.25)).setOutputs(Optional.of(outputs));
 			map.getOrCreateLogisticGridCell(Direction.NORTHWEST.offset(pos, 0.25)).setOutputs(Optional.of(outputs));

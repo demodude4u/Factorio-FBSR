@@ -5,11 +5,9 @@ import java.awt.geom.Point2D.Double;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
@@ -267,9 +265,6 @@ public class WorldMap {
 	private final Table<Integer, Integer, LogisticGridCell> logisticGrid = HashBasedTable.create();
 	private final Table<Integer, Integer, RailNode> railNodes = HashBasedTable.create();
 
-	// Key: "eid1|cid1|eid2|cid2|color"
-	private final Map<String, Entry<Point2D.Double, Point2D.Double>> wires = new LinkedHashMap<>();
-
 	private final List<Entry<RailEdge, RailEdge>> railEdges = new ArrayList<>();
 
 	private int flag(Direction facing) {
@@ -366,18 +361,6 @@ public class WorldMap {
 
 	public Table<Integer, Integer, RailNode> getRailNodes() {
 		return railNodes;
-	}
-
-	public Entry<Point2D.Double, Point2D.Double> getWire(String key) {
-		return wires.get(key);
-	}
-
-	public Map<String, Entry<Point2D.Double, Point2D.Double>> getWires() {
-		return wires;
-	}
-
-	public boolean hasWire(String key) {
-		return wires.containsKey(key);
 	}
 
 	public boolean isBeltFacingMeFrom(Point2D.Double pos, Direction dir) {
@@ -500,9 +483,5 @@ public class WorldMap {
 		int kr = (int) Math.floor(pos.x);
 		int kc = (int) Math.floor(pos.y);
 		walls.put(kr, kc, pos);
-	}
-
-	public void setWire(String key, Entry<Point2D.Double, Point2D.Double> pair) {
-		wires.put(key, pair);
 	}
 }

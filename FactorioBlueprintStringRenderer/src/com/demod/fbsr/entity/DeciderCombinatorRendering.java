@@ -3,7 +3,7 @@ package com.demod.fbsr.entity;
 import java.util.Map;
 import java.util.Optional;
 
-import com.demod.fbsr.BlueprintEntity;
+import com.demod.fbsr.bs.BSEntity;
 
 public class DeciderCombinatorRendering extends CombinatorRendering {
 
@@ -19,9 +19,8 @@ public class DeciderCombinatorRendering extends CombinatorRendering {
 	}
 
 	@Override
-	public Optional<String> getOperation(BlueprintEntity entity) {
-		// TODO do empty if not there
-		return Optional.of(entity.json().getJSONObject("control_behavior").getJSONObject("decider_conditions")
-				.getString("comparator"));
+	public Optional<String> getOperation(BSEntity entity) {
+		return entity.controlBehavior.flatMap(bs -> bs.deciderConditions)
+				.flatMap(bs -> bs.conditions.stream().findFirst()).map(bs -> bs.comparator);
 	}
 }

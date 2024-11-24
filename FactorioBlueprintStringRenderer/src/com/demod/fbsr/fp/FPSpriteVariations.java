@@ -46,7 +46,7 @@ public class FPSpriteVariations {
 
 	public int getVariationCount() {
 		if (sheet.isPresent()) {
-			return sheet.get().variationCount;
+			return sheet.get().getVariationCount();
 
 		} else if (sprites.isPresent()) {
 			return sprites.get().size();

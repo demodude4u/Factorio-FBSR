@@ -56,7 +56,7 @@ public class FPRotatedSprite extends FPSpriteParameters {
 		int y = this.y;
 		int fileIndex;
 		int tileIndex;
-		if (lineLength == 0) {
+		if (lineLength == 0 || linesPerFile == 0) {
 			fileIndex = 0;
 			tileIndex = index;
 		} else {

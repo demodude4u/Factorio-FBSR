@@ -7,12 +7,12 @@ import org.luaj.vm2.LuaValue;
 
 import com.demod.factorio.DataTable;
 import com.demod.factorio.prototype.EntityPrototype;
-import com.demod.fbsr.BlueprintEntity;
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
 import com.demod.fbsr.WorldMap;
+import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.fp.FPAnimation;
 import com.demod.fbsr.fp.FPBoundingBox;
 import com.demod.fbsr.fp.FPRotatedAnimation;
@@ -50,17 +50,16 @@ public abstract class RailSignalBaseRendering extends EntityRendererFactory {
 
 	// TODO elevated versions
 
+	// TODO circuit connectors
+
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
-			BlueprintEntity entity) {
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSEntity entity) {
 		// TODO verify assumptions made with 192 rotations
 
 		// 16 directions
-		int direction = entity.json().optInt("direction", 0);
+		int direction = entity.directionRaw;
 
-		// TODO there is no orientation value, so how do I go from 16 directions to 192?
-		int align = direction * 12; // crude convert dir 16 to 192...
-
+		int align = direction * 12;
 		FPVector shift = groundPictureSet.selectionBoxShift.get(align);
 		FPBoundingBox shiftedSelectionBox = protoSelectionBox.shift(shift);
 

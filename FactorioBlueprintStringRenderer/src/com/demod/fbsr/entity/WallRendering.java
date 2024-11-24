@@ -10,16 +10,15 @@ import org.luaj.vm2.LuaValue;
 
 import com.demod.factorio.DataTable;
 import com.demod.factorio.prototype.EntityPrototype;
-import com.demod.fbsr.BlueprintEntity;
 import com.demod.fbsr.Direction;
-import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
 import com.demod.fbsr.WorldMap;
+import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.fp.FPSprite4Way;
 import com.demod.fbsr.fp.FPSpriteVariations;
 
-public class WallRendering extends EntityRendererFactory {
+public class WallRendering extends SimpleEntityRendering {
 
 	public static final String[] wallSpriteNameMapping = //
 			new String[/* bits WSEN */] { //
@@ -44,9 +43,10 @@ public class WallRendering extends EntityRendererFactory {
 	private FPSprite4Way protoWallDiodeRed;
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
-			BlueprintEntity entity) {
-		Point2D.Double pos = entity.getPosition();
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSEntity entity) {
+		super.createRenderers(register, map, dataTable, entity);
+
+		Point2D.Double pos = entity.position.createPoint();
 
 		boolean northGate = map.isVerticalGate(Direction.NORTH.offset(pos));
 		boolean eastGate = map.isHorizontalGate(Direction.EAST.offset(pos));
@@ -64,13 +64,20 @@ public class WallRendering extends EntityRendererFactory {
 		register.accept(RenderUtils.spriteRenderer(wallSprites.createSprites(variation), entity, protoSelectionBox));
 
 		if (northGate || eastGate || southGate || westGate) {
-			register.accept(RenderUtils.spriteRenderer(protoWallDiodeRed.createSprites(entity.getDirection()), entity,
+			register.accept(RenderUtils.spriteRenderer(protoWallDiodeRed.createSprites(entity.direction), entity,
 					protoSelectionBox));
 		}
 	}
 
 	@Override
+	public void defineEntity(Bindings bind, LuaValue lua) {
+		bind.circuitConnector(lua.get("circuit_connector"));
+	}
+
+	@Override
 	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
+		super.initFromPrototype(dataTable, prototype);
+
 		LuaValue luaPictures = prototype.lua().get("pictures");
 		protoPictures = Arrays.stream(wallSpriteNameMapping).map(s -> new FPSpriteVariations(luaPictures.get(s)))
 				.collect(Collectors.toList());
@@ -78,7 +85,7 @@ public class WallRendering extends EntityRendererFactory {
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity) {
-		map.setWall(entity.getPosition());
+	public void populateWorldMap(WorldMap map, DataTable dataTable, BSEntity entity) {
+		map.setWall(entity.position.createPoint());
 	}
 }

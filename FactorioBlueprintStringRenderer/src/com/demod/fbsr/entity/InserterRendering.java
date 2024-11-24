@@ -9,22 +9,18 @@ import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
-import org.json.JSONObject;
 import org.luaj.vm2.LuaValue;
 
 import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
-import com.demod.factorio.Utils;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.factorio.prototype.ItemPrototype;
-import com.demod.fbsr.BlueprintEntity;
 import com.demod.fbsr.Direction;
-import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.LogisticGridCell;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
@@ -33,11 +29,12 @@ import com.demod.fbsr.Sprite;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.WorldMap.BeltBend;
 import com.demod.fbsr.WorldMap.BeltCell;
+import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.fp.FPSprite;
 import com.demod.fbsr.fp.FPSprite4Way;
 import com.demod.fbsr.fp.FPVector;
 
-public class InserterRendering extends EntityRendererFactory {
+public class InserterRendering extends SimpleEntityRendering {
 
 	private static final int[][] placeItemDir = //
 			new int[/* Cardinal */][/* Bend */] { //
@@ -55,14 +52,15 @@ public class InserterRendering extends EntityRendererFactory {
 	private FPSprite protoIndicationArrow;
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
-			BlueprintEntity entity) {
-		Point2D.Double pos = entity.getPosition();
-		Direction dir = entity.getDirection();
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSEntity entity) {
+		super.createRenderers(register, map, dataTable, entity);
+
+		Point2D.Double pos = entity.position.createPoint();
+		Direction dir = entity.direction;
 
 		List<Sprite> platformSprites = protoPlatformPicture.createSprites(dir.back());
 
-		boolean modded = entity.json().has("pickup_position") || entity.json().has("drop_position");
+		boolean modded = entity.pickupPosition.isPresent() || entity.dropPosition.isPresent();
 
 		Point2D.Double pickupPos;
 		Point2D.Double insertPos;
@@ -71,8 +69,8 @@ public class InserterRendering extends EntityRendererFactory {
 
 		double armStretch = protoPickupPosition.y;
 
-		if (entity.json().has("pickup_position")) {
-			pickupPos = Utils.parsePoint2D(entity.json().getJSONObject("pickup_position"));
+		if (entity.pickupPosition.isPresent()) {
+			pickupPos = entity.pickupPosition.get().createPoint();
 			inPos = new Point2D.Double(pos.x + pickupPos.x, pos.y + pickupPos.y);
 
 		} else if (modded) {
@@ -84,8 +82,8 @@ public class InserterRendering extends EntityRendererFactory {
 			inPos = dir.offset(pos, -armStretch);
 		}
 
-		if (entity.json().has("drop_position")) {
-			insertPos = Utils.parsePoint2D(entity.json().getJSONObject("drop_position"));
+		if (entity.dropPosition.isPresent()) {
+			insertPos = entity.dropPosition.get().createPoint();
 			outPos = new Point2D.Double(pos.x + insertPos.x, pos.y + insertPos.y);
 
 		} else if (modded) {
@@ -198,13 +196,10 @@ public class InserterRendering extends EntityRendererFactory {
 			}
 		});
 
-		// TODO new format filtering
-		if (!entity.isJsonNewFormat() && entity.json().has("filters")) {
-			List<String> items = new ArrayList<>();
-			Utils.forEach(entity.json().getJSONArray("filters"), (JSONObject j) -> {
-				items.add(j.getString("name"));
-			});
+		if (entity.useFilters) {
+			List<String> items = entity.filters.stream().map(bs -> bs.name).collect(Collectors.toList());
 
+			// TODO show double/quad icons if more than one
 			if (!items.isEmpty()) {
 				String itemName = items.get(0);
 				Sprite spriteIcon = new Sprite();
@@ -229,7 +224,14 @@ public class InserterRendering extends EntityRendererFactory {
 	}
 
 	@Override
+	public void defineEntity(Bindings bind, LuaValue lua) {
+		bind.circuitConnector4Way(lua.get("circuit_connector"));
+	}
+
+	@Override
 	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
+		super.initFromPrototype(dataTable, prototype);
+
 		protoPlatformPicture = new FPSprite4Way(prototype.lua().get("platform_picture"));
 		protoHandOpenPicture = new FPSprite(prototype.lua().get("hand_open_picture"));
 
@@ -242,13 +244,13 @@ public class InserterRendering extends EntityRendererFactory {
 	}
 
 	@Override
-	public void populateLogistics(WorldMap map, DataTable dataTable, BlueprintEntity entity) {
-		if (entity.json().has("pickup_position") || entity.json().has("drop_position")) {
+	public void populateLogistics(WorldMap map, DataTable dataTable, BSEntity entity) {
+		if (entity.pickupPosition.isPresent() || entity.dropPosition.isPresent()) {
 			return; // TODO Modded inserter logistics
 		}
 
-		Point2D.Double pos = entity.getPosition();
-		Direction dir = entity.getDirection();
+		Point2D.Double pos = entity.position.createPoint();
+		Direction dir = entity.direction;
 
 		Point2D.Double inPos = dir.offset(pos, -protoPickupPosition.y);
 		Point2D.Double outPos = dir.offset(pos, protoPickupPosition.y);
@@ -264,12 +266,9 @@ public class InserterRendering extends EntityRendererFactory {
 			cellDir = dir.frontRight();
 		}
 
-		// TODO figure out new format filtering
-		if (!entity.isJsonNewFormat() && entity.json().has("filters")) {
+		if (entity.useFilters) {
 			LogisticGridCell cell = map.getOrCreateLogisticGridCell(cellDir.offset(outPos, 0.25));
-			Utils.forEach(entity.json().getJSONArray("filters"), (JSONObject j) -> {
-				cell.addOutput(j.getString("name"));
-			});
+			entity.filters.stream().forEach(bs -> cell.addOutput(bs.name));
 
 		} else {
 			addLogisticWarp(map, inPos, dir.frontLeft(), outPos, cellDir);

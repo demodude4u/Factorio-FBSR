@@ -7,12 +7,12 @@ import java.util.function.Consumer;
 
 import com.demod.factorio.DataTable;
 import com.demod.factorio.prototype.EntityPrototype;
-import com.demod.fbsr.BlueprintEntity;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
 import com.demod.fbsr.Renderer.Layer;
 import com.demod.fbsr.Sprite;
 import com.demod.fbsr.WorldMap;
+import com.demod.fbsr.bs.BSEntity;
 
 public class ArtilleryWagonRendering extends RollingStockRendering {
 
@@ -86,11 +86,10 @@ public class ArtilleryWagonRendering extends RollingStockRendering {
 	private FPRollingStockRotatedSlopedGraphics protoCannonBasePictures;
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
-			BlueprintEntity entity) {
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSEntity entity) {
 		super.createRenderers(register, map, dataTable, entity);
 
-		double orientation = entity.json().getDouble("orientation");
+		double orientation = entity.orientation.getAsDouble();
 
 		int shiftIndex = (int) (orientation * protoCannonBaseShifts.size());
 		Point2D.Double cannonBaseShift = protoCannonBaseShifts.get(shiftIndex);

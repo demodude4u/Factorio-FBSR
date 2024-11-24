@@ -11,7 +11,9 @@ import java.awt.geom.Path2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
+import java.lang.reflect.Field;
 import java.text.DecimalFormat;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -201,6 +203,70 @@ public final class RenderUtils {
 	public static Color parseColor(JSONObject json) {
 		return new Color((float) json.getDouble("r"), (float) json.getDouble("g"), (float) json.getDouble("b"),
 				(float) json.getDouble("a"));
+	}
+
+	public static <T> T pickDirectional(List<T> list, BSEntity entity) {
+		switch (list.size()) {
+		case 1:
+			return list.get(0);
+		case 4:
+			return list.get(entity.direction.cardinal());
+		case 8:
+			return list.get(entity.direction.ordinal());
+		case 16:
+			return list.get(entity.directionRaw);
+		}
+		return null;// XXX should I do something?
+	}
+
+	// Useful for BS and FP objects
+	public static void printObjectTree(Object obj) {
+		printObjectTree(obj, "");
+	}
+
+	private static void printObjectTree(Object obj, String prefix) {
+		if (obj == null) {
+			System.out.println(prefix + "null");
+			return;
+		}
+		Class<?> clazz = obj.getClass();
+
+		if (obj instanceof Collection) {
+			System.out.println(prefix + "(Collection):");
+			for (Object item : (Collection<?>) obj)
+				printObjectTree(item, prefix + "|  ");
+		} else if (obj instanceof Optional) {
+			Optional<?> optional = (Optional<?>) obj;
+			if (optional.isPresent()) {
+				System.out.println(prefix + "(Optional Present):");
+				printObjectTree(optional.get(), prefix + "|  ");
+			} else {
+				System.out.println(prefix + "(Optional Empty)");
+			}
+		} else if (clazz.isPrimitive() || obj instanceof String || obj instanceof Number || obj instanceof Boolean) {
+			System.out.println(prefix + obj.toString());
+		} else {
+			System.out.println(prefix + clazz.getName() + ":");
+			for (Field field : clazz.getDeclaredFields()) {
+				if (java.lang.reflect.Modifier.isPublic(field.getModifiers())
+						&& java.lang.reflect.Modifier.isFinal(field.getModifiers())) {
+					try {
+						field.setAccessible(true);
+						Object fieldValue = field.get(obj);
+						if (fieldValue == null || fieldValue instanceof String || fieldValue instanceof Number
+								|| fieldValue instanceof Boolean || fieldValue.getClass().isPrimitive()) {
+							System.out.println(prefix + "|  " + field.getName() + ": " + fieldValue);
+						} else {
+							System.out.println(
+									prefix + "|  " + field.getName() + ": (" + fieldValue.getClass().getName() + ")");
+							printObjectTree(fieldValue, prefix + "|  ");
+						}
+					} catch (IllegalAccessException e) {
+						System.out.println(prefix + "|  " + field.getName() + ": [Error accessing field]");
+					}
+				}
+			}
+		}
 	}
 
 	public static BufferedImage scaleImage(BufferedImage image, int width, int height) {

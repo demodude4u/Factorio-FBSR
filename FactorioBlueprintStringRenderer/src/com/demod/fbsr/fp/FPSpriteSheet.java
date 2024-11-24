@@ -66,4 +66,14 @@ public class FPSpriteSheet extends FPSpriteParameters {
 		createSprites(ret::add, frame);
 		return ret;
 	}
+
+	public int getVariationCount() {
+		// So far, have seen variation/repeat counts equal across all layers
+		if (layers.isPresent()) {
+			// Should it be min, or max?
+			return layers.get().stream().mapToInt(FPSpriteSheet::getVariationCount).min().getAsInt();
+		} else {
+			return Math.max(variationCount, repeatCount);
+		}
+	}
 }

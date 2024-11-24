@@ -6,5 +6,6 @@ public class LinkedContainerRendering extends SimpleEntityRendering {
 	@Override
 	public void defineEntity(Bindings bind, LuaValue lua) {
 		bind.sprite(lua.get("picture"));
+		bind.circuitConnector(lua.get("circuit_connector"));
 	}
 }

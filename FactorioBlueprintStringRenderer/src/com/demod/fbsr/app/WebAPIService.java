@@ -7,7 +7,6 @@ import java.io.IOException;
 import java.time.Instant;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Optional;
@@ -25,12 +24,12 @@ import org.rapidoid.setup.On;
 import com.demod.dcba.CommandReporting;
 import com.demod.factorio.Config;
 import com.demod.factorio.Utils;
-import com.demod.fbsr.Blueprint;
 import com.demod.fbsr.BlueprintFinder;
 import com.demod.fbsr.BlueprintStringData;
 import com.demod.fbsr.FBSR;
+import com.demod.fbsr.FBSR.RenderResult;
 import com.demod.fbsr.WebUtils;
-import com.google.common.collect.ImmutableList;
+import com.demod.fbsr.bs.BSBlueprint;
 import com.google.common.util.concurrent.AbstractIdleService;
 
 import net.dv8tion.jda.api.entities.MessageEmbed.Field;
@@ -120,35 +119,33 @@ public class WebAPIService extends AbstractIdleService {
 					String content = body.getString("blueprint");
 
 					List<BlueprintStringData> blueprintStrings = BlueprintFinder.search(content, reporting);
-					List<Blueprint> blueprints = blueprintStrings.stream().flatMap(s -> s.getBlueprints().stream())
+					List<BSBlueprint> blueprints = blueprintStrings.stream().flatMap(s -> s.getBlueprints().stream())
 							.collect(Collectors.toList());
+					List<Long> renderTimes = new ArrayList<>();
 
-					for (Blueprint blueprint : blueprints) {
+					for (BSBlueprint blueprint : blueprints) {
 						try {
-							BufferedImage image = FBSR.renderBlueprint(blueprint, reporting, body);
+							RenderResult result = FBSR.renderBlueprint(blueprint, reporting, body);
+							renderTimes.add(result.renderTime);
 
 							if (body.optBoolean("return-single-image")) {
-								returnSingleImage = image;
+								returnSingleImage = result.image;
 								break;
 							}
 
 							if (useLocalStorage) {
 								File localStorageFolder = new File(configJson.getString("local-storage"));
-								String imageLink = saveToLocalStorage(localStorageFolder, image);
-								imageLinks.add(new SimpleEntry<>(blueprint.getLabel(), imageLink));
+								String imageLink = saveToLocalStorage(localStorageFolder, result.image);
+								imageLinks.add(new SimpleEntry<>(blueprint.label, imageLink));
 							} else {
-								imageLinks.add(new SimpleEntry<>(blueprint.getLabel(),
-										WebUtils.uploadToHostingService("blueprint.png", image).toString()));
+								imageLinks.add(new SimpleEntry<>(blueprint.label,
+										WebUtils.uploadToHostingService("blueprint.png", result.image).toString()));
 							}
 						} catch (Exception e) {
 							reporting.addException(e);
 						}
 					}
 
-					List<Long> renderTimes = blueprintStrings.stream().flatMap(d -> d.getBlueprints().stream())
-							.flatMap(b -> (b.getRenderTime().isPresent() ? Arrays.asList(b.getRenderTime().getAsLong())
-									: ImmutableList.<Long>of()).stream())
-							.collect(Collectors.toList());
 					if (!renderTimes.isEmpty()) {
 						reporting.addField(new Field("Render Time",
 								renderTimes.stream().mapToLong(l -> l).sum() + " ms"
@@ -159,10 +156,6 @@ public class WebAPIService extends AbstractIdleService {
 								true));
 					}
 
-					if (blueprintStrings.stream()
-							.anyMatch(d -> d.getBlueprints().stream().anyMatch(b -> b.isModsDetected()))) {
-						infos.add("(Modded features are shown as question marks)");
-					}
 				} catch (Exception e) {
 					reporting.addException(e);
 				}

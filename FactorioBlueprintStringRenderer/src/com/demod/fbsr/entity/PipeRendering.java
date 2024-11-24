@@ -9,12 +9,12 @@ import org.luaj.vm2.LuaValue;
 
 import com.demod.factorio.DataTable;
 import com.demod.factorio.prototype.EntityPrototype;
-import com.demod.fbsr.BlueprintEntity;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
 import com.demod.fbsr.WorldMap;
+import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.fp.FPSprite;
 
 public class PipeRendering extends EntityRendererFactory {
@@ -42,8 +42,7 @@ public class PipeRendering extends EntityRendererFactory {
 	private List<FPSprite> protoPipeSprites;
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
-			BlueprintEntity entity) {
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSEntity entity) {
 		int adjCode = 0;
 		adjCode |= ((pipeFacingMeFrom(Direction.NORTH, map, entity) ? 1 : 0) << 0);
 		adjCode |= ((pipeFacingMeFrom(Direction.EAST, map, entity) ? 1 : 0) << 1);
@@ -61,13 +60,13 @@ public class PipeRendering extends EntityRendererFactory {
 				.collect(Collectors.toList());
 	}
 
-	public boolean pipeFacingMeFrom(Direction direction, WorldMap map, BlueprintEntity entity) {
-		return map.isPipe(direction.offset(entity.getPosition()), direction.back());
+	public boolean pipeFacingMeFrom(Direction direction, WorldMap map, BSEntity entity) {
+		return map.isPipe(direction.offset(entity.position.createPoint()), direction.back());
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity) {
-		map.setPipe(entity.getPosition());
+	public void populateWorldMap(WorldMap map, DataTable dataTable, BSEntity entity) {
+		map.setPipe(entity.position.createPoint());
 	}
 
 }

@@ -16,7 +16,6 @@ import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.factorio.prototype.ItemPrototype;
-import com.demod.fbsr.BlueprintEntity;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.RenderUtils;
@@ -25,6 +24,7 @@ import com.demod.fbsr.Renderer.Layer;
 import com.demod.fbsr.Sprite;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.WorldMap.BeltBend;
+import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.fp.FPAnimation4Way;
 
 public class SplitterRendering extends TransportBeltConnectableRendering {
@@ -41,9 +41,8 @@ public class SplitterRendering extends TransportBeltConnectableRendering {
 	private Optional<FPAnimation4Way> protoStructurePatch;
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
-			BlueprintEntity entity) {
-		Direction dir = entity.getDirection();
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSEntity entity) {
+		Direction dir = entity.direction;
 
 		List<Sprite> belt1Sprites = createBeltSprites(dir.cardinal(), BeltBend.NONE.ordinal(), 0);
 		List<Sprite> belt2Sprites = createBeltSprites(dir.cardinal(), BeltBend.NONE.ordinal(), 0);
@@ -59,18 +58,18 @@ public class SplitterRendering extends TransportBeltConnectableRendering {
 
 		if (protoStructurePatch.isPresent() && (dir == Direction.WEST || dir == Direction.EAST)) {
 			register.accept(RenderUtils.spriteRenderer(Layer.ENTITY2,
-					protoStructurePatch.get().createSprites(entity.getDirection(), 0), entity, protoSelectionBox));
+					protoStructurePatch.get().createSprites(entity.direction, 0), entity, protoSelectionBox));
 		}
 
-		register.accept(RenderUtils.spriteRenderer(Layer.ENTITY2,
-				protoStructure.createSprites(entity.getDirection(), 0), entity, protoSelectionBox));
+		register.accept(RenderUtils.spriteRenderer(Layer.ENTITY2, protoStructure.createSprites(entity.direction, 0),
+				entity, protoSelectionBox));
 
-		Double pos = entity.getPosition();
+		Point2D.Double pos = entity.position.createPoint();
 		Point2D.Double leftPos = dir.left().offset(pos, 0.5);
 		Point2D.Double rightPos = dir.right().offset(pos, 0.5);
 
-		if (entity.json().has("input_priority")) {
-			boolean right = entity.json().getString("input_priority").equals("right");
+		if (entity.inputPriority.isPresent()) {
+			boolean right = entity.inputPriority.get().equals("right");
 			Point2D.Double inputPos = dir.offset(right ? rightPos : leftPos, 0);
 
 			register.accept(new Renderer(Layer.OVERLAY3, inputPos) {
@@ -100,14 +99,13 @@ public class SplitterRendering extends TransportBeltConnectableRendering {
 			});
 		}
 
-		if (entity.json().has("output_priority")) {
-			boolean right = entity.json().getString("output_priority").equals("right");
+		if (entity.outputPriority.isPresent()) {
+			boolean right = entity.outputPriority.get().equals("right");
 			Point2D.Double outputPos = dir.offset(right ? rightPos : leftPos, 0.6);
 
-			// TODO new format filter
-			if (!entity.isJsonNewFormat() && entity.json().has("filter")) {
+			if (entity.filter.isPresent()) {
 				Point2D.Double iconPos = right ? rightPos : leftPos;
-				String itemName = entity.json().getString("filter");
+				String itemName = entity.filter.get().name;
 				Sprite spriteIcon = new Sprite();
 				Optional<ItemPrototype> optItem = dataTable.getItem(itemName);
 				if (optItem.isPresent()) {
@@ -165,9 +163,9 @@ public class SplitterRendering extends TransportBeltConnectableRendering {
 	}
 
 	@Override
-	public void populateLogistics(WorldMap map, DataTable dataTable, BlueprintEntity entity) {
-		Direction dir = entity.getDirection();
-		Double pos = entity.getPosition();
+	public void populateLogistics(WorldMap map, DataTable dataTable, BSEntity entity) {
+		Direction dir = entity.direction;
+		Double pos = entity.position.createPoint();
 		Point2D.Double leftPos = dir.left().offset(pos, 0.5);
 		Point2D.Double rightPos = dir.right().offset(pos, 0.5);
 
@@ -176,12 +174,11 @@ public class SplitterRendering extends TransportBeltConnectableRendering {
 		setLogisticMoveAndAcceptFilter(map, rightPos, dir.frontLeft(), dir, dir);
 		setLogisticMoveAndAcceptFilter(map, rightPos, dir.frontRight(), dir, dir);
 
-		// TODO new format filter
-		if (!entity.isJsonNewFormat() && entity.json().has("output_priority") && entity.json().has("filter")) {
-			boolean right = entity.json().getString("output_priority").equals("right");
+		if (entity.outputPriority.isPresent() && entity.filter.isPresent()) {
+			boolean right = entity.outputPriority.get().equals("right");
 			Point2D.Double outPos = right ? rightPos : leftPos;
 			Point2D.Double notOutPos = !right ? rightPos : leftPos;
-			String itemName = entity.json().getString("filter");
+			String itemName = entity.filter.get().name;
 
 			map.getOrCreateLogisticGridCell(dir.frontLeft().offset(outPos, 0.25)).addOutput(itemName);
 			map.getOrCreateLogisticGridCell(dir.frontRight().offset(outPos, 0.25)).addOutput(itemName);
@@ -212,10 +209,11 @@ public class SplitterRendering extends TransportBeltConnectableRendering {
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity) {
-		Direction direction = entity.getDirection();
-		Point2D.Double belt1Pos = direction.left().offset(entity.getPosition(), 0.5);
-		Point2D.Double belt2Pos = direction.right().offset(entity.getPosition(), 0.5);
+	public void populateWorldMap(WorldMap map, DataTable dataTable, BSEntity entity) {
+		Direction direction = entity.direction;
+		Point2D.Double pos = entity.position.createPoint();
+		Point2D.Double belt1Pos = direction.left().offset(pos, 0.5);
+		Point2D.Double belt2Pos = direction.right().offset(pos, 0.5);
 		map.setBelt(belt1Pos, direction, false, true);
 		map.setBelt(belt2Pos, direction, false, true);
 	}

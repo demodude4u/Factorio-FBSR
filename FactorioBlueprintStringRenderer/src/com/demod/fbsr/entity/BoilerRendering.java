@@ -8,13 +8,13 @@ import org.luaj.vm2.LuaValue;
 
 import com.demod.factorio.DataTable;
 import com.demod.factorio.prototype.EntityPrototype;
-import com.demod.fbsr.BlueprintEntity;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
 import com.demod.fbsr.Sprite;
 import com.demod.fbsr.WorldMap;
+import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.fp.FPAnimation;
 import com.google.common.collect.ImmutableList;
 
@@ -62,9 +62,8 @@ public class BoilerRendering extends EntityRendererFactory {
 	private boolean protoHasEnergySource;
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
-			BlueprintEntity entity) {
-		register.accept(RenderUtils.spriteRenderer(protoPictures.createSprites(entity.getDirection(), 0), entity,
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSEntity entity) {
+		register.accept(RenderUtils.spriteRenderer(protoPictures.createSprites(entity.direction, 0), entity,
 				protoSelectionBox));
 	}
 
@@ -75,14 +74,14 @@ public class BoilerRendering extends EntityRendererFactory {
 		protoHasEnergySource = !prototype.lua().get("energy_source").isnil();
 	}
 
-//	public boolean pipeFacingMeFrom(Direction direction, WorldMap map, BlueprintEntity entity) {
+//	public boolean pipeFacingMeFrom(Direction direction, WorldMap map, BSEntity entity) {
 //		return map.isPipe(direction.offset(entity.getPosition()), direction.back());
 //	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity) {
-		Direction dir = entity.getDirection();
-		Point2D.Double position = dir.back().offset(entity.getPosition(), 0.5);
+	public void populateWorldMap(WorldMap map, DataTable dataTable, BSEntity entity) {
+		Direction dir = entity.direction;
+		Point2D.Double position = dir.back().offset(entity.position.createPoint(), 0.5);
 		map.setPipe(dir.offset(position, 1), dir);
 		map.setPipe(dir.left().offset(position, 1), dir.left());
 		map.setPipe(dir.right().offset(position, 1), dir.right());

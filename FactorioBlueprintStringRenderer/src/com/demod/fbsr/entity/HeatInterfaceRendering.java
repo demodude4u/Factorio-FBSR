@@ -3,8 +3,8 @@ package com.demod.fbsr.entity;
 import org.luaj.vm2.LuaValue;
 
 import com.demod.factorio.DataTable;
-import com.demod.fbsr.BlueprintEntity;
 import com.demod.fbsr.WorldMap;
+import com.demod.fbsr.bs.BSEntity;
 
 public class HeatInterfaceRendering extends SimpleEntityRendering {
 
@@ -14,7 +14,7 @@ public class HeatInterfaceRendering extends SimpleEntityRendering {
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity) {
-		map.setHeatPipe(entity.getPosition());
+	public void populateWorldMap(WorldMap map, DataTable dataTable, BSEntity entity) {
+		map.setHeatPipe(entity.position.createPoint());
 	}
 }

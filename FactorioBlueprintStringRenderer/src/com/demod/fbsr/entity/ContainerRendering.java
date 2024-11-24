@@ -9,5 +9,6 @@ public class ContainerRendering extends SimpleEntityRendering {
 		if (!luaPicture.isnil()) {
 			bind.sprite(luaPicture);
 		}
+		bind.circuitConnector(lua.get("circuit_connector"));
 	}
 }

@@ -4,10 +4,10 @@ import java.awt.geom.Point2D;
 import java.util.LinkedHashMap;
 
 import com.demod.factorio.DataTable;
-import com.demod.fbsr.BlueprintEntity;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.Renderer.Layer;
 import com.demod.fbsr.WorldMap;
+import com.demod.fbsr.bs.BSEntity;
 
 public class StraightRailRendering extends RailRendering {
 
@@ -34,9 +34,9 @@ public class StraightRailRendering extends RailRendering {
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity) {
-		Point2D.Double pos = entity.getPosition();
-		Direction dir = entity.getDirection();
+	public void populateWorldMap(WorldMap map, DataTable dataTable, BSEntity entity) {
+		Point2D.Double pos = entity.position.createPoint();
+		Direction dir = entity.direction;
 
 		int[][] points = pathEnds[dir.ordinal()];
 		Point2D.Double p1 = new Point2D.Double(pos.x + points[0][0], pos.y + points[0][1]);

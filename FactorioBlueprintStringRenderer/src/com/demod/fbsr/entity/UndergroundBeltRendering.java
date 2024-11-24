@@ -8,7 +8,6 @@ import org.luaj.vm2.LuaValue;
 
 import com.demod.factorio.DataTable;
 import com.demod.factorio.prototype.EntityPrototype;
-import com.demod.fbsr.BlueprintEntity;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
@@ -16,6 +15,7 @@ import com.demod.fbsr.Renderer.Layer;
 import com.demod.fbsr.Sprite;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.WorldMap.BeltBend;
+import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.fp.FPSprite4Way;
 
 public class UndergroundBeltRendering extends TransportBeltConnectableRendering {
@@ -25,13 +25,12 @@ public class UndergroundBeltRendering extends TransportBeltConnectableRendering 
 	private int protoMaxDistance;
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
-			BlueprintEntity entity) {
-		List<Sprite> beltSprites = createBeltSprites(entity.getDirection().cardinal(), BeltBend.NONE.ordinal(), 0);
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSEntity entity) {
+		List<Sprite> beltSprites = createBeltSprites(entity.direction.cardinal(), BeltBend.NONE.ordinal(), 0);
 		register.accept(RenderUtils.spriteRenderer(beltSprites, entity, protoSelectionBox));
 
-		boolean input = entity.json().getString("type").equals("input");
-		Direction structDir = input ? entity.getDirection() : entity.getDirection().back();
+		boolean input = entity.type.get().equals("input");
+		Direction structDir = input ? entity.direction : entity.direction.back();
 		List<Sprite> structureSprites = (input ? protoStructureDirectionIn : protoStructureDirectionOut)
 				.createSprites(structDir);
 		register.accept(RenderUtils.spriteRenderer(Layer.ENTITY2, structureSprites, entity, protoSelectionBox));
@@ -49,10 +48,10 @@ public class UndergroundBeltRendering extends TransportBeltConnectableRendering 
 	}
 
 	@Override
-	public void populateLogistics(WorldMap map, DataTable dataTable, BlueprintEntity entity) {
-		Direction dir = entity.getDirection();
-		Point2D.Double pos = entity.getPosition();
-		boolean input = entity.json().getString("type").equals("input");
+	public void populateLogistics(WorldMap map, DataTable dataTable, BSEntity entity) {
+		Direction dir = entity.direction;
+		Point2D.Double pos = entity.position.createPoint();
+		boolean input = entity.type.get().equals("input");
 
 		if (input) {
 			setLogisticMove(map, pos, dir.backLeft(), dir);
@@ -70,7 +69,7 @@ public class UndergroundBeltRendering extends TransportBeltConnectableRendering 
 		if (input) {
 			for (int offset = 1; offset <= protoMaxDistance; offset++) {
 				Point2D.Double targetPos = dir.offset(pos, offset);
-				if (map.isMatchingUndergroundBeltEnding(entity.getName(), targetPos, dir)) {
+				if (map.isMatchingUndergroundBeltEnding(entity.name, targetPos, dir)) {
 					addLogisticWarp(map, pos, dir.frontLeft(), targetPos, dir.backLeft());
 					addLogisticWarp(map, pos, dir.frontRight(), targetPos, dir.backRight());
 					break;
@@ -80,14 +79,15 @@ public class UndergroundBeltRendering extends TransportBeltConnectableRendering 
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity) {
-		boolean input = entity.json().getString("type").equals("input");
+	public void populateWorldMap(WorldMap map, DataTable dataTable, BSEntity entity) {
+		boolean input = entity.type.get().equals("input");
 
+		Point2D.Double pos = entity.position.createPoint();
 		if (input) {
-			map.setBelt(entity.getPosition(), entity.getDirection(), false, false);
+			map.setBelt(pos, entity.direction, false, false);
 		} else {
-			map.setBelt(entity.getPosition(), entity.getDirection(), false, true);
-			map.setUndergroundBeltEnding(entity.getName(), entity.getPosition(), entity.getDirection());
+			map.setBelt(pos, entity.direction, false, true);
+			map.setUndergroundBeltEnding(entity.name, pos, entity.direction);
 		}
 	}
 }

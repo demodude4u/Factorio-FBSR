@@ -9,5 +9,6 @@ public class LampRendering extends SimpleEntityRendering {
 	@Override
 	public void defineEntity(Bindings bind, LuaValue lua) {
 		bind.sprite(lua.get("picture_off"));
+		bind.circuitConnector(lua.get("circuit_connector"));
 	}
 }

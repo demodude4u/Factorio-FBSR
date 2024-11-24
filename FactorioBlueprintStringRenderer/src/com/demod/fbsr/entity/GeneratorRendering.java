@@ -5,12 +5,12 @@ import java.util.function.Consumer;
 
 import com.demod.factorio.DataTable;
 import com.demod.factorio.prototype.EntityPrototype;
-import com.demod.fbsr.BlueprintEntity;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
 import com.demod.fbsr.WorldMap;
+import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.fp.FPAnimation;
 
 public class GeneratorRendering extends EntityRendererFactory {
@@ -19,8 +19,7 @@ public class GeneratorRendering extends EntityRendererFactory {
 	private FPAnimation protoHorizontalAnimation;
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
-			BlueprintEntity entity) {
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSEntity entity) {
 		if (isVertical(entity)) {
 			register.accept(
 					RenderUtils.spriteRenderer(protoVerticalAnimation.createSprites(0), entity, protoSelectionBox));
@@ -36,14 +35,14 @@ public class GeneratorRendering extends EntityRendererFactory {
 		protoHorizontalAnimation = new FPAnimation(prototype.lua().get("horizontal_animation"));
 	}
 
-	private boolean isVertical(BlueprintEntity entity) {
-		return entity.getDirection().cardinal() % 2 == 0;
+	private boolean isVertical(BSEntity entity) {
+		return entity.direction.cardinal() % 2 == 0;
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity) {
-		Direction dir = entity.getDirection();
-		Point2D.Double position = entity.getPosition();
+	public void populateWorldMap(WorldMap map, DataTable dataTable, BSEntity entity) {
+		Direction dir = entity.direction;
+		Point2D.Double position = entity.position.createPoint();
 		map.setPipe(dir.offset(position, 2), dir);
 		map.setPipe(dir.back().offset(position, 2), dir.back());
 	}

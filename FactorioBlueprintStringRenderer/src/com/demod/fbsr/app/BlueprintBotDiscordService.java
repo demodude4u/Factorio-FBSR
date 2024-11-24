@@ -22,7 +22,6 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 import org.apache.commons.text.similarity.LevenshteinDistance;
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.luaj.vm2.LuaValue;
@@ -43,10 +42,11 @@ import com.demod.factorio.prototype.DataPrototype;
 import com.demod.fbsr.BlueprintFinder;
 import com.demod.fbsr.BlueprintStringData;
 import com.demod.fbsr.FBSR;
-import com.demod.fbsr.MapVersion;
+import com.demod.fbsr.FBSR.RenderResult;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.WebUtils;
 import com.demod.fbsr.app.WatchdogService.WatchdogReporter;
+import com.demod.fbsr.bs.BSBlueprint;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.AbstractIdleService;
 
@@ -155,121 +155,6 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		return bot;
 	}
 
-	private void handleBlueprintBookAssembleCommand(SlashCommandEvent event) {
-		String content = event.getCommandString();
-
-		Optional<Attachment> attachment = event.optParamAttachment("file");
-		if (attachment.isPresent()) {
-			content += " " + attachment.get().getUrl();
-		}
-
-		List<BlueprintStringData> blueprintStrings = BlueprintFinder.search(content, event.getReporting());
-
-		if (!blueprintStrings.isEmpty()) {
-			List<Blueprint> blueprints = blueprintStrings.stream().flatMap(bs -> bs.getBlueprints().stream())
-					.collect(Collectors.toList());
-
-			JSONObject json = new JSONObject();
-			Utils.terribleHackToHaveOrderedJSONObject(json);
-			JSONObject bookJson = new JSONObject();
-			Utils.terribleHackToHaveOrderedJSONObject(bookJson);
-			json.put("blueprint_book", bookJson);
-			JSONArray blueprintsJson = new JSONArray();
-			bookJson.put("blueprints", blueprintsJson);
-			bookJson.put("item", "blueprint-book");
-			bookJson.put("active_index", 0);
-
-			MapVersion latestVersion = new MapVersion();
-			int index = 0;
-			for (Blueprint blueprint : blueprints) {
-				blueprint.json().put("index", index);
-
-				latestVersion = MapVersion.max(latestVersion, blueprint.getVersion());
-
-				blueprintsJson.put(blueprint.json());
-
-				index++;
-			}
-
-			String bookLabel = blueprintStrings.stream().filter(BlueprintStringData::isBook)
-					.map(BlueprintStringData::getLabel).filter(Optional::isPresent).map(Optional::get).map(String::trim)
-					.distinct().collect(Collectors.joining(" & "));
-			if (!bookLabel.isEmpty()) {
-				bookJson.put("label", bookLabel);
-			}
-
-			if (!latestVersion.isInvalid()) {
-				bookJson.put("version", latestVersion.getSerialized());
-			}
-
-			try {
-				event.replyFile(BlueprintStringData.encode(json).getBytes(), "blueprintBook.txt");
-			} catch (Exception e) {
-				event.getReporting().addException(e);
-			}
-
-		} else {
-			event.replyIfNoException("No blueprint found!");
-		}
-	}
-
-	private void handleBlueprintBookExtractCommand(SlashCommandEvent event) {
-		String content = event.getCommandString();
-
-		Optional<Attachment> attachment = event.optParamAttachment("file");
-		if (attachment.isPresent()) {
-			content += " " + attachment.get().getUrl();
-		}
-
-		List<BlueprintStringData> blueprintStringDatas = BlueprintFinder.search(content, event.getReporting());
-
-		List<Blueprint> blueprints = blueprintStringDatas.stream().flatMap(bs -> bs.getBlueprints().stream())
-				.collect(Collectors.toList());
-		List<Entry<String, String>> links = new ArrayList<>();
-		for (Blueprint blueprint : blueprints) {
-			try {
-				blueprint.json().remove("index");
-
-				String url = WebUtils.uploadToHostingService("blueprint.txt",
-						BlueprintStringData.encode(blueprint.json()).getBytes());
-				links.add(new SimpleEntry<>(url, blueprint.getLabel().orElse(null)));
-			} catch (Exception e) {
-				event.getReporting().addException(e);
-			}
-		}
-
-		List<EmbedBuilder> embedBuilders = new ArrayList<>();
-
-		if (!links.isEmpty()) {
-			ArrayDeque<String> lines = links.stream()
-					.map(p -> (p.getValue() != null && !p.getValue().isEmpty())
-							? ("[" + p.getValue() + "](" + p.getKey() + ")")
-							: p.getKey())
-					.collect(Collectors.toCollection(ArrayDeque::new));
-			while (!lines.isEmpty()) {
-				EmbedBuilder builder = new EmbedBuilder();
-				StringBuilder description = new StringBuilder();
-				while (!lines.isEmpty()) {
-					if (description.length() + lines.peek().length() + 1 < MessageEmbed.DESCRIPTION_MAX_LENGTH) {
-						description.append(lines.pop()).append('\n');
-					} else {
-						break;
-					}
-				}
-				builder.setDescription(description);
-				embedBuilders.add(builder);
-			}
-
-		} else {
-			embedBuilders.add(new EmbedBuilder().setDescription("Blueprint not found!"));
-		}
-
-		List<MessageEmbed> embeds = embedBuilders.stream().map(EmbedBuilder::build).collect(Collectors.toList());
-		for (MessageEmbed embed : embeds) {
-			event.replyEmbed(embed);
-		}
-	}
-
 	private void handleBlueprintItemsCommand(SlashCommandEvent event) throws IOException {
 		DataTable table;
 		try {
@@ -289,7 +174,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 		Map<String, Double> totalItems = new LinkedHashMap<>();
 		for (BlueprintStringData blueprintStringData : blueprintStringDatas) {
-			for (Blueprint blueprint : blueprintStringData.getBlueprints()) {
+			for (BSBlueprint blueprint : blueprintStringData.getBlueprints()) {
 				Map<String, Double> items = FBSR.generateTotalItems(table, blueprint);
 				items.forEach((k, v) -> {
 					totalItems.compute(k, ($, old) -> old == null ? v : old + v);
@@ -335,7 +220,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 		Map<String, Double> totalItems = new LinkedHashMap<>();
 		for (BlueprintStringData blueprintStringData : blueprintStringDatas) {
-			for (Blueprint blueprint : blueprintStringData.getBlueprints()) {
+			for (BSBlueprint blueprint : blueprintStringData.getBlueprints()) {
 				Map<String, Double> items = FBSR.generateTotalItems(table, blueprint);
 				items.forEach((k, v) -> {
 					totalItems.compute(k, ($, old) -> old == null ? v : old + v);
@@ -414,14 +299,6 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		embedBuilders.get(0).setAuthor(event.getMessage().getAuthor().getName(), event.getMessage().getJumpUrl(),
 				event.getMessage().getAuthor().getEffectiveAvatarUrl());
 
-		if (blueprintStringDatas.stream().anyMatch(d -> d.getBlueprints().stream().anyMatch(b -> b.isModsDetected()))) {
-			embedBuilders.get(embedBuilders.size() - 1).setFooter("(Modded features are shown as question marks)");
-		}
-
-		if (event.getReporting().isNewFormatDetected()) {
-			embedBuilders.get(embedBuilders.size() - 1).setFooter("(Space Age is not supported yet, sorry!)");
-		}
-
 		List<MessageEmbed> embeds = embedBuilders.stream().map(EmbedBuilder::build).collect(Collectors.toList());
 		for (MessageEmbed embed : embeds) {
 			event.replyEmbed(embed);
@@ -444,14 +321,6 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 		List<BlueprintStringData> blueprintStringDatas = BlueprintFinder.search(content, event.getReporting());
 		List<EmbedBuilder> embedBuilders = processBlueprints(blueprintStringDatas, event.getReporting(), options);
-
-		if (blueprintStringDatas.stream().anyMatch(d -> d.getBlueprints().stream().anyMatch(b -> b.isModsDetected()))) {
-			embedBuilders.get(embedBuilders.size() - 1).setFooter("(Modded features are shown as question marks)");
-		}
-
-		if (event.getReporting().isNewFormatDetected()) {
-			embedBuilders.get(embedBuilders.size() - 1).setFooter("(Space Age is not supported yet, sorry!)");
-		}
 
 		List<MessageEmbed> embeds = embedBuilders.stream().map(EmbedBuilder::build).collect(Collectors.toList());
 		for (MessageEmbed embed : embeds) {
@@ -478,7 +347,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 		Map<String, Double> totalItems = new LinkedHashMap<>();
 		for (BlueprintStringData blueprintStringData : blueprintStringDatas) {
-			for (Blueprint blueprint : blueprintStringData.getBlueprints()) {
+			for (BSBlueprint blueprint : blueprintStringData.getBlueprints()) {
 				Map<String, Double> items = FBSR.generateSummedTotalItems(table, blueprint);
 				items.forEach((k, v) -> {
 					totalItems.compute(k, ($, old) -> old == null ? v : old + v);
@@ -505,68 +374,27 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		}
 	}
 
-	private void handleBlueprintUpgradeBeltsCommand(SlashCommandEvent event) {
-		String content = event.getCommandString();
-
-		Optional<Attachment> attachment = event.optParamAttachment("file");
-		if (attachment.isPresent()) {
-			content += " " + attachment.get().getUrl();
-		}
-
-		List<BlueprintStringData> blueprintStringDatas = BlueprintFinder.search(content, event.getReporting());
-
-		int upgradedCount = 0;
-		for (BlueprintStringData blueprintStringData : blueprintStringDatas) {
-			for (Blueprint blueprint : blueprintStringData.getBlueprints()) {
-				for (BlueprintEntity blueprintEntity : blueprint.getEntities()) {
-					String upgradeName = upgradeBeltsEntityMapping.get(blueprintEntity.getName());
-					if (upgradeName != null) {
-						blueprintEntity.json().put("name", upgradeName);
-						upgradedCount++;
-					}
-				}
-			}
-		}
-
-		if (upgradedCount > 0) {
-			for (BlueprintStringData blueprintStringData : blueprintStringDatas) {
-				try {
-					event.replyFile(BlueprintStringData.encode(blueprintStringData.json()).getBytes(), "blueprint.txt");
-				} catch (IOException e) {
-					event.getReporting().addException(e);
-				}
-			}
-			event.reply("Upgraded " + upgradedCount + " entities.");
-		} else if (blueprintStringDatas.stream().anyMatch(d -> !d.getBlueprints().isEmpty())) {
-			event.replyIfNoException("I couldn't find anything to upgrade!");
-		} else {
-			event.replyIfNoException("No blueprint found!");
-		}
-	}
-
 	private List<EmbedBuilder> processBlueprints(List<BlueprintStringData> blueprintStrings, CommandReporting reporting,
 			JSONObject options) throws IOException {
 
 		List<EmbedBuilder> embedBuilders = new ArrayList<>();
 
 		List<Entry<Optional<String>, BufferedImage>> images = new ArrayList<>();
+		List<Long> renderTimes = new ArrayList<>();
 
 		for (BlueprintStringData blueprintString : blueprintStrings) {
 			System.out.println("Parsing blueprints: " + blueprintString.getBlueprints().size());
-			for (Blueprint blueprint : blueprintString.getBlueprints()) {
+			for (BSBlueprint blueprint : blueprintString.getBlueprints()) {
 				try {
-					BufferedImage image = FBSR.renderBlueprint(blueprint, reporting, options);
-					images.add(new SimpleEntry<>(blueprint.getLabel(), image));
+					RenderResult result = FBSR.renderBlueprint(blueprint, reporting, options);
+					images.add(new SimpleEntry<>(blueprint.label, result.image));
+					renderTimes.add(result.renderTime);
 				} catch (Exception e) {
 					reporting.addException(e);
 				}
 			}
 		}
 
-		List<Long> renderTimes = blueprintStrings.stream().flatMap(d -> d.getBlueprints().stream())
-				.flatMap(b -> (b.getRenderTime().isPresent() ? Arrays.asList(b.getRenderTime().getAsLong())
-						: ImmutableList.<Long>of()).stream())
-				.collect(Collectors.toList());
 		if (!renderTimes.isEmpty()) {
 			reporting.addField(new Field("Render Time", renderTimes.stream().mapToLong(l -> l).sum() + " ms"
 					+ (renderTimes.size() > 1
@@ -648,8 +476,9 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		json.put("version", FBSR.getVersion());
 		json.put("data", Utils.<JSONObject>convertLuaToJson(lua));
 		String fileName = category + "_" + name + "_dump_" + FBSR.getVersion() + ".json";
-		String url = WebUtils.uploadToHostingService(fileName, json.toString(2).getBytes());
-		event.reply(category + " " + name + " lua dump: [" + fileName + "](" + url + ")");
+//		String url = WebUtils.uploadToHostingService(fileName, json.toString(2).getBytes());
+//		event.reply(category + " " + name + " lua dump: [" + fileName + "](" + url + ")");
+		event.replyFile(json.toString(2).getBytes(), fileName);
 	}
 
 	@Override
@@ -746,14 +575,6 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				.withOptionalParam(OptionType.ATTACHMENT, "file", "File containing blueprint string.")//
 				.withLegacyWarning("blueprintJSON")//
 				//
-				.addSlashCommand("upgrade/belts",
-						"Converts all yellow belts into red belts, and all red belts into blue belts.",
-						event -> handleBlueprintUpgradeBeltsCommand(event))//
-				.withOptionalParam(OptionType.STRING, "string", "Blueprint string.")//
-				.withOptionalParam(OptionType.STRING, "url", "Url containing blueprint string.")//
-				.withOptionalParam(OptionType.ATTACHMENT, "file", "File containing blueprint string.")//
-				.withLegacyWarning("blueprintUpgradeBelts")//
-				//
 				.addSlashCommand("items", "Prints out all of the items needed by the blueprint.",
 						event -> handleBlueprintItemsCommand(event))//
 				.withOptionalParam(OptionType.STRING, "string", "Blueprint string.")//
@@ -775,23 +596,6 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				.withOptionalParam(OptionType.STRING, "url", "Url containing blueprint string.")//
 				.withOptionalParam(OptionType.ATTACHMENT, "file", "File containing blueprint string.")//
 				.withLegacyWarning("blueprintCounts", "bpCounts")//
-				//
-				//
-				.addSlashCommand("book/extract",
-						"Provides an collection of blueprint strings contained within the specified blueprint book.",
-						event -> handleBlueprintBookExtractCommand(event))//
-				.withOptionalParam(OptionType.STRING, "string", "Blueprint string.")//
-				.withOptionalParam(OptionType.STRING, "url", "Url containing blueprint string.")//
-				.withOptionalParam(OptionType.ATTACHMENT, "file", "File containing blueprint string.")//
-				.withLegacyWarning("blueprintBookExtract")//
-				//
-				.addSlashCommand("book/assemble",
-						"Combines all blueprints (including from other books) from multiple strings into a single book.",
-						event -> handleBlueprintBookAssembleCommand(event))//
-				.withOptionalParam(OptionType.STRING, "string", "Blueprint string.")//
-				.withOptionalParam(OptionType.STRING, "url", "Url containing blueprint string.")//
-				.withOptionalParam(OptionType.ATTACHMENT, "file", "File containing blueprint string.")//
-				.withLegacyWarning("blueprintBookAssemble")//
 				//
 				//
 				.addSlashCommand("prototype/entity", "Lua data for the specified entity prototype.",
@@ -841,13 +645,6 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 						createDataRawCommandHandler(table::getRaw))//
 				.withParam(OptionType.STRING, "path", "Path to identify which key.")//
 				.withLegacyWarning("dataRaw")//
-				//
-				//
-//				.addCommand("redditCheckThings", event -> handleRedditCheckThingsCommand(event))
-//				.withHelp("Troubleshooting.")//
-//				.withParam(OptionType.STRING, "id", "ID to check.")//
-//				.withLegacy("prototypeEntity")//
-				//
 				//
 				//
 				.withCustomSetup(builder -> {

@@ -5,16 +5,13 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.Queue;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
 
 import org.apache.commons.codec.binary.Base64;
-import org.json.JSONArray;
 import org.json.JSONObject;
 
 import com.demod.fbsr.bs.BSBlueprint;
@@ -58,8 +55,7 @@ public class BlueprintStringData {
 
 	private final JSONObject json;
 
-	private final Optional<String> label;
-	private final MapVersion version;
+	private Optional<String> label = null;
 
 	private final String blueprintStringRaw;
 
@@ -77,66 +73,34 @@ public class BlueprintStringData {
 		json = decode(string);
 		BSBlueprintString blueprintString = new BSBlueprintString(json);
 
-		// TODO from here
-
-		boolean first = true;
-		Optional<String> firstLabel = null;
-		MapVersion firstVersion = null;
-
-		Queue<JSONObject> work = new ArrayDeque<>();
-		work.add(json);
-		while (!work.isEmpty()) {
-			JSONObject json = work.poll();
-			if (json.has("blueprint")) {
-				Blueprint blueprint = new Blueprint(json);
-				blueprints.add(blueprint);
-
-				if (first) {
-					firstLabel = blueprint.getLabel();
-					firstVersion = blueprint.getVersion();
-					first = false;
-				}
-
-			} else if (json.has("blueprint_book")) {
-				JSONObject bookJson = json.getJSONObject("blueprint_book");
-				JSONArray blueprintsJson = bookJson.getJSONArray("blueprints");
-				for (int i = 0; i < blueprintsJson.length(); i++) {
-					work.add(blueprintsJson.getJSONObject(i));
-				}
-
-				if (first) {
-					if (bookJson.has("label")) {
-						firstLabel = Optional.of(bookJson.getString("label"));
-					} else {
-						firstLabel = Optional.empty();
-					}
-					if (bookJson.has("version")) {
-						firstVersion = new MapVersion(bookJson.getLong("version"));
-					} else {
-						firstVersion = new MapVersion();
-					}
-					first = false;
-				}
-			}
-		}
-		label = firstLabel;
-		version = firstVersion;
+		findBlueprints(blueprintString);
 
 		if (blueprints.isEmpty()) {
 			throw new IllegalArgumentException("No blueprints found in blueprint string!");
 		}
 	}
 
-	public List<Blueprint> getBlueprints() {
+	private void findBlueprints(BSBlueprintString blueprintString) {
+		blueprintString.blueprint.ifPresent(bs -> {
+			blueprints.add(bs);
+			if (label == null) {
+				label = bs.label;
+			}
+		});
+		blueprintString.blueprintBook.ifPresent(bb -> {
+			bb.blueprints.forEach(this::findBlueprints);
+			if (label == null) {
+				label = bb.label;
+			}
+		});
+	}
+
+	public List<BSBlueprint> getBlueprints() {
 		return blueprints;
 	}
 
 	public Optional<String> getLabel() {
 		return label;
-	}
-
-	public MapVersion getVersion() {
-		return version;
 	}
 
 	public boolean isBook() {

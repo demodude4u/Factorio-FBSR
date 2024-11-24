@@ -7,7 +7,6 @@ import org.luaj.vm2.LuaValue;
 
 import com.demod.factorio.DataTable;
 import com.demod.factorio.prototype.EntityPrototype;
-import com.demod.fbsr.BlueprintEntity;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.FPUtils;
@@ -15,6 +14,7 @@ import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
 import com.demod.fbsr.Renderer.Layer;
 import com.demod.fbsr.WorldMap;
+import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.fp.FPSpriteVariations;
 import com.google.common.collect.ImmutableList;
 
@@ -69,10 +69,9 @@ public abstract class RailRendering extends EntityRendererFactory {
 	protected FPRailPictureSet protoPictures;
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
-			BlueprintEntity entity) {
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSEntity entity) {
 
-		FPRailPieceLayers railPieceLayers = protoPictures.get(entity.getDirection());
+		FPRailPieceLayers railPieceLayers = protoPictures.get(entity.direction);
 		if (railPieceLayers.stonePathBackground.isPresent()) {
 			register.accept(RenderUtils.spriteRenderer(Layer.RAIL_STONE_BACKGROUND,
 					railPieceLayers.stonePathBackground.get().createSprites(0), entity, protoSelectionBox));

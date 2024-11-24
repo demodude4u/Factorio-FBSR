@@ -8,7 +8,6 @@ import java.awt.geom.Ellipse2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
-import java.util.AbstractMap.SimpleEntry;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -17,11 +16,10 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-import org.json.JSONArray;
-import org.json.JSONObject;
 import org.luaj.vm2.LuaValue;
 
 import com.demod.factorio.DataTable;
@@ -30,6 +28,7 @@ import com.demod.factorio.Utils;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.factorio.prototype.RecipePrototype;
 import com.demod.fbsr.Renderer.Layer;
+import com.demod.fbsr.WirePoints.WirePoint;
 import com.demod.fbsr.WorldMap.BeaconSource;
 import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.entity.AccumulatorRendering;
@@ -134,7 +133,8 @@ public abstract class EntityRendererFactory {
 		}
 
 		@Override
-		public void createWireConnections(Consumer<Renderer> register, WorldMap map, DataTable table, BSEntity entity) {
+		public Optional<WirePoint> createWirePoint(Consumer<Renderer> register, BSEntity entity, int connectionId) {
+			return Optional.empty();
 		}
 
 		@Override
@@ -252,15 +252,6 @@ public abstract class EntityRendererFactory {
 		byName.put("stone-wall", new WallRendering());
 	}
 
-	private static final Map<String, Integer> wireConnectionCircuitId = new LinkedHashMap<>();
-	static {
-		wireConnectionCircuitId.put("circuit_wire_connection_point", 1);
-		wireConnectionCircuitId.put("connection_points", 1);
-		wireConnectionCircuitId.put("circuit_wire_connection_points", 1);
-		wireConnectionCircuitId.put("input_connection_points", 1);
-		wireConnectionCircuitId.put("output_connection_points", 2);
-	}
-
 	private static boolean prototypesInitialized = false;
 
 	public static EntityRendererFactory forName(String name) {
@@ -274,9 +265,12 @@ public abstract class EntityRendererFactory {
 		for (Entry<String, EntityRendererFactory> entry : byName.entrySet()) {
 			System.out.println("Initializing " + entry.getKey());
 			EntityPrototype prototype = table.getEntity(entry.getKey()).get();
-			entry.getValue().setPrototype(prototype);
+			EntityRendererFactory factory = entry.getValue();
+			factory.setPrototype(prototype);
 			try {
-				entry.getValue().initFromPrototype(table, prototype);
+				factory.initFromPrototype(table, prototype);
+				factory.wirePointsById = new LinkedHashMap<>();
+				factory.defineWirePoints(factory.wirePointsById::put, prototype.lua());
 			} catch (Exception e) {
 				prototype.debugPrint();
 				throw e;
@@ -288,6 +282,8 @@ public abstract class EntityRendererFactory {
 	private EntityPrototype prototype = null;
 	protected FPBoundingBox protoSelectionBox;
 	protected boolean protoBeaconed;
+
+	protected Map<Integer, WirePoints> wirePointsById;
 
 	protected void addLogisticWarp(WorldMap map, Point2D.Double gridPos1, Direction cellDir1, Point2D.Double gridPos2,
 			Direction cellDir2) {
@@ -401,6 +397,7 @@ public abstract class EntityRendererFactory {
 							spriteBox.x += spacing;
 						}
 					}
+
 				});
 			}
 		}
@@ -409,65 +406,13 @@ public abstract class EntityRendererFactory {
 	public abstract void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
 			BSEntity entity);
 
-	public void createWireConnections(Consumer<Renderer> register, WorldMap map, DataTable table, BSEntity entity) {
-		int entityId = entity.entityNumber;
+	public void createWireConnector(Consumer<Renderer> register, BSEntity entity) {
+		// TODO Auto-generated method stub
 
-		// TODO redo this to use the new wires structure
+	}
 
-		JSONObject connectionsJson = entity.json().optJSONObject("connections");
-		if (connectionsJson != null) {
-			Utils.forEach(connectionsJson, (String circuitIdStr, Object connection) -> {
-				if (connection instanceof JSONObject) {
-					JSONObject connectionJson = (JSONObject) connection;
-					int circuitId = Integer.parseInt(circuitIdStr);
-					Utils.forEach(connectionJson, (String colorName, JSONArray wiresJson) -> {
-						Utils.forEach(wiresJson, (JSONObject wireJson) -> {
-							int targetCircuitId = wireJson.optInt("circuit_id", 1);
-							int targetEntityId = wireJson.getInt("entity_id");
-
-							String key;
-							if (entityId == targetEntityId) {
-								key = entityId + "|" + colorName;
-							} else if (entityId < targetEntityId) {
-								key = entityId + "|" + circuitId + "|" + targetEntityId + "|" + targetCircuitId + "|"
-										+ colorName;
-							} else {
-								key = targetEntityId + "|" + targetCircuitId + "|" + entityId + "|" + circuitId + "|"
-										+ colorName;
-							}
-
-							if (!map.hasWire(key)) {
-								map.setWire(key, new SimpleEntry<>(getWirePositionFor(entity, colorName, circuitId),
-										new Point2D.Double()));
-
-							} else {
-								Entry<Point2D.Double, Point2D.Double> pair = map.getWire(key);
-
-								Point2D.Double p1 = pair.getKey();
-								Point2D.Double p2 = pair.getValue();
-								p2.setLocation(getWirePositionFor(entity, colorName, circuitId));
-
-								Color color;
-								switch (colorName) {
-								case "red":
-									color = Color.red.darker();
-									break;
-								case "green":
-									color = Color.green.darker();
-									break;
-								default:
-									System.err.println("UNKNOWN COLOR NAME: " + colorName);
-									color = Color.magenta;
-									break;
-								}
-
-								register.accept(RenderUtils.createWireRenderer(p1, p2, color));
-							}
-						});
-					});
-				}
-			});
-		}
+	public Optional<WirePoint> createWirePoint(Consumer<Renderer> register, BSEntity entity, int connectionId) {
+		return Optional.ofNullable(wirePointsById.get(connectionId)).map(wp -> wp.getPoint(entity));
 	}
 
 	protected void debugPrintContext(BSEntity entity, EntityPrototype prototype) {
@@ -481,25 +426,12 @@ public abstract class EntityRendererFactory {
 		Utils.debugPrintJson(entity.getDebugJson());
 	}
 
-	public EntityPrototype getPrototype() {
-		return prototype;
+	public void defineWirePoints(BiConsumer<Integer, WirePoints> consumer, LuaValue lua) {
+
 	}
 
-	protected Point2D.Double getWirePositionFor(BSEntity entity, String colorName, int circuitId) {
-		// TODO find a way to preload lua
-
-		LuaValue connectionPointLua = wireConnectionCircuitId.entrySet().stream().filter(e -> e.getValue() == circuitId)
-				.map(e -> prototype.lua().get(e.getKey())).filter(l -> !l.isnil()).findAny().get();
-
-		if (connectionPointLua.get("wire").isnil()) {
-			connectionPointLua = connectionPointLua.get(entity.direction.cardinal() + 1);
-		}
-
-		Point2D.Double pos = entity.position.createPoint();
-		Point2D.Double offset;
-		offset = Utils.parsePoint2D(connectionPointLua.get("wire").get(colorName));
-
-		return new Point2D.Double(pos.x + offset.x, pos.y + offset.y);
+	public EntityPrototype getPrototype() {
+		return prototype;
 	}
 
 	public abstract void initFromPrototype(DataTable dataTable, EntityPrototype prototype);

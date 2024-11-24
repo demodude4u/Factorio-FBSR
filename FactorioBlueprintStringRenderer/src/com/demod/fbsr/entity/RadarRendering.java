@@ -6,5 +6,6 @@ public class RadarRendering extends SimpleEntityRendering {
 	@Override
 	public void defineEntity(Bindings bind, LuaValue lua) {
 		bind.rotatedSprite(lua.get("pictures"));
+		bind.circuitConnector(lua.get("circuit_connector"));
 	}
 }

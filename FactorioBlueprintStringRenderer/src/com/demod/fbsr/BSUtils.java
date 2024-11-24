@@ -22,12 +22,18 @@ public final class BSUtils {
 	}
 
 	public static <T> List<T> list(JSONObject json, String key, BiFunction<JSONObject, String, T> factory) {
+		if (!json.has(key)) {
+			return ImmutableList.of();
+		}
 		Builder<T> builder = ImmutableList.builder();
 		Utils.forEach(json.getJSONArray(key), (JSONObject j) -> builder.add(factory.apply(j, key)));
 		return builder.build();
 	}
 
 	public static <T> List<T> list(JSONObject json, String key, Function<JSONObject, T> factory) {
+		if (!json.has(key)) {
+			return ImmutableList.of();
+		}
 		Builder<T> builder = ImmutableList.builder();
 		Utils.forEach(json.getJSONArray(key), (JSONObject j) -> builder.add(factory.apply(j)));
 		return builder.build();

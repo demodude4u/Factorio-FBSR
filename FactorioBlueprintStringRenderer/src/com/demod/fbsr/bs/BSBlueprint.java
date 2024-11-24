@@ -2,12 +2,15 @@ package com.demod.fbsr.bs;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.OptionalInt;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
+import com.demod.factorio.Utils;
 import com.demod.fbsr.BSUtils;
 import com.demod.fbsr.MapVersion;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 
 public class BSBlueprint {
 
@@ -21,8 +24,7 @@ public class BSBlueprint {
 	public final List<BSParameter> parameters;
 	public final Optional<BSPosition> snapToGrid;
 	public final boolean absoluteSnapping;
-
-	public final OptionalInt index;
+	public final List<BSWire> wires;
 
 	public BSBlueprint(JSONObject json) {
 		version = new MapVersion(json.getInt("version"));
@@ -35,6 +37,15 @@ public class BSBlueprint {
 		parameters = BSUtils.list(json, "parameters", BSParameter::new);
 		snapToGrid = BSUtils.opt(json, "snap_to_grid", BSPosition::new);
 		absoluteSnapping = json.optBoolean("absolute_snapping");
-		index = BSUtils.optInt(json, "index");
+
+		if (json.has("wires")) {
+			Builder<BSWire> wires = ImmutableList.builder();
+			Utils.forEach(json.getJSONArray("wires"), (JSONArray j) -> {
+				wires.add(new BSWire(j));
+			});
+			this.wires = wires.build();
+		} else {
+			this.wires = ImmutableList.of();
+		}
 	}
 }

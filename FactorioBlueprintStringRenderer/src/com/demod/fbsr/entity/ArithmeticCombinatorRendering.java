@@ -3,7 +3,7 @@ package com.demod.fbsr.entity;
 import java.util.Map;
 import java.util.Optional;
 
-import com.demod.fbsr.BlueprintEntity;
+import com.demod.fbsr.bs.BSEntity;
 
 public class ArithmeticCombinatorRendering extends CombinatorRendering {
 
@@ -24,9 +24,8 @@ public class ArithmeticCombinatorRendering extends CombinatorRendering {
 	}
 
 	@Override
-	public Optional<String> getOperation(BlueprintEntity entity) {
-		// TODO do empty if not there
-		return Optional.of(entity.json().getJSONObject("control_behavior").getJSONObject("arithmetic_conditions")
-				.getString("operation"));
+	public Optional<String> getOperation(BSEntity entity) {
+		return entity.controlBehavior.flatMap(bs -> bs.arithmeticConditions).map(bs -> bs.operation);
 	}
+
 }

@@ -4,28 +4,37 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalDouble;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import org.luaj.vm2.LuaValue;
 
 import com.demod.factorio.DataTable;
 import com.demod.factorio.prototype.EntityPrototype;
-import com.demod.fbsr.BlueprintEntity;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.EntityRendererFactory;
+import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
 import com.demod.fbsr.Renderer.Layer;
 import com.demod.fbsr.Sprite;
+import com.demod.fbsr.WirePoints;
+import com.demod.fbsr.WirePoints.WireColor;
 import com.demod.fbsr.WorldMap;
+import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.fp.FPAnimation;
 import com.demod.fbsr.fp.FPAnimation4Way;
+import com.demod.fbsr.fp.FPCircuitConnectorDefinition;
 import com.demod.fbsr.fp.FPRotatedAnimation;
 import com.demod.fbsr.fp.FPRotatedAnimation8Way;
 import com.demod.fbsr.fp.FPRotatedSprite;
 import com.demod.fbsr.fp.FPSprite;
 import com.demod.fbsr.fp.FPSprite4Way;
 import com.demod.fbsr.fp.FPSpriteVariations;
+import com.demod.fbsr.fp.FPWireConnectionPoint;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 
 public abstract class SimpleEntityRendering extends EntityRendererFactory {
 
@@ -33,7 +42,7 @@ public abstract class SimpleEntityRendering extends EntityRendererFactory {
 		protected T proto;
 		protected Layer layer = Layer.ENTITY;
 
-		public abstract List<Sprite> createSprites(BlueprintEntity entity);
+		public abstract List<Sprite> createSprites(BSEntity entity);
 
 		public BindAction<T> layer(Layer layer) {
 			this.layer = layer;
@@ -94,6 +103,7 @@ public abstract class SimpleEntityRendering extends EntityRendererFactory {
 
 	public class Bindings {
 		private final List<BindAction<?>> bindings;
+		private Optional<List<FPCircuitConnectorDefinition>> circuitConnectors = Optional.empty();
 
 		public Bindings(List<BindAction<?>> bindings) {
 			this.bindings = bindings;
@@ -102,7 +112,7 @@ public abstract class SimpleEntityRendering extends EntityRendererFactory {
 		public BindFrameAction<FPAnimation> animation(LuaValue lua) {
 			BindFrameAction<FPAnimation> ret = new BindFrameAction<FPAnimation>() {
 				@Override
-				public List<Sprite> createSprites(BlueprintEntity entity) {
+				public List<Sprite> createSprites(BSEntity entity) {
 					return proto.createSprites(frame);
 				}
 			};
@@ -114,8 +124,8 @@ public abstract class SimpleEntityRendering extends EntityRendererFactory {
 		public BindDirFrameAction<FPAnimation4Way> animation4Way(LuaValue lua) {
 			BindDirFrameAction<FPAnimation4Way> ret = new BindDirFrameAction<FPAnimation4Way>() {
 				@Override
-				public List<Sprite> createSprites(BlueprintEntity entity) {
-					return proto.createSprites(direction.orElse(entity.getDirection()), frame);
+				public List<Sprite> createSprites(BSEntity entity) {
+					return proto.createSprites(direction.orElse(entity.direction), frame);
 				}
 			};
 			ret.proto = new FPAnimation4Way(lua);
@@ -123,13 +133,57 @@ public abstract class SimpleEntityRendering extends EntityRendererFactory {
 			return ret;
 		}
 
+		public void circuitConnector(LuaValue lua) {
+			if (!lua.isnil()) {
+				this.circuitConnectors = Optional.of(ImmutableList.of(new FPCircuitConnectorDefinition(lua)));
+			}
+		}
+
+		public void circuitConnector16Way(LuaValue lua) {
+			if (!lua.isnil()) {
+				List<FPCircuitConnectorDefinition> list = FPUtils.list(lua, FPCircuitConnectorDefinition::new);
+				Preconditions.checkArgument(list.size() == 16,
+						"Expected 16 circuit connectors, but found " + list.size());
+				this.circuitConnectors = Optional.of(list);
+			}
+		}
+
+		public void circuitConnector4Way(LuaValue lua) {
+			if (!lua.isnil()) {
+				List<FPCircuitConnectorDefinition> list = FPUtils.list(lua, FPCircuitConnectorDefinition::new);
+				Preconditions.checkArgument(list.size() == 4,
+						"Expected 4 circuit connectors, but found " + list.size());
+				this.circuitConnectors = Optional.of(list);
+			}
+		}
+
+		public void circuitConnector8Way(LuaValue lua) {
+			if (!lua.isnil()) {
+				List<FPCircuitConnectorDefinition> list = FPUtils.list(lua, FPCircuitConnectorDefinition::new);
+				Preconditions.checkArgument(list.size() == 8,
+						"Expected 8 circuit connectors, but found " + list.size());
+				this.circuitConnectors = Optional.of(list);
+			}
+		}
+
+		public void circuitConnectorNWay(LuaValue lua) {
+			if (!lua.isnil()) {
+				List<FPCircuitConnectorDefinition> list = FPUtils.list(lua, FPCircuitConnectorDefinition::new);
+				this.circuitConnectors = Optional.of(list);
+			}
+		}
+
 		public BindRotateFrameAction<FPRotatedAnimation> rotatedAnimation(LuaValue lua) {
 			BindRotateFrameAction<FPRotatedAnimation> ret = new BindRotateFrameAction<FPRotatedAnimation>() {
 				@Override
-				public List<Sprite> createSprites(BlueprintEntity entity) {
-					double orientation = this.orientation.orElse(entity.getDirection().getOrientation());
-					if (entity.json().has("orientation")) {
-						orientation = entity.json().getDouble("orientation");
+				public List<Sprite> createSprites(BSEntity entity) {
+					double orientation;
+					if (this.orientation.isPresent()) {
+						orientation = this.orientation.getAsDouble();
+					} else if (entity.orientation.isPresent()) {
+						orientation = entity.orientation.getAsDouble();
+					} else {
+						orientation = entity.direction.getOrientation();
 					}
 					return proto.createSprites(orientation, frame);
 				}
@@ -142,12 +196,16 @@ public abstract class SimpleEntityRendering extends EntityRendererFactory {
 		public BindRotateDirFrameAction<FPRotatedAnimation8Way> rotatedAnimation8Way(LuaValue lua) {
 			BindRotateDirFrameAction<FPRotatedAnimation8Way> ret = new BindRotateDirFrameAction<FPRotatedAnimation8Way>() {
 				@Override
-				public List<Sprite> createSprites(BlueprintEntity entity) {
-					double orientation = this.orientation.orElse(entity.getDirection().getOrientation());
-					if (entity.json().has("orientation")) {
-						orientation = entity.json().getDouble("orientation");
+				public List<Sprite> createSprites(BSEntity entity) {
+					double orientation;
+					if (this.orientation.isPresent()) {
+						orientation = this.orientation.getAsDouble();
+					} else if (entity.orientation.isPresent()) {
+						orientation = entity.orientation.getAsDouble();
+					} else {
+						orientation = entity.direction.getOrientation();
 					}
-					return proto.createSprites(direction.orElse(entity.getDirection()), orientation, frame);
+					return proto.createSprites(direction.orElse(entity.direction), orientation, frame);
 				}
 			};
 			ret.proto = new FPRotatedAnimation8Way(lua);
@@ -158,10 +216,14 @@ public abstract class SimpleEntityRendering extends EntityRendererFactory {
 		public BindRotateAction<FPRotatedSprite> rotatedSprite(LuaValue lua) {
 			BindRotateAction<FPRotatedSprite> ret = new BindRotateAction<FPRotatedSprite>() {
 				@Override
-				public List<Sprite> createSprites(BlueprintEntity entity) {
-					double orientation = this.orientation.orElse(entity.getDirection().getOrientation());
-					if (entity.json().has("orientation")) {
-						orientation = entity.json().getDouble("orientation");
+				public List<Sprite> createSprites(BSEntity entity) {
+					double orientation;
+					if (this.orientation.isPresent()) {
+						orientation = this.orientation.getAsDouble();
+					} else if (entity.orientation.isPresent()) {
+						orientation = entity.orientation.getAsDouble();
+					} else {
+						orientation = entity.direction.getOrientation();
 					}
 					return proto.createSprites(orientation);
 				}
@@ -174,7 +236,7 @@ public abstract class SimpleEntityRendering extends EntityRendererFactory {
 		public BindAction<FPSprite> sprite(LuaValue lua) {
 			BindAction<FPSprite> ret = new BindAction<FPSprite>() {
 				@Override
-				public List<Sprite> createSprites(BlueprintEntity entity) {
+				public List<Sprite> createSprites(BSEntity entity) {
 					return proto.createSprites();
 				}
 			};
@@ -186,8 +248,8 @@ public abstract class SimpleEntityRendering extends EntityRendererFactory {
 		public BindDirAction<FPSprite4Way> sprite4Way(LuaValue lua) {
 			BindDirAction<FPSprite4Way> ret = new BindDirAction<FPSprite4Way>() {
 				@Override
-				public List<Sprite> createSprites(BlueprintEntity entity) {
-					return proto.createSprites(direction.orElse(entity.getDirection()));
+				public List<Sprite> createSprites(BSEntity entity) {
+					return proto.createSprites(direction.orElse(entity.direction));
 				}
 			};
 			ret.proto = new FPSprite4Way(lua);
@@ -198,7 +260,7 @@ public abstract class SimpleEntityRendering extends EntityRendererFactory {
 		public BindVarAction<FPSpriteVariations> spriteVariations(LuaValue lua) {
 			BindVarAction<FPSpriteVariations> ret = new BindVarAction<FPSpriteVariations>() {
 				@Override
-				public List<Sprite> createSprites(BlueprintEntity entity) {
+				public List<Sprite> createSprites(BSEntity entity) {
 					return proto.createSprites(variation);
 				}
 			};
@@ -287,17 +349,55 @@ public abstract class SimpleEntityRendering extends EntityRendererFactory {
 	}
 
 	private List<BindAction<?>> bindings;
+	private Optional<List<FPCircuitConnectorDefinition>> circuitConnectors;
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
-			BlueprintEntity entity) {
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSEntity entity) {
 		for (BindAction<?> bindAction : bindings) {
 			register.accept(RenderUtils.spriteRenderer(bindAction.layer, bindAction.createSprites(entity), entity,
 					protoSelectionBox));
 		}
 	}
 
+	@Override
+	public void createWireConnector(Consumer<Renderer> register, BSEntity entity) {
+
+		if (circuitConnectors.isPresent()) {
+			FPCircuitConnectorDefinition circuitConnector = RenderUtils.pickDirectional(circuitConnectors.get(),
+					entity);
+
+			circuitConnector.sprites.ifPresent(sprites -> {
+				if (sprites.connectorMain.isPresent()) {
+					register.accept(RenderUtils.spriteRenderer(sprites.connectorMain.get().createSprites(), entity,
+							protoSelectionBox));
+				}
+				if (sprites.connectorShadow.isPresent()) {
+					register.accept(RenderUtils.spriteRenderer(sprites.connectorShadow.get().createSprites(), entity,
+							protoSelectionBox));
+				}
+				if (sprites.wirePins.isPresent()) {
+					register.accept(RenderUtils.spriteRenderer(sprites.wirePins.get().createSprites(), entity,
+							protoSelectionBox));
+				}
+				if (sprites.wirePinsShadow.isPresent()) {
+					register.accept(RenderUtils.spriteRenderer(sprites.wirePinsShadow.get().createSprites(), entity,
+							protoSelectionBox));
+				}
+			});
+		}
+	}
+
 	public abstract void defineEntity(Bindings bind, LuaValue lua);
+
+	@Override
+	public void defineWirePoints(BiConsumer<Integer, WirePoints> consumer, LuaValue lua) {
+		if (circuitConnectors.isPresent()) {
+			List<FPWireConnectionPoint> points = circuitConnectors.get().stream().map(cc -> cc.points)
+					.collect(Collectors.toList());
+			consumer.accept(1, WirePoints.fromWireConnectionPoints(points, WireColor.RED));
+			consumer.accept(2, WirePoints.fromWireConnectionPoints(points, WireColor.GREEN));
+		}
+	}
 
 	@Override
 	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
@@ -305,6 +405,7 @@ public abstract class SimpleEntityRendering extends EntityRendererFactory {
 		Bindings fluent = new Bindings(bindings);
 		defineEntity(fluent, prototype.lua());
 		this.bindings = bindings;
+		this.circuitConnectors = fluent.circuitConnectors;
 	}
 
 }

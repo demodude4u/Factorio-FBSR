@@ -8,5 +8,6 @@ public class RoboportRendering extends SimpleEntityRendering {
 		bind.sprite(lua.get("base"));
 		bind.animation(lua.get("door_animation_down"));
 		bind.animation(lua.get("door_animation_up"));
+		bind.circuitConnector(lua.get("circuit_connector"));
 	}
 }

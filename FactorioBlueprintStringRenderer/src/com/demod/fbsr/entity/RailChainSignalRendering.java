@@ -3,30 +3,30 @@ package com.demod.fbsr.entity;
 import java.awt.geom.Point2D;
 
 import com.demod.factorio.DataTable;
-import com.demod.fbsr.BlueprintEntity;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.WorldMap;
+import com.demod.fbsr.bs.BSEntity;
 
 public class RailChainSignalRendering extends RailSignalBaseRendering {
 	// TODO elevated versions
 
 //	@Override
 //	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
-//			BlueprintEntity entity) {
+//			BSEntity entity) {
 //		// TODO figure out wtf is going on with rail sprites... animation? indices?
 //		Sprite railSprite = protoRailPiece.createSprite();
-//		railSprite.source.x += railSprite.source.width * (entity.getDirection().ordinal());
+//		railSprite.source.x += railSprite.source.width * (entity.direction.ordinal());
 //
 //		List<Sprite> sprites = protoSprites.stream().map(SpriteDef::createSprite).collect(Collectors.toList());
 //		for (Sprite sprite : sprites) {
-//			sprite.source.y += sprite.source.height * (entity.getDirection().ordinal());
+//			sprite.source.y += sprite.source.height * (entity.direction.ordinal());
 //			sprite.source.x += sprite.source.width * (3);
 //		}
 //
 //		// XXX This is a straight up hack
-//		Direction shiftDir = entity.getDirection().right();
+//		Direction shiftDir = entity.direction.right();
 //		Point2D.Double shift = new Point2D.Double(shiftDir.getDx(), shiftDir.getDy());
-//		if (entity.getDirection() == Direction.WEST || entity.getDirection() == Direction.SOUTH) {
+//		if (entity.direction == Direction.WEST || entity.direction == Direction.SOUTH) {
 //			shift.x *= 2;
 //			shift.y *= 2;
 //		}
@@ -39,9 +39,9 @@ public class RailChainSignalRendering extends RailSignalBaseRendering {
 //	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity) {
-		Point2D.Double pos = entity.getPosition();
-		Direction dir = entity.getDirection();
+	public void populateWorldMap(WorldMap map, DataTable dataTable, BSEntity entity) {
+		Point2D.Double pos = entity.position.createPoint();
+		Direction dir = entity.direction;
 
 		map.getOrCreateRailNode(dir.right().offset(pos, dir.isCardinal() ? 1.5 : 1.0)).setSignal(dir.back());
 	}
