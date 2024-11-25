@@ -7,19 +7,10 @@ import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.Optional;
 
 import javax.imageio.ImageIO;
 
-import org.apache.commons.codec.binary.Hex;
-import org.dizitart.no2.Document;
-import org.dizitart.no2.IndexOptions;
-import org.dizitart.no2.IndexType;
-import org.dizitart.no2.Nitrite;
-import org.dizitart.no2.NitriteCollection;
-import org.dizitart.no2.filters.Filters;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -32,8 +23,6 @@ import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 
 public final class WebUtils {
-	private static Nitrite db = initializeDatabase();
-	private static NitriteCollection dbUploads = db.getCollection("uploads");
 
 	public static void addPossiblyLargeEmbedField(EmbedBuilder builder, String name, String value, boolean inline)
 			throws IOException {
@@ -43,15 +32,6 @@ public final class WebUtils {
 			builder.addField(name + " Link", uploadToHostingService(name + ".txt", value.getBytes()).toString(),
 					inline);
 		}
-	}
-
-	private static void addToUploadedDatabase(String fileHash, String url) {
-		dbUploads.insert(Document.createDocument("hash", fileHash).put("url", url));
-	}
-
-	private static Optional<String> checkIfUploadedAlready(String fileHash) {
-		return Optional.ofNullable(dbUploads.find(Filters.eq("hash", fileHash)).firstOrDefault())
-				.flatMap(d -> Optional.ofNullable(d.get("url").toString()));
 	}
 
 	private static byte[] generateDiscordFriendlyPNGImage(BufferedImage image) {
@@ -65,15 +45,6 @@ public final class WebUtils {
 		return imageData;
 	}
 
-	private static String generateFileHash(byte[] fileData) {
-		try {
-			return Hex.encodeHexString(MessageDigest.getInstance("MD5").digest(fileData));
-		} catch (NoSuchAlgorithmException e) {
-			throw new InternalError(e);
-		}
-
-	}
-
 	public static byte[] getImageData(BufferedImage image) {
 		try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
 			ImageIO.write(image, "PNG", baos);
@@ -81,22 +52,6 @@ public final class WebUtils {
 		} catch (IOException e) {
 			e.printStackTrace();
 			throw new InternalError(e);
-		}
-	}
-
-	private static Nitrite initializeDatabase() {
-		try {
-			Nitrite db = Nitrite.builder().compressed().filePath("database.db").openOrCreate();
-
-			NitriteCollection dbUploads = db.getCollection("uploads");
-			if (!dbUploads.hasIndex("hash")) {
-				dbUploads.createIndex("hash", IndexOptions.indexOptions(IndexType.Unique));
-			}
-
-			return db;
-		} catch (Exception e) {
-			e.printStackTrace();
-			throw e;
 		}
 	}
 
@@ -143,20 +98,11 @@ public final class WebUtils {
 	}
 
 	public static String uploadToHostingService(String fileName, byte[] fileData) throws IOException {
-		String fileHash = generateFileHash(fileData);
-
-		Optional<String> alreadyUploaded = checkIfUploadedAlready(fileHash);
-
-		if (alreadyUploaded.isPresent()) {
-			return alreadyUploaded.get();
-		}
-
 		Optional<BlueprintBotDiscordService> discordService = ServiceFinder
 				.findService(BlueprintBotDiscordService.class);
 		if (discordService.isPresent()) {
 			try {
 				String url = discordService.get().useDiscordForFileHosting(fileName, fileData).toString();
-				addToUploadedDatabase(fileHash, url);
 				return url;
 			} catch (Exception e2) {
 				throw new IOException("File hosting failed!", e2);

@@ -91,10 +91,5 @@
 			<artifactId>jaxb-api</artifactId>
 			<version>2.2.11</version>
 		</dependency>
-		<dependency>
-			<groupId>org.dizitart</groupId>
-			<artifactId>nitrite</artifactId>
-			<version>3.4.4</version>
-		</dependency>
 	</dependencies>
 </project>
