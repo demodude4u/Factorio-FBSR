@@ -7,6 +7,7 @@ import java.util.function.Consumer;
 
 import com.demod.factorio.DataTable;
 import com.demod.factorio.prototype.EntityPrototype;
+import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
 import com.demod.fbsr.Renderer.Layer;
@@ -85,22 +86,28 @@ public class ArtilleryWagonRendering extends RollingStockRendering {
 	private FPRollingStockRotatedSlopedGraphics protoCannonBarrelPictures;
 	private FPRollingStockRotatedSlopedGraphics protoCannonBasePictures;
 
+	private double protoCannonBaseHeight;
+	private double protoCannonBaseShiftWhenVertical;
+	private double protoCannonBaseShiftWhenHorizontal;
+
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSEntity entity) {
 		super.createRenderers(register, map, dataTable, entity);
 
 		double orientation = entity.orientation.getAsDouble();
 
-		int shiftIndex = (int) (orientation * protoCannonBaseShifts.size());
-		Point2D.Double cannonBaseShift = protoCannonBaseShifts.get(shiftIndex);
-
 		// TODO sloped
 
 		List<Sprite> cannonBaseSprites = protoCannonBasePictures.rotated.createSprites(orientation);
 		List<Sprite> cannonBarrelSprites = protoCannonBarrelPictures.rotated.createSprites(orientation);
 
+		// Old way
+		int shiftIndex = (int) (FPUtils.projectedOrientation(orientation) * protoCannonBaseShifts.size());
+		Point2D.Double cannonBaseShift = protoCannonBaseShifts.get(shiftIndex);
 		RenderUtils.shiftSprites(cannonBaseSprites, cannonBaseShift);
 		RenderUtils.shiftSprites(cannonBarrelSprites, cannonBaseShift);
+
+		// TODO figure out new way of calculating cannon shift
 
 		register.accept(RenderUtils.spriteRenderer(Layer.ENTITY2, cannonBarrelSprites, entity, protoSelectionBox));
 		register.accept(RenderUtils.spriteRenderer(Layer.ENTITY2, cannonBaseSprites, entity, protoSelectionBox));
@@ -114,7 +121,10 @@ public class ArtilleryWagonRendering extends RollingStockRendering {
 				prototype.lua().get("cannon_barrel_pictures"));
 		protoCannonBasePictures = new FPRollingStockRotatedSlopedGraphics(prototype.lua().get("cannon_base_pictures"));
 
-		// FIXME find the correct way to do this
+		protoCannonBaseHeight = prototype.lua().get("cannon_base_height").optdouble(0.0);
+		protoCannonBaseShiftWhenVertical = prototype.lua().get("cannon_base_shift_when_vertical").optdouble(0.0);
+		protoCannonBaseShiftWhenHorizontal = prototype.lua().get("cannon_base_shift_when_horizontal").optdouble(0.0);
+
 		protoCannonBaseShifts = new ArrayList<>();
 		for (double[] shift : CANNON_BASE_SHIFTINGS) {
 			protoCannonBaseShifts.add(new Point2D.Double(shift[0], shift[1]));
