@@ -35,7 +35,7 @@ public class FPSprite4Way {
 		if (sheets.isPresent()) {
 			return sheets.get().stream().map(s -> s.createSprite(direction)).collect(Collectors.toList());
 		} else if (sheet.isPresent()) {
-			return ImmutableList.of(sheet.get().createSprite());
+			return ImmutableList.of(sheet.get().createSprite(direction));
 		} else {
 			FPSprite dirSprite;
 			if (direction == Direction.EAST) {

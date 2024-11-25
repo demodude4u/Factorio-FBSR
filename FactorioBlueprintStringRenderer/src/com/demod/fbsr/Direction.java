@@ -67,6 +67,14 @@ public enum Direction {
 		return (ordinal() % 2) == 0;
 	}
 
+	public boolean isHorizontal() {
+		return this == EAST || this == WEST;
+	}
+
+	public boolean isVertical() {
+		return this == NORTH || this == SOUTH;
+	}
+
 	public Direction left() {
 		return rotate(-2);
 	}

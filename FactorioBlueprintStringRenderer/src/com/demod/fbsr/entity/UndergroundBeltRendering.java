@@ -22,6 +22,8 @@ public class UndergroundBeltRendering extends TransportBeltConnectableRendering 
 
 	private FPSprite4Way protoStructureDirectionIn;
 	private FPSprite4Way protoStructureDirectionOut;
+	private FPSprite4Way protoStructureDirectionInSideLoading;
+	private FPSprite4Way protoStructureDirectionOutSideLoading;
 	private int protoMaxDistance;
 
 	@Override
@@ -31,8 +33,19 @@ public class UndergroundBeltRendering extends TransportBeltConnectableRendering 
 
 		boolean input = entity.type.get().equals("input");
 		Direction structDir = input ? entity.direction : entity.direction.back();
-		List<Sprite> structureSprites = (input ? protoStructureDirectionIn : protoStructureDirectionOut)
-				.createSprites(structDir);
+		FPSprite4Way protoStructSprite = input ? protoStructureDirectionIn : protoStructureDirectionOut;
+		if (entity.direction.isHorizontal()) {
+			Point2D.Double checkPos = entity.position.createPoint();
+			checkPos = (input ? entity.direction.back() : entity.direction).offset(checkPos, 0.25);
+			checkPos = Direction.SOUTH.offset(checkPos, 0.75);
+			boolean sideLoading = map.getLogisticGridCell(checkPos).flatMap(lgc -> lgc.getMove())
+					.filter(d -> d == Direction.NORTH).isPresent();
+			if (sideLoading) {
+				protoStructSprite = input ? protoStructureDirectionInSideLoading
+						: protoStructureDirectionOutSideLoading;
+			}
+		}
+		List<Sprite> structureSprites = protoStructSprite.createSprites(structDir);
 		register.accept(RenderUtils.spriteRenderer(Layer.ENTITY2, structureSprites, entity, protoSelectionBox));
 	}
 
@@ -43,6 +56,8 @@ public class UndergroundBeltRendering extends TransportBeltConnectableRendering 
 		LuaValue luaStructure = prototype.lua().get("structure");
 		protoStructureDirectionIn = new FPSprite4Way(luaStructure.get("direction_in"));
 		protoStructureDirectionOut = new FPSprite4Way(luaStructure.get("direction_out"));
+		protoStructureDirectionInSideLoading = new FPSprite4Way(luaStructure.get("direction_in_side_loading"));
+		protoStructureDirectionOutSideLoading = new FPSprite4Way(luaStructure.get("direction_out_side_loading"));
 
 		protoMaxDistance = prototype.lua().get("max_distance").toint();
 	}

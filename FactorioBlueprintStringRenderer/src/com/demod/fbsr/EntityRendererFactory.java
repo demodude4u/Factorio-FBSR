@@ -51,6 +51,7 @@ import com.demod.fbsr.entity.FluidTurretRendering;
 import com.demod.fbsr.entity.FurnaceRendering;
 import com.demod.fbsr.entity.GateRendering;
 import com.demod.fbsr.entity.GeneratorRendering;
+import com.demod.fbsr.entity.HalfDiagonalRailRendering;
 import com.demod.fbsr.entity.HeatInterfaceRendering;
 import com.demod.fbsr.entity.HeatPipeRendering;
 import com.demod.fbsr.entity.InfinityContainerRendering;
@@ -195,6 +196,7 @@ public abstract class EntityRendererFactory {
 		byName.put("gate", new GateRendering());
 		byName.put("steam-engine", new GeneratorRendering());
 		byName.put("steam-turbine", new GeneratorRendering());
+		byName.put("half-diagonal-rail", new HalfDiagonalRailRendering());
 		byName.put("heat-interface", new HeatInterfaceRendering());
 		byName.put("heat-pipe", new HeatPipeRendering());
 		byName.put("infinity-chest", new InfinityContainerRendering());

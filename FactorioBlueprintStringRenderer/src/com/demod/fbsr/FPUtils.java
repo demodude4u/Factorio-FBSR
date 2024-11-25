@@ -83,4 +83,8 @@ public final class FPUtils {
 		}
 	}
 
+	public static double projectedY(double y) {
+		return y * PROJECTION_CONSTANT;
+	}
+
 }
