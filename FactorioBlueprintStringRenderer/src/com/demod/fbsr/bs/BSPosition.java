@@ -16,4 +16,8 @@ public class BSPosition {
 	public Point2D.Double createPoint() {
 		return new Point2D.Double(x, y);
 	}
+
+	public Point2D.Double createPoint(Point2D.Double shift) {
+		return new Point2D.Double(x + shift.x, y + shift.y);
+	}
 }

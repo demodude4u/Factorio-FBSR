@@ -1,5 +1,6 @@
 package com.demod.fbsr.entity;
 
+import java.awt.geom.Point2D;
 import java.util.List;
 
 import org.luaj.vm2.LuaValue;
@@ -71,9 +72,19 @@ public abstract class TransportBeltConnectableRendering extends EntityRendererFa
 	private int[][] protoBeltIndices;
 	private int[] protoBeltStartingIndices;
 	private int[] protoBeltEndingIndices;
+	private boolean protoBeltAlternate;
 
 	protected List<Sprite> createBeltSprites(int cardinal, int bend, int frame) {
 		return protoBeltAnimationSet.createSprites(protoBeltIndices[cardinal][bend], frame);
+	}
+
+	protected int getAlternatingFrame(Point2D.Double pos, int frame) {
+		if (protoBeltAlternate && ((((int) pos.x + (int) pos.y) % 2) == 0)) {
+			int frameCount = protoBeltAnimationSet.getFrameCount();
+			return (frame + frameCount / 2) % frameCount;
+		} else {
+			return frame;
+		}
 	}
 
 	@Override
@@ -103,6 +114,8 @@ public abstract class TransportBeltConnectableRendering extends EntityRendererFa
 				protoBeltEndingIndices[cardinal] = luaBeltAnimationSet.get(indexName).optint(defaultIndex);
 			}
 		}
+
+		protoBeltAlternate = luaBeltAnimationSet.get("alternate").optboolean(false);
 	}
 
 }

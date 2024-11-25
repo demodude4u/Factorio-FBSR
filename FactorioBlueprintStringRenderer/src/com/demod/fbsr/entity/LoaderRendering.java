@@ -45,7 +45,8 @@ public abstract class LoaderRendering extends TransportBeltConnectableRendering 
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSEntity entity) {
 		Point2D.Double beltShift = getBeltShift(entity);
-		List<Sprite> beltSprites = createBeltSprites(entity.direction.cardinal(), BeltBend.NONE.ordinal(), 0);
+		List<Sprite> beltSprites = createBeltSprites(entity.direction.cardinal(), BeltBend.NONE.ordinal(),
+				getAlternatingFrame(entity.position.createPoint(beltShift), 0));
 		RenderUtils.shiftSprites(beltSprites, beltShift);
 		register.accept(RenderUtils.spriteRenderer(beltSprites, entity, protoSelectionBox));
 

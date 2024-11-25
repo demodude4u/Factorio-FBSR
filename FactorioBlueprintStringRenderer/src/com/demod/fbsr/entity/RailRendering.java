@@ -67,29 +67,50 @@ public abstract class RailRendering extends EntityRendererFactory {
 	}
 
 	protected FPRailPictureSet protoPictures;
+	private final Layer layerRailStoneBackground;
+	private final Layer layerRailStone;
+	private final Layer layerRailTies;
+	private final Layer layerRailBackplates;
+	private final Layer layerRailMetals;
+
+	public RailRendering(boolean elevated) {
+		if (elevated) {
+			layerRailStoneBackground = Layer.ELEVATED_RAIL_STONE_BACKGROUND;
+			layerRailStone = Layer.ELEVATED_RAIL_STONE;
+			layerRailTies = Layer.ELEVATED_RAIL_TIES;
+			layerRailBackplates = Layer.ELEVATED_RAIL_BACKPLATES;
+			layerRailMetals = Layer.ELEVATED_RAIL_METALS;
+		} else {
+			layerRailStoneBackground = Layer.RAIL_STONE_BACKGROUND;
+			layerRailStone = Layer.RAIL_STONE;
+			layerRailTies = Layer.RAIL_TIES;
+			layerRailBackplates = Layer.RAIL_BACKPLATES;
+			layerRailMetals = Layer.RAIL_METALS;
+		}
+	}
 
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSEntity entity) {
 
 		FPRailPieceLayers railPieceLayers = protoPictures.get(entity.direction);
 		if (railPieceLayers.stonePathBackground.isPresent()) {
-			register.accept(RenderUtils.spriteRenderer(Layer.RAIL_STONE_BACKGROUND,
+			register.accept(RenderUtils.spriteRenderer(layerRailStoneBackground,
 					railPieceLayers.stonePathBackground.get().createSprites(0), entity, protoSelectionBox));
 		}
 		if (railPieceLayers.stonePath.isPresent()) {
-			register.accept(RenderUtils.spriteRenderer(Layer.RAIL_STONE,
-					railPieceLayers.stonePath.get().createSprites(0), entity, protoSelectionBox));
+			register.accept(RenderUtils.spriteRenderer(layerRailStone, railPieceLayers.stonePath.get().createSprites(0),
+					entity, protoSelectionBox));
 		}
 		if (railPieceLayers.ties.isPresent()) {
-			register.accept(RenderUtils.spriteRenderer(Layer.RAIL_TIES, railPieceLayers.ties.get().createSprites(0),
+			register.accept(RenderUtils.spriteRenderer(layerRailTies, railPieceLayers.ties.get().createSprites(0),
 					entity, protoSelectionBox));
 		}
 		if (railPieceLayers.backplates.isPresent()) {
-			register.accept(RenderUtils.spriteRenderer(Layer.RAIL_BACKPLATES,
+			register.accept(RenderUtils.spriteRenderer(layerRailBackplates,
 					railPieceLayers.backplates.get().createSprites(0), entity, protoSelectionBox));
 		}
 		if (railPieceLayers.metals.isPresent()) {
-			register.accept(RenderUtils.spriteRenderer(Layer.RAIL_METALS, railPieceLayers.metals.get().createSprites(0),
+			register.accept(RenderUtils.spriteRenderer(layerRailMetals, railPieceLayers.metals.get().createSprites(0),
 					entity, protoSelectionBox));
 		}
 	}

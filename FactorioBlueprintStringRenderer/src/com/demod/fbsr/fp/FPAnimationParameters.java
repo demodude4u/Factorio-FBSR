@@ -7,7 +7,7 @@ import com.demod.fbsr.Sprite;
 
 public class FPAnimationParameters extends FPSpriteParameters {
 
-	public final int frameCount;
+	protected final int frameCount;
 	public final int lineLength;
 
 	public FPAnimationParameters(LuaValue lua) {
@@ -28,5 +28,9 @@ public class FPAnimationParameters extends FPSpriteParameters {
 
 		return RenderUtils.createSprite(filename.get(), drawAsShadow, blendMode, getEffectiveTint(), x, y, width,
 				height, shift.x, shift.y, scale);
+	}
+
+	public int getFrameCount() {
+		return frameCount;
 	}
 }

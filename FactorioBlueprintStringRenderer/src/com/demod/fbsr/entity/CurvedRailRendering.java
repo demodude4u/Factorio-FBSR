@@ -9,6 +9,8 @@ import com.demod.fbsr.bs.BSEntity;
 
 public class CurvedRailRendering extends RailRendering {
 
+	// TODO make sure the path ends support transition to half diagonals
+
 	private static final int[][][] pathEnds = //
 			new int[/* dir */][/* points */][/* x,y,dir */] { //
 					{ { 1, 4, 0 }, { -2, -3, 3 } }, // N
@@ -20,6 +22,14 @@ public class CurvedRailRendering extends RailRendering {
 					{ { 4, -1, 6 }, { -3, 2, 1 } }, // W
 					{ { 4, 1, 6 }, { -3, -2, 3 } }, // NW
 			};
+
+	public CurvedRailRendering() {
+		this(false);
+	}
+
+	public CurvedRailRendering(boolean elevated) {
+		super(elevated);
+	}
 
 	@Override
 	public void populateWorldMap(WorldMap map, DataTable dataTable, BSEntity entity) {

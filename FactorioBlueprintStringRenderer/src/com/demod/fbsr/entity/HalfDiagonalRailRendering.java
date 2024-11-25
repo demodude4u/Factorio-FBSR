@@ -2,6 +2,14 @@ package com.demod.fbsr.entity;
 
 public class HalfDiagonalRailRendering extends RailRendering {
 
+	public HalfDiagonalRailRendering() {
+		this(false);
+	}
+
+	public HalfDiagonalRailRendering(boolean elevated) {
+		super(elevated);
+	}
+
 	// TODO need to figure out new values
 //	private static final int[][][] pathEnds = //
 //			new int[/* dir */][/* points */][/* x,y,dir */] { //

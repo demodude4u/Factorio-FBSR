@@ -21,6 +21,10 @@ public class LegacyCurvedRailRendering extends RailRendering {
 					{ { 4, 1, 6 }, { -3, -2, 3 } }, // NW
 			};
 
+	public LegacyCurvedRailRendering() {
+		super(false);
+	}
+
 	@Override
 	public void populateWorldMap(WorldMap map, DataTable dataTable, BSEntity entity) {
 		Point2D.Double pos = entity.position.createPoint();

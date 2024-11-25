@@ -1,11 +1,9 @@
 package com.demod.fbsr.entity;
 
 import java.awt.geom.Point2D;
-import java.util.LinkedHashMap;
 
 import com.demod.factorio.DataTable;
 import com.demod.fbsr.Direction;
-import com.demod.fbsr.Renderer.Layer;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.bs.BSEntity;
 
@@ -23,14 +21,12 @@ public class StraightRailRendering extends RailRendering {
 					{ { -1, 0, 1 }, { 0, -1, 5 } }, // NW
 			};
 
-	public static final LinkedHashMap<String, Layer> railLayers = new LinkedHashMap<>();
+	public StraightRailRendering() {
+		this(false);
+	}
 
-	static {
-		railLayers.put("stone_path_background", Layer.RAIL_STONE_BACKGROUND);
-		railLayers.put("stone_path", Layer.RAIL_STONE);
-		railLayers.put("ties", Layer.RAIL_TIES);
-		railLayers.put("backplates", Layer.RAIL_BACKPLATES);
-		railLayers.put("metals", Layer.RAIL_METALS);
+	public StraightRailRendering(boolean elevated) {
+		super(elevated);
 	}
 
 	@Override

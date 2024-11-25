@@ -28,7 +28,8 @@ public class UndergroundBeltRendering extends TransportBeltConnectableRendering 
 
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSEntity entity) {
-		List<Sprite> beltSprites = createBeltSprites(entity.direction.cardinal(), BeltBend.NONE.ordinal(), 0);
+		List<Sprite> beltSprites = createBeltSprites(entity.direction.cardinal(), BeltBend.NONE.ordinal(),
+				getAlternatingFrame(entity.position.createPoint(), 0));
 		register.accept(RenderUtils.spriteRenderer(beltSprites, entity, protoSelectionBox));
 
 		boolean input = entity.type.get().equals("input");

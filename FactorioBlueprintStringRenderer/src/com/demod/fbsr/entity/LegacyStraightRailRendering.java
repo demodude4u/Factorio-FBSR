@@ -21,6 +21,10 @@ public class LegacyStraightRailRendering extends RailRendering {
 					{ { -1, 0, 1 }, { 0, -1, 5 } }, // NW
 			};
 
+	public LegacyStraightRailRendering() {
+		super(false);
+	}
+
 	@Override
 	public void populateWorldMap(WorldMap map, DataTable dataTable, BSEntity entity) {
 		Point2D.Double pos = entity.position.createPoint();

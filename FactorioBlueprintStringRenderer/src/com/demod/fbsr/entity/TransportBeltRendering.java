@@ -27,7 +27,8 @@ public class TransportBeltRendering extends TransportBeltConnectableRendering {
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSEntity entity) {
 		BeltBend bend = map.getBeltBend(entity.position.createPoint()).get();
-		List<Sprite> beltSprites = createBeltSprites(entity.direction.cardinal(), bend.ordinal(), 0);
+		List<Sprite> beltSprites = createBeltSprites(entity.direction.cardinal(), bend.ordinal(),
+				getAlternatingFrame(entity.position.createPoint(), 0));
 		register.accept(RenderUtils.spriteRenderer(beltSprites, entity, protoSelectionBox));
 
 		// TODO switch this over to the wire connector logic

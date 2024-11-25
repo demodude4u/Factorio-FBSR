@@ -44,11 +44,13 @@ public class SplitterRendering extends TransportBeltConnectableRendering {
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSEntity entity) {
 		Direction dir = entity.direction;
 
-		List<Sprite> belt1Sprites = createBeltSprites(dir.cardinal(), BeltBend.NONE.ordinal(), 0);
-		List<Sprite> belt2Sprites = createBeltSprites(dir.cardinal(), BeltBend.NONE.ordinal(), 0);
-
 		Point2D.Double belt1Shift = dir.left().offset(new Point2D.Double(), 0.5);
 		Point2D.Double belt2Shift = dir.right().offset(new Point2D.Double(), 0.5);
+
+		List<Sprite> belt1Sprites = createBeltSprites(dir.cardinal(), BeltBend.NONE.ordinal(),
+				getAlternatingFrame(entity.position.createPoint(belt1Shift), 0));
+		List<Sprite> belt2Sprites = createBeltSprites(dir.cardinal(), BeltBend.NONE.ordinal(),
+				getAlternatingFrame(entity.position.createPoint(belt2Shift), 0));
 
 		RenderUtils.shiftSprites(belt1Sprites, belt1Shift);
 		RenderUtils.shiftSprites(belt2Sprites, belt2Shift);

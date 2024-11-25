@@ -74,8 +74,6 @@ public class FPRotatedAnimation extends FPAnimationParameters {
 
 		} else if (filenames.isPresent()) {
 
-			// TODO how do I use slice?
-
 			int fileFrameCount = (linesPerFile * lineLength);
 			int fileFrame = frame % fileFrameCount;
 			int fileIndex = frame / fileFrameCount;
@@ -99,6 +97,16 @@ public class FPRotatedAnimation extends FPAnimationParameters {
 		List<Sprite> ret = new ArrayList<>();
 		createSprites(ret::add, index, frame);
 		return ret;
+	}
+
+	@Override
+	public int getFrameCount() {
+		if (layers.isPresent()) {
+			return layers.get().stream().mapToInt(FPRotatedAnimation::getFrameCount).max().getAsInt();
+		} else {
+			// Do I need something different for stripes or filenames?
+			return super.getFrameCount();
+		}
 	}
 
 	private int getIndex(double orientation) {
