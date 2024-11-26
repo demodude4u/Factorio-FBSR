@@ -15,6 +15,10 @@ public final class FPUtils {
 
 	public static double PROJECTION_CONSTANT = 0.7071067811865;
 
+	public static Layer layer(LuaValue lua) {
+		return Layer.fromKey(lua.tojstring());
+	}
+
 	public static <T> List<T> list(LuaValue lua, Function<LuaValue, T> factory) {
 		Builder<T> builder = ImmutableList.builder();
 		Utils.forEach(lua, l -> builder.add(factory.apply(l)));

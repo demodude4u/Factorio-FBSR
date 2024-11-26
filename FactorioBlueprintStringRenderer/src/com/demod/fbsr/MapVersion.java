@@ -75,6 +75,6 @@ public class MapVersion {
 
 	@Override
 	public String toString() {
-		return "MapVersion: main: " + main + " major: " + major + " minor: " + minor + " dev: " + dev;
+		return "(" + main + "." + major + "." + minor + ")";
 	}
 }

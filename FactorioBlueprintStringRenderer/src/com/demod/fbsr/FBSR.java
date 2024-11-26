@@ -871,6 +871,7 @@ public class FBSR {
 
 	public static RenderResult renderBlueprint(BSBlueprint blueprint, CommandReporting reporting, JSONObject options)
 			throws JSONException, IOException {
+
 		System.out.println("Rendering " + blueprint.label.orElse("(No Name)"));
 		long startMillis = System.currentTimeMillis();
 

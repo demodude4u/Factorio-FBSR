@@ -19,6 +19,8 @@ import com.demod.fbsr.Layer;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
 import com.demod.fbsr.Sprite;
+import com.demod.fbsr.SpriteWithLayer;
+import com.demod.fbsr.SpritesWithLayer;
 import com.demod.fbsr.WirePoints;
 import com.demod.fbsr.WirePoints.WireColor;
 import com.demod.fbsr.WorldMap;
@@ -26,6 +28,7 @@ import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.fp.FPAnimation;
 import com.demod.fbsr.fp.FPAnimation4Way;
 import com.demod.fbsr.fp.FPCircuitConnectorDefinition;
+import com.demod.fbsr.fp.FPLayeredSprite;
 import com.demod.fbsr.fp.FPRotatedAnimation;
 import com.demod.fbsr.fp.FPRotatedAnimation8Way;
 import com.demod.fbsr.fp.FPRotatedSprite;
@@ -40,17 +43,11 @@ public abstract class SimpleEntityRendering extends EntityRendererFactory {
 
 	public static abstract class BindAction<T> {
 		protected T proto;
-		protected Layer layer = Layer.OBJECT;
 
-		public abstract List<Sprite> createSprites(BSEntity entity);
-
-		public BindAction<T> layer(Layer layer) {
-			this.layer = layer;
-			return this;
-		}
+		public abstract List<SpritesWithLayer> createLayeredSprites(BSEntity entity);
 	}
 
-	public static abstract class BindDirAction<T> extends BindAction<T> {
+	public static abstract class BindDirAction<T> extends BindLayerAction<T> {
 		protected Optional<Direction> direction = Optional.empty();
 
 		public BindDirAction<T> direction(Direction direction) {
@@ -65,7 +62,7 @@ public abstract class SimpleEntityRendering extends EntityRendererFactory {
 		}
 	}
 
-	public static abstract class BindDirFrameAction<T> extends BindAction<T> {
+	public static abstract class BindDirFrameAction<T> extends BindLayerAction<T> {
 		protected Optional<Direction> direction = Optional.empty();
 		protected int frame = 0;
 
@@ -86,7 +83,7 @@ public abstract class SimpleEntityRendering extends EntityRendererFactory {
 		}
 	}
 
-	public static abstract class BindFrameAction<T> extends BindAction<T> {
+	public static abstract class BindFrameAction<T> extends BindLayerAction<T> {
 		protected int frame = 0;
 
 		public BindFrameAction<T> frame(int frame) {
@@ -173,6 +170,17 @@ public abstract class SimpleEntityRendering extends EntityRendererFactory {
 			}
 		}
 
+		public void layeredSprite(LuaValue lua) {
+			BindAction<FPLayeredSprite> ret = new BindAction<FPLayeredSprite>() {
+				@Override
+				public List<SpritesWithLayer> createLayeredSprites(BSEntity entity) {
+					return SpriteWithLayer.groupByLayer(proto.createSpritesWithLayers());
+				}
+			};
+			ret.proto = new FPLayeredSprite(lua);
+			bindings.add(ret);
+		}
+
 		public BindRotateFrameAction<FPRotatedAnimation> rotatedAnimation(LuaValue lua) {
 			BindRotateFrameAction<FPRotatedAnimation> ret = new BindRotateFrameAction<FPRotatedAnimation>() {
 				@Override
@@ -233,8 +241,8 @@ public abstract class SimpleEntityRendering extends EntityRendererFactory {
 			return ret;
 		}
 
-		public BindAction<FPSprite> sprite(LuaValue lua) {
-			BindAction<FPSprite> ret = new BindAction<FPSprite>() {
+		public BindLayerAction<FPSprite> sprite(LuaValue lua) {
+			BindLayerAction<FPSprite> ret = new BindLayerAction<FPSprite>() {
 				@Override
 				public List<Sprite> createSprites(BSEntity entity) {
 					return proto.createSprites();
@@ -270,7 +278,23 @@ public abstract class SimpleEntityRendering extends EntityRendererFactory {
 		}
 	}
 
-	public static abstract class BindRotateAction<T> extends BindAction<T> {
+	public static abstract class BindLayerAction<T> extends BindAction<T> {
+		protected Layer layer = Layer.OBJECT;
+
+		@Override
+		public List<SpritesWithLayer> createLayeredSprites(BSEntity entity) {
+			return ImmutableList.of(new SpritesWithLayer(layer, createSprites(entity)));
+		}
+
+		public abstract List<Sprite> createSprites(BSEntity entity);
+
+		public BindLayerAction<T> layer(Layer layer) {
+			this.layer = layer;
+			return this;
+		}
+	}
+
+	public static abstract class BindRotateAction<T> extends BindLayerAction<T> {
 		protected OptionalDouble orientation = OptionalDouble.empty();
 
 		@Override
@@ -285,7 +309,7 @@ public abstract class SimpleEntityRendering extends EntityRendererFactory {
 		}
 	}
 
-	public static abstract class BindRotateDirFrameAction<T> extends BindAction<T> {
+	public static abstract class BindRotateDirFrameAction<T> extends BindLayerAction<T> {
 		protected OptionalDouble orientation = OptionalDouble.empty();
 		protected int frame = 0;
 		protected Optional<Direction> direction = Optional.empty();
@@ -312,7 +336,7 @@ public abstract class SimpleEntityRendering extends EntityRendererFactory {
 		}
 	}
 
-	public static abstract class BindRotateFrameAction<T> extends BindAction<T> {
+	public static abstract class BindRotateFrameAction<T> extends BindLayerAction<T> {
 		protected OptionalDouble orientation = OptionalDouble.empty();
 		protected int frame = 0;
 
@@ -333,7 +357,7 @@ public abstract class SimpleEntityRendering extends EntityRendererFactory {
 		}
 	}
 
-	public static abstract class BindVarAction<T> extends BindAction<T> {
+	public static abstract class BindVarAction<T> extends BindLayerAction<T> {
 		protected int variation = 0;
 
 		@Override
@@ -354,8 +378,11 @@ public abstract class SimpleEntityRendering extends EntityRendererFactory {
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSEntity entity) {
 		for (BindAction<?> bindAction : bindings) {
-			register.accept(RenderUtils.spriteRenderer(bindAction.layer, bindAction.createSprites(entity), entity,
-					protoSelectionBox));
+			List<SpritesWithLayer> sprites = bindAction.createLayeredSprites(entity);
+			for (SpritesWithLayer spritesWithLayer : sprites) {
+				register.accept(RenderUtils.spriteRenderer(spritesWithLayer.getLayer(), spritesWithLayer.getSprites(),
+						entity, protoSelectionBox));
+			}
 		}
 	}
 

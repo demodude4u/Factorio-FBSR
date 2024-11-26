@@ -59,7 +59,6 @@ public class BSControlBehavior {
 
 		setRecipe = BSUtils.optBool(json, "set_recipe");
 		readContents = BSUtils.optBool(json, "read_contents");
-		// TODO figure out if this is true by default, or always true?
 		readIngredients = BSUtils.optBool(json, "read_ingredients");
 		circuitSetStackSize = BSUtils.optBool(json, "circuit_set_stack_size");
 		circuitConditionEnabled = BSUtils.optBool(json, "circuit_condition_enabled");

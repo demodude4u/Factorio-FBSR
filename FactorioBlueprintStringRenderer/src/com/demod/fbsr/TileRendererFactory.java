@@ -9,6 +9,7 @@ import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
@@ -22,8 +23,42 @@ import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
 import com.demod.factorio.prototype.TilePrototype;
 import com.demod.fbsr.bs.BSTile;
+import com.demod.fbsr.fp.FPMaterialTextureParameters;
+import com.demod.fbsr.fp.FPTileSpriteLayout;
+import com.demod.fbsr.fp.FPTileTransitions;
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.Table;
 
 public class TileRendererFactory {
+
+	public static class FPTileMainPictures extends FPTileSpriteLayout {
+		public final int size;
+		public final double probability;
+		public final Optional<List<Double>> weights;
+
+		public FPTileMainPictures(LuaValue lua) {
+			super(lua);
+			size = lua.get("size").checkint();
+			probability = lua.get("probability").optdouble(1.0);
+			weights = FPUtils.optList(lua.get("weights"), LuaValue::todouble);
+		}
+	}
+
+	public static abstract class TileRenderProcess {
+		// TODO
+	}
+
+	public static class TileRenderProcessMain extends TileRenderProcess {
+		// Uses main tiles and probabilities (bricks, platform, etc.)
+		// TODO
+		// Figure out how to work in probabilities and covering multiple tile sizes
+	}
+
+	public static class TileRenderProcessMaterial extends TileRenderProcess {
+		// Uses material_background and masks (concrete, etc.)
+		// TODO
+		// Create masking function to generate edge tiles
+	}
 
 	public static final TileRendererFactory UNKNOWN = new TileRendererFactory() {
 		Set<String> labeledTypes = new HashSet<>();
@@ -148,11 +183,33 @@ public class TileRendererFactory {
 	}
 
 	private final Random rand = new Random();
-
 	protected TilePrototype prototype;
 
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSTile tile) {
-		LuaValue sheetLua = prototype.lua().get("variants").get("material_background");
+	private List<FPTileMainPictures> protoVariantsMain;
+	private Optional<FPTileTransitions> protoVariantsTransition;
+	private Optional<FPMaterialTextureParameters> protoVariantsMaterialBackground;
+	private int protoLayer;
+
+	private TileRenderProcess renderProcess = null;
+
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, List<BSTile> tiles) {
+
+		// XXX there is likely a better structure for a dense table
+		Table<Integer, Integer, BSTile> grid = HashBasedTable.create();
+		tiles.forEach(t -> grid.put((int) t.position.y, (int) t.position.x, t));
+
+		// TODO
+		// Put tiles in world map, build set of "edge cases" to calculate
+		// corner/edge/u/o style
+		// Render tile centers
+		// Render "edge cases"
+		// Render background "edge cases"
+
+		// TODO use the picked render process
+		renderProcess.
+
+		// OLD STUFF vvvvvvvvv
+				LuaValue sheetLua = prototype.lua().get("variants").get("material_background");
 		if (sheetLua.isnil()) {
 			sheetLua = prototype.lua().get("variants").get("main").get(1);
 		}
@@ -163,6 +220,11 @@ public class TileRendererFactory {
 		sprite.source.x = rand.nextInt(sheetLua.get("count").toint()) * sprite.source.width;
 
 		register.accept(RenderUtils.spriteRenderer(Layer.DECALS, sprite, tile));
+		// OLD STUFF ^^^^^^^^
+	}
+
+	public int getDrawingPriority() {
+		return protoLayer;
 	}
 
 	public TilePrototype getPrototype() {
@@ -170,7 +232,18 @@ public class TileRendererFactory {
 	}
 
 	public void initFromPrototype(DataTable table, TilePrototype prototype) {
+		protoLayer = prototype.lua().get("layer").checkint();
+		LuaValue luaVariants = prototype.lua().get("variants");
+		protoVariantsMain = FPUtils.list(luaVariants.get("main"), FPTileMainPictures::new);
+		protoVariantsTransition = FPUtils.opt(luaVariants.get("transition"), FPTileTransitions::new);
+		protoVariantsMaterialBackground = FPUtils.opt(luaVariants.get("material_background"),
+				FPMaterialTextureParameters::new);
 
+		if (!protoVariantsMain.isEmpty())
+			renderProcess = new TileRenderProcessMain();
+		else if (protoVariantsMaterialBackground.isPresent()) {
+			renderProcess = new TileRenderProcessMaterial();
+		}
 	}
 
 	public void populateWorldMap(WorldMap map, DataTable dataTable, BSTile tile) {

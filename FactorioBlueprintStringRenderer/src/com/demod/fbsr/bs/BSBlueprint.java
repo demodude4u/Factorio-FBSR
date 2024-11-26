@@ -27,7 +27,12 @@ public class BSBlueprint {
 	public final List<BSWire> wires;
 
 	public BSBlueprint(JSONObject json) {
-		version = new MapVersion(json.getInt("version"));
+		version = new MapVersion(json.getLong("version"));
+
+		if (!version.greaterOrEquals(new MapVersion(2, 0, 0, 0))) {
+			throw new IllegalArgumentException("Blueprint version too old! " + version.toString());
+		}
+
 		label = BSUtils.optString(json, "label");
 		description = BSUtils.optString(json, "description");
 		icons = BSUtils.list(json, "icons", BSIcon::new);
