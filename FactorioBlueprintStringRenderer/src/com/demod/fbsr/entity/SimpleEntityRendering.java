@@ -40,7 +40,7 @@ public abstract class SimpleEntityRendering extends EntityRendererFactory {
 
 	public static abstract class BindAction<T> {
 		protected T proto;
-		protected Layer layer = Layer.ENTITY;
+		protected Layer layer = Layer.OBJECT;
 
 		public abstract List<Sprite> createSprites(BSEntity entity);
 

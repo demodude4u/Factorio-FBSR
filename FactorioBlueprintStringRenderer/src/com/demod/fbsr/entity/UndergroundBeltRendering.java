@@ -47,7 +47,7 @@ public class UndergroundBeltRendering extends TransportBeltConnectableRendering 
 			}
 		}
 		List<Sprite> structureSprites = protoStructSprite.createSprites(structDir);
-		register.accept(RenderUtils.spriteRenderer(Layer.ENTITY2, structureSprites, entity, protoSelectionBox));
+		register.accept(RenderUtils.spriteRenderer(Layer.HIGHER_OBJECT_UNDER, structureSprites, entity, protoSelectionBox));
 	}
 
 	@Override

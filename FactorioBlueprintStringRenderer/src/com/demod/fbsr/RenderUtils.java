@@ -382,11 +382,11 @@ public final class RenderUtils {
 	}
 
 	public static EntityRenderer spriteRenderer(List<Sprite> sprites, BSEntity entity, FPBoundingBox bounds) {
-		return spriteRenderer(Layer.ENTITY, sprites, entity, bounds);
+		return spriteRenderer(Layer.OBJECT, sprites, entity, bounds);
 	}
 
 	public static EntityRenderer spriteRenderer(Sprite sprite, BSEntity entity, FPBoundingBox bounds) {
-		return spriteRenderer(Layer.ENTITY, sprite, entity, bounds);
+		return spriteRenderer(Layer.OBJECT, sprite, entity, bounds);
 	}
 
 	public static Color withAlpha(Color color, int alpha) {

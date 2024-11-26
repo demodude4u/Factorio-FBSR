@@ -59,11 +59,11 @@ public class SplitterRendering extends TransportBeltConnectableRendering {
 		register.accept(RenderUtils.spriteRenderer(belt2Sprites, entity, protoSelectionBox));
 
 		if (protoStructurePatch.isPresent() && (dir == Direction.WEST || dir == Direction.EAST)) {
-			register.accept(RenderUtils.spriteRenderer(Layer.ENTITY2,
+			register.accept(RenderUtils.spriteRenderer(Layer.HIGHER_OBJECT_UNDER,
 					protoStructurePatch.get().createSprites(entity.direction, 0), entity, protoSelectionBox));
 		}
 
-		register.accept(RenderUtils.spriteRenderer(Layer.ENTITY2, protoStructure.createSprites(entity.direction, 0),
+		register.accept(RenderUtils.spriteRenderer(Layer.HIGHER_OBJECT_UNDER, protoStructure.createSprites(entity.direction, 0),
 				entity, protoSelectionBox));
 
 		Point2D.Double pos = entity.position.createPoint();
@@ -74,7 +74,7 @@ public class SplitterRendering extends TransportBeltConnectableRendering {
 			boolean right = entity.inputPriority.get().equals("right");
 			Point2D.Double inputPos = dir.offset(right ? rightPos : leftPos, 0);
 
-			register.accept(new Renderer(Layer.OVERLAY3, inputPos) {
+			register.accept(new Renderer(Layer.ENTITY_INFO_ICON_ABOVE, inputPos) {
 				@Override
 				public void render(Graphics2D g) {
 					AffineTransform pat = g.getTransform();
@@ -117,7 +117,7 @@ public class SplitterRendering extends TransportBeltConnectableRendering {
 
 					Renderer delegate = RenderUtils.spriteRenderer(spriteIcon, entity, protoSelectionBox);
 					spriteIcon.bounds = new Rectangle2D.Double(iconPos.x - 0.3, iconPos.y - 0.3, 0.6, 0.6);
-					register.accept(new Renderer(Layer.OVERLAY2, delegate.getBounds()) {
+					register.accept(new Renderer(Layer.ENTITY_INFO_ICON, delegate.getBounds()) {
 						@Override
 						public void render(Graphics2D g) throws Exception {
 							g.setColor(new Color(0, 0, 0, 128));
@@ -127,7 +127,7 @@ public class SplitterRendering extends TransportBeltConnectableRendering {
 					});
 				}
 			} else {
-				register.accept(new Renderer(Layer.OVERLAY3, outputPos) {
+				register.accept(new Renderer(Layer.ENTITY_INFO_ICON_ABOVE, outputPos) {
 					@Override
 					public void render(Graphics2D g) {
 						AffineTransform pat = g.getTransform();

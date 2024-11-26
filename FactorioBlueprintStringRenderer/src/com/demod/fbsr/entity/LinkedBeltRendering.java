@@ -32,7 +32,7 @@ public class LinkedBeltRendering extends TransportBeltConnectableRendering {
 		Direction structDir = input ? entity.direction : entity.direction.back();
 		List<Sprite> structureSprites = (input ? protoStructureDirectionIn : protoStructureDirectionOut)
 				.createSprites(structDir);
-		register.accept(RenderUtils.spriteRenderer(Layer.ENTITY2, structureSprites, entity, protoSelectionBox));
+		register.accept(RenderUtils.spriteRenderer(Layer.HIGHER_OBJECT_UNDER, structureSprites, entity, protoSelectionBox));
 	}
 
 	@Override

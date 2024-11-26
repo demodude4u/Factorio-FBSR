@@ -10,6 +10,6 @@ public class RocketSiloRendering extends SimpleEntityRendering {
 		bind.sprite(lua.get("shadow_sprite"));
 		bind.sprite(lua.get("door_front_sprite"));
 		bind.sprite(lua.get("door_back_sprite"));
-		bind.sprite(lua.get("base_day_sprite")).layer(Layer.ENTITY2);
+		bind.sprite(lua.get("base_day_sprite")).layer(Layer.HIGHER_OBJECT_UNDER);
 	}
 }

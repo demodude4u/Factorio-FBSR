@@ -3,36 +3,90 @@ package com.demod.fbsr;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-// TODO switch over to the actual layer names and use them from the lua
+// Copied from https://lua-api.factorio.com/latest/types/RenderLayer.html
 public enum Layer {
-	ZERO("zero"), //
-	BACKGROUND_TRANSITIONS("background-transitions"), //
-	//
-	UNDER_TILES("under-tiles"), //
-	DECALS("decals"), //
-	ABOVE_TILES("above-tiles"), //
-	//
-	GROUND_LAYER_1("ground-layer-1"), //
-	GROUND_LAYER_2("ground-layer-2"), //
-	GROUND_LAYER_3("ground-layer-3"), //
-	GROUND_LAYER_4("ground-layer-4"), //
-	GROUND_LAYER_5("ground-layer-5"), //
-	//
+	ZERO, //
+	BACKGROUND_TRANSITIONS, //
+	UNDER_TILES, //
+	DECALS, //
+	ABOVE_TILES, //
+	GROUND_LAYER_1, //
+	GROUND_LAYER_2, //
+	GROUND_LAYER_3, //
+	GROUND_LAYER_4, //
+	GROUND_LAYER_5, //
 	LOWER_RADIUS_VISUALIZATION, //
 	RADIUS_VISUALIZATION, //
-	//
 	TRANSPORT_BELT_INTEGRATION, //
-
-	//
-	RAIL_STONE_BACKGROUND, RAIL_STONE, LOGISTICS_RAIL_IO, RAIL_TIES, RAIL_BACKPLATES, RAIL_METALS, //
-	SHADOW_BUFFER, //
-	ENTITY, LOGISTICS_MOVE, ENTITY2, ENTITY3, //
-	OVERLAY, OVERLAY2, OVERLAY3, OVERLAY4, //
-	LOGISTICS_WARP, //
+	RESOURCE, //
+	BUILDING_SMOKE, //
+	RAIL_STONE_PATH_LOWER, //
+	RAIL_STONE_PATH, //
+	LOGISTICS_RAIL_IO, // Custom
+	RAIL_TIE, //
+	DECORATIVE, //
+	GROUND_PATCH, //
+	GROUND_PATCH_HIGHER, //
+	GROUND_PATCH_HIGHER2, //
+	RAIL_SCREW, //
+	RAIL_METAL, //
+	REMNANTS, //
+	FLOOR, //
+	SHADOW_BUFFER, // Custom
+	TRANSPORT_BELT, //
+	TRANSPORT_BELT_ENDINGS, //
+	FLOOR_MECHANICS_UNDER_CORPSE, //
+	CORPSE, //
+	FLOOR_MECHANICS, //
+	ITEM, //
+	TRANSPORT_BELT_READER, //
+	LOWER_OBJECT, //
+	TRANSPORT_BELT_CURCUIT_CONNECTOR, //
+	LOWER_OBJECT_ABOVE_SHADOW, //
+	LOWER_OBJECT_OVERLAY, //
+	OBJECT_UNDER, //
+	OBJECT, //
+	LOGISTICS_MOVE, // Custom
+	CARGO_HATCH, //
+	HIGHER_OBJECT_UNDER, //
+	HIGHER_OBJECT_ABOVE, //
+	TRAIN_STOP_TOP, //
+	ITEM_IN_INSERTER_HAND, //
+	ABOVE_INSERTERS, //
 	WIRE, //
-	ELEVATED_RAIL_STONE_BACKGROUND, ELEVATED_RAIL_STONE, ELEVATED_LOGISTICS_RAIL_IO, ELEVATED_RAIL_TIES,
-	ELEVATED_RAIL_BACKPLATES, ELEVATED_RAIL_METALS, ELEVATED_RAIL_ENTITY, //
-	DEBUG, DEBUG_RAIL1, DEBUG_RAIL2, DEBUG_LA1, DEBUG_LA2, DEBUG_P //
+	UNDER_ELEVATED, //
+	ELEVATED_RAIL_STONE_PATH_LOWER, //
+	ELEVATED_RAIL_STONE_PATH, //
+	ELEVATED_LOGISTICS_RAIL_IO, // Custom
+	ELEVATED_RAIL_TIE, //
+	ELEVATED_RAIL_SCREW, //
+	ELEVATED_RAIL_METAL, //
+	ELEVATED_LOWER_OBJECT, //
+	ELEVATED_RAIL_OBJECT, //
+	ELEVATED_HIGHER_OBJECT, //
+	FLUID_VISUALIZATION, //
+	WIRES_ABOVE, //
+	DEBUG, // Custom
+	DEBUG_RAIL1, // Custom
+	DEBUG_RAIL2, // Custom
+	DEBUG_LA1, // Custom
+	DEBUG_LA2, // Custom
+	DEBUG_P, // Custom
+	ENTITY_INFO_ICON, //
+	ENTITY_INFO_ICON_ABOVE, //
+	ENTITY_INFO_TEXT, // Custom
+	LOGISTICS_WARP, // Custom
+	EXPLOSION, //
+	PROJECTILE, //
+	SMOKE, //
+	AIR_OBJECT, //
+	AIR_ENTITY_INFO_ICON, //
+	LIGHT_EFFECT, //
+	SELECTION_BOX, //
+	HIGHER_SELECTION_BOX, //
+	COLLISION_SELECTION_BOX, //
+	ARROW, //
+	CURSOR,//
 	;
 
 	private static Map<String, Layer> byKey = new LinkedHashMap<>();
@@ -48,8 +102,8 @@ public enum Layer {
 
 	private final String key;
 
-	private Layer(String key) {
-		this.key = key;
+	private Layer() {
+		this.key = name().toLowerCase().replace('_', '-');
 	}
 
 	public String getKey() {

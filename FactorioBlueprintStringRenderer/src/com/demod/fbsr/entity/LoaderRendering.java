@@ -54,7 +54,8 @@ public abstract class LoaderRendering extends TransportBeltConnectableRendering 
 		Direction structDir = input ? entity.direction : entity.direction.back();
 		List<Sprite> structureSprites = (input ? protoStructureDirectionIn : protoStructureDirectionOut)
 				.createSprites(structDir);
-		register.accept(RenderUtils.spriteRenderer(Layer.ENTITY2, structureSprites, entity, protoSelectionBox));
+		register.accept(
+				RenderUtils.spriteRenderer(Layer.HIGHER_OBJECT_UNDER, structureSprites, entity, protoSelectionBox));
 
 		if (!entity.filters.isEmpty()) {
 			List<String> items = entity.filters.stream().map(bs -> bs.name).collect(Collectors.toList());
@@ -70,7 +71,7 @@ public abstract class LoaderRendering extends TransportBeltConnectableRendering 
 					spriteIcon.bounds = new Rectangle2D.Double(-0.3, -0.3, 0.6, 0.6);
 
 					Renderer delegate = RenderUtils.spriteRenderer(spriteIcon, entity, protoSelectionBox);
-					register.accept(new Renderer(Layer.OVERLAY4, delegate.getBounds()) {
+					register.accept(new Renderer(Layer.ENTITY_INFO_ICON, delegate.getBounds()) {
 						@Override
 						public void render(Graphics2D g) throws Exception {
 							g.setColor(new Color(0, 0, 0, 128));

@@ -75,17 +75,17 @@ public abstract class RailRendering extends EntityRendererFactory {
 
 	public RailRendering(boolean elevated) {
 		if (elevated) {
-			layerRailStoneBackground = Layer.ELEVATED_RAIL_STONE_BACKGROUND;
-			layerRailStone = Layer.ELEVATED_RAIL_STONE;
-			layerRailTies = Layer.ELEVATED_RAIL_TIES;
-			layerRailBackplates = Layer.ELEVATED_RAIL_BACKPLATES;
-			layerRailMetals = Layer.ELEVATED_RAIL_METALS;
+			layerRailStoneBackground = Layer.ELEVATED_RAIL_STONE_PATH_LOWER;
+			layerRailStone = Layer.ELEVATED_RAIL_STONE_PATH;
+			layerRailTies = Layer.ELEVATED_RAIL_TIE;
+			layerRailBackplates = Layer.ELEVATED_RAIL_SCREW;
+			layerRailMetals = Layer.ELEVATED_RAIL_METAL;
 		} else {
-			layerRailStoneBackground = Layer.RAIL_STONE_BACKGROUND;
-			layerRailStone = Layer.RAIL_STONE;
-			layerRailTies = Layer.RAIL_TIES;
-			layerRailBackplates = Layer.RAIL_BACKPLATES;
-			layerRailMetals = Layer.RAIL_METALS;
+			layerRailStoneBackground = Layer.RAIL_STONE_PATH_LOWER;
+			layerRailStone = Layer.RAIL_STONE_PATH;
+			layerRailTies = Layer.RAIL_TIE;
+			layerRailBackplates = Layer.RAIL_SCREW;
+			layerRailMetals = Layer.RAIL_METAL;
 		}
 	}
 

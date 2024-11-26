@@ -96,7 +96,7 @@ public class InserterRendering extends SimpleEntityRendering {
 		}
 
 		register.accept(RenderUtils.spriteRenderer(platformSprites, entity, protoSelectionBox));
-		register.accept(new Renderer(Layer.ENTITY2, pos) {
+		register.accept(new Renderer(Layer.HIGHER_OBJECT_UNDER, pos) {
 			@Override
 			public void render(Graphics2D g) {
 				AffineTransform pat = g.getTransform();
@@ -117,7 +117,7 @@ public class InserterRendering extends SimpleEntityRendering {
 				}
 			}
 		});
-		register.accept(new Renderer(Layer.OVERLAY3, pos) {
+		register.accept(new Renderer(Layer.ENTITY_INFO_ICON_ABOVE, pos) {
 			@Override
 			public void render(Graphics2D g) {
 				AffineTransform pat = g.getTransform();
@@ -156,7 +156,7 @@ public class InserterRendering extends SimpleEntityRendering {
 				}
 			}
 		});
-		register.accept(new Renderer(Layer.OVERLAY3, pos) {
+		register.accept(new Renderer(Layer.ENTITY_INFO_ICON_ABOVE, pos) {
 			@Override
 			public void render(Graphics2D g) {
 				AffineTransform pat = g.getTransform();
@@ -210,7 +210,7 @@ public class InserterRendering extends SimpleEntityRendering {
 					spriteIcon.bounds = new Rectangle2D.Double(-0.3, -0.3, 0.6, 0.6);
 
 					Renderer delegate = RenderUtils.spriteRenderer(spriteIcon, entity, protoSelectionBox);
-					register.accept(new Renderer(Layer.OVERLAY2, delegate.getBounds()) {
+					register.accept(new Renderer(Layer.ENTITY_INFO_ICON, delegate.getBounds()) {
 						@Override
 						public void render(Graphics2D g) throws Exception {
 							g.setColor(new Color(0, 0, 0, 128));

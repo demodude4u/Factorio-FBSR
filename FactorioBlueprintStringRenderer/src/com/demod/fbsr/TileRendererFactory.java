@@ -43,7 +43,7 @@ public class TileRendererFactory {
 					g.drawString("?", (float) bounds.getCenterX() - 0.125f, (float) bounds.getCenterY() + 0.15f);
 				}
 			});
-			register.accept(new Renderer(Layer.OVERLAY4, bounds) {
+			register.accept(new Renderer(Layer.ENTITY_INFO_TEXT, bounds) {
 				@Override
 				public void render(Graphics2D g) {
 					if (labeledTypes.add(tile.name)) {

@@ -15,7 +15,7 @@ public class ElectricPoleRendering extends SimpleEntityRendering {
 
 	@Override
 	public void defineEntity(Bindings bind, LuaValue lua) {
-		bind.rotatedSprite(lua.get("pictures")).layer(Layer.ENTITY3);
+		bind.rotatedSprite(lua.get("pictures")).layer(Layer.HIGHER_OBJECT_ABOVE);
 	}
 
 	public void defineWirePoints(BiConsumer<Integer, WirePoints> consumer, LuaValue lua) {

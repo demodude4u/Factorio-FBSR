@@ -58,7 +58,7 @@ public abstract class RailSignalBaseRendering extends EntityRendererFactory {
 
 		boolean elevated = entity.railLayer.filter(s -> s.equals("elevated")).isPresent();
 		FPRailSignalPictureSet pictureSet = elevated ? elevatedPictureSet : groundPictureSet;
-		Layer layer = elevated ? Layer.ELEVATED_RAIL_ENTITY : Layer.ENTITY;
+		Layer layer = elevated ? Layer.ELEVATED_RAIL_OBJECT : Layer.OBJECT;
 
 		// 16 directions
 		int direction = entity.directionRaw;

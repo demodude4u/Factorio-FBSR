@@ -110,7 +110,7 @@ public abstract class EntityRendererFactory {
 		public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSEntity entity) {
 			Point2D.Double pos = entity.position.createPoint();
 			Rectangle2D.Double bounds = new Rectangle2D.Double(pos.x - 0.5, pos.y - 0.5, 1.0, 1.0);
-			register.accept(new Renderer(Layer.OVERLAY3, bounds) {
+			register.accept(new Renderer(Layer.ENTITY_INFO_ICON_ABOVE, bounds) {
 				@Override
 				public void render(Graphics2D g) {
 					g.setColor(RenderUtils.withAlpha(
@@ -121,7 +121,7 @@ public abstract class EntityRendererFactory {
 					g.drawString("?", (float) bounds.getCenterX() - 0.25f, (float) bounds.getCenterY() + 0.3f);
 				}
 			});
-			register.accept(new Renderer(Layer.OVERLAY4, bounds) {
+			register.accept(new Renderer(Layer.ENTITY_INFO_TEXT, bounds) {
 				@Override
 				public void render(Graphics2D g) {
 					if (labeledTypes.add(entity.name)) {
@@ -312,7 +312,7 @@ public abstract class EntityRendererFactory {
 		Multiset<String> renderModules = RenderUtils.getModules(entity, table);
 		if (!renderModules.isEmpty()) {
 
-			register.accept(new Renderer(Layer.OVERLAY3, entity.position.createPoint()) {
+			register.accept(new Renderer(Layer.ENTITY_INFO_ICON_ABOVE, entity.position.createPoint()) {
 				final double spacing = 0.7;
 				final double shadow = 0.6;
 				final double size = 0.5;
@@ -383,7 +383,7 @@ public abstract class EntityRendererFactory {
 					}
 				}
 
-				register.accept(new Renderer(Layer.OVERLAY3, entity.position.createPoint()) {
+				register.accept(new Renderer(Layer.ENTITY_INFO_ICON_ABOVE, entity.position.createPoint()) {
 					final double spacing = 0.3;
 					final double shadow = 0.3;
 					final double size = 0.25;

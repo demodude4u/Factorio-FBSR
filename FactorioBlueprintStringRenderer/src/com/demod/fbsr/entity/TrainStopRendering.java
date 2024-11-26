@@ -40,16 +40,16 @@ public class TrainStopRendering extends SimpleEntityRendering {
 		// FIXME find a more correct way to apply tint
 		topSprites.get(1).image = Utils.tintImage(topSprites.get(1).image, color);
 
-		register.accept(RenderUtils.spriteRenderer(Layer.RAIL_BACKPLATES,
+		register.accept(RenderUtils.spriteRenderer(Layer.RAIL_SCREW,
 				protoRailOverlayAnimations.createSprites(entity.direction, 0), entity, protoSelectionBox));
 		register.accept(RenderUtils.spriteRenderer(protoAnimations.createSprites(entity.direction, 0), entity,
 				protoSelectionBox));
-		register.accept(RenderUtils.spriteRenderer(Layer.ENTITY2, topSprites, entity, protoSelectionBox));
+		register.accept(RenderUtils.spriteRenderer(Layer.HIGHER_OBJECT_UNDER, topSprites, entity, protoSelectionBox));
 
 		if (entity.station.isPresent()) {
 			String stationName = entity.station.get();
 			register.accept(
-					RenderUtils.drawString(Layer.OVERLAY4, entity.position.createPoint(), Color.white, stationName));
+					RenderUtils.drawString(Layer.ENTITY_INFO_TEXT, entity.position.createPoint(), Color.white, stationName));
 		}
 	}
 

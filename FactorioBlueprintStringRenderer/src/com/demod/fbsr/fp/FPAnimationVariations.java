@@ -9,27 +9,39 @@ import org.luaj.vm2.LuaValue;
 
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.Sprite;
+import com.google.common.collect.ImmutableList;
 
 public class FPAnimationVariations {
 
-	public final Optional<FPAnimationSheet> sheet;
+	public final Optional<List<FPAnimationSheet>> sheets;
 	public final Optional<List<FPAnimation>> animations;
 
 	public FPAnimationVariations(LuaValue lua) {
-		if (lua.istable()) {
-			sheet = Optional.empty();
+		// XXX is there a better way to determine if this is an array?
+		LuaValue luaFilenames = lua.get("filenames");
+		LuaValue luaFilename = lua.get("filename");
+		LuaValue luaSheet = lua.get("sheet");
+		LuaValue luaSheets = lua.get("sheets");
+		LuaValue luaLayers = lua.get("layers");
+		if (luaFilenames.isnil() && luaFilename.isnil() && luaSheet.isnil() && luaSheets.isnil() && luaLayers.isnil()) {
+			sheets = Optional.empty();
 			animations = FPUtils.optList(lua, FPAnimation::new);
+		} else if (luaSheet.isnil() && luaSheets.isnil()) {
+			sheets = Optional.empty();
+			animations = Optional.of(ImmutableList.of(new FPAnimation(lua)));
+		} else if (!luaSheet.isnil()) {
+			sheets = Optional.of(ImmutableList.of(new FPAnimationSheet(luaSheet)));
+			animations = Optional.empty();
 		} else {
-			sheet = FPUtils.opt(lua.get("sheet"), FPAnimationSheet::new)
-					.or(() -> Optional.of(new FPAnimationSheet(lua)));
+			sheets = FPUtils.optList(luaSheets, FPAnimationSheet::new);
 			animations = Optional.empty();
 		}
 	}
 
 	public void createSprites(Consumer<Sprite> consumer, int variation, int frame) {
-		if (sheet.isPresent()) {
-			sheet.get().createSprites(consumer, variation, frame);
-
+		if (sheets.isPresent()) {
+			// Not sure if variation per sheet or acting as layers
+			sheets.get().forEach(s -> s.createSprites(consumer, variation, frame));
 		} else if (animations.isPresent()) {
 			animations.get().get(variation).createSprites(consumer, frame);
 		}
