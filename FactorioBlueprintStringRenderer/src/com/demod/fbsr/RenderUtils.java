@@ -25,7 +25,6 @@ import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
 import com.demod.factorio.Utils;
 import com.demod.factorio.prototype.ItemPrototype;
-import com.demod.fbsr.Renderer.Layer;
 import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.bs.BSItemStack;
 import com.demod.fbsr.bs.BSTile;

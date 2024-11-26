@@ -48,7 +48,6 @@ import com.demod.factorio.Utils;
 import com.demod.factorio.prototype.DataPrototype;
 import com.demod.factorio.prototype.ItemPrototype;
 import com.demod.factorio.prototype.RecipePrototype;
-import com.demod.fbsr.Renderer.Layer;
 import com.demod.fbsr.WirePoints.WirePoint;
 import com.demod.fbsr.WorldMap.RailEdge;
 import com.demod.fbsr.WorldMap.RailNode;
@@ -99,7 +98,7 @@ public class FBSR {
 		}
 	}
 
-	public static final double tileSize = 32.0;
+	public static final double tileSize = 64.0;
 
 	private static volatile boolean initialized = false;
 
@@ -294,7 +293,7 @@ public class FBSR {
 				r.render(g);
 
 				if (debugBounds) {
-					g.setStroke(new BasicStroke(1f / 32f));
+					g.setStroke(new BasicStroke(1f / tileSize));
 					g.setColor(Color.magenta);
 					g.draw(r.bounds);
 				}
@@ -1015,7 +1014,7 @@ public class FBSR {
 						g.setColor(Color.cyan);
 						g.fill(new Ellipse2D.Double(pos.x - 0.1, pos.y - 0.1, 0.2, 0.2));
 						Stroke ps = g.getStroke();
-						g.setStroke(new BasicStroke(3f / 32f));
+						g.setStroke(new BasicStroke(3f / (float) tileSize));
 						g.setColor(Color.green);
 						g.draw(new Line2D.Double(pos, t.entity.direction.offset(pos, 0.3)));
 						g.setStroke(ps);
@@ -1088,7 +1087,8 @@ public class FBSR {
 							@Override
 							public void render(Graphics2D g) {
 								Stroke ps = g.getStroke();
-								g.setStroke(new BasicStroke(2 / 32f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+								g.setStroke(new BasicStroke(2 / (float) tileSize, BasicStroke.CAP_ROUND,
+										BasicStroke.JOIN_ROUND));
 								g.setColor(Color.cyan);
 								g.draw(new Line2D.Double(pos, p));
 								g.setStroke(ps);
@@ -1139,7 +1139,7 @@ public class FBSR {
 						Color color = (input && output) ? Color.yellow : input ? Color.green : Color.red;
 
 						Stroke ps = g.getStroke();
-						g.setStroke(new BasicStroke(32 / 32f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_ROUND));
+						g.setStroke(new BasicStroke(1f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_ROUND));
 						g.setColor(RenderUtils.withAlpha(color, 32));
 						g.draw(path);
 						g.setStroke(ps);
@@ -1162,7 +1162,8 @@ public class FBSR {
 						@Override
 						public void render(Graphics2D g) {
 							Stroke ps = g.getStroke();
-							g.setStroke(new BasicStroke(2 / 32f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_ROUND));
+							g.setStroke(new BasicStroke(2 / (float) tileSize, BasicStroke.CAP_BUTT,
+									BasicStroke.JOIN_ROUND));
 							g.setColor(RenderUtils.withAlpha(Color.green, 92));
 							g.draw(new Line2D.Double(d1.right().offset(p1), d2.left().offset(p2)));
 							g.setStroke(ps);
@@ -1177,11 +1178,12 @@ public class FBSR {
 				Point2D.Double pos = new Point2D.Double(c.getRowKey() / 2.0, c.getColumnKey() / 2.0);
 				RailNode node = c.getValue();
 
-				register.accept(new Renderer(Layer.DEBUG_RA1, pos) {
+				register.accept(new Renderer(Layer.DEBUG_RAIL1, pos) {
 					@Override
 					public void render(Graphics2D g) {
 						Stroke ps = g.getStroke();
-						g.setStroke(new BasicStroke(1 / 32f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_ROUND));
+						g.setStroke(
+								new BasicStroke(1 / (float) tileSize, BasicStroke.CAP_BUTT, BasicStroke.JOIN_ROUND));
 
 						g.setColor(Color.cyan);
 						g.setFont(new Font("Courier New", Font.PLAIN, 1));
@@ -1199,11 +1201,12 @@ public class FBSR {
 					}
 				});
 
-				register.accept(new Renderer(Layer.DEBUG_RA2, pos) {
+				register.accept(new Renderer(Layer.DEBUG_RAIL2, pos) {
 					@Override
 					public void render(Graphics2D g) {
 						Stroke ps = g.getStroke();
-						g.setStroke(new BasicStroke(1 / 32f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_ROUND));
+						g.setStroke(
+								new BasicStroke(1 / (float) tileSize, BasicStroke.CAP_BUTT, BasicStroke.JOIN_ROUND));
 
 						g.setColor(Color.magenta);
 						g.setFont(new Font("Courier New", Font.PLAIN, 1));

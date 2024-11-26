@@ -21,7 +21,6 @@ import org.luaj.vm2.LuaValue;
 import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
 import com.demod.factorio.prototype.TilePrototype;
-import com.demod.fbsr.Renderer.Layer;
 import com.demod.fbsr.bs.BSTile;
 
 public class TileRendererFactory {
@@ -34,7 +33,7 @@ public class TileRendererFactory {
 			Point2D.Double pos = tile.position.createPoint();
 			Rectangle2D.Double bounds = new Rectangle2D.Double(pos.x + 0.25, pos.y + 0.25, 0.5, 0.5);
 			float randomFactor = new Random(tile.name.hashCode()).nextFloat();
-			register.accept(new Renderer(Layer.TILE3, bounds) {
+			register.accept(new Renderer(Layer.ABOVE_TILES, bounds) {
 				@Override
 				public void render(Graphics2D g) {
 					g.setColor(RenderUtils.withAlpha(Color.getHSBColor(randomFactor, 0.6f, 0.4f), 128));
@@ -115,6 +114,7 @@ public class TileRendererFactory {
 		byName.put("sand-1", new TileRendererFactory());
 		byName.put("sand-2", new TileRendererFactory());
 		byName.put("sand-3", new TileRendererFactory());
+		byName.put("space-platform-foundation", new TileRendererFactory());
 		byName.put("stone-path", new TileRendererFactory());
 		byName.put("tile-unknown", new TileRendererFactory());
 		byName.put("tutorial-grid", new TileRendererFactory());
@@ -162,7 +162,7 @@ public class TileRendererFactory {
 		sprite.source = new Rectangle(0, 0, 32, 32);
 		sprite.source.x = rand.nextInt(sheetLua.get("count").toint()) * sprite.source.width;
 
-		register.accept(RenderUtils.spriteRenderer(Layer.TILE1, sprite, tile));
+		register.accept(RenderUtils.spriteRenderer(Layer.DECALS, sprite, tile));
 	}
 
 	public TilePrototype getPrototype() {

@@ -18,7 +18,7 @@ public class BSFilter {
 	public final OptionalInt maxCount;
 
 	public BSFilter(JSONObject json) {
-		index = json.getInt("index");
+		index = json.optInt("index", 1);
 		name = json.getString("name");
 		type = BSUtils.optString(json, "type");// TODO default value item? enum?
 		quality = BSUtils.optQuality(json, "quality");

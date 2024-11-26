@@ -39,6 +39,15 @@ public final class BSUtils {
 		return builder.build();
 	}
 
+	public static List<Integer> listInt(JSONObject json, String key) {
+		if (!json.has(key)) {
+			return ImmutableList.of();
+		}
+		Builder<Integer> builder = ImmutableList.builder();
+		Utils.forEach(json.getJSONArray(key), (Integer j) -> builder.add(j));
+		return builder.build();
+	}
+
 	public static <T> Optional<T> opt(JSONObject json, String key, BiFunction<JSONObject, String, T> factory) {
 		if (!json.has(key)) {
 			return Optional.empty();

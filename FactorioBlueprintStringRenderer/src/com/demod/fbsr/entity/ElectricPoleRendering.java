@@ -6,7 +6,7 @@ import java.util.function.BiConsumer;
 import org.luaj.vm2.LuaValue;
 
 import com.demod.fbsr.FPUtils;
-import com.demod.fbsr.Renderer.Layer;
+import com.demod.fbsr.Layer;
 import com.demod.fbsr.WirePoints;
 import com.demod.fbsr.WirePoints.WireColor;
 import com.demod.fbsr.fp.FPWireConnectionPoint;

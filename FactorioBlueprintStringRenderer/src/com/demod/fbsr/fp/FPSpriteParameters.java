@@ -25,7 +25,7 @@ public class FPSpriteParameters extends FPSpriteSource {
 
 		blendMode = lua.get("blend_mode").optjstring("normal");
 		drawAsShadow = lua.get("draw_as_shadow").optboolean(false);
-		scale = lua.get("scale").optdouble(1);
+		scale = lua.get("scale").optdouble(1) * 2;
 		shift = FPUtils.opt(lua.get("shift"), FPVector::new).orElseGet(() -> new FPVector(0, 0));
 		tint = FPUtils.opt(lua.get("tint"), FPColor::new).orElseGet(() -> new FPColor(1, 1, 1, 1));
 		applyRuntimeTint = lua.get("apply_runtime_tint").optboolean(false);

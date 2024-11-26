@@ -51,6 +51,9 @@ public class BSEntity {
 	public final Optional<String> inputPriority;
 	public final Optional<String> outputPriority;
 	public final Optional<BSFilter> filter;
+	public final Optional<String> railLayer;
+
+	private final boolean mirror;
 
 	public BSEntity(JSONObject json) {
 		entityNumber = json.getInt("entity_number");
@@ -86,6 +89,9 @@ public class BSEntity {
 		inputPriority = BSUtils.optString(json, "input_priority");
 		outputPriority = BSUtils.optString(json, "output_priority");
 		filter = BSUtils.opt(json, "filter", BSFilter::new);
+		railLayer = BSUtils.optString(json, "rail_layer");
+		// TODO find blueprints that use mirror
+		mirror = json.optBoolean("mirror");
 
 		debugJson = json;
 	}

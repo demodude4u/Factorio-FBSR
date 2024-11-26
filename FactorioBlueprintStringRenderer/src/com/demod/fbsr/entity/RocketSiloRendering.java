@@ -2,7 +2,7 @@ package com.demod.fbsr.entity;
 
 import org.luaj.vm2.LuaValue;
 
-import com.demod.fbsr.Renderer.Layer;
+import com.demod.fbsr.Layer;
 
 public class RocketSiloRendering extends SimpleEntityRendering {
 	@Override

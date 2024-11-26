@@ -11,7 +11,7 @@ public class BSSchedule {
 	public final List<BSScheduleRecord> scheduleRecords;
 
 	public BSSchedule(JSONObject json) {
-		locomotives = BSUtils.list(json, "locomotives", JSONObject::getInt);
+		locomotives = BSUtils.listInt(json, "locomotives");
 		scheduleRecords = BSUtils.list(json.getJSONObject("schedule"), "records", BSScheduleRecord::new);
 	}
 }
