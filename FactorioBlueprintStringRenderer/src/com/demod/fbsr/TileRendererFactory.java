@@ -16,17 +16,23 @@ import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 import org.luaj.vm2.LuaValue;
 
 import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
 import com.demod.factorio.prototype.TilePrototype;
+import com.demod.fbsr.FBSR.TileRenderingTuple;
+import com.demod.fbsr.TileRendererFactory.TileEdge;
 import com.demod.fbsr.bs.BSTile;
 import com.demod.fbsr.fp.FPMaterialTextureParameters;
 import com.demod.fbsr.fp.FPTileSpriteLayout;
+import com.demod.fbsr.fp.FPTileSpriteLayoutVariant;
+import com.demod.fbsr.fp.FPTileTransitionVariantLayout;
 import com.demod.fbsr.fp.FPTileTransitions;
 import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Table;
 
 public class TileRendererFactory {
@@ -44,63 +50,56 @@ public class TileRendererFactory {
 		}
 	}
 
-	public static abstract class TileRenderProcess {
-		// TODO
+	public static Multimap<Integer,V>
+
+	public enum TileEdgeRule {
+		SIDE(AC_N, , fp -> fp.side), //
+		OUTER_CORNER(fp -> fp.outerCorner),//
+		;
+
+		private final int adjCode;
+		private final Function<FPTileTransitionVariantLayout, FPTileSpriteLayoutVariant> selector;
+
+		private TileEdge(int adjCode, int adj, Function<FPTileTransitionVariantLayout, FPTileSpriteLayoutVariant> selector) {
+			this.adjCode = adjCode;
+			this.selector = selector;
+		}
 	}
 
-	public static class TileRenderProcessMain extends TileRenderProcess {
+	public static abstract class TileRenderProcess {
+		// TODO
+		public abstract void tileCenter(Consumer<Renderer> register, Point2D.Double pos);
+
+		public abstract void tileEdge(Consumer<Renderer> register, Point2D.Double pos, TileEdge edge);
+	}
+
+	public class TileRenderProcessMain extends TileRenderProcess {
 		// Uses main tiles and probabilities (bricks, platform, etc.)
 		// TODO
 		// Figure out how to work in probabilities and covering multiple tile sizes
 	}
 
-	public static class TileRenderProcessMaterial extends TileRenderProcess {
+	public class TileRenderProcessMaterial extends TileRenderProcess {
 		// Uses material_background and masks (concrete, etc.)
 		// TODO
 		// Create masking function to generate edge tiles
 	}
 
-	public static final TileRendererFactory UNKNOWN = new TileRendererFactory() {
-		Set<String> labeledTypes = new HashSet<>();
+	// Adjcodes for TileEdge
+	public static final int AC_N = 0b00000001;
+	public static final int AC_E = 0b00000010;
+	public static final int AC_S = 0b00000100;
+	public static final int AC_W = 0b00001000;
+	public static final int AC_NE = 0b00010000;
+	public static final int AC_SE = 0b00100000;
+	public static final int AC_SW = 0b01000000;
+	public static final int AC_NW = 0b10000000;
 
-		@Override
-		public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSTile tile) {
-			Point2D.Double pos = tile.position.createPoint();
-			Rectangle2D.Double bounds = new Rectangle2D.Double(pos.x + 0.25, pos.y + 0.25, 0.5, 0.5);
-			float randomFactor = new Random(tile.name.hashCode()).nextFloat();
-			register.accept(new Renderer(Layer.ABOVE_TILES, bounds) {
-				@Override
-				public void render(Graphics2D g) {
-					g.setColor(RenderUtils.withAlpha(Color.getHSBColor(randomFactor, 0.6f, 0.4f), 128));
-					g.fill(new Ellipse2D.Double(bounds.x, bounds.y, bounds.width, bounds.height));
-					g.setColor(Color.gray);
-					g.setFont(new Font("Monospaced", Font.BOLD, 1).deriveFont(0.5f));
-					g.drawString("?", (float) bounds.getCenterX() - 0.125f, (float) bounds.getCenterY() + 0.15f);
-				}
-			});
-			register.accept(new Renderer(Layer.ENTITY_INFO_TEXT, bounds) {
-				@Override
-				public void render(Graphics2D g) {
-					if (labeledTypes.add(tile.name)) {
-						g.setFont(g.getFont().deriveFont(0.4f));
-						float textX = (float) bounds.x;
-						float textY = (float) (bounds.y + bounds.height * randomFactor);
-						g.setColor(Color.darkGray);
-						g.drawString(tile.name, textX + 0.05f, textY + 0.05f);
-						g.setColor(Color.white);
-						g.drawString(tile.name, textX, textY);
-					}
-				}
-			});
-		}
+	public static final TileRendererFactory UNKNOWN=new TileRendererFactory(){Set<String>labeledTypes=new HashSet<>();
 
-		@Override
-		public void populateWorldMap(WorldMap map, DataTable dataTable, BSTile tile) {
-			if (!labeledTypes.isEmpty()) {
-				labeledTypes.clear();
-			}
-		}
-	};
+	@Override public void createRenderers(Consumer<Renderer>register,WorldMap map,DataTable dataTable,BSTile tile){Point2D.Double pos=tile.position.createPoint();Rectangle2D.Double bounds=new Rectangle2D.Double(pos.x+0.25,pos.y+0.25,0.5,0.5);float randomFactor=new Random(tile.name.hashCode()).nextFloat();register.accept(new Renderer(Layer.ABOVE_TILES,bounds){@Override public void render(Graphics2D g){g.setColor(RenderUtils.withAlpha(Color.getHSBColor(randomFactor,0.6f,0.4f),128));g.fill(new Ellipse2D.Double(bounds.x,bounds.y,bounds.width,bounds.height));g.setColor(Color.gray);g.setFont(new Font("Monospaced",Font.BOLD,1).deriveFont(0.5f));g.drawString("?",(float)bounds.getCenterX()-0.125f,(float)bounds.getCenterY()+0.15f);}});register.accept(new Renderer(Layer.ENTITY_INFO_TEXT,bounds){@Override public void render(Graphics2D g){if(labeledTypes.add(tile.name)){g.setFont(g.getFont().deriveFont(0.4f));float textX=(float)bounds.x;float textY=(float)(bounds.y+bounds.height*randomFactor);g.setColor(Color.darkGray);g.drawString(tile.name,textX+0.05f,textY+0.05f);g.setColor(Color.white);g.drawString(tile.name,textX,textY);}}});}
+
+	@Override public void populateWorldMap(WorldMap map,DataTable dataTable,BSTile tile){if(!labeledTypes.isEmpty()){labeledTypes.clear();}}};
 
 	private static Map<String, TileRendererFactory> byName = new HashMap<>();
 
@@ -165,6 +164,14 @@ public class TileRendererFactory {
 
 	private static boolean prototypesInitialized = false;
 
+	public static void createAllRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
+			List<TileRenderingTuple> tiles) {
+
+		// Center Tile
+		// Edge
+
+	}
+
 	public static TileRendererFactory forName(String name) {
 		return Optional.ofNullable(byName.get(name)).orElse(UNKNOWN);
 	}
@@ -183,16 +190,17 @@ public class TileRendererFactory {
 	}
 
 	private final Random rand = new Random();
-	protected TilePrototype prototype;
 
+	protected TilePrototype prototype;
 	private List<FPTileMainPictures> protoVariantsMain;
 	private Optional<FPTileTransitions> protoVariantsTransition;
 	private Optional<FPMaterialTextureParameters> protoVariantsMaterialBackground;
+
 	private int protoLayer;
 
 	private TileRenderProcess renderProcess = null;
 
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, List<BSTile> tiles) {
+	protected void createCenterRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSTile tiles) {
 
 		// XXX there is likely a better structure for a dense table
 		Table<Integer, Integer, BSTile> grid = HashBasedTable.create();
@@ -223,6 +231,16 @@ public class TileRendererFactory {
 		// OLD STUFF ^^^^^^^^
 	}
 
+	protected void createEdgeRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
+			Point2D.Double pos, TileEdge edge) {
+
+	}
+
+	protected void createTransitionRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
+			BSTile tiles, TileEdge edge) {
+
+	}
+
 	public int getDrawingPriority() {
 		return protoLayer;
 	}
@@ -247,7 +265,7 @@ public class TileRendererFactory {
 	}
 
 	public void populateWorldMap(WorldMap map, DataTable dataTable, BSTile tile) {
-		// default do nothing
+		map.setTile(new TileWithPriority(tile, protoLayer));
 	}
 
 	public void setPrototype(TilePrototype prototype) {

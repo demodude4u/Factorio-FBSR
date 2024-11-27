@@ -62,9 +62,9 @@ import com.google.common.collect.Table;
 
 public class FBSR {
 
-	private static class EntityRenderingTuple {
-		BSEntity entity;
-		EntityRendererFactory factory;
+	public static class EntityRenderingTuple {
+		public BSEntity entity;
+		public EntityRendererFactory factory;
 	}
 
 	public static class RenderResult {
@@ -72,9 +72,9 @@ public class FBSR {
 		public long renderTime;
 	}
 
-	private static class TileRenderingTuple {
-		BSTile tile;
-		TileRendererFactory factory;
+	public static class TileRenderingTuple {
+		public BSTile tile;
+		public TileRendererFactory factory;
 	}
 
 	private static final int MAX_WORLD_RENDER_PIXELS = 10000 * 10000;
