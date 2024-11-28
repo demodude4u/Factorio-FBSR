@@ -21,6 +21,7 @@ public class FPSprite4Way {
 	// TODO figure out if the sheets are overlapping sprites, or one for each
 	// direction
 	public final Optional<List<FPSpriteNWaySheet>> sheets;
+	public final Optional<FPSprite> sprite;
 
 	public FPSprite4Way(LuaValue lua) {
 		east = FPUtils.opt(lua.get("east"), FPSprite::new);
@@ -29,10 +30,18 @@ public class FPSprite4Way {
 		west = FPUtils.opt(lua.get("west"), FPSprite::new);
 		sheet = FPSpriteNWaySheet.opt(lua.get("sheet"), 4);
 		sheets = FPUtils.optList(lua.get("sheets"), l -> new FPSpriteNWaySheet(l, 4));
+
+		if (!sheet.isPresent() && !sheets.isPresent() && !north.isPresent()) {
+			sprite = FPUtils.opt(lua, FPSprite::new);
+		} else {
+			sprite = Optional.empty();
+		}
 	}
 
 	public List<Sprite> createSprites(Direction direction) {
-		if (sheets.isPresent()) {
+		if (sprite.isPresent()) {
+			return sprite.get().createSprites();
+		} else if (sheets.isPresent()) {
 			return sheets.get().stream().map(s -> s.createSprite(direction)).collect(Collectors.toList());
 		} else if (sheet.isPresent()) {
 			return ImmutableList.of(sheet.get().createSprite(direction));

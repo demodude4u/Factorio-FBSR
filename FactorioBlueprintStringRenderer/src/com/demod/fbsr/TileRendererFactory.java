@@ -239,8 +239,8 @@ public class TileRendererFactory {
 			if (params.isEmpty()) {
 				continue;
 			}
-			System.out.println("RULE " + Integer.toBinaryString((1 << 15) | adjCode).substring(8, 16) + " -- " + params
-					.stream().map(p -> p.rule.name() + "_" + p.variant).collect(Collectors.joining(", ", "[", "]")));
+//			System.out.println("RULE " + Integer.toBinaryString((1 << 15) | adjCode).substring(8, 16) + " -- " + params
+//					.stream().map(p -> p.rule.name() + "_" + p.variant).collect(Collectors.joining(", ", "[", "]")));
 		}
 	}
 
@@ -360,8 +360,6 @@ public class TileRendererFactory {
 			tileMap.put(cell.row, cell.col, cell);
 			activeLayers.add(cell.layer);
 			cellLayers.put(cell.layer, cell);
-
-			System.out.println("CELL " + cell.col + ", " + cell.row);
 		}
 
 		// Populate edge maps
@@ -395,7 +393,6 @@ public class TileRendererFactory {
 					edgeMap.put(adjRow, adjCol, edgeCell);
 					activeLayers.add(edgeCell.layer);
 					edgeCellLayers.put(edgeCell.layer, edgeCell);
-					System.out.println("EDGE CELL " + edgeCell.col + ", " + edgeCell.row);
 				}
 				edgeCell.adjCode |= (1 << direction.back().ordinal());
 			}
