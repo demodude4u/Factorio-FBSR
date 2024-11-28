@@ -51,6 +51,10 @@ public enum Direction {
 		return rotate(1);
 	}
 
+	public int adjCode() {
+		return 1 << ordinal();
+	}
+
 	public int getDx() {
 		return dx;
 	}

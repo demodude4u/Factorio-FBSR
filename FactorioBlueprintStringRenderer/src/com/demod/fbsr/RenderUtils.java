@@ -27,7 +27,6 @@ import com.demod.factorio.Utils;
 import com.demod.factorio.prototype.ItemPrototype;
 import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.bs.BSItemStack;
-import com.demod.fbsr.bs.BSTile;
 import com.demod.fbsr.fp.FPBoundingBox;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.LinkedHashMultiset;
@@ -340,16 +339,8 @@ public final class RenderUtils {
 		return spriteRenderer(layer, ImmutableList.of(sprite), entity, bounds);
 	}
 
-	public static Renderer spriteRenderer(Layer layer, Sprite sprite, BSTile tile) {
-		Point2D.Double pos = tile.position.createPoint();
-
-		pos.x += 0.5;
-		pos.y += 0.5;
-
-		sprite.bounds.x += pos.x;
-		sprite.bounds.y += pos.y;
-
-		return new Renderer(layer, new Rectangle2D.Double(pos.x - 0.5, pos.y - 0.5, 1.0, 1.0)) {
+	public static Renderer spriteRenderer(Layer layer, Sprite sprite, Rectangle2D.Double bounds) {
+		return new Renderer(layer, bounds) {
 			@SuppressWarnings("unused")
 			private void debugShowBounds(Rectangle2D.Double groundBounds, Graphics2D g) {
 				long x = Math.round(groundBounds.getCenterX() * 2);

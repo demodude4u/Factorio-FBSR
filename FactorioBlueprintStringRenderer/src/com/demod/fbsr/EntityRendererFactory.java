@@ -276,18 +276,18 @@ public abstract class EntityRendererFactory {
 		byName.put("stone-wall", new WallRendering());
 	}
 
-	private static boolean prototypesInitialized = false;
+	private static volatile boolean prototypesInitialized = false;
 
 	public static EntityRendererFactory forName(String name) {
 		return Optional.ofNullable(byName.get(name)).orElse(UNKNOWN);
 	}
 
-	public static void initPrototypes(DataTable table) {
+	public static synchronized void initPrototypes(DataTable table) {
 		if (prototypesInitialized) {
 			return;
 		}
 		for (Entry<String, EntityRendererFactory> entry : byName.entrySet()) {
-			System.out.println("Initializing " + entry.getKey());
+			System.out.println("Initializing Entity " + entry.getKey());
 			EntityPrototype prototype = table.getEntity(entry.getKey()).get();
 			EntityRendererFactory factory = entry.getValue();
 			factory.setPrototype(prototype);

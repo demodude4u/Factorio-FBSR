@@ -1,5 +1,7 @@
 package com.demod.fbsr;
 
+import static com.demod.fbsr.Direction.*;
+
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.Graphics2D;
@@ -9,7 +11,6 @@ import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -60,25 +61,25 @@ public class TileRendererFactory {
 	}
 
 	public enum TileEdgeRule {
-		SIDE(AC_N, AC_W | AC_E, fp -> fp.side), //
-		OUTER_CORNER(AC_NE, AC_N | AC_E, fp -> fp.outerCorner), //
-		U_TRANSITION(AC_W | AC_N | AC_E, AC_S, fp -> fp.uTransition), //
-		O_TRANSITION(AC_W | AC_N | AC_E | AC_S, 0, fp -> fp.oTransition), //
-		INNER_CORNER(AC_N | AC_E, AC_S | AC_W, fp -> fp.innerCorner),//
+		SIDE(NORTH.adjCode(), WEST.adjCode() | EAST.adjCode(), fp -> fp.side), //
+		OUTER_CORNER(NORTHEAST.adjCode(), NORTH.adjCode() | EAST.adjCode(), fp -> fp.outerCorner), //
+		U_TRANSITION(WEST.adjCode() | NORTH.adjCode() | EAST.adjCode(), SOUTH.adjCode(), fp -> fp.uTransition), //
+		O_TRANSITION(WEST.adjCode() | NORTH.adjCode() | EAST.adjCode() | SOUTH.adjCode(), 0, fp -> fp.oTransition), //
+		INNER_CORNER(NORTH.adjCode() | EAST.adjCode(), SOUTH.adjCode() | WEST.adjCode(), fp -> fp.innerCorner),//
 		;
 
-		private final Function<FPTileTransitionVariantLayout, FPTileSpriteLayoutVariant> selector;
+		private final Function<FPTileTransitionVariantLayout, Optional<FPTileSpriteLayoutVariant>> selector;
 		private final int adjCodePresent;
 		private final int adjCodeEmpty;
 
 		private TileEdgeRule(int adjCodePresent, int adjCodeEmpty,
-				Function<FPTileTransitionVariantLayout, FPTileSpriteLayoutVariant> selector) {
+				Function<FPTileTransitionVariantLayout, Optional<FPTileSpriteLayoutVariant>> selector) {
 			this.adjCodePresent = adjCodePresent;
 			this.adjCodeEmpty = adjCodeEmpty;
 			this.selector = selector;
 		}
 
-		public Function<FPTileTransitionVariantLayout, FPTileSpriteLayoutVariant> getSelector() {
+		public Function<FPTileTransitionVariantLayout, Optional<FPTileSpriteLayoutVariant>> getSelector() {
 			return selector;
 		}
 	}
@@ -136,19 +137,39 @@ public class TileRendererFactory {
 
 			int frame = rand.nextInt(main.count);
 
-			int sourceSize = (int) Math.round(main.size * 32 / main.scale);
+			int sourceSize = (int) Math.round(main.size * 64 / main.scale);
 
 			Sprite sprite = new Sprite();
-			sprite.bounds = new Rectangle2D.Double(0, 0, main.size, main.size);
+			sprite.bounds = new Rectangle2D.Double(tile.position.x, tile.position.y, main.size, main.size);
 			sprite.image = FactorioData.getModImage(main.picture);
 			sprite.source = new Rectangle(0, 0, sourceSize, sourceSize);
 			sprite.source.x = frame * sprite.source.width;
-			register.accept(RenderUtils.spriteRenderer(Layer.DECALS, sprite, tile));
+			register.accept(RenderUtils.spriteRenderer(Layer.DECALS, sprite, sprite.bounds));
 		}
 
 		@Override
 		public void tileEdge(Random rand, Consumer<Renderer> register, Point2D.Double pos, TileEdgeRuleParam param) {
-			// TODO main edge
+
+			FPTileTransitionVariantLayout overlay = protoVariantsTransition.get().overlayLayout.get();
+			Optional<FPTileSpriteLayoutVariant> optVariant = param.rule.getSelector().apply(overlay);
+			if (optVariant.isPresent()) {
+				FPTileSpriteLayoutVariant variant = optVariant.get();
+
+				int frame = rand.nextInt(variant.count);
+
+				int sourceWidth = (int) Math.round(64 / variant.scale);
+				int sourceHeight = (int) Math.round(variant.tileHeight * 64 / variant.scale);
+
+				Sprite sprite = new Sprite();
+				sprite.bounds = new Rectangle2D.Double(pos.x, pos.y, 1, variant.tileHeight);
+				sprite.image = FactorioData.getModImage(variant.spritesheet);
+				sprite.source = new Rectangle(0, 0, sourceWidth, sourceHeight);
+				sprite.source.x = frame * sprite.source.width;
+				sprite.source.y = param.variant * sprite.source.height;
+				register.accept(
+						RenderUtils.spriteRenderer(Layer.DECALS, sprite, new Rectangle2D.Double(pos.x, pos.y, 1, 1)));
+			}
+
 			// TODO main background edge (space platforms)
 		}
 	}
@@ -163,16 +184,21 @@ public class TileRendererFactory {
 
 			FPMaterialTextureParameters material = protoVariantsMaterialBackground.get();
 
-			int sourceSize = (int) Math.round(32 / material.scale);
-
-			// TODO slide x and y across the source image accordingly
+			int sourceSize = (int) Math.round(64 / material.scale);
 
 			Sprite sprite = new Sprite();
-			sprite.bounds = new Rectangle2D.Double(0, 0, 1, 1);
-			sprite.image = FactorioData.getModImage(main.picture);
+			sprite.bounds = new Rectangle2D.Double(tile.position.x, tile.position.y, 1, 1);
+			sprite.image = FactorioData.getModImage(material.picture);
 			sprite.source = new Rectangle(0, 0, sourceSize, sourceSize);
-			sprite.source.x = frame * sprite.source.width;
-			register.accept(RenderUtils.spriteRenderer(Layer.DECALS, sprite, tile));
+
+			// TODO shift across the source image with sourceSize = 1 tile width
+			Point2D.Double pos = tile.position.createPoint();
+			int w = sprite.image.getWidth();
+			int h = sprite.image.getHeight();
+			sprite.source.x = ((int) Math.floor(pos.x * sourceSize) % w + w) % w;
+			sprite.source.y = ((int) Math.floor(pos.y * sourceSize) % h + h) % h;
+
+			register.accept(RenderUtils.spriteRenderer(Layer.DECALS, sprite, sprite.bounds));
 		}
 
 		@Override
@@ -199,21 +225,24 @@ public class TileRendererFactory {
 					}
 				}
 				// rotate 90 degrees
-				adjCodePresent = ((adjCodePresent << 6) | (adjCodePresent >> 2)) & 0xFF;
-				adjCodeEmpty = ((adjCodeEmpty << 6) | (adjCodeEmpty >> 2)) & 0xFF;
+				int nextAdjCodePresent = ((adjCodePresent << 2) | (adjCodePresent >> 6)) & 0xFF;
+				int nextAdjCodeEmpty = ((adjCodeEmpty << 2) | (adjCodeEmpty >> 6)) & 0xFF;
+				if (nextAdjCodePresent == adjCodePresent && nextAdjCodeEmpty == adjCodeEmpty) {
+					break;
+				}
+				adjCodePresent = nextAdjCodePresent;
+				adjCodeEmpty = nextAdjCodeEmpty;
 			}
 		}
+		for (int adjCode = 0; adjCode < 0xFF; adjCode++) {
+			List<TileEdgeRuleParam> params = tileRules.get(adjCode);
+			if (params.isEmpty()) {
+				continue;
+			}
+			System.out.println("RULE " + Integer.toBinaryString((1 << 15) | adjCode).substring(8, 16) + " -- " + params
+					.stream().map(p -> p.rule.name() + "_" + p.variant).collect(Collectors.joining(", ", "[", "]")));
+		}
 	}
-
-	// Adjcodes for edge rules
-	public static final int AC_N = 1 << Direction.NORTH.ordinal();
-	public static final int AC_NE = 1 << Direction.NORTHEAST.ordinal();
-	public static final int AC_E = 1 << Direction.EAST.ordinal();
-	public static final int AC_SE = 1 << Direction.SOUTHEAST.ordinal();
-	public static final int AC_S = 1 << Direction.SOUTH.ordinal();
-	public static final int AC_SW = 1 << Direction.SOUTHWEST.ordinal();
-	public static final int AC_W = 1 << Direction.WEST.ordinal();
-	public static final int AC_NW = 1 << Direction.NORTHWEST.ordinal();
 
 	public static final TileRendererFactory UNKNOWN = new TileRendererFactory() {
 		Set<String> labeledTypes = new HashSet<>();
@@ -257,35 +286,22 @@ public class TileRendererFactory {
 		}
 	};
 
-	private static Map<String, TileRendererFactory> byName = new HashMap<>();
+	private static Map<String, TileRendererFactory> byName = new LinkedHashMap<>();
 
 	static {
-		byName.put("acid-refined-concrete", new TileRendererFactory());
-		byName.put("black-refined-concrete", new TileRendererFactory());
-		byName.put("blue-refined-concrete", new TileRendererFactory());
-		byName.put("brown-refined-concrete", new TileRendererFactory());
 		byName.put("concrete", new TileRendererFactory());
-		byName.put("cyan-refined-concrete", new TileRendererFactory());
-		byName.put("green-refined-concrete", new TileRendererFactory());
 		byName.put("hazard-concrete-left", new TileRendererFactory());
 		byName.put("hazard-concrete-right", new TileRendererFactory());
-		byName.put("lab-dark-1", new TileRendererFactory());
-		byName.put("lab-dark-2", new TileRendererFactory());
-		byName.put("lab-white", new TileRendererFactory());
 		byName.put("landfill", new TileRendererFactory());
-		byName.put("orange-refined-concrete", new TileRendererFactory());
-		byName.put("pink-refined-concrete", new TileRendererFactory());
-		byName.put("purple-refined-concrete", new TileRendererFactory());
-		byName.put("red-refined-concrete", new TileRendererFactory());
 		byName.put("refined-concrete", new TileRendererFactory());
 		byName.put("refined-hazard-concrete-left", new TileRendererFactory());
 		byName.put("refined-hazard-concrete-right", new TileRendererFactory());
 		byName.put("space-platform-foundation", new TileRendererFactory());
 		byName.put("stone-path", new TileRendererFactory());
-		byName.put("yellow-refined-concrete", new TileRendererFactory());
+		// TODO other space age stuff (planet fills)
 	}
 
-	private static boolean prototypesInitialized = false;
+	private static volatile boolean prototypesInitialized = false;
 
 	public static void createAllRenderers(Consumer<Renderer> register, List<TileRenderingTuple> tiles) {
 
@@ -333,8 +349,9 @@ public class TileRendererFactory {
 		// Populate tile map
 		for (TileRenderingTuple tuple : tileOrder) {
 			TileCell cell = new TileCell();
-			cell.row = (int) tuple.tile.position.y;
-			cell.col = (int) tuple.tile.position.x;
+			BSPosition pos = tuple.tile.position;
+			cell.row = (int) pos.y;
+			cell.col = (int) pos.x;
 			cell.layer = tuple.factory.protoLayer;
 			cell.mergeFactory = tuple.factory.protoTransitionMergesWithTile;
 			cell.mergeLayer = cell.mergeFactory.map(f -> OptionalInt.of(f.protoLayer)).orElse(OptionalInt.empty());
@@ -343,6 +360,8 @@ public class TileRendererFactory {
 			tileMap.put(cell.row, cell.col, cell);
 			activeLayers.add(cell.layer);
 			cellLayers.put(cell.layer, cell);
+
+			System.out.println("CELL " + cell.col + ", " + cell.row);
 		}
 
 		// Populate edge maps
@@ -362,7 +381,7 @@ public class TileRendererFactory {
 				int adjCol = col + direction.getDx();
 
 				TileCell adjCell = tileMap.get(adjRow, adjCol);
-				if (adjCell.layer >= cell.layer) {
+				if (adjCell != null && adjCell.layer >= cell.layer) {
 					continue;
 				}
 
@@ -376,6 +395,7 @@ public class TileRendererFactory {
 					edgeMap.put(adjRow, adjCol, edgeCell);
 					activeLayers.add(edgeCell.layer);
 					edgeCellLayers.put(edgeCell.layer, edgeCell);
+					System.out.println("EDGE CELL " + edgeCell.col + ", " + edgeCell.row);
 				}
 				edgeCell.adjCode |= (1 << direction.back().ordinal());
 			}
@@ -409,12 +429,12 @@ public class TileRendererFactory {
 		return Optional.ofNullable(byName.get(name)).orElse(UNKNOWN);
 	}
 
-	public static void initPrototypes(DataTable table) {
+	public static synchronized void initPrototypes(DataTable table) {
 		if (prototypesInitialized) {
 			return;
 		}
 		for (Entry<String, TileRendererFactory> entry : byName.entrySet()) {
-			System.out.println("Initializing " + entry.getKey());
+			System.out.println("Initializing Tile " + entry.getKey());
 			TilePrototype prototype = table.getTile(entry.getKey()).get();
 			entry.getValue().setPrototype(prototype);
 			entry.getValue().initFromPrototype(table, prototype);

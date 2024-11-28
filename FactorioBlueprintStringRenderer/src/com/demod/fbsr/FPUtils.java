@@ -20,6 +20,9 @@ public final class FPUtils {
 	}
 
 	public static <T> List<T> list(LuaValue lua, Function<LuaValue, T> factory) {
+		if (lua.isnil()) {
+			return ImmutableList.of();
+		}
 		Builder<T> builder = ImmutableList.builder();
 		Utils.forEach(lua, l -> builder.add(factory.apply(l)));
 		return builder.build();

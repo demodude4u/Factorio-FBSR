@@ -654,6 +654,7 @@ public class FBSR {
 		DataTable table = FactorioData.getTable();
 		EntityRendererFactory.initPrototypes(table);
 		TileRendererFactory.initPrototypes(table);
+		initialized = true;
 	}
 
 	private static void populateRailBlocking(WorldMap map) {
@@ -937,18 +938,21 @@ public class FBSR {
 
 		List<Renderer> renderers = new ArrayList<>();
 
-		entityRenderingTuples.forEach(t -> {
-			try {
-				t.factory.createRenderers(renderers::add, map, table, t.entity);
-			} catch (Exception e) {
-				reporting.addException(e, t.factory.getClass().getSimpleName() + ", " + t.entity.name);
-			}
-		});
+		TileRendererFactory.createAllRenderers(renderers::add, tileRenderingTuples);
+
 		tileRenderingTuples.forEach(t -> {
 			try {
 				t.factory.createRenderers(renderers::add, map, table, t.tile);
 			} catch (Exception e) {
 				reporting.addException(e, t.factory.getClass().getSimpleName() + ", " + t.tile.name);
+			}
+		});
+
+		entityRenderingTuples.forEach(t -> {
+			try {
+				t.factory.createRenderers(renderers::add, map, table, t.entity);
+			} catch (Exception e) {
+				reporting.addException(e, t.factory.getClass().getSimpleName() + ", " + t.entity.name);
 			}
 		});
 
