@@ -45,19 +45,20 @@ public abstract class CombinatorRendering extends SimpleEntityRendering {
 
 	public abstract void defineOperations(Map<String, String> operations);
 
+	@Override
 	public void defineWirePoints(BiConsumer<Integer, WirePoints> consumer, LuaValue lua) {
 		List<FPWireConnectionPoint> protoInputConnectionPoints = FPUtils.list(lua.get("input_connection_points"),
 				FPWireConnectionPoint::new);
 		List<FPWireConnectionPoint> protoOutputConnectionPoints = FPUtils.list(lua.get("output_connection_points"),
 				FPWireConnectionPoint::new);
 
-		consumer.accept(1, WirePoints.fromWireConnectionPoints(protoInputConnectionPoints, WireColor.RED));
-		consumer.accept(2, WirePoints.fromWireConnectionPoints(protoInputConnectionPoints, WireColor.GREEN));
-		consumer.accept(3, WirePoints.fromWireConnectionPoints(protoOutputConnectionPoints, WireColor.RED));
-		consumer.accept(4, WirePoints.fromWireConnectionPoints(protoOutputConnectionPoints, WireColor.GREEN));
+		consumer.accept(1, WirePoints.fromWireConnectionPoints(protoInputConnectionPoints, WireColor.RED, false));
+		consumer.accept(2, WirePoints.fromWireConnectionPoints(protoInputConnectionPoints, WireColor.GREEN, false));
+		consumer.accept(3, WirePoints.fromWireConnectionPoints(protoOutputConnectionPoints, WireColor.RED, false));
+		consumer.accept(4, WirePoints.fromWireConnectionPoints(protoOutputConnectionPoints, WireColor.GREEN, false));
 	}
 
-	public abstract Optional<String> getOperation(BSEntity entity);;
+	public abstract Optional<String> getOperation(BSEntity entity);
 
 	@Override
 	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {

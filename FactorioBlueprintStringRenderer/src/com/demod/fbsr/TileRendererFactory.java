@@ -42,6 +42,7 @@ import com.demod.fbsr.fp.FPTileTransitionVariantLayout;
 import com.demod.fbsr.fp.FPTileTransitions;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Table;
 
@@ -68,9 +69,9 @@ public class TileRendererFactory {
 		INNER_CORNER(NORTH.adjCode() | EAST.adjCode(), SOUTH.adjCode() | WEST.adjCode(), fp -> fp.innerCorner),//
 		;
 
-		private final Function<FPTileTransitionVariantLayout, Optional<FPTileSpriteLayoutVariant>> selector;
 		private final int adjCodePresent;
 		private final int adjCodeEmpty;
+		private final Function<FPTileTransitionVariantLayout, Optional<FPTileSpriteLayoutVariant>> selector;
 
 		private TileEdgeRule(int adjCodePresent, int adjCodeEmpty,
 				Function<FPTileTransitionVariantLayout, Optional<FPTileSpriteLayoutVariant>> selector) {
@@ -86,11 +87,14 @@ public class TileRendererFactory {
 
 	public static class TileEdgeRuleParam {
 		private final int variant;
-		private final TileEdgeRule rule;
+		private final String rule;
+		private final Function<FPTileTransitionVariantLayout, Optional<FPTileSpriteLayoutVariant>> selector;
 
-		public TileEdgeRuleParam(int variant, TileEdgeRule rule) {
+		public TileEdgeRuleParam(int variant, String rule,
+				Function<FPTileTransitionVariantLayout, Optional<FPTileSpriteLayoutVariant>> selector) {
 			this.variant = variant;
 			this.rule = rule;
+			this.selector = selector;
 		}
 
 		@Override
@@ -105,8 +109,8 @@ public class TileRendererFactory {
 			return rule == other.rule && variant == other.variant;
 		}
 
-		public TileEdgeRule getRule() {
-			return rule;
+		public Function<FPTileTransitionVariantLayout, Optional<FPTileSpriteLayoutVariant>> getSelector() {
+			return selector;
 		}
 
 		public int getVariant() {
@@ -124,10 +128,23 @@ public class TileRendererFactory {
 		public abstract void tileCenter(Random rand, Consumer<Renderer> register, BSTile tile);
 
 		public abstract void tileEdge(Random rand, Consumer<Renderer> register, Point2D.Double pos,
-				TileEdgeRuleParam param);
+				List<TileEdgeRuleParam> params);
 	}
 
 	public class TileRenderProcessMain extends TileRenderProcess {
+		private List<TileEdgeRuleParam> convertSidesToDoubleSides(List<TileEdgeRuleParam> params) {
+			if (params.size() != 2) {
+				return params;
+			}
+			for (TileEdgeRuleParam param : params) {
+				if (!param.rule.equals("SIDE")) {
+					return params;
+				}
+			}
+			return ImmutableList.of(new TileEdgeRuleParam(params.stream().mapToInt(p -> p.variant).min().getAsInt(),
+					null, fp -> fp.doubleSide));
+		}
+
 		// Uses main tiles and probabilities (bricks, platform, etc.)
 		// TODO
 		// Figure out how to work in probabilities and covering multiple tile sizes
@@ -148,29 +165,64 @@ public class TileRendererFactory {
 		}
 
 		@Override
-		public void tileEdge(Random rand, Consumer<Renderer> register, Point2D.Double pos, TileEdgeRuleParam param) {
+		public void tileEdge(Random rand, Consumer<Renderer> register, Point2D.Double pos,
+				List<TileEdgeRuleParam> params) {
 
 			FPTileTransitionVariantLayout overlay = protoVariantsTransition.get().overlayLayout.get();
-			Optional<FPTileSpriteLayoutVariant> optVariant = param.rule.getSelector().apply(overlay);
-			if (optVariant.isPresent()) {
-				FPTileSpriteLayoutVariant variant = optVariant.get();
+			List<TileEdgeRuleParam> overlayParams;
+			if (overlay.doubleSide.isPresent()) {
+				overlayParams = convertSidesToDoubleSides(params);
+			} else {
+				overlayParams = params;
+			}
+			for (TileEdgeRuleParam param : overlayParams) {
+				Optional<FPTileSpriteLayoutVariant> optVariant = param.getSelector().apply(overlay);
+				if (optVariant.isPresent()) {
+					FPTileSpriteLayoutVariant variant = optVariant.get();
 
-				int frame = rand.nextInt(variant.count);
+					int frame = rand.nextInt(variant.count);
 
-				int sourceWidth = (int) Math.round(64 / variant.scale);
-				int sourceHeight = (int) Math.round(variant.tileHeight * 64 / variant.scale);
+					int sourceWidth = (int) Math.round(64 / variant.scale);
+					int sourceHeight = (int) Math.round(variant.tileHeight * 64 / variant.scale);
 
-				Sprite sprite = new Sprite();
-				sprite.bounds = new Rectangle2D.Double(pos.x, pos.y, 1, variant.tileHeight);
-				sprite.image = FactorioData.getModImage(variant.spritesheet);
-				sprite.source = new Rectangle(0, 0, sourceWidth, sourceHeight);
-				sprite.source.x = frame * sprite.source.width;
-				sprite.source.y = param.variant * sprite.source.height;
-				register.accept(
-						RenderUtils.spriteRenderer(Layer.DECALS, sprite, new Rectangle2D.Double(pos.x, pos.y, 1, 1)));
+					Sprite sprite = new Sprite();
+					sprite.bounds = new Rectangle2D.Double(pos.x, pos.y, 1, variant.tileHeight);
+					sprite.image = FactorioData.getModImage(variant.spritesheet);
+					sprite.source = new Rectangle(0, 0, sourceWidth, sourceHeight);
+					sprite.source.x = frame * sprite.source.width;
+					sprite.source.y = param.variant * sprite.source.height;
+					register.accept(RenderUtils.spriteRenderer(Layer.DECALS, sprite,
+							new Rectangle2D.Double(pos.x, pos.y, 1, 1)));
+				}
 			}
 
-			// TODO main background edge (space platforms)
+			FPTileTransitionVariantLayout background = protoVariantsTransition.get().backgroundLayout.get();
+			List<TileEdgeRuleParam> backgroundParams;
+			if (background.doubleSide.isPresent()) {
+				backgroundParams = convertSidesToDoubleSides(params);
+			} else {
+				backgroundParams = params;
+			}
+			for (TileEdgeRuleParam param : backgroundParams) {
+				Optional<FPTileSpriteLayoutVariant> optVariant = param.getSelector().apply(background);
+				if (optVariant.isPresent()) {
+					FPTileSpriteLayoutVariant variant = optVariant.get();
+
+					int frame = rand.nextInt(variant.count);
+
+					int sourceWidth = (int) Math.round(64 / variant.scale);
+					int sourceHeight = (int) Math.round(variant.tileHeight * 64 / variant.scale);
+
+					Sprite sprite = new Sprite();
+					sprite.bounds = new Rectangle2D.Double(pos.x, pos.y, 1, variant.tileHeight);
+					sprite.image = FactorioData.getModImage(variant.spritesheet);
+					sprite.source = new Rectangle(0, 0, sourceWidth, sourceHeight);
+					sprite.source.x = frame * sprite.source.width;
+					sprite.source.y = param.variant * sprite.source.height;
+					register.accept(RenderUtils.spriteRenderer(Layer.UNDER_TILES, sprite,
+							new Rectangle2D.Double(pos.x, pos.y, 1, 1)));
+				}
+			}
 		}
 	}
 
@@ -202,7 +254,8 @@ public class TileRendererFactory {
 		}
 
 		@Override
-		public void tileEdge(Random rand, Consumer<Renderer> register, Point2D.Double pos, TileEdgeRuleParam param) {
+		public void tileEdge(Random rand, Consumer<Renderer> register, Point2D.Double pos,
+				List<TileEdgeRuleParam> params) {
 			// TODO material edge
 		}
 	}
@@ -217,7 +270,7 @@ public class TileRendererFactory {
 				for (int adjCode = 0; adjCode < 0xFF; adjCode++) {
 					int adjCodeCheck = (adjCode | adjCodePresent) & ~adjCodeEmpty;
 					if (adjCode == adjCodeCheck) {
-						TileEdgeRuleParam param = new TileEdgeRuleParam(variant, rule);
+						TileEdgeRuleParam param = new TileEdgeRuleParam(variant, rule.name(), rule.selector);
 						List<TileEdgeRuleParam> adjRules = tileRules.get(adjCode);
 						if (!adjRules.contains(param)) {
 							adjRules.add(param);
@@ -327,10 +380,6 @@ public class TileRendererFactory {
 		// XXX this is terrible
 		// TODO make a predictable random method consistent for every coordinate
 		Random rand = new Random();
-		Consumer<TileCell> randSeedCell = c -> rand
-				.setSeed(new Random((c.row << 32) | (c.col << 16) | c.layer).nextLong());
-		Consumer<TileEdgeCell> randSeedEdgeCell = c -> rand
-				.setSeed(new Random((c.row << 48) | (c.col << 32) | (c.layer << 16) | c.adjCode).nextLong());
 
 		// <row, col, cell>
 		Table<Integer, Integer, TileCell> tileMap = HashBasedTable.create();
@@ -402,7 +451,7 @@ public class TileRendererFactory {
 
 			// Render tile centers
 			for (TileCell cell : cellLayers.get(layer)) {
-				randSeedCell.accept(cell);
+				rand.setSeed(getRandomSeed(cell.row, cell.col, cell.layer, 0));
 				cell.factory.renderProcess.tileCenter(rand, register, cell.tile);
 			}
 
@@ -410,10 +459,11 @@ public class TileRendererFactory {
 			for (TileEdgeCell edgeCell : edgeCellLayers.get(layer)) {
 				Point2D.Double pos = new Point2D.Double(edgeCell.col, edgeCell.row);
 				List<TileEdgeRuleParam> params = tileRules.get(edgeCell.adjCode);
-				randSeedEdgeCell.accept(edgeCell);
-				for (TileEdgeRuleParam param : params) {
-					edgeCell.factory.renderProcess.tileEdge(rand, register, pos, param);
-				}
+				rand.setSeed(getRandomSeed(edgeCell.row, edgeCell.col, edgeCell.layer, edgeCell.adjCode));
+
+				// TODO detect double side scenario and do special rendering
+
+				edgeCell.factory.renderProcess.tileEdge(rand, register, pos, params);
 			}
 
 			// Render tile blends (TODO)
@@ -424,6 +474,10 @@ public class TileRendererFactory {
 
 	public static TileRendererFactory forName(String name) {
 		return Optional.ofNullable(byName.get(name)).orElse(UNKNOWN);
+	}
+
+	public static long getRandomSeed(int row, int col, int layer, int adjCode) {
+		return ((row * 73856093) ^ (col * 19349663) ^ (layer * 83492791) ^ (adjCode * 123456789));
 	}
 
 	public static synchronized void initPrototypes(DataTable table) {

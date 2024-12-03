@@ -25,9 +25,13 @@ public class FPRotatedSprite extends FPSpriteParameters {
 	public final Optional<List<FPRotatedSpriteFrame>> frames;
 
 	public FPRotatedSprite(LuaValue lua) {
+		this(lua, Optional.empty());
+	}
+
+	public FPRotatedSprite(LuaValue lua, Optional<Boolean> overrideBackEqualsFront) {
 		super(lua);
 
-		layers = FPUtils.optList(lua.get("layers"), FPRotatedSprite::new);
+		layers = FPUtils.optList(lua.get("layers"), l -> new FPRotatedSprite(l, overrideBackEqualsFront));
 		directionCount = lua.get("direction_count").optint(1);
 		Optional<List<String>> filenames = FPUtils.optList(lua.get("filenames"), LuaValue::toString);
 		if (!filenames.isPresent() && filename.isPresent()) {
@@ -36,7 +40,12 @@ public class FPRotatedSprite extends FPSpriteParameters {
 		this.filenames = filenames;
 		linesPerFile = lua.get("lines_per_file").optint(0);
 		applyProjection = lua.get("apply_projection").optboolean(true);
-		backEqualsFront = lua.get("back_equals_front").optboolean(false);
+		// XXX electric poles should have back_equals_front, but they do not?
+		if (overrideBackEqualsFront.isPresent()) {
+			this.backEqualsFront = overrideBackEqualsFront.get();
+		} else {
+			this.backEqualsFront = lua.get("back_equals_front").optboolean(false);
+		}
 		counterclockwise = lua.get("counterclockwise").optboolean(false);
 		lineLength = lua.get("line_length").optint(0);
 		frames = FPUtils.optList(lua.get("frames"), l -> new FPRotatedSpriteFrame(lua, width, height));
@@ -107,9 +116,9 @@ public class FPRotatedSprite extends FPSpriteParameters {
 		}
 		int index;
 		if (applyProjection) {
-			index = (int) (FPUtils.projectedOrientation(orientation) * directionCount);
+			index = (int) Math.round(FPUtils.projectedOrientation(orientation) * directionCount);
 		} else {
-			index = (int) (orientation * directionCount);
+			index = (int) Math.round(orientation * directionCount);
 		}
 		if (backEqualsFront) {
 			index = index % (directionCount / 2);

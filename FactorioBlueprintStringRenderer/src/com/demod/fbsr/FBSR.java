@@ -23,7 +23,6 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,6 +31,8 @@ import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import javax.imageio.ImageIO;
 
@@ -964,30 +965,45 @@ public class FBSR {
 			}
 		});
 
-		Set<Integer> initializedWireConnectors = new HashSet<>();
+		Map<Integer, Double> connectorOrientations = new HashMap<>();
+		int[] wireEntityNumbers = blueprint.wires.stream()
+				.flatMapToInt(w -> IntStream.of(w.firstEntityNumber, w.secondEntityNumber)).distinct().toArray();
+		for (int entityNumber : wireEntityNumbers) {
+			EntityRenderingTuple tuple = entityByNumber.get(entityNumber);
+			List<EntityRenderingTuple> wired = blueprint.wires.stream().flatMapToInt(w -> {
+				if (w.firstEntityNumber == entityNumber) {
+					return IntStream.of(w.secondEntityNumber);
+				} else if (w.secondEntityNumber == entityNumber) {
+					return IntStream.of(w.firstEntityNumber);
+				} else {
+					return IntStream.of();
+				}
+			}).mapToObj(entityByNumber::get).collect(Collectors.toList());
+
+			double orientation = tuple.factory.initWireConnector(renderers::add, tuple.entity, wired);
+			connectorOrientations.put(entityNumber, orientation);
+		}
+
 		for (BSWire wire : blueprint.wires) {
 			try {
 				EntityRenderingTuple first = entityByNumber.get(wire.firstEntityNumber);
 				EntityRenderingTuple second = entityByNumber.get(wire.secondEntityNumber);
 
-				if (initializedWireConnectors.add(wire.firstEntityNumber)) {
-					first.factory.createWireConnector(renderers::add, first.entity);
-				}
-				if (initializedWireConnectors.add(wire.secondEntityNumber)) {
-					second.factory.createWireConnector(renderers::add, second.entity);
-				}
+				double orientation1 = connectorOrientations.get(wire.firstEntityNumber);
+				double orientation2 = connectorOrientations.get(wire.secondEntityNumber);
 
-				Optional<WirePoint> firstPoint = first.factory.createWirePoint(renderers::add, first.entity,
-						wire.firstWireConnectorId);
-				Optional<WirePoint> secondPoint = second.factory.createWirePoint(renderers::add, second.entity,
-						wire.secondWireConnectorId);
+				Optional<WirePoint> firstPoint = first.factory.createWirePoint(renderers::add,
+						first.entity.position.createPoint(), orientation1, wire.firstWireConnectorId);
+				Optional<WirePoint> secondPoint = second.factory.createWirePoint(renderers::add,
+						second.entity.position.createPoint(), orientation2, wire.secondWireConnectorId);
 
 				if (!firstPoint.isPresent() || !secondPoint.isPresent()) {
 					continue;// Probably something modded
 				}
 
 				renderers.add(RenderUtils.createWireRenderer(firstPoint.get().getPosition(),
-						secondPoint.get().getPosition(), firstPoint.get().getColor().getColor()));
+						secondPoint.get().getPosition(), firstPoint.get().getColor().getColor(),
+						firstPoint.get().getShadow(), secondPoint.get().getShadow()));
 			} catch (Exception e) {
 				reporting.addException(e, "Wire " + wire.firstEntityNumber + ", " + wire.firstWireConnectorId + ", "
 						+ wire.secondEntityNumber + ", " + wire.secondWireConnectorId);
@@ -1101,16 +1117,17 @@ public class FBSR {
 						});
 					}
 				});
-				cell.getWarpedFrom().ifPresent(l -> {
-					for (Point2D.Double p : l) {
-						if (cell.isBlockWarpToIfMove())
-							register.accept(RenderUtils.createWireRenderer(p, pos, Color.RED));
-						else if (map.getOrCreateLogisticGridCell(p).isBlockWarpFromIfMove())
-							register.accept(RenderUtils.createWireRenderer(p, pos, Color.MAGENTA));
-						else
-							register.accept(RenderUtils.createWireRenderer(p, pos, Color.GREEN));
-					}
-				});
+				// TODO need shadows
+//				cell.getWarpedFrom().ifPresent(l -> {
+//					for (Point2D.Double p : l) {
+//						if (cell.isBlockWarpToIfMove())
+//							register.accept(RenderUtils.createWireRenderer(p, pos, Color.RED));
+//						else if (map.getOrCreateLogisticGridCell(p).isBlockWarpFromIfMove())
+//							register.accept(RenderUtils.createWireRenderer(p, pos, Color.MAGENTA));
+//						else
+//							register.accept(RenderUtils.createWireRenderer(p, pos, Color.GREEN));
+//					}
+//				});
 			}
 		});
 	}

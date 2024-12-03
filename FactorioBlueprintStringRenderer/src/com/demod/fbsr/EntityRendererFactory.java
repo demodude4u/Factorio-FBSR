@@ -11,6 +11,7 @@ import java.awt.image.BufferedImage;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
@@ -27,6 +28,7 @@ import com.demod.factorio.FactorioData;
 import com.demod.factorio.Utils;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.factorio.prototype.RecipePrototype;
+import com.demod.fbsr.FBSR.EntityRenderingTuple;
 import com.demod.fbsr.WirePoints.WirePoint;
 import com.demod.fbsr.WorldMap.BeaconSource;
 import com.demod.fbsr.bs.BSEntity;
@@ -143,7 +145,8 @@ public abstract class EntityRendererFactory {
 		}
 
 		@Override
-		public Optional<WirePoint> createWirePoint(Consumer<Renderer> register, BSEntity entity, int connectionId) {
+		public Optional<WirePoint> createWirePoint(Consumer<Renderer> register, Point2D.Double position,
+				double orientation, int connectionId) {
 			return Optional.empty();
 		}
 
@@ -294,9 +297,9 @@ public abstract class EntityRendererFactory {
 			EntityRendererFactory factory = entry.getValue();
 			factory.setPrototype(prototype);
 			try {
-				factory.initFromPrototype(table, prototype);
 				factory.wirePointsById = new LinkedHashMap<>();
 				factory.defineWirePoints(factory.wirePointsById::put, prototype.lua());
+				factory.initFromPrototype(table, prototype);
 			} catch (Exception e) {
 				prototype.debugPrint();
 				throw e;
@@ -429,16 +432,12 @@ public abstract class EntityRendererFactory {
 		}
 	}
 
-	public abstract void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
-			BSEntity entity);
-
-	public void createWireConnector(Consumer<Renderer> register, BSEntity entity) {
-		// TODO Auto-generated method stub
-
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSEntity entity) {
 	}
 
-	public Optional<WirePoint> createWirePoint(Consumer<Renderer> register, BSEntity entity, int connectionId) {
-		return Optional.ofNullable(wirePointsById.get(connectionId)).map(wp -> wp.getPoint(entity));
+	public Optional<WirePoint> createWirePoint(Consumer<Renderer> register, Point2D.Double position, double orientation,
+			int connectionId) {
+		return Optional.ofNullable(wirePointsById.get(connectionId)).map(wp -> wp.getPoint(position, orientation));
 	}
 
 	protected void debugPrintContext(BSEntity entity, EntityPrototype prototype) {
@@ -461,6 +460,11 @@ public abstract class EntityRendererFactory {
 	}
 
 	public abstract void initFromPrototype(DataTable dataTable, EntityPrototype prototype);
+
+	// Returns orientation if applicable
+	public double initWireConnector(Consumer<Renderer> register, BSEntity entity, List<EntityRenderingTuple> wired) {
+		return 0;
+	}
 
 	public void populateLogistics(WorldMap map, DataTable dataTable, BSEntity entity) {
 		// default do nothing

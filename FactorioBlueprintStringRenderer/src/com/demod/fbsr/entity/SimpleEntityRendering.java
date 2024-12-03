@@ -14,6 +14,7 @@ import com.demod.factorio.DataTable;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.EntityRendererFactory;
+import com.demod.fbsr.FBSR.EntityRenderingTuple;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.RenderUtils;
@@ -100,7 +101,6 @@ public abstract class SimpleEntityRendering extends EntityRendererFactory {
 
 	public class Bindings {
 		private final List<BindAction<?>> bindings;
-		private Optional<List<FPCircuitConnectorDefinition>> circuitConnectors = Optional.empty();
 
 		public Bindings(List<BindAction<?>> bindings) {
 			this.bindings = bindings;
@@ -132,7 +132,8 @@ public abstract class SimpleEntityRendering extends EntityRendererFactory {
 
 		public void circuitConnector(LuaValue lua) {
 			if (!lua.isnil()) {
-				this.circuitConnectors = Optional.of(ImmutableList.of(new FPCircuitConnectorDefinition(lua)));
+				SimpleEntityRendering.this.circuitConnectors = Optional
+						.of(ImmutableList.of(new FPCircuitConnectorDefinition(lua)));
 			}
 		}
 
@@ -141,7 +142,7 @@ public abstract class SimpleEntityRendering extends EntityRendererFactory {
 				List<FPCircuitConnectorDefinition> list = FPUtils.list(lua, FPCircuitConnectorDefinition::new);
 				Preconditions.checkArgument(list.size() == 16,
 						"Expected 16 circuit connectors, but found " + list.size());
-				this.circuitConnectors = Optional.of(list);
+				SimpleEntityRendering.this.circuitConnectors = Optional.of(list);
 			}
 		}
 
@@ -150,7 +151,7 @@ public abstract class SimpleEntityRendering extends EntityRendererFactory {
 				List<FPCircuitConnectorDefinition> list = FPUtils.list(lua, FPCircuitConnectorDefinition::new);
 				Preconditions.checkArgument(list.size() == 4,
 						"Expected 4 circuit connectors, but found " + list.size());
-				this.circuitConnectors = Optional.of(list);
+				SimpleEntityRendering.this.circuitConnectors = Optional.of(list);
 			}
 		}
 
@@ -159,14 +160,14 @@ public abstract class SimpleEntityRendering extends EntityRendererFactory {
 				List<FPCircuitConnectorDefinition> list = FPUtils.list(lua, FPCircuitConnectorDefinition::new);
 				Preconditions.checkArgument(list.size() == 8,
 						"Expected 8 circuit connectors, but found " + list.size());
-				this.circuitConnectors = Optional.of(list);
+				SimpleEntityRendering.this.circuitConnectors = Optional.of(list);
 			}
 		}
 
 		public void circuitConnectorNWay(LuaValue lua) {
 			if (!lua.isnil()) {
 				List<FPCircuitConnectorDefinition> list = FPUtils.list(lua, FPCircuitConnectorDefinition::new);
-				this.circuitConnectors = Optional.of(list);
+				SimpleEntityRendering.this.circuitConnectors = Optional.of(list);
 			}
 		}
 
@@ -191,7 +192,7 @@ public abstract class SimpleEntityRendering extends EntityRendererFactory {
 					} else if (entity.orientation.isPresent()) {
 						orientation = entity.orientation.getAsDouble();
 					} else {
-						orientation = entity.direction.getOrientation();
+						orientation = entity.directionRaw / 16.0;
 					}
 					return proto.createSprites(orientation, frame);
 				}
@@ -373,7 +374,7 @@ public abstract class SimpleEntityRendering extends EntityRendererFactory {
 	}
 
 	private List<BindAction<?>> bindings;
-	private Optional<List<FPCircuitConnectorDefinition>> circuitConnectors;
+	private Optional<List<FPCircuitConnectorDefinition>> circuitConnectors = Optional.empty();
 
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSEntity entity) {
@@ -386,8 +387,28 @@ public abstract class SimpleEntityRendering extends EntityRendererFactory {
 		}
 	}
 
+	public abstract void defineEntity(Bindings bind, LuaValue lua);
+
 	@Override
-	public void createWireConnector(Consumer<Renderer> register, BSEntity entity) {
+	public void defineWirePoints(BiConsumer<Integer, WirePoints> consumer, LuaValue lua) {
+		if (circuitConnectors.isPresent()) {
+			List<FPWireConnectionPoint> points = circuitConnectors.get().stream().map(cc -> cc.points)
+					.collect(Collectors.toList());
+			consumer.accept(1, WirePoints.fromWireConnectionPoints(points, WireColor.RED, false));
+			consumer.accept(2, WirePoints.fromWireConnectionPoints(points, WireColor.GREEN, false));
+		}
+	}
+
+	@Override
+	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
+		List<BindAction<?>> bindings = new ArrayList<>();
+		Bindings fluent = new Bindings(bindings);
+		defineEntity(fluent, prototype.lua());
+		this.bindings = bindings;
+	}
+
+	@Override
+	public double initWireConnector(Consumer<Renderer> register, BSEntity entity, List<EntityRenderingTuple> wired) {
 
 		if (circuitConnectors.isPresent()) {
 			FPCircuitConnectorDefinition circuitConnector = RenderUtils.pickDirectional(circuitConnectors.get(),
@@ -412,27 +433,8 @@ public abstract class SimpleEntityRendering extends EntityRendererFactory {
 				}
 			});
 		}
-	}
 
-	public abstract void defineEntity(Bindings bind, LuaValue lua);
-
-	@Override
-	public void defineWirePoints(BiConsumer<Integer, WirePoints> consumer, LuaValue lua) {
-		if (circuitConnectors.isPresent()) {
-			List<FPWireConnectionPoint> points = circuitConnectors.get().stream().map(cc -> cc.points)
-					.collect(Collectors.toList());
-			consumer.accept(1, WirePoints.fromWireConnectionPoints(points, WireColor.RED));
-			consumer.accept(2, WirePoints.fromWireConnectionPoints(points, WireColor.GREEN));
-		}
-	}
-
-	@Override
-	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
-		List<BindAction<?>> bindings = new ArrayList<>();
-		Bindings fluent = new Bindings(bindings);
-		defineEntity(fluent, prototype.lua());
-		this.bindings = bindings;
-		this.circuitConnectors = fluent.circuitConnectors;
+		return entity.directionRaw / 16.0;
 	}
 
 }

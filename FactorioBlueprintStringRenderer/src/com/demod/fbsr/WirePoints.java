@@ -8,7 +8,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 
-import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.fp.FPVector;
 import com.demod.fbsr.fp.FPWireConnectionPoint;
 import com.demod.fbsr.fp.FPWirePosition;
@@ -17,7 +16,7 @@ import com.google.common.collect.ImmutableSet;
 
 public class WirePoints {
 	public static enum WireColor {
-		COPPER(Color.yellow.darker()), //
+		COPPER(new Color(0xffa87c14)), //
 		RED(Color.red.darker()), //
 		GREEN(Color.green.darker()),//
 		;
@@ -59,7 +58,9 @@ public class WirePoints {
 
 	public static final Set<Integer> VALID_SIZES = ImmutableSet.of(1, 4, 8, 16);
 
-	public static WirePoints fromWireConnectionPoints(List<FPWireConnectionPoint> points, WireColor color) {
+	// XXX is there a better way to calculate with back_equals_front?
+	public static WirePoints fromWireConnectionPoints(List<FPWireConnectionPoint> points, WireColor color,
+			boolean backEqualsFront) {
 		List<FPVector> dirOffsets = new ArrayList<>();
 		List<FPVector> dirShadowOffsets = new ArrayList<>();
 		Function<FPWirePosition, Optional<FPVector>> wireSelect = wp -> {
@@ -77,53 +78,39 @@ public class WirePoints {
 			dirOffsets.add(wireSelect.apply(point.wire).get());
 			dirShadowOffsets.add(wireSelect.apply(point.shadow).get());
 		}
-		return new WirePoints(color, dirOffsets, dirShadowOffsets);
+		return new WirePoints(color, dirOffsets, dirShadowOffsets, backEqualsFront);
 	}
 
 	private final WireColor color;
 	private final List<FPVector> dirOffsets;
-
 	private final List<FPVector> dirShadowOffsets;
+	private final boolean backEqualsFront;
 
-	public WirePoints(WireColor color, List<FPVector> dirOffsets, List<FPVector> dirShadowOffsets) {
+	public WirePoints(WireColor color, List<FPVector> dirOffsets, List<FPVector> dirShadowOffsets,
+			boolean backEqualsFront) {
 		Preconditions.checkArgument(VALID_SIZES.contains(dirOffsets.size()),
 				"Invalid size count: " + dirOffsets.size());
 		this.color = color;
 		this.dirOffsets = dirOffsets;
 		this.dirShadowOffsets = dirShadowOffsets;
+		this.backEqualsFront = backEqualsFront;
 	}
 
 	public WireColor getColor() {
 		return color;
 	}
 
-	public WirePoint getPoint(BSEntity entity) {
-		FPVector offset = null;
-		FPVector shadowOffset = null;
-		switch (dirOffsets.size()) {
-		case 1:
-			offset = dirOffsets.get(0);
-			shadowOffset = dirShadowOffsets.get(0);
-			break;
-		case 4:
-			offset = dirOffsets.get(entity.direction.cardinal());
-			shadowOffset = dirShadowOffsets.get(entity.direction.cardinal());
-			break;
-		case 8:
-			offset = dirOffsets.get(entity.direction.ordinal());
-			shadowOffset = dirShadowOffsets.get(entity.direction.ordinal());
-			break;
-		case 16:
-			offset = dirOffsets.get(entity.directionRaw);
-			shadowOffset = dirShadowOffsets.get(entity.directionRaw);
-			break;
+	public WirePoint getPoint(Point2D.Double position, double orientation) {
+		int index;
+		if (backEqualsFront) {
+			index = ((int) Math.round(orientation * dirOffsets.size() * 2)) % dirOffsets.size();
+		} else {
+			index = ((int) Math.round(orientation * dirOffsets.size())) % dirOffsets.size();
 		}
-		Point2D.Double pos = entity.position.createPoint();
-		pos.x += offset.x;
-		pos.y += offset.y;
-		Point2D.Double shadowPos = entity.position.createPoint();
-		shadowPos.x += shadowOffset.x;
-		shadowPos.y += shadowOffset.y;
+		FPVector offset = dirOffsets.get(index);
+		FPVector shadowOffset = dirShadowOffsets.get(index);
+		Point2D.Double pos = new Point2D.Double(position.x + offset.x, position.y + offset.y);
+		Point2D.Double shadowPos = new Point2D.Double(position.x + shadowOffset.x, position.y + shadowOffset.y);
 		return new WirePoint(color, pos, shadowPos);
 	}
 
