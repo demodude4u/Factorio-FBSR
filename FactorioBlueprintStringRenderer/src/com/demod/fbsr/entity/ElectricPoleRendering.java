@@ -84,33 +84,6 @@ public class ElectricPoleRendering extends EntityRendererFactory {
 
 	@Override
 	public double initWireConnector(Consumer<Renderer> register, BSEntity entity, List<EntityRenderingTuple> wired) {
-
-//		BSPosition pos = entity.position;
-//		Point2D.Double dirAvg = new Point2D.Double();
-//		for (EntityRenderingTuple tuple : wired) {
-//			BSPosition pos2 = tuple.entity.position;
-//			double dx = pos2.x - pos.x;
-//			double dy = pos2.y - pos.y;
-//			if (dx < 0) {
-//				dx *= -1;
-//				dy *= -1;
-//			}
-//			double dist = Math.sqrt(dx * dx + dy * dy);
-//			if (dist > 0) {
-//				dirAvg.x += dx / dist;
-//				dirAvg.y += dy / dist;
-//			}
-//		}
-//		double orientation;
-//		if (dirAvg.x == 0 || dirAvg.y == 0) {
-//			orientation = 0;
-//		} else {
-//			double rad = Math.atan2(dirAvg.y, dirAvg.x) + (Math.PI / 2.0);
-//			if (rad < 0) {
-//				rad += Math.PI * 2;
-//			}
-//			orientation = rad / (Math.PI * 2);
-//		}
 		BSPosition p1 = entity.position;
 		List<Point2D.Double> points = wired.stream().map(t -> {
 			BSPosition p2 = t.entity.position;
