@@ -55,16 +55,16 @@ public class SplitterRendering extends TransportBeltConnectableRendering {
 		RenderUtils.shiftSprites(belt1Sprites, belt1Shift);
 		RenderUtils.shiftSprites(belt2Sprites, belt2Shift);
 
-		register.accept(RenderUtils.spriteRenderer(belt1Sprites, entity, protoSelectionBox));
-		register.accept(RenderUtils.spriteRenderer(belt2Sprites, entity, protoSelectionBox));
+		register.accept(RenderUtils.spriteRenderer(Layer.TRANSPORT_BELT, belt1Sprites, entity, protoSelectionBox));
+		register.accept(RenderUtils.spriteRenderer(Layer.TRANSPORT_BELT, belt2Sprites, entity, protoSelectionBox));
 
 		if (protoStructurePatch.isPresent() && (dir == Direction.WEST || dir == Direction.EAST)) {
 			register.accept(RenderUtils.spriteRenderer(Layer.HIGHER_OBJECT_UNDER,
 					protoStructurePatch.get().createSprites(entity.direction, 0), entity, protoSelectionBox));
 		}
 
-		register.accept(RenderUtils.spriteRenderer(Layer.HIGHER_OBJECT_UNDER, protoStructure.createSprites(entity.direction, 0),
-				entity, protoSelectionBox));
+		register.accept(RenderUtils.spriteRenderer(Layer.HIGHER_OBJECT_UNDER,
+				protoStructure.createSprites(entity.direction, 0), entity, protoSelectionBox));
 
 		Point2D.Double pos = entity.position.createPoint();
 		Point2D.Double leftPos = dir.left().offset(pos, 0.5);

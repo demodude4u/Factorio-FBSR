@@ -54,9 +54,9 @@ public abstract class TransportBeltConnectableRendering extends EntityRendererFa
 	public static final int[] endingIndexDefaults = //
 			new int[/* Cardinal */] { //
 					17, // North
-					18, // East
-					12, // South
-					14, // West
+					19, // East
+					13, // South
+					15, // West
 			};
 
 	// XXX I'm not using horizontal or vertical frames
@@ -74,8 +74,16 @@ public abstract class TransportBeltConnectableRendering extends EntityRendererFa
 	private int[] protoBeltEndingIndices;
 	private boolean protoBeltAlternate;
 
+	protected List<Sprite> createBeltEndingSprites(int cardinal, int frame) {
+		return protoBeltAnimationSet.createSprites(protoBeltEndingIndices[cardinal], frame);
+	}
+
 	protected List<Sprite> createBeltSprites(int cardinal, int bend, int frame) {
 		return protoBeltAnimationSet.createSprites(protoBeltIndices[cardinal][bend], frame);
+	}
+
+	protected List<Sprite> createBeltStartingSprites(int cardinal, int frame) {
+		return protoBeltAnimationSet.createSprites(protoBeltStartingIndices[cardinal], frame);
 	}
 
 	protected int getAlternatingFrame(Point2D.Double pos, int frame) {

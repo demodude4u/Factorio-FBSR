@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 
 import com.demod.fbsr.bs.BSEntity;
 import com.google.common.collect.HashBasedTable;
@@ -54,7 +55,20 @@ public class WorldMap {
 	}
 
 	public static enum BeltBend {
-		FROM_LEFT, NONE, FROM_RIGHT;
+		FROM_LEFT(d -> d.left()), //
+		NONE(d -> d.back()), //
+		FROM_RIGHT(d -> d.right()),//
+		;
+
+		private final Function<Direction, Direction> rotation;
+
+		private BeltBend(Function<Direction, Direction> rotation) {
+			this.rotation = rotation;
+		}
+
+		public Direction reverse(Direction dir) {
+			return rotation.apply(dir);
+		}
 	}
 
 	public static class BeltCell {

@@ -1,7 +1,9 @@
 package com.demod.fbsr.entity;
 
 import java.awt.geom.Point2D;
+import java.awt.geom.Point2D.Double;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Consumer;
 
 import org.luaj.vm2.LuaValue;
@@ -9,11 +11,13 @@ import org.luaj.vm2.LuaValue;
 import com.demod.factorio.DataTable;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.Direction;
+import com.demod.fbsr.Layer;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
 import com.demod.fbsr.Sprite;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.WorldMap.BeltBend;
+import com.demod.fbsr.WorldMap.BeltCell;
 import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.fp.FPAnimationVariations;
 
@@ -26,10 +30,49 @@ public class TransportBeltRendering extends TransportBeltConnectableRendering {
 
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSEntity entity) {
-		BeltBend bend = map.getBeltBend(entity.position.createPoint()).get();
-		List<Sprite> beltSprites = createBeltSprites(entity.direction.cardinal(), bend.ordinal(),
-				getAlternatingFrame(entity.position.createPoint(), 0));
-		register.accept(RenderUtils.spriteRenderer(beltSprites, entity, protoSelectionBox));
+		Double pos = entity.position.createPoint();
+		BeltBend bend = map.getBeltBend(pos).get();
+		int frame = getAlternatingFrame(pos, 0);
+
+		List<Sprite> beltSprites = createBeltSprites(entity.direction.cardinal(), bend.ordinal(), frame);
+		register.accept(RenderUtils.spriteRenderer(Layer.TRANSPORT_BELT, beltSprites, entity, protoSelectionBox));
+
+		Point2D.Double forwardPos = entity.direction.offset(pos);
+		boolean ending = true;
+		Optional<BeltCell> optForwardBelt = map.getBelt(forwardPos);
+		if (optForwardBelt.isPresent()) {
+			Direction forwardBeltDir = optForwardBelt.get().getFacing();
+			BeltBend forwardBeltBend = map.getBeltBend(forwardPos, optForwardBelt.get());
+			Direction forwardBeltBackDir = forwardBeltBend.reverse(forwardBeltDir);
+			if (entity.direction == forwardBeltDir.back() || entity.direction == forwardBeltBackDir.back()) {
+				ending = false;
+			}
+		}
+		if (ending) {
+			List<Sprite> endingSprites = createBeltEndingSprites(entity.direction.cardinal(), frame);
+			RenderUtils.shiftSprites(endingSprites, entity.direction.offset());
+			register.accept(
+					RenderUtils.spriteRenderer(Layer.TRANSPORT_BELT_ENDINGS, endingSprites, entity, protoSelectionBox));
+		}
+
+		Direction backDir = bend.reverse(entity.direction);
+		Point2D.Double backPos = backDir.offset(pos);
+		boolean starting = true;
+		Optional<BeltCell> optBackBelt = map.getBelt(backPos);
+		if (optBackBelt.isPresent()) {
+			Direction backBeltDir = optBackBelt.get().getFacing();
+			BeltBend backBeltBend = map.getBeltBend(backPos, optBackBelt.get());
+			Direction backBeltBackDir = backBeltBend.reverse(backBeltDir);
+			if (backDir == backBeltDir.back() || backDir == backBeltBackDir.back()) {
+				starting = false;
+			}
+		}
+		if (starting) {
+			List<Sprite> startingSprites = createBeltStartingSprites(backDir.cardinal(), frame);
+			RenderUtils.shiftSprites(startingSprites, backDir.offset());
+			register.accept(RenderUtils.spriteRenderer(Layer.TRANSPORT_BELT_ENDINGS, startingSprites, entity,
+					protoSelectionBox));
+		}
 
 		// TODO switch this over to the wire connector logic
 		if (entity.controlBehavior.isPresent()) {

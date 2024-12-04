@@ -27,6 +27,10 @@ public enum Direction {
 		this.dy = dy;
 	}
 
+	public int adjCode() {
+		return 1 << ordinal();
+	}
+
 	public Direction back() {
 		return rotate(4);
 	}
@@ -49,10 +53,6 @@ public enum Direction {
 
 	public Direction frontRight() {
 		return rotate(1);
-	}
-
-	public int adjCode() {
-		return 1 << ordinal();
 	}
 
 	public int getDx() {
@@ -81,6 +81,14 @@ public enum Direction {
 
 	public Direction left() {
 		return rotate(-2);
+	}
+
+	public Point2D.Double offset() {
+		return new Point2D.Double(dx, dy);
+	}
+
+	public Double offset(double distance) {
+		return new Point2D.Double(distance * dx, distance * dy);
 	}
 
 	public Point2D.Double offset(Point2D.Double pos) {

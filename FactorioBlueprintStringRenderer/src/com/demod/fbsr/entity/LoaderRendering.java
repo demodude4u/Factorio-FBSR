@@ -48,7 +48,7 @@ public abstract class LoaderRendering extends TransportBeltConnectableRendering 
 		List<Sprite> beltSprites = createBeltSprites(entity.direction.cardinal(), BeltBend.NONE.ordinal(),
 				getAlternatingFrame(entity.position.createPoint(beltShift), 0));
 		RenderUtils.shiftSprites(beltSprites, beltShift);
-		register.accept(RenderUtils.spriteRenderer(beltSprites, entity, protoSelectionBox));
+		register.accept(RenderUtils.spriteRenderer(Layer.TRANSPORT_BELT, beltSprites, entity, protoSelectionBox));
 
 		boolean input = entity.type.get().equals("input");
 		Direction structDir = input ? entity.direction : entity.direction.back();
