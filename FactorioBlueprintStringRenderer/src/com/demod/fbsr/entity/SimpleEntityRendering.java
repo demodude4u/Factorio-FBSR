@@ -40,7 +40,7 @@ import com.demod.fbsr.fp.FPWireConnectionPoint;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
-public abstract class SimpleEntityRendering extends EntityRendererFactory {
+public abstract class SimpleEntityRendering<E extends BSEntity> extends EntityRendererFactory<E> {
 
 	public static abstract class BindAction<T> {
 		protected T proto;
@@ -377,7 +377,7 @@ public abstract class SimpleEntityRendering extends EntityRendererFactory {
 	private Optional<List<FPCircuitConnectorDefinition>> circuitConnectors = Optional.empty();
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSEntity entity) {
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, E entity) {
 		for (BindAction<?> bindAction : bindings) {
 			List<SpritesWithLayer> sprites = bindAction.createLayeredSprites(entity);
 			for (SpritesWithLayer spritesWithLayer : sprites) {
@@ -408,7 +408,7 @@ public abstract class SimpleEntityRendering extends EntityRendererFactory {
 	}
 
 	@Override
-	public double initWireConnector(Consumer<Renderer> register, BSEntity entity, List<EntityRenderingTuple> wired) {
+	public double initWireConnector(Consumer<Renderer> register, E entity, List<EntityRenderingTuple> wired) {
 
 		if (circuitConnectors.isPresent()) {
 			FPCircuitConnectorDefinition circuitConnector = RenderUtils.pickDirectional(circuitConnectors.get(),

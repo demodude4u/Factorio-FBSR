@@ -18,7 +18,7 @@ import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.fp.FPSpriteVariations;
 import com.google.common.collect.ImmutableList;
 
-public abstract class RailRendering extends EntityRendererFactory {
+public abstract class RailRendering extends EntityRendererFactory<BSEntity> {
 
 	public static class FPRailPictureSet {
 		public final FPRailPieceLayers north;

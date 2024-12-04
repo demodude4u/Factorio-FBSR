@@ -21,7 +21,7 @@ import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.fp.FPAnimation;
 import com.demod.fbsr.fp.FPAnimationElement;
 
-public class BeaconRendering extends EntityRendererFactory {
+public class BeaconRendering extends EntityRendererFactory<BSEntity> {
 
 	public static class FPBeaconGraphicsSet {
 		public final List<FPAnimationElement> animationList;

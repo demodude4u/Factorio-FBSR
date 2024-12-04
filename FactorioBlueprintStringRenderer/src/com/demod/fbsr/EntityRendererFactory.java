@@ -21,6 +21,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+import org.json.JSONObject;
 import org.luaj.vm2.LuaValue;
 
 import com.demod.factorio.DataTable;
@@ -103,9 +104,9 @@ import com.demod.fbsr.fp.FPBoundingBox;
 import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.Multiset;
 
-public abstract class EntityRendererFactory {
+public abstract class EntityRendererFactory<E extends BSEntity> {
 
-	public static final EntityRendererFactory UNKNOWN = new EntityRendererFactory() {
+	public static final EntityRendererFactory<BSEntity> UNKNOWN = new EntityRendererFactory<BSEntity>() {
 		Set<String> labeledTypes = new HashSet<>();
 
 		@Override
@@ -166,7 +167,7 @@ public abstract class EntityRendererFactory {
 		}
 	};
 
-	private static final Map<String, EntityRendererFactory> byName = new LinkedHashMap<>();
+	private static final Map<String, EntityRendererFactory<BSEntity>> byName = new LinkedHashMap<>();
 	static {
 		byName.put("accumulator", new AccumulatorRendering());
 		byName.put("arithmetic-combinator", new ArithmeticCombinatorRendering());
@@ -283,7 +284,7 @@ public abstract class EntityRendererFactory {
 
 	private static volatile boolean prototypesInitialized = false;
 
-	public static EntityRendererFactory forName(String name) {
+	public static EntityRendererFactory<BSEntity> forName(String name) {
 		return Optional.ofNullable(byName.get(name)).orElse(UNKNOWN);
 	}
 
@@ -291,7 +292,7 @@ public abstract class EntityRendererFactory {
 		if (prototypesInitialized) {
 			return;
 		}
-		for (Entry<String, EntityRendererFactory> entry : byName.entrySet()) {
+		for (Entry<String, EntityRendererFactory<BSEntity>> entry : byName.entrySet()) {
 			System.out.println("Initializing Entity " + entry.getKey());
 			EntityPrototype prototype = table.getEntity(entry.getKey()).get();
 			EntityRendererFactory factory = entry.getValue();
@@ -319,7 +320,7 @@ public abstract class EntityRendererFactory {
 		map.getOrCreateLogisticGridCell(cellDir1.offset(gridPos1, 0.25)).addWarp(cellDir2.offset(gridPos2, 0.25));
 	}
 
-	public void createModuleIcons(Consumer<Renderer> register, WorldMap map, DataTable table, BSEntity entity) {
+	public void createModuleIcons(Consumer<Renderer> register, WorldMap map, DataTable table, E entity) {
 		Multiset<String> renderModules = RenderUtils.getModules(entity, table);
 		if (!renderModules.isEmpty()) {
 
@@ -432,7 +433,7 @@ public abstract class EntityRendererFactory {
 		}
 	}
 
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSEntity entity) {
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, E entity) {
 	}
 
 	public Optional<WirePoint> createWirePoint(Consumer<Renderer> register, Point2D.Double position, double orientation,
@@ -448,11 +449,15 @@ public abstract class EntityRendererFactory {
 		System.out.println("=================================================================");
 		System.out.println("============================ ENTITY =============================");
 		System.out.println("=================================================================");
-		Utils.debugPrintJson(entity.getDebugJson());
+		Utils.debugPrintJson(entity.getJson());
 	}
 
 	public void defineWirePoints(BiConsumer<Integer, WirePoints> consumer, LuaValue lua) {
 
+	}
+
+	public FPBoundingBox getBounds() {
+		return protoSelectionBox;
 	}
 
 	public EntityPrototype getPrototype() {
@@ -462,15 +467,19 @@ public abstract class EntityRendererFactory {
 	public abstract void initFromPrototype(DataTable dataTable, EntityPrototype prototype);
 
 	// Returns orientation if applicable
-	public double initWireConnector(Consumer<Renderer> register, BSEntity entity, List<EntityRenderingTuple> wired) {
+	public double initWireConnector(Consumer<Renderer> register, E entity, List<EntityRenderingTuple> wired) {
 		return 0;
 	}
 
-	public void populateLogistics(WorldMap map, DataTable dataTable, BSEntity entity) {
+	public E parseEntity(JSONObject json) throws Exception {
+		return (E) new BSEntity(json);
+	}
+
+	public void populateLogistics(WorldMap map, DataTable dataTable, E entity) {
 		// default do nothing
 	}
 
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BSEntity entity) {
+	public void populateWorldMap(WorldMap map, DataTable dataTable, E entity) {
 		// default do nothing
 	}
 

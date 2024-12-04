@@ -31,7 +31,6 @@ public class BSControlBehavior {
 
 	public final Optional<Boolean> readRobotStats;
 	public final Optional<BSDeciderCombinationConditions> deciderConditions;
-	public final Optional<BSArithmeticCondition> arithmeticConditions;
 	public final Optional<BSDisplayPanelParameter> parameters;
 
 	public final Optional<Boolean> useColors;
@@ -70,7 +69,6 @@ public class BSControlBehavior {
 
 		readRobotStats = BSUtils.optBool(json, "read_robot_stats");
 		deciderConditions = BSUtils.opt(json, "decider_conditions", BSDeciderCombinationConditions::new);
-		arithmeticConditions = BSUtils.opt(json, "arithmetic_conditions", BSArithmeticCondition::new);
 		parameters = BSUtils.opt(json, "parameters", BSDisplayPanelParameter::new);
 
 		useColors = BSUtils.optBool(json, "use_colors");

@@ -56,6 +56,7 @@ import com.demod.fbsr.bs.BSBlueprint;
 import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.bs.BSTile;
 import com.demod.fbsr.bs.BSWire;
+import com.demod.fbsr.entity.ErrorRendering;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multiset;
@@ -888,6 +889,16 @@ public class FBSR {
 			EntityRenderingTuple tuple = new EntityRenderingTuple();
 			tuple.entity = entity;
 			tuple.factory = EntityRendererFactory.forName(entity.name);
+			try {
+				Object parsed = tuple.factory.parseEntity(entity, entity.getJson());
+				tuple.entity.setParsed(parsed);
+			} catch (Exception e) {
+				tuple.entity.setParseException(Optional.of(e));
+			}
+			if (entity.getParseException().isPresent()) {
+				tuple.factory = new ErrorRendering(tuple.factory);
+				reporting.addException(entity.getParseException().get(), entity.name + " " + entity.entityNumber);
+			}
 			if (tuple.factory == EntityRendererFactory.UNKNOWN) {
 				if (options.optBoolean("debug-typeMapping")) {
 					reporting.addDebug("Unknown Entity! " + entity.name);

@@ -22,12 +22,12 @@ import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.fp.FPSprite4Way;
 import com.demod.fbsr.fp.FPWireConnectionPoint;
 
-public abstract class CombinatorRendering extends SimpleEntityRendering {
+public abstract class CombinatorRendering<E extends BSEntity> extends SimpleEntityRendering<E> {
 
 	private Map<String, FPSprite4Way> protoOperationSprites;
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSEntity entity) {
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, E entity) {
 		super.createRenderers(register, map, dataTable, entity);
 
 		Optional<String> operation = getOperation(entity);
@@ -58,7 +58,7 @@ public abstract class CombinatorRendering extends SimpleEntityRendering {
 		consumer.accept(4, WirePoints.fromWireConnectionPoints(protoOutputConnectionPoints, WireColor.GREEN, false));
 	}
 
-	public abstract Optional<String> getOperation(BSEntity entity);
+	public abstract Optional<String> getOperation(E entity);
 
 	@Override
 	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {

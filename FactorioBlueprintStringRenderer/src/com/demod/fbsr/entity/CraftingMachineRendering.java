@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 
+import org.json.JSONObject;
 import org.luaj.vm2.LuaValue;
 
 import com.demod.factorio.DataTable;
@@ -18,6 +19,7 @@ import com.demod.factorio.Utils;
 import com.demod.factorio.prototype.DataPrototype;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.factorio.prototype.RecipePrototype;
+import com.demod.fbsr.BSUtils;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.RenderUtils;
@@ -25,16 +27,28 @@ import com.demod.fbsr.Renderer;
 import com.demod.fbsr.Sprite;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.bs.BSEntity;
+import com.demod.fbsr.entity.CraftingMachineRendering.BSCraftingMachineEntity;
 import com.demod.fbsr.fp.FPWorkingVisualisations;
 
-public abstract class CraftingMachineRendering extends SimpleEntityRendering {
+public abstract class CraftingMachineRendering extends SimpleEntityRendering<BSCraftingMachineEntity> {
+
+	public static class BSCraftingMachineEntity extends BSEntity {
+		public final Optional<String> recipe;
+
+		public BSCraftingMachineEntity(JSONObject json) {
+			super(json);
+
+			recipe = BSUtils.optString(json, "recipe");
+		}
+	}
 
 	private FPWorkingVisualisations protoGraphicsSet;
 	private boolean protoOffWhenNoFluidRecipe;
 	private List<Point2D.Double> protoFluidBoxes;
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSEntity entity) {
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
+			BSCraftingMachineEntity entity) {
 		super.createRenderers(register, map, dataTable, entity);
 
 		register.accept(RenderUtils.spriteRenderer(protoGraphicsSet.createSprites(entity.direction, 0), entity,
@@ -115,7 +129,7 @@ public abstract class CraftingMachineRendering extends SimpleEntityRendering {
 	}
 
 	@Override
-	public void populateLogistics(WorldMap map, DataTable dataTable, BSEntity entity) {
+	public void populateLogistics(WorldMap map, DataTable dataTable, BSCraftingMachineEntity entity) {
 		Optional<String> recipe = entity.recipe;
 		if (recipe.isPresent()) {
 			Optional<RecipePrototype> optRecipe = dataTable.getRecipe(recipe.get());
@@ -127,7 +141,7 @@ public abstract class CraftingMachineRendering extends SimpleEntityRendering {
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BSEntity entity) {
+	public void populateWorldMap(WorldMap map, DataTable dataTable, BSCraftingMachineEntity entity) {
 		Optional<String> recipe = entity.recipe;
 		boolean hasFluid = false;
 		if (recipe.isPresent()) {
