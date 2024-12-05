@@ -6,7 +6,7 @@ import com.demod.factorio.DataTable;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.bs.BSEntity;
 
-public class HeatInterfaceRendering extends SimpleEntityRendering {
+public class HeatInterfaceRendering extends SimpleEntityRendering<BSEntity> {
 
 	@Override
 	public void defineEntity(Bindings bind, LuaValue lua) {

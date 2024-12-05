@@ -14,12 +14,14 @@ import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+import org.json.JSONObject;
 import org.luaj.vm2.LuaValue;
 
 import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.factorio.prototype.ItemPrototype;
+import com.demod.fbsr.BSUtils;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.LogisticGridCell;
@@ -30,11 +32,30 @@ import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.WorldMap.BeltBend;
 import com.demod.fbsr.WorldMap.BeltCell;
 import com.demod.fbsr.bs.BSEntity;
+import com.demod.fbsr.bs.BSFilter;
+import com.demod.fbsr.bs.BSPosition;
+import com.demod.fbsr.entity.InserterRendering.BSInserterEntity;
 import com.demod.fbsr.fp.FPSprite;
 import com.demod.fbsr.fp.FPSprite4Way;
 import com.demod.fbsr.fp.FPVector;
 
-public class InserterRendering extends SimpleEntityRendering {
+public class InserterRendering extends SimpleEntityRendering<BSInserterEntity> {
+
+	public static class BSInserterEntity extends BSEntity {
+		public final Optional<BSPosition> pickupPosition;
+		public final Optional<BSPosition> dropPosition;
+		public final boolean useFilters;
+		public final List<BSFilter> filters;
+
+		public BSInserterEntity(JSONObject json) {
+			super(json);
+
+			useFilters = json.optBoolean("use_filters");// only sometimes checked
+			pickupPosition = BSUtils.opt(json, "pickup_position", BSPosition::new);
+			dropPosition = BSUtils.opt(json, "drop_position", BSPosition::new);
+			filters = BSUtils.list(json, "filters", BSFilter::new);
+		}
+	}
 
 	private static final int[][] placeItemDir = //
 			new int[/* Cardinal */][/* Bend */] { //
@@ -52,7 +73,8 @@ public class InserterRendering extends SimpleEntityRendering {
 	private FPSprite protoIndicationArrow;
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSEntity entity) {
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
+			BSInserterEntity entity) {
 		super.createRenderers(register, map, dataTable, entity);
 
 		Point2D.Double pos = entity.position.createPoint();
@@ -244,7 +266,7 @@ public class InserterRendering extends SimpleEntityRendering {
 	}
 
 	@Override
-	public void populateLogistics(WorldMap map, DataTable dataTable, BSEntity entity) {
+	public void populateLogistics(WorldMap map, DataTable dataTable, BSInserterEntity entity) {
 		if (entity.pickupPosition.isPresent() || entity.dropPosition.isPresent()) {
 			return; // TODO Modded inserter logistics
 		}

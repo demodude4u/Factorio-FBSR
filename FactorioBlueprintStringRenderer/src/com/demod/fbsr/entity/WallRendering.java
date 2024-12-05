@@ -18,7 +18,7 @@ import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.fp.FPSprite4Way;
 import com.demod.fbsr.fp.FPSpriteVariations;
 
-public class WallRendering extends SimpleEntityRendering {
+public class WallRendering extends SimpleEntityRendering<BSEntity> {
 
 	public static final String[] wallSpriteNameMapping = //
 			new String[/* bits WSEN */] { //

@@ -19,7 +19,7 @@ import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.fp.FPSprite4Way;
 import com.demod.fbsr.fp.FPWorkingVisualisations;
 
-public class MiningDrillRendering extends SimpleEntityRendering {
+public class MiningDrillRendering extends SimpleEntityRendering<BSEntity> {
 
 	private Optional<FPSprite4Way> protoBasePicture;
 	private Optional<FPWorkingVisualisations> protoGraphicsSet;

@@ -13,7 +13,7 @@ import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.fp.FPAnimation4Way;
 
-public class BurnerGeneratorRendering extends EntityRendererFactory {
+public class BurnerGeneratorRendering extends EntityRendererFactory<BSEntity> {
 	private FPAnimation4Way protoAnimation;
 
 	@Override

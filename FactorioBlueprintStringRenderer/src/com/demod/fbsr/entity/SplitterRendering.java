@@ -12,10 +12,13 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 
+import org.json.JSONObject;
+
 import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.factorio.prototype.ItemPrototype;
+import com.demod.fbsr.BSUtils;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.Layer;
@@ -25,9 +28,25 @@ import com.demod.fbsr.Sprite;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.WorldMap.BeltBend;
 import com.demod.fbsr.bs.BSEntity;
+import com.demod.fbsr.bs.BSFilter;
+import com.demod.fbsr.entity.SplitterRendering.BSSplitterEntity;
 import com.demod.fbsr.fp.FPAnimation4Way;
 
-public class SplitterRendering extends TransportBeltConnectableRendering {
+public class SplitterRendering extends TransportBeltConnectableRendering<BSSplitterEntity> {
+
+	public static class BSSplitterEntity extends BSEntity {
+		public final Optional<String> inputPriority;
+		public final Optional<String> outputPriority;
+		public final Optional<BSFilter> filter;
+
+		public BSSplitterEntity(JSONObject json) {
+			super(json);
+
+			inputPriority = BSUtils.optString(json, "input_priority");
+			outputPriority = BSUtils.optString(json, "output_priority");
+			filter = BSUtils.opt(json, "filter", BSFilter::new);
+		}
+	}
 
 	private static final Path2D.Double markerShape = new Path2D.Double();
 	static {
@@ -41,7 +60,8 @@ public class SplitterRendering extends TransportBeltConnectableRendering {
 	private Optional<FPAnimation4Way> protoStructurePatch;
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSEntity entity) {
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
+			BSSplitterEntity entity) {
 		Direction dir = entity.direction;
 
 		Point2D.Double belt1Shift = dir.left().offset(new Point2D.Double(), 0.5);
@@ -165,7 +185,7 @@ public class SplitterRendering extends TransportBeltConnectableRendering {
 	}
 
 	@Override
-	public void populateLogistics(WorldMap map, DataTable dataTable, BSEntity entity) {
+	public void populateLogistics(WorldMap map, DataTable dataTable, BSSplitterEntity entity) {
 		Direction dir = entity.direction;
 		Double pos = entity.position.createPoint();
 		Point2D.Double leftPos = dir.left().offset(pos, 0.5);
@@ -211,7 +231,7 @@ public class SplitterRendering extends TransportBeltConnectableRendering {
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BSEntity entity) {
+	public void populateWorldMap(WorldMap map, DataTable dataTable, BSSplitterEntity entity) {
 		Direction direction = entity.direction;
 		Point2D.Double pos = entity.position.createPoint();
 		Point2D.Double belt1Pos = direction.left().offset(pos, 0.5);

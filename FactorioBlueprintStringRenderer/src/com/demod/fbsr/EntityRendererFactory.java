@@ -8,6 +8,9 @@ import java.awt.geom.Ellipse2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -167,7 +170,8 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 		}
 	};
 
-	private static final Map<String, EntityRendererFactory<BSEntity>> byName = new LinkedHashMap<>();
+	@SuppressWarnings("rawtypes")
+	private static final Map<String, EntityRendererFactory> byName = new LinkedHashMap<>();
 	static {
 		byName.put("accumulator", new AccumulatorRendering());
 		byName.put("arithmetic-combinator", new ArithmeticCombinatorRendering());
@@ -190,9 +194,9 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 		byName.put("gun-turret", new AmmoTurretRendering());
 		byName.put("rocket-turret", new AmmoTurretRendering());
 		byName.put("cargo-bay", new CargoBayRendering());
-		byName.put("iron-chest", new ContainerRendering());
-		byName.put("steel-chest", new ContainerRendering());
-		byName.put("wooden-chest", new ContainerRendering());
+		byName.put("iron-chest", new ContainerRendering<BSEntity>());
+		byName.put("steel-chest", new ContainerRendering<BSEntity>());
+		byName.put("wooden-chest", new ContainerRendering<BSEntity>());
 		byName.put("curved-rail-a", new CurvedRailRendering());
 		byName.put("curved-rail-b", new CurvedRailRendering());
 		byName.put("legacy-curved-rail", new LegacyCurvedRailRendering());
@@ -284,15 +288,17 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 
 	private static volatile boolean prototypesInitialized = false;
 
-	public static EntityRendererFactory<BSEntity> forName(String name) {
+	@SuppressWarnings("unchecked")
+	public static <E extends BSEntity> EntityRendererFactory<E> forName(String name) {
 		return Optional.ofNullable(byName.get(name)).orElse(UNKNOWN);
 	}
 
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	public static synchronized void initPrototypes(DataTable table) {
 		if (prototypesInitialized) {
 			return;
 		}
-		for (Entry<String, EntityRendererFactory<BSEntity>> entry : byName.entrySet()) {
+		for (Entry<String, EntityRendererFactory> entry : byName.entrySet()) {
 			System.out.println("Initializing Entity " + entry.getKey());
 			EntityPrototype prototype = table.getEntity(entry.getKey()).get();
 			EntityRendererFactory factory = entry.getValue();
@@ -314,6 +320,8 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 	protected boolean protoBeaconed;
 
 	protected Map<Integer, WirePoints> wirePointsById;
+
+	private Class<E> entityClass;
 
 	protected void addLogisticWarp(WorldMap map, Point2D.Double gridPos1, Direction cellDir1, Point2D.Double gridPos2,
 			Direction cellDir2) {
@@ -464,6 +472,40 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 		return prototype;
 	}
 
+	@SuppressWarnings("unchecked")
+	private void initEntityClass() {
+		// Looks for the subclass that specifies the E class explicitly
+
+		if (entityClass == null) {
+			Class<?> clazz = this.getClass();
+			Type type = null;
+
+			while (clazz != null && clazz != Object.class) {
+				Type superclass = clazz.getGenericSuperclass();
+
+				if (superclass instanceof ParameterizedType) {
+					ParameterizedType parameterizedType = (ParameterizedType) superclass;
+					Type rawType = parameterizedType.getRawType();
+
+					if (rawType instanceof Class<?>
+							&& EntityRendererFactory.class.isAssignableFrom((Class<?>) rawType)) {
+						type = parameterizedType.getActualTypeArguments()[0];
+						break;
+					}
+				}
+				clazz = clazz.getSuperclass();
+			}
+
+			if (type instanceof Class<?>) {
+				entityClass = (Class<E>) type;
+			} else if (type instanceof ParameterizedType) {
+				entityClass = (Class<E>) ((ParameterizedType) type).getRawType();
+			} else {
+				throw new RuntimeException("Unable to determine entity class");
+			}
+		}
+	}
+
 	public abstract void initFromPrototype(DataTable dataTable, EntityPrototype prototype);
 
 	// Returns orientation if applicable
@@ -472,7 +514,9 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 	}
 
 	public E parseEntity(JSONObject json) throws Exception {
-		return (E) new BSEntity(json);
+		initEntityClass();
+		Constructor<E> constructor = entityClass.getConstructor(JSONObject.class);
+		return constructor.newInstance(json);
 	}
 
 	public void populateLogistics(WorldMap map, DataTable dataTable, E entity) {

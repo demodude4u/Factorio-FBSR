@@ -2,7 +2,9 @@ package com.demod.fbsr.entity;
 
 import org.luaj.vm2.LuaValue;
 
-public class LampRendering extends SimpleEntityRendering {
+import com.demod.fbsr.bs.BSEntity;
+
+public class LampRendering extends SimpleEntityRendering<BSEntity> {
 
 	// TODO check if I can get the color and show the lit colored state
 

@@ -12,7 +12,7 @@ import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.fp.FPLayeredSpriteVariations;
 
 //Not a real prototype, but to render cargo bay connection tilings
-public abstract class CargoBayConnectionsRendering extends SimpleEntityRendering {
+public abstract class CargoBayConnectionsRendering extends SimpleEntityRendering<BSEntity> {
 
 	public static class FPCargoBayConnections {
 		public final FPLayeredSpriteVariations topWall;

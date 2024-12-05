@@ -12,12 +12,14 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+import org.json.JSONObject;
 import org.luaj.vm2.LuaValue;
 
 import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.factorio.prototype.ItemPrototype;
+import com.demod.fbsr.BSUtils;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.RenderUtils;
@@ -26,9 +28,23 @@ import com.demod.fbsr.Sprite;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.WorldMap.BeltBend;
 import com.demod.fbsr.bs.BSEntity;
+import com.demod.fbsr.bs.BSFilter;
+import com.demod.fbsr.entity.LoaderRendering.BSLoaderEntity;
 import com.demod.fbsr.fp.FPSprite4Way;
 
-public abstract class LoaderRendering extends TransportBeltConnectableRendering {
+public abstract class LoaderRendering extends TransportBeltConnectableRendering<BSLoaderEntity> {
+
+	public static class BSLoaderEntity extends BSEntity {
+		public final Optional<String> type;
+		public final List<BSFilter> filters;
+
+		public BSLoaderEntity(JSONObject json) {
+			super(json);
+
+			type = BSUtils.optString(json, "type");
+			filters = BSUtils.list(json, "filters", BSFilter::new);
+		}
+	}
 
 	private final double beltDistance;
 
@@ -43,7 +59,7 @@ public abstract class LoaderRendering extends TransportBeltConnectableRendering 
 	// TODO circuit connectors
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSEntity entity) {
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSLoaderEntity entity) {
 		Point2D.Double beltShift = getBeltShift(entity);
 		List<Sprite> beltSprites = createBeltSprites(entity.direction.cardinal(), BeltBend.NONE.ordinal(),
 				getAlternatingFrame(entity.position.createPoint(beltShift), 0));
@@ -84,13 +100,13 @@ public abstract class LoaderRendering extends TransportBeltConnectableRendering 
 		}
 	}
 
-	private Point2D.Double getBeltShift(BSEntity entity) {
+	private Point2D.Double getBeltShift(BSLoaderEntity entity) {
 		boolean input = entity.type.get().equals("input");
 		Direction oppositeStructDir = input ? entity.direction.back() : entity.direction;
 		return new Point2D.Double(beltDistance * oppositeStructDir.getDx(), beltDistance * oppositeStructDir.getDy());
 	}
 
-	private Point2D.Double getContainerShift(BSEntity entity, double offset) {
+	private Point2D.Double getContainerShift(BSLoaderEntity entity, double offset) {
 		boolean input = entity.type.get().equals("input");
 		Direction structDir = input ? entity.direction : entity.direction.back();
 		double containerDistance = protoContainerDistance;
@@ -109,7 +125,7 @@ public abstract class LoaderRendering extends TransportBeltConnectableRendering 
 	}
 
 	@Override
-	public void populateLogistics(WorldMap map, DataTable dataTable, BSEntity entity) {
+	public void populateLogistics(WorldMap map, DataTable dataTable, BSLoaderEntity entity) {
 		Direction dir = entity.direction;
 		Point2D.Double pos = entity.position.createPoint();
 		Point2D.Double beltShift = getBeltShift(entity);
@@ -184,7 +200,7 @@ public abstract class LoaderRendering extends TransportBeltConnectableRendering 
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BSEntity entity) {
+	public void populateWorldMap(WorldMap map, DataTable dataTable, BSLoaderEntity entity) {
 		boolean input = entity.type.get().equals("input");
 		Point2D.Double beltShift = getBeltShift(entity);
 

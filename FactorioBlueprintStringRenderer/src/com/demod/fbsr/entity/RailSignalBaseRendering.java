@@ -2,12 +2,15 @@ package com.demod.fbsr.entity;
 
 import java.awt.geom.Point2D;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Consumer;
 
+import org.json.JSONObject;
 import org.luaj.vm2.LuaValue;
 
 import com.demod.factorio.DataTable;
 import com.demod.factorio.prototype.EntityPrototype;
+import com.demod.fbsr.BSUtils;
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.Layer;
@@ -16,12 +19,23 @@ import com.demod.fbsr.Renderer;
 import com.demod.fbsr.Sprite;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.bs.BSEntity;
+import com.demod.fbsr.entity.RailSignalBaseRendering.BSRailSignalBaseEntity;
 import com.demod.fbsr.fp.FPAnimation;
 import com.demod.fbsr.fp.FPBoundingBox;
 import com.demod.fbsr.fp.FPRotatedAnimation;
 import com.demod.fbsr.fp.FPVector;
 
-public abstract class RailSignalBaseRendering extends EntityRendererFactory {
+public abstract class RailSignalBaseRendering extends EntityRendererFactory<BSRailSignalBaseEntity> {
+
+	public static class BSRailSignalBaseEntity extends BSEntity {
+		public final Optional<String> railLayer;
+
+		public BSRailSignalBaseEntity(JSONObject json) {
+			super(json);
+
+			railLayer = BSUtils.optString(json, "rail_layer");
+		}
+	}
 
 	public static class FPRailSignalPictureSet {
 		public final FPRotatedAnimation structure;
@@ -54,7 +68,8 @@ public abstract class RailSignalBaseRendering extends EntityRendererFactory {
 	// TODO circuit connectors
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSEntity entity) {
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
+			BSRailSignalBaseEntity entity) {
 
 		boolean elevated = entity.railLayer.filter(s -> s.equals("elevated")).isPresent();
 		FPRailSignalPictureSet pictureSet = elevated ? elevatedPictureSet : groundPictureSet;

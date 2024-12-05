@@ -6,7 +6,7 @@ import com.demod.factorio.DataTable;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.bs.BSEntity;
 
-public class OffshorePumpRendering extends SimpleEntityRendering {
+public class OffshorePumpRendering extends SimpleEntityRendering<BSEntity> {
 	@Override
 	public void defineEntity(Bindings bind, LuaValue lua) {
 		bind.animation4Way(lua.get("graphics_set").get("animation"));

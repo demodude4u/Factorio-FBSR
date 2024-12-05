@@ -3,30 +3,48 @@ package com.demod.fbsr.entity;
 import java.awt.Color;
 import java.awt.geom.Point2D;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Consumer;
 
+import org.json.JSONObject;
 import org.luaj.vm2.LuaValue;
 
 import com.demod.factorio.DataTable;
 import com.demod.factorio.Utils;
 import com.demod.factorio.prototype.EntityPrototype;
+import com.demod.fbsr.BSUtils;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
 import com.demod.fbsr.Sprite;
 import com.demod.fbsr.WorldMap;
+import com.demod.fbsr.bs.BSColor;
 import com.demod.fbsr.bs.BSEntity;
+import com.demod.fbsr.entity.TrainStopRendering.BSTrainStopEntity;
 import com.demod.fbsr.fp.FPAnimation4Way;
 
-public class TrainStopRendering extends SimpleEntityRendering {
+public class TrainStopRendering extends SimpleEntityRendering<BSTrainStopEntity> {
+
+	public static class BSTrainStopEntity extends BSEntity {
+		public final Optional<BSColor> color;
+		public final Optional<String> station;
+
+		public BSTrainStopEntity(JSONObject json) {
+			super(json);
+
+			color = BSUtils.opt(json, "color", BSColor::new);
+			station = BSUtils.optString(json, "station");
+		}
+	}
 
 	private FPAnimation4Way protoRailOverlayAnimations;
 	private FPAnimation4Way protoAnimations;
 	private FPAnimation4Way protoTopAnimations;
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSEntity entity) {
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
+			BSTrainStopEntity entity) {
 		super.createRenderers(register, map, dataTable, entity);
 
 		Color color;
@@ -48,8 +66,8 @@ public class TrainStopRendering extends SimpleEntityRendering {
 
 		if (entity.station.isPresent()) {
 			String stationName = entity.station.get();
-			register.accept(
-					RenderUtils.drawString(Layer.ENTITY_INFO_TEXT, entity.position.createPoint(), Color.white, stationName));
+			register.accept(RenderUtils.drawString(Layer.ENTITY_INFO_TEXT, entity.position.createPoint(), Color.white,
+					stationName));
 		}
 	}
 
@@ -68,7 +86,7 @@ public class TrainStopRendering extends SimpleEntityRendering {
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BSEntity entity) {
+	public void populateWorldMap(WorldMap map, DataTable dataTable, BSTrainStopEntity entity) {
 		Point2D.Double pos = entity.position.createPoint();
 		Direction dir = entity.direction;
 

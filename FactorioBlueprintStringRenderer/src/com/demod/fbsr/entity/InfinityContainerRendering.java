@@ -11,9 +11,12 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+import org.json.JSONObject;
+
 import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
 import com.demod.factorio.prototype.ItemPrototype;
+import com.demod.fbsr.BSUtils;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.RenderUtils;
@@ -21,10 +24,23 @@ import com.demod.fbsr.Renderer;
 import com.demod.fbsr.Sprite;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.bs.BSEntity;
+import com.demod.fbsr.bs.BSInfinitySettings;
+import com.demod.fbsr.entity.InfinityContainerRendering.BSInfinityContainerEntity;
 
-public class InfinityContainerRendering extends ContainerRendering {
+public class InfinityContainerRendering extends ContainerRendering<BSInfinityContainerEntity> {
+	public static class BSInfinityContainerEntity extends BSEntity {
+		public final Optional<BSInfinitySettings> infinitySettings;
+
+		public BSInfinityContainerEntity(JSONObject json) {
+			super(json);
+
+			infinitySettings = BSUtils.opt(json, "infinity_settings", BSInfinitySettings::new);
+		}
+	}
+
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSEntity entity) {
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
+			BSInfinityContainerEntity entity) {
 		super.createRenderers(register, map, dataTable, entity);
 
 		if (entity.infinitySettings.isPresent()) {
@@ -56,7 +72,7 @@ public class InfinityContainerRendering extends ContainerRendering {
 	}
 
 	@Override
-	public void populateLogistics(WorldMap map, DataTable dataTable, BSEntity entity) {
+	public void populateLogistics(WorldMap map, DataTable dataTable, BSInfinityContainerEntity entity) {
 		Point2D.Double pos = entity.position.createPoint();
 
 		if (entity.infinitySettings.isPresent()) {

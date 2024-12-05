@@ -18,7 +18,7 @@ import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.fp.FPAnimation;
 import com.google.common.collect.ImmutableList;
 
-public class BoilerRendering extends EntityRendererFactory {
+public class BoilerRendering extends EntityRendererFactory<BSEntity> {
 
 	public static class FPBoilerPictures {
 		public final FPAnimation structure;

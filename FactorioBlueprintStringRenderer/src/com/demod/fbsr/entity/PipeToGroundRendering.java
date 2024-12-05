@@ -6,7 +6,7 @@ import com.demod.factorio.DataTable;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.bs.BSEntity;
 
-public class PipeToGroundRendering extends SimpleEntityRendering {
+public class PipeToGroundRendering extends SimpleEntityRendering<BSEntity> {
 	@Override
 	public void defineEntity(Bindings bind, LuaValue lua) {
 		bind.sprite4Way(lua.get("pictures"));

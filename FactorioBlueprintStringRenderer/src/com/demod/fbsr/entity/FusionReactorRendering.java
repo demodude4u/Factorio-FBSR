@@ -2,7 +2,9 @@ package com.demod.fbsr.entity;
 
 import org.luaj.vm2.LuaValue;
 
-public class FusionReactorRendering extends SimpleEntityRendering {
+import com.demod.fbsr.bs.BSEntity;
+
+public class FusionReactorRendering extends SimpleEntityRendering<BSEntity> {
 
 	@Override
 	public void defineEntity(Bindings bind, LuaValue lua) {

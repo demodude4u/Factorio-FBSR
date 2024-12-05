@@ -8,7 +8,7 @@ import com.demod.factorio.DataTable;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.bs.BSEntity;
 
-public class StorageTankRendering extends SimpleEntityRendering {
+public class StorageTankRendering extends SimpleEntityRendering<BSEntity> {
 
 	public static final int[][][] storageTankPipes = //
 			new int[/* NESW */][/* Points */][/* XY */] { //

@@ -2,7 +2,9 @@ package com.demod.fbsr.entity;
 
 import org.luaj.vm2.LuaValue;
 
-public class ProgrammableSpeakerRendering extends SimpleEntityRendering {
+import com.demod.fbsr.bs.BSEntity;
+
+public class ProgrammableSpeakerRendering extends SimpleEntityRendering<BSEntity> {
 	@Override
 	public void defineEntity(Bindings bind, LuaValue lua) {
 		bind.sprite(lua.get("sprite"));

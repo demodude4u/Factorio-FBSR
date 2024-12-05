@@ -17,7 +17,7 @@ import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.fp.FPSprite;
 
-public class PipeRendering extends EntityRendererFactory {
+public class PipeRendering extends EntityRendererFactory<BSEntity> {
 
 	public static final String[] pipeSpriteNameMapping = //
 			new String[/* bits WSEN */] { //

@@ -6,14 +6,28 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.json.JSONObject;
 import org.luaj.vm2.LuaValue;
 
 import com.demod.factorio.DataTable;
+import com.demod.fbsr.BSUtils;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.bs.BSEntity;
+import com.demod.fbsr.bs.BSEntityRequestFilters;
+import com.demod.fbsr.entity.LogisticContainerRendering.BSLogisticContainerEntity;
 
-public class LogisticContainerRendering extends ContainerRendering {
+public class LogisticContainerRendering extends ContainerRendering<BSLogisticContainerEntity> {
+
+	public static class BSLogisticContainerEntity extends BSEntity {
+		public final Optional<BSEntityRequestFilters> requestFilters;
+
+		public BSLogisticContainerEntity(JSONObject json) {
+			super(json);
+
+			requestFilters = BSUtils.opt(json, "request_filters", BSEntityRequestFilters::new);
+		}
+	}
 
 	@Override
 	public void defineEntity(Bindings bind, LuaValue lua) {
@@ -23,7 +37,7 @@ public class LogisticContainerRendering extends ContainerRendering {
 	}
 
 	@Override
-	public void populateLogistics(WorldMap map, DataTable dataTable, BSEntity entity) {
+	public void populateLogistics(WorldMap map, DataTable dataTable, BSLogisticContainerEntity entity) {
 		Point2D.Double pos = entity.position.createPoint();
 
 		if (entity.requestFilters.isPresent()) {

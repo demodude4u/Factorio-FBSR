@@ -24,7 +24,7 @@ import com.demod.fbsr.bs.BSPosition;
 import com.demod.fbsr.fp.FPRotatedSprite;
 import com.demod.fbsr.fp.FPWireConnectionPoint;
 
-public class ElectricPoleRendering extends EntityRendererFactory {
+public class ElectricPoleRendering extends EntityRendererFactory<BSEntity> {
 
 	private FPRotatedSprite protoPictures;
 

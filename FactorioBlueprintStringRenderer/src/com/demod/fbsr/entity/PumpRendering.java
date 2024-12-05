@@ -9,7 +9,7 @@ import com.demod.fbsr.Direction;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.bs.BSEntity;
 
-public class PumpRendering extends SimpleEntityRendering {
+public class PumpRendering extends SimpleEntityRendering<BSEntity> {
 	@Override
 	public void defineEntity(Bindings bind, LuaValue lua) {
 		bind.animation4Way(lua.get("animations"));

@@ -15,7 +15,7 @@ import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.fp.FPSpriteVariations;
 
-public class HeatPipeRendering extends EntityRendererFactory {
+public class HeatPipeRendering extends EntityRendererFactory<BSEntity> {
 
 	public static final String[] heatPipeSpriteNameMapping = //
 			new String[/* bits WSEN */] { //

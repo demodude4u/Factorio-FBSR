@@ -2,7 +2,9 @@ package com.demod.fbsr.entity;
 
 import org.luaj.vm2.LuaValue;
 
-public class ContainerRendering extends SimpleEntityRendering {
+import com.demod.fbsr.bs.BSEntity;
+
+public class ContainerRendering<E extends BSEntity> extends SimpleEntityRendering<E> {
 	@Override
 	public void defineEntity(Bindings bind, LuaValue lua) {
 		LuaValue luaPicture = lua.get("picture");

@@ -4,8 +4,9 @@ import org.luaj.vm2.LuaValue;
 import org.luaj.vm2.Varargs;
 
 import com.demod.factorio.Utils;
+import com.demod.fbsr.bs.BSEntity;
 
-public abstract class TurretRendering extends SimpleEntityRendering {
+public abstract class TurretRendering extends SimpleEntityRendering<BSEntity> {
 
 	private boolean checkState(LuaValue lua, String flag) {
 		if (lua.isnil()) {

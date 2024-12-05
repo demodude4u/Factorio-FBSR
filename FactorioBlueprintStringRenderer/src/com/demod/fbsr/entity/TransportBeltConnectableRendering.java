@@ -10,9 +10,10 @@ import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.Sprite;
 import com.demod.fbsr.WorldMap.BeltBend;
+import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.fp.FPRotatedAnimation;
 
-public abstract class TransportBeltConnectableRendering extends EntityRendererFactory {
+public abstract class TransportBeltConnectableRendering<E extends BSEntity> extends EntityRendererFactory<E> {
 
 	public static final String[][] indexNames = //
 			new String[/* Cardinal */][/* Bend */] { //

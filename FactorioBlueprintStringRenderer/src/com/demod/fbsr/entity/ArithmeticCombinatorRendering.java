@@ -15,21 +15,25 @@ import com.demod.fbsr.entity.ArithmeticCombinatorRendering.BSArithmeticCombinato
 public class ArithmeticCombinatorRendering extends CombinatorRendering<BSArithmeticCombinatorEntity> {
 
 	public static class BSArithmeticCombinatorEntity extends BSEntity {
-		public final Optional<BSArithmeticCondition> conditions;
+		public final Optional<String> playerDescription;
+		public final Optional<BSArithmeticConditions> arithmeticConditions;
 
 		public BSArithmeticCombinatorEntity(JSONObject json) {
 			super(json);
 
+			playerDescription = BSUtils.optString(json, "player_description");
+
 			if (json.has("control_behavior")) {
 				JSONObject jsonControlBehavior = json.getJSONObject("control_behavior");
-				conditions = BSUtils.opt(jsonControlBehavior, "arithmetic_conditions", BSArithmeticCondition::new);
+				arithmeticConditions = BSUtils.opt(jsonControlBehavior, "arithmetic_conditions",
+						BSArithmeticConditions::new);
 			} else {
-				conditions = Optional.empty();
+				arithmeticConditions = Optional.empty();
 			}
 		}
 	}
 
-	public static class BSArithmeticCondition {
+	public static class BSArithmeticConditions {
 		public final Optional<BSSignalID> firstSignal;
 		public final Optional<BSSignalID> secondSignal;
 		public final OptionalDouble firstConstant;
@@ -39,7 +43,7 @@ public class ArithmeticCombinatorRendering extends CombinatorRendering<BSArithme
 		public final Optional<BSNetworkPorts> firstSignalNetworks;
 		public final Optional<BSNetworkPorts> secondSignalNetworks;
 
-		public BSArithmeticCondition(JSONObject json) {
+		public BSArithmeticConditions(JSONObject json) {
 			firstSignal = BSUtils.opt(json, "first_signal", BSSignalID::new);
 			secondSignal = BSUtils.opt(json, "second_signal", BSSignalID::new);
 			// TODO check if this should be int or double
@@ -70,12 +74,6 @@ public class ArithmeticCombinatorRendering extends CombinatorRendering<BSArithme
 
 	@Override
 	public Optional<String> getOperation(BSArithmeticCombinatorEntity entity) {
-		return entity.conditions.map(bs -> bs.operation);
+		return entity.arithmeticConditions.map(bs -> bs.operation);
 	}
-
-	@Override
-	public BSArithmeticCombinatorEntity parseEntity(JSONObject json) throws Exception {
-		return new BSArithmeticCombinatorEntity(json);
-	}
-
 }

@@ -12,7 +12,7 @@ import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.fp.FPAnimation;
 
-public class GateRendering extends EntityRendererFactory {
+public class GateRendering extends EntityRendererFactory<BSEntity> {
 
 	private FPAnimation protoVerticalAnimation;
 	private FPAnimation protoHorizontalAnimation;
