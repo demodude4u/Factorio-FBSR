@@ -64,9 +64,9 @@ import com.google.common.collect.Table;
 
 public class FBSR {
 
-	public static class EntityRenderingTuple {
-		public BSEntity entity;
-		public EntityRendererFactory factory;
+	public static class EntityRenderingTuple<E extends BSEntity> {
+		public E entity;
+		public EntityRendererFactory<E> factory;
 	}
 
 	public static class RenderResult {
@@ -872,6 +872,8 @@ public class FBSR {
 		return renderBlueprint(blueprint, reporting, new JSONObject());
 	}
 
+	// FIXME the generic type checking is all screwed up
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	public static RenderResult renderBlueprint(BSBlueprint blueprint, CommandReporting reporting, JSONObject options)
 			throws JSONException, IOException {
 
@@ -949,12 +951,13 @@ public class FBSR {
 		populateRailStationLogistics(map);
 
 		List<Renderer> renderers = new ArrayList<>();
+		Consumer register = r -> renderers.add((Renderer) r);
 
 		TileRendererFactory.createAllRenderers(renderers::add, tileRenderingTuples);
 
 		tileRenderingTuples.forEach(t -> {
 			try {
-				t.factory.createRenderers(renderers::add, map, table, t.tile);
+				t.factory.createRenderers(register, map, table, t.tile);
 			} catch (Exception e) {
 				reporting.addException(e, t.factory.getClass().getSimpleName() + ", " + t.tile.name);
 			}
@@ -962,7 +965,7 @@ public class FBSR {
 
 		entityRenderingTuples.forEach(t -> {
 			try {
-				t.factory.createRenderers(renderers::add, map, table, t.entity);
+				t.factory.createRenderers(register, map, table, t.entity);
 			} catch (Exception e) {
 				reporting.addException(e, t.factory.getClass().getSimpleName() + ", " + t.entity.name);
 			}
@@ -970,7 +973,7 @@ public class FBSR {
 
 		entityRenderingTuples.forEach(t -> {
 			try {
-				t.factory.createModuleIcons(renderers::add, map, table, t.entity);
+				t.factory.createModuleIcons(register, map, table, t.entity);
 			} catch (Exception e) {
 				reporting.addException(e, t.factory.getClass().getSimpleName() + ", " + t.entity.name);
 			}
@@ -991,7 +994,7 @@ public class FBSR {
 				}
 			}).mapToObj(entityByNumber::get).collect(Collectors.toList());
 
-			double orientation = tuple.factory.initWireConnector(renderers::add, tuple.entity, wired);
+			double orientation = tuple.factory.initWireConnector(register, tuple.entity, wired);
 			connectorOrientations.put(entityNumber, orientation);
 		}
 
@@ -1003,9 +1006,9 @@ public class FBSR {
 				double orientation1 = connectorOrientations.get(wire.firstEntityNumber);
 				double orientation2 = connectorOrientations.get(wire.secondEntityNumber);
 
-				Optional<WirePoint> firstPoint = first.factory.createWirePoint(renderers::add,
+				Optional<WirePoint> firstPoint = first.factory.createWirePoint(register,
 						first.entity.position.createPoint(), orientation1, wire.firstWireConnectorId);
-				Optional<WirePoint> secondPoint = second.factory.createWirePoint(renderers::add,
+				Optional<WirePoint> secondPoint = second.factory.createWirePoint(register,
 						second.entity.position.createPoint(), orientation2, wire.secondWireConnectorId);
 
 				if (!firstPoint.isPresent() || !secondPoint.isPresent()) {
