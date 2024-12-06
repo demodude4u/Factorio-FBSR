@@ -1,5 +1,6 @@
 package com.demod.fbsr.bs;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.OptionalDouble;
 
@@ -11,7 +12,6 @@ import com.demod.fbsr.Direction;
 public class BSEntity {
 	private final JSONObject json;
 	private Optional<Exception> parseException = Optional.empty();
-	private Object parsedRaw = null;
 
 	// TODO change this to load dynamically the structure that matches the prototype
 	// (some things like "filter" are used with different structures)
@@ -24,11 +24,12 @@ public class BSEntity {
 	public final int directionRaw;
 	public final OptionalDouble orientation;
 
+	public final List<BSItemStack> items;
+
 //	public final Optional<ItemQuality> recipeQuality;
 //	public final Optional<String> filterMode;
 //	public final OptionalInt overrideStackSize;
 //	public final OptionalInt bar;
-//	public final List<BSItemStack> items;
 //	public final OptionalInt transitionalRequestIndex;
 //	public final Optional<BSSignalID> icon;
 //	public final boolean alwaysShow;
@@ -47,12 +48,14 @@ public class BSEntity {
 		directionRaw = json.optInt("direction");
 		orientation = BSUtils.optDouble(json, "orientation");
 
+		// TODO migrate into entity subclasses once figured out
+		items = BSUtils.list(json, "items", BSItemStack::new);
+
 //		recipeQuality = BSUtils.optQuality(json, "recipe_quality");
 //		requestFilters = BSUtils.opt(json, "request_filters", BSEntityRequestFilters::new);
 //		filterMode = BSUtils.optString(json, "filter_mode");
 //		overrideStackSize = BSUtils.optInt(json, "override_stack_size");
 //		bar = BSUtils.optInt(json, "bar");
-//		items = BSUtils.list(json, "items", BSItemStack::new);
 //		transitionalRequestIndex = BSUtils.optInt(json, "transitional_request_index");
 //		icon = BSUtils.opt(json, "icon", BSSignalID::new);
 //		alwaysShow = json.optBoolean("always_show");
@@ -71,17 +74,8 @@ public class BSEntity {
 		return json;
 	}
 
-	@SuppressWarnings("unchecked")
-	public <T> T getParsed() {
-		return (T) parsedRaw;
-	}
-
 	public Optional<Exception> getParseException() {
 		return parseException;
-	}
-
-	public void setParsed(Object parsed) {
-		this.parsedRaw = parsed;
 	}
 
 	public void setParseException(Optional<Exception> parseException) {

@@ -83,4 +83,5 @@ public class BeaconRendering extends EntityRendererFactory<BSEntity> {
 			}
 		}
 	}
+
 }

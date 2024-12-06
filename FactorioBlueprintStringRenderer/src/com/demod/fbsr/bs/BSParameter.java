@@ -8,7 +8,7 @@ import com.demod.fbsr.BSUtils;
 
 public class BSParameter {
 	public final String type;
-	public final String name;
+	public final Optional<String> name;
 	public final int id;
 	public final String number;
 	public final Optional<String> variable;
@@ -20,7 +20,7 @@ public class BSParameter {
 
 	public BSParameter(JSONObject json) {
 		type = json.getString("type");
-		name = json.getString("name");
+		name = BSUtils.optString(json, "name");
 		id = json.optInt("id");
 		number = json.optString("number");
 		variable = BSUtils.optString(json, "variable");

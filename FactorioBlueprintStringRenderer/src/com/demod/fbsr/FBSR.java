@@ -892,8 +892,7 @@ public class FBSR {
 			tuple.entity = entity;
 			tuple.factory = EntityRendererFactory.forName(entity.name);
 			try {
-				Object parsed = tuple.factory.parseEntity(entity.getJson());
-				tuple.entity.setParsed(parsed);
+				tuple.entity = tuple.factory.parseEntity(entity.getJson());
 			} catch (Exception e) {
 				tuple.entity.setParseException(Optional.of(e));
 			}
