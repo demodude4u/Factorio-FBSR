@@ -43,14 +43,15 @@ import com.demod.fbsr.entity.ArtilleryTurretRendering;
 import com.demod.fbsr.entity.ArtilleryWagonRendering;
 import com.demod.fbsr.entity.AssemblingMachineRendering;
 import com.demod.fbsr.entity.AsteroidCollectorRendering;
+import com.demod.fbsr.entity.BasicContainerRendering;
 import com.demod.fbsr.entity.BeaconRendering;
 import com.demod.fbsr.entity.BoilerRendering;
 import com.demod.fbsr.entity.BurnerGeneratorRendering;
 import com.demod.fbsr.entity.CargoBayRendering;
 import com.demod.fbsr.entity.ConstantCombinatorRendering;
-import com.demod.fbsr.entity.ContainerRendering;
 import com.demod.fbsr.entity.CurvedRailRendering;
 import com.demod.fbsr.entity.DeciderCombinatorRendering;
+import com.demod.fbsr.entity.DisplayPanelRendering;
 import com.demod.fbsr.entity.ElectricEnergyInterfaceRendering;
 import com.demod.fbsr.entity.ElectricPoleRendering;
 import com.demod.fbsr.entity.ElectricTurretRendering;
@@ -93,6 +94,7 @@ import com.demod.fbsr.entity.ReactorRendering;
 import com.demod.fbsr.entity.RoboportRendering;
 import com.demod.fbsr.entity.RocketSiloRendering;
 import com.demod.fbsr.entity.RollingStockRendering;
+import com.demod.fbsr.entity.SelectorCombinatorRendering;
 import com.demod.fbsr.entity.SolarPanelRendering;
 import com.demod.fbsr.entity.SpacePlatformHubRendering;
 import com.demod.fbsr.entity.SplitterRendering;
@@ -182,6 +184,7 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 		byName.put("assembling-machine-3", new AssemblingMachineRendering());
 		byName.put("centrifuge", new AssemblingMachineRendering());
 		byName.put("chemical-plant", new AssemblingMachineRendering());
+		byName.put("biochamber", new AssemblingMachineRendering());
 		byName.put("crusher", new AssemblingMachineRendering());
 		byName.put("oil-refinery", new AssemblingMachineRendering());
 		byName.put("asteroid-collector", new AsteroidCollectorRendering());
@@ -194,13 +197,14 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 		byName.put("gun-turret", new AmmoTurretRendering());
 		byName.put("rocket-turret", new AmmoTurretRendering());
 		byName.put("cargo-bay", new CargoBayRendering());
-		byName.put("iron-chest", new ContainerRendering<BSEntity>());
-		byName.put("steel-chest", new ContainerRendering<BSEntity>());
-		byName.put("wooden-chest", new ContainerRendering<BSEntity>());
+		byName.put("iron-chest", new BasicContainerRendering());
+		byName.put("steel-chest", new BasicContainerRendering());
+		byName.put("wooden-chest", new BasicContainerRendering());
 		byName.put("curved-rail-a", new CurvedRailRendering());
 		byName.put("curved-rail-b", new CurvedRailRendering());
 		byName.put("legacy-curved-rail", new LegacyCurvedRailRendering());
 		byName.put("decider-combinator", new DeciderCombinatorRendering());
+		byName.put("display-panel", new DisplayPanelRendering());
 		byName.put("electric-energy-interface", new ElectricEnergyInterfaceRendering());
 		byName.put("big-electric-pole", new ElectricPoleRendering());
 		byName.put("medium-electric-pole", new ElectricPoleRendering());
@@ -214,6 +218,7 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 		byName.put("flamethrower-turret", new FluidTurretRendering());
 		byName.put("fluid-wagon", new RollingStockRendering());
 		byName.put("electric-furnace", new FurnaceRendering());
+		byName.put("recycler", new FurnaceRendering());
 		byName.put("steel-furnace", new FurnaceRendering());
 		byName.put("stone-furnace", new FurnaceRendering());
 		byName.put("fusion-reactor", new FusionReactorRendering());
@@ -264,6 +269,7 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 		byName.put("nuclear-reactor", new ReactorRendering());
 		byName.put("roboport", new RoboportRendering());
 		byName.put("rocket-silo", new RocketSiloRendering());
+		byName.put("selector-combinator", new SelectorCombinatorRendering());
 		byName.put("solar-panel", new SolarPanelRendering());
 		byName.put("space-platform-hub", new SpacePlatformHubRendering());
 		byName.put("turbo-splitter", new SplitterRendering());
@@ -501,7 +507,7 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 			} else if (type instanceof ParameterizedType) {
 				entityClass = (Class<E>) ((ParameterizedType) type).getRawType();
 			} else {
-				throw new RuntimeException("Unable to determine entity class");
+				throw new RuntimeException("Unable to determine entity class for " + this.getClass().getSimpleName());
 			}
 		}
 	}
