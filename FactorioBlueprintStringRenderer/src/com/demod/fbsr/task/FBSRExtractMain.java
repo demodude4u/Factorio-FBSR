@@ -1,8 +1,6 @@
 package com.demod.fbsr.task;
 
-import java.awt.Desktop;
-import java.io.File;
-import java.io.PrintStream;
+import org.luaj.vm2.LuaValue;
 
 import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
@@ -14,10 +12,15 @@ public class FBSRExtractMain {
 	public static void main(String[] args) throws Exception {
 		DataTable table = FactorioData.getTable();
 
-		try (PrintStream ps = new PrintStream("proto.txt")) {
-			Utils.debugPrintLua(table.getTile("stone-path").get().lua(), ps);
-		}
-		Desktop.getDesktop().edit(new File("proto.txt"));
+		LuaValue luaVirtualSignal = table.getRaw("virtual-signal").get();
+		Utils.forEach(luaVirtualSignal, (k, v) -> {
+			System.out.println(k.tojstring() + " -- " + v.get("icon").tojstring());
+		});
+
+//		try (PrintStream ps = new PrintStream("proto.txt")) {
+//			Utils.debugPrintLua(table.getTile("stone-path").get().lua(), ps);
+//		}
+//		Desktop.getDesktop().edit(new File("proto.txt"));
 
 //		table.getTiles().entrySet().stream()
 //				.collect(Collectors.groupingBy(e -> e.getValue().lua().get("layer").checkint())).entrySet().stream()

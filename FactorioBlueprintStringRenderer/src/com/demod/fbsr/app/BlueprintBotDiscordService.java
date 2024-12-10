@@ -31,7 +31,6 @@ import com.demod.dcba.CommandReporting;
 import com.demod.dcba.DCBA;
 import com.demod.dcba.DiscordBot;
 import com.demod.dcba.EventReply;
-import com.demod.dcba.MessageCommandEvent;
 import com.demod.dcba.SlashCommandEvent;
 import com.demod.dcba.SlashCommandHandler;
 import com.demod.factorio.Config;
@@ -283,28 +282,6 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		}
 	}
 
-	private void handleBlueprintMessageCommand(MessageCommandEvent event) throws IOException {
-		String content = event.getMessage().getContentDisplay();
-
-		for (Attachment attachment : event.getMessage().getAttachments()) {
-			content += " " + attachment.getUrl();
-		}
-
-		JSONObject options = new JSONObject();
-		findDebugOptions(event.getReporting(), content, options);
-
-		List<BlueprintStringData> blueprintStringDatas = BlueprintFinder.search(content, event.getReporting());
-		List<EmbedBuilder> embedBuilders = processBlueprints(blueprintStringDatas, event.getReporting(), options);
-
-		embedBuilders.get(0).setAuthor(event.getMessage().getAuthor().getName(), event.getMessage().getJumpUrl(),
-				event.getMessage().getAuthor().getEffectiveAvatarUrl());
-
-		List<MessageEmbed> embeds = embedBuilders.stream().map(EmbedBuilder::build).collect(Collectors.toList());
-		for (MessageEmbed embed : embeds) {
-			event.replyEmbed(embed);
-		}
-	}
-
 	private void handleBlueprintSlashCommand(SlashCommandEvent event) throws IOException {
 		String content = event.getCommandString();
 
@@ -519,18 +496,12 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 						Permission.MESSAGE_HISTORY, //
 						Permission.MESSAGE_ADD_REACTION,//
 				})//
-				.withCustomField("Need old !blueprint commands?",
-						"[BlueprintBot Legacy Invite Link](https://discord.com/oauth2/authorize?scope=bot&client_id=958469202824552498&permissions=379968)")//
-				//
-				.addMessageCommand("Blueprint Image", event -> handleBlueprintMessageCommand(event))
-				//
 				.addSlashCommand("bp/string", "Renders an image of the blueprint string.",
 						event -> handleBlueprintSlashCommand(event))//
 				.withParam(OptionType.STRING, "string", "Blueprint string.")//
 				.withOptionalParam(OptionType.BOOLEAN, "simple", "Set True to show just the image, no side panels.")
 				.withOptionalParam(OptionType.INTEGER, "max-width", "Maximum width of image, in pixels.")
 				.withOptionalParam(OptionType.INTEGER, "max-height", "Maximum height of image, in pixels.")
-				.withLegacyWarning("blueprint", "bp")//
 				//
 				.addSlashCommand("bp/url", "Renders an image of the blueprint url.",
 						event -> handleBlueprintSlashCommand(event))//
@@ -552,7 +523,6 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				.withOptionalParam(OptionType.BOOLEAN, "simple", "Set True to show just the image, no side panels.")
 				.withOptionalParam(OptionType.INTEGER, "max-width", "Maximum width of image, in pixels.")
 				.withOptionalParam(OptionType.INTEGER, "max-height", "Maximum height of image, in pixels.")
-				.withLegacyWarning("blueprint", "bp")//
 				//
 				.addSlashCommand("blueprint/url", "Renders an image of the blueprint url.",
 						event -> handleBlueprintSlashCommand(event))//
@@ -573,21 +543,18 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				.withOptionalParam(OptionType.STRING, "string", "Blueprint string.")//
 				.withOptionalParam(OptionType.STRING, "url", "Url containing blueprint string.")//
 				.withOptionalParam(OptionType.ATTACHMENT, "file", "File containing blueprint string.")//
-				.withLegacyWarning("blueprintJSON")//
 				//
 				.addSlashCommand("items", "Prints out all of the items needed by the blueprint.",
 						event -> handleBlueprintItemsCommand(event))//
 				.withOptionalParam(OptionType.STRING, "string", "Blueprint string.")//
 				.withOptionalParam(OptionType.STRING, "url", "Url containing blueprint string.")//
 				.withOptionalParam(OptionType.ATTACHMENT, "file", "File containing blueprint string.")//
-				.withLegacyWarning("blueprintItems", "bpItems")//
 				//
 				.addSlashCommand("raw/items", "Prints out all of the raw items needed by the blueprint.",
 						event -> handleBlueprintItemsRawCommand(event))//
 				.withOptionalParam(OptionType.STRING, "string", "Blueprint string.")//
 				.withOptionalParam(OptionType.STRING, "url", "Url containing blueprint string.")//
 				.withOptionalParam(OptionType.ATTACHMENT, "file", "File containing blueprint string.")//
-				.withLegacyWarning("blueprintRawItems", "bpRawItems")//
 				//
 				.addSlashCommand("counts",
 						"Prints out the total counts of entities, items and tiles needed by the blueprint.",
@@ -595,56 +562,47 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				.withOptionalParam(OptionType.STRING, "string", "Blueprint string.")//
 				.withOptionalParam(OptionType.STRING, "url", "Url containing blueprint string.")//
 				.withOptionalParam(OptionType.ATTACHMENT, "file", "File containing blueprint string.")//
-				.withLegacyWarning("blueprintCounts", "bpCounts")//
 				//
 				//
 				.addSlashCommand("prototype/entity", "Lua data for the specified entity prototype.",
 						createPrototypeCommandHandler("entity", table.getEntities()),
 						createPrototypeAutoCompleteHandler(table.getEntities()))//
 				.withAutoParam(OptionType.STRING, "name", "Prototype name of the entity.")//
-				.withLegacyWarning("prototypeEntity")//
 				//
 				.addSlashCommand("prototype/recipe", "Lua data for the specified recipe prototype.",
 						createPrototypeCommandHandler("recipe", table.getRecipes()),
 						createPrototypeAutoCompleteHandler(table.getRecipes()))//
 				.withAutoParam(OptionType.STRING, "name", "Prototype name of the recipe.")//
-				.withLegacyWarning("prototypeRecipe")//
 				//
 				.addSlashCommand("prototype/fluid", "Lua data for the specified fluid prototype.",
 						createPrototypeCommandHandler("fluid", table.getFluids()),
 						createPrototypeAutoCompleteHandler(table.getFluids()))//
 				.withAutoParam(OptionType.STRING, "name", "Prototype name of the fluid.")//
-				.withLegacyWarning("prototypeFluid")//
 				//
 				.addSlashCommand("prototype/item", "Lua data for the specified item prototype.",
 						createPrototypeCommandHandler("item", table.getItems()),
 						createPrototypeAutoCompleteHandler(table.getItems()))//
 				.withAutoParam(OptionType.STRING, "name", "Prototype name of the item.")//
-				.withLegacyWarning("prototypeItem")//
 				//
 				.addSlashCommand("prototype/technology", "Lua data for the specified technology prototype.",
 						createPrototypeCommandHandler("technology", table.getTechnologies()),
 						createPrototypeAutoCompleteHandler(table.getTechnologies()))//
 				.withAutoParam(OptionType.STRING, "name", "Prototype name of the technology.")//
-				.withLegacyWarning("prototypeTechnology")//
 				//
 				.addSlashCommand("prototype/equipment", "Lua data for the specified equipment prototype.",
 						createPrototypeCommandHandler("equipment", table.getEquipments()),
 						createPrototypeAutoCompleteHandler(table.getEquipments()))//
 				.withAutoParam(OptionType.STRING, "name", "Prototype name of the equipment.")//
-				.withLegacyWarning("prototypeEquipment")//
 				//
 				.addSlashCommand("prototype/tile", "Lua data for the specified tile prototype.",
 						createPrototypeCommandHandler("tile", table.getTiles()),
 						createPrototypeAutoCompleteHandler(table.getTiles()))//
 				.withAutoParam(OptionType.STRING, "name", "Prototype name of the tile.")//
-				.withLegacyWarning("prototypeTile")//
 				//
 				//
 				.addSlashCommand("data/raw", "Lua from `data.raw` for the specified key.",
 						createDataRawCommandHandler(table::getRaw))//
 				.withParam(OptionType.STRING, "path", "Path to identify which key.")//
-				.withLegacyWarning("dataRaw")//
 				//
 				//
 				.withCustomSetup(builder -> {
