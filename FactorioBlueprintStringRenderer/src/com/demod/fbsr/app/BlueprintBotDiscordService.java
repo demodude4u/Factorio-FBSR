@@ -39,13 +39,13 @@ import com.demod.factorio.FactorioData;
 import com.demod.factorio.Utils;
 import com.demod.factorio.prototype.DataPrototype;
 import com.demod.fbsr.BlueprintFinder;
-import com.demod.fbsr.BlueprintStringData;
 import com.demod.fbsr.FBSR;
 import com.demod.fbsr.FBSR.RenderResult;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.WebUtils;
 import com.demod.fbsr.app.WatchdogService.WatchdogReporter;
 import com.demod.fbsr.bs.BSBlueprint;
+import com.demod.fbsr.bs.BSBlueprintString;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.AbstractIdleService;
 
@@ -169,7 +169,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			content += " " + attachment.get().getUrl();
 		}
 
-		List<BlueprintStringData> blueprintStringDatas = BlueprintFinder.search(content, event.getReporting());
+		List<BSBlueprintString> blueprintStringDatas = BlueprintFinder.search(content, event.getReporting());
 
 		Map<String, Double> totalItems = new LinkedHashMap<>();
 		for (BlueprintStringData blueprintStringData : blueprintStringDatas) {
@@ -191,7 +191,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			if (response.length() < 2000) {
 				event.reply(response);
 			} else {
-				event.replyFile(responseContent.getBytes(), "items.txt");
+				event.replyFile(responseContent, "items.txt");
 			}
 		} else if (blueprintStringDatas.stream().anyMatch(d -> !d.getBlueprints().isEmpty())) {
 			event.replyIfNoException("I couldn't find any items!");
@@ -238,7 +238,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			if (response.length() < 2000) {
 				event.reply(response);
 			} else {
-				event.replyFile(responseContent.getBytes(), "raw-items.txt");
+				event.replyFile(responseContent, "raw-items.txt");
 			}
 		} else if (blueprintStringDatas.stream().anyMatch(d -> !d.getBlueprints().isEmpty())) {
 			event.replyIfNoException("I couldn't find any items!");
@@ -257,9 +257,9 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 		List<String> results = BlueprintFinder.searchRaw(content, event.getReporting());
 		if (!results.isEmpty()) {
-			byte[] bytes = BlueprintStringData.decode(results.get(0)).toString(2).getBytes();
 			if (results.size() == 1) {
-				event.replyFile(bytes, "blueprint.json");
+				String bs = BlueprintStringData.decode(results.get(0)).toString(2);
+				event.replyFile(bs, "blueprint.json");
 			} else {
 				try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
 						ZipOutputStream zos = new ZipOutputStream(baos)) {
@@ -296,8 +296,98 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		event.optParamLong("max-width").ifPresent(l -> options.put("max-width", l.intValue()));
 		event.optParamLong("max-height").ifPresent(l -> options.put("max-height", l.intValue()));
 
-		List<BlueprintStringData> blueprintStringDatas = BlueprintFinder.search(content, event.getReporting());
-		List<EmbedBuilder> embedBuilders = processBlueprints(blueprintStringDatas, event.getReporting(), options);
+		CommandReporting reporting = event.getReporting();
+		Optional<BlueprintStringData> optBlueprintStringData = BlueprintFinder.search(content, reporting).stream()
+				.findFirst();
+		List<BSBlueprint> blueprints = optBlueprintStringData.stream().flatMap(bsd -> bsd.getBlueprints().stream())
+				.collect(Collectors.toList());
+
+		List<Entry<Optional<String>, BufferedImage>> images = new ArrayList<>();
+		List<Long> renderTimes = new ArrayList<>();
+
+		for (BlueprintStringData blueprintString : blueprintStringDatas) {
+			System.out.println("Parsing blueprints: " + blueprintString.getBlueprints().size());
+			for (BSBlueprint blueprint : blueprintString.getBlueprints()) {
+				try {
+					RenderResult result = FBSR.renderBlueprint(blueprint, reporting, options);
+					images.add(new SimpleEntry<>(blueprint.label, result.image));
+					renderTimes.add(result.renderTime);
+				} catch (Exception e) {
+					reporting.addException(e);
+				}
+			}
+		}
+
+		if (!renderTimes.isEmpty()) {
+			reporting.addField(new Field("Render Time", renderTimes.stream().mapToLong(l1 -> l1).sum() + " ms"
+					+ (renderTimes.size() > 1
+							? (" [" + renderTimes.stream().map(Object::toString).collect(Collectors.joining(", "))
+									+ "]")
+							: ""),
+					true));
+		}
+
+		if (images.size() == 0) {
+			embedBuilders1.add(new EmbedBuilder().setDescription("Blueprint not found!"));
+
+		} else if (images.size() == 1) {
+			Entry<Optional<String>, BufferedImage> entry = images.get(0);
+			BufferedImage image = entry.getValue();
+			String url = WebUtils.uploadToHostingService("blueprint.png", image);
+			EmbedBuilder builder = new EmbedBuilder();
+			builder.setImage(url);
+			embedBuilders1.add(builder);
+
+		} else {
+			List<Entry<String, String>> links = new ArrayList<>();
+			for (Entry<Optional<String>, BufferedImage> entry : images) {
+				BufferedImage image = entry.getValue();
+				links.add(new SimpleEntry<>(WebUtils.uploadToHostingService("blueprint.png", image),
+						entry.getKey().orElse("")));
+			}
+
+			ArrayDeque<String> lines = new ArrayDeque<>();
+			for (int i = 0; i < links.size(); i++) {
+				Entry<String, String> entry = links.get(i);
+				if (entry.getValue() != null && !entry.getValue().trim().isEmpty()) {
+					lines.add("[" + entry.getValue().trim() + "](" + entry.getKey() + ")");
+				} else {
+					lines.add("[Blueprint Image " + (i + 1) + "](" + entry.getKey() + ")");
+				}
+			}
+
+			while (!lines.isEmpty()) {
+				EmbedBuilder builder = new EmbedBuilder();
+				for (int i = 0; i < 3 && !lines.isEmpty(); i++) {
+					StringBuilder description = new StringBuilder();
+					while (!lines.isEmpty()) {
+						if (description.length() + lines.peek().length() + 1 < MessageEmbed.VALUE_MAX_LENGTH) {
+							description.append(lines.pop()).append('\n');
+						} else {
+							break;
+						}
+					}
+					builder.addField("", description.toString(), true);
+				}
+				embedBuilders1.add(builder);
+			}
+		}
+
+		if (!blueprintStringDatas.isEmpty() && !embedBuilders1.isEmpty()) {
+			List<String> links = new ArrayList<>();
+			for (int i = 0; i < blueprintStringDatas.size(); i++) {
+				BlueprintStringData blueprintString = blueprintStringDatas.get(i);
+				String label = blueprintString.getLabel().orElse(
+						(blueprintString.getBlueprints().size() > 1 ? "Blueprint Book " : "Blueprint ") + (i + 1));
+				String link = WebUtils.uploadToHostingService("blueprint.txt", blueprintString.toString().getBytes());
+				links.add("[" + label + "](" + link + ")");
+			}
+
+			embedBuilders1.get(0).getFields().add(0,
+					new Field("Blueprint String" + (blueprintStringDatas.size() > 1 ? "s" : ""),
+							links.stream().collect(Collectors.joining("\n")), false));
+		}
+		List<EmbedBuilder> embedBuilders = embedBuilders1;
 
 		List<MessageEmbed> embeds = embedBuilders.stream().map(EmbedBuilder::build).collect(Collectors.toList());
 		for (MessageEmbed embed : embeds) {
@@ -342,107 +432,13 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			if (response.length() < 2000) {
 				event.reply(response);
 			} else {
-				event.replyFile(responseContent.getBytes(), "totals.txt");
+				event.replyFile(responseContent, "totals.txt");
 			}
 		} else if (blueprintStringDatas.stream().anyMatch(d -> !d.getBlueprints().isEmpty())) {
 			event.replyIfNoException("I couldn't find any items!");
 		} else {
 			event.replyIfNoException("No blueprint found!");
 		}
-	}
-
-	private List<EmbedBuilder> processBlueprints(List<BlueprintStringData> blueprintStrings, CommandReporting reporting,
-			JSONObject options) throws IOException {
-
-		List<EmbedBuilder> embedBuilders = new ArrayList<>();
-
-		List<Entry<Optional<String>, BufferedImage>> images = new ArrayList<>();
-		List<Long> renderTimes = new ArrayList<>();
-
-		for (BlueprintStringData blueprintString : blueprintStrings) {
-			System.out.println("Parsing blueprints: " + blueprintString.getBlueprints().size());
-			for (BSBlueprint blueprint : blueprintString.getBlueprints()) {
-				try {
-					RenderResult result = FBSR.renderBlueprint(blueprint, reporting, options);
-					images.add(new SimpleEntry<>(blueprint.label, result.image));
-					renderTimes.add(result.renderTime);
-				} catch (Exception e) {
-					reporting.addException(e);
-				}
-			}
-		}
-
-		if (!renderTimes.isEmpty()) {
-			reporting.addField(new Field("Render Time", renderTimes.stream().mapToLong(l -> l).sum() + " ms"
-					+ (renderTimes.size() > 1
-							? (" [" + renderTimes.stream().map(Object::toString).collect(Collectors.joining(", "))
-									+ "]")
-							: ""),
-					true));
-		}
-
-		if (images.size() == 0) {
-			embedBuilders.add(new EmbedBuilder().setDescription("Blueprint not found!"));
-
-		} else if (images.size() == 1) {
-			Entry<Optional<String>, BufferedImage> entry = images.get(0);
-			BufferedImage image = entry.getValue();
-			String url = WebUtils.uploadToHostingService("blueprint.png", image);
-			EmbedBuilder builder = new EmbedBuilder();
-			builder.setImage(url);
-			embedBuilders.add(builder);
-
-		} else {
-			List<Entry<String, String>> links = new ArrayList<>();
-			for (Entry<Optional<String>, BufferedImage> entry : images) {
-				BufferedImage image = entry.getValue();
-				links.add(new SimpleEntry<>(WebUtils.uploadToHostingService("blueprint.png", image),
-						entry.getKey().orElse("")));
-			}
-
-			ArrayDeque<String> lines = new ArrayDeque<>();
-			for (int i = 0; i < links.size(); i++) {
-				Entry<String, String> entry = links.get(i);
-				if (entry.getValue() != null && !entry.getValue().trim().isEmpty()) {
-					lines.add("[" + entry.getValue().trim() + "](" + entry.getKey() + ")");
-				} else {
-					lines.add("[Blueprint Image " + (i + 1) + "](" + entry.getKey() + ")");
-				}
-			}
-
-			while (!lines.isEmpty()) {
-				EmbedBuilder builder = new EmbedBuilder();
-				for (int i = 0; i < 3 && !lines.isEmpty(); i++) {
-					StringBuilder description = new StringBuilder();
-					while (!lines.isEmpty()) {
-						if (description.length() + lines.peek().length() + 1 < MessageEmbed.VALUE_MAX_LENGTH) {
-							description.append(lines.pop()).append('\n');
-						} else {
-							break;
-						}
-					}
-					builder.addField("", description.toString(), true);
-				}
-				embedBuilders.add(builder);
-			}
-		}
-
-		if (!blueprintStrings.isEmpty() && !embedBuilders.isEmpty()) {
-			List<String> links = new ArrayList<>();
-			for (int i = 0; i < blueprintStrings.size(); i++) {
-				BlueprintStringData blueprintString = blueprintStrings.get(i);
-				String label = blueprintString.getLabel().orElse(
-						(blueprintString.getBlueprints().size() > 1 ? "Blueprint Book " : "Blueprint ") + (i + 1));
-				String link = WebUtils.uploadToHostingService("blueprint.txt", blueprintString.toString().getBytes());
-				links.add("[" + label + "](" + link + ")");
-			}
-
-			embedBuilders.get(0).getFields().add(0,
-					new Field("Blueprint String" + (blueprintStrings.size() > 1 ? "s" : ""),
-							links.stream().collect(Collectors.joining("\n")), false));
-		}
-
-		return embedBuilders;
 	}
 
 	private void sendLuaDumpFile(EventReply event, String category, String name, LuaValue lua) throws IOException {
@@ -455,7 +451,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		String fileName = category + "_" + name + "_dump_" + FBSR.getVersion() + ".json";
 //		String url = WebUtils.uploadToHostingService(fileName, json.toString(2).getBytes());
 //		event.reply(category + " " + name + " lua dump: [" + fileName + "](" + url + ")");
-		event.replyFile(json.toString(2).getBytes(), fileName);
+		event.replyFile(json.toString(2), fileName);
 	}
 
 	@Override

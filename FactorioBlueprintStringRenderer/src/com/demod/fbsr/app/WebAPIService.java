@@ -25,11 +25,11 @@ import com.demod.dcba.CommandReporting;
 import com.demod.factorio.Config;
 import com.demod.factorio.Utils;
 import com.demod.fbsr.BlueprintFinder;
-import com.demod.fbsr.BlueprintStringData;
 import com.demod.fbsr.FBSR;
 import com.demod.fbsr.FBSR.RenderResult;
 import com.demod.fbsr.WebUtils;
 import com.demod.fbsr.bs.BSBlueprint;
+import com.demod.fbsr.bs.BSBlueprintString;
 import com.google.common.util.concurrent.AbstractIdleService;
 
 import net.dv8tion.jda.api.entities.MessageEmbed.Field;
@@ -118,8 +118,8 @@ public class WebAPIService extends AbstractIdleService {
 
 					String content = body.getString("blueprint");
 
-					List<BlueprintStringData> blueprintStrings = BlueprintFinder.search(content, reporting);
-					List<BSBlueprint> blueprints = blueprintStrings.stream().flatMap(s -> s.getBlueprints().stream())
+					List<BSBlueprintString> blueprintStrings = BlueprintFinder.search(content, reporting);
+					List<BSBlueprint> blueprints = blueprintStrings.stream().flatMap(s -> s.getAllBlueprints().stream())
 							.collect(Collectors.toList());
 					List<Long> renderTimes = new ArrayList<>();
 
