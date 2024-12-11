@@ -22,7 +22,7 @@ public class BSBlueprintBook {
 		version = new MapVersion(json.getInt("version"));
 		description = BSUtils.optString(json, "description");
 		icons = BSUtils.optList(json, "icons", BSIcon::new);
-		blueprints = BSUtils.list(json, "blueprints", BSBlueprintString::new);
+		blueprints = BSUtils.list(json, "blueprints", j -> new BSBlueprintString(j));
 		activeIndex = BSUtils.optInt(json, "active_index");
 	}
 }

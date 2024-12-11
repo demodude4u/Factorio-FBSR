@@ -22,8 +22,12 @@ import com.google.common.base.Charsets;
 
 public class BSBlueprintString {
 	public static BSBlueprintString decode(String blueprintString) throws IOException {
-		blueprintString = blueprintString.trim().replaceAll("\\r|\\n", "");
+		blueprintString = blueprintString.trim().replaceAll("\\r|\\n", "");// XXX done twice
+		return new BSBlueprintString(decodeRaw(blueprintString), blueprintString);
+	}
 
+	public static JSONObject decodeRaw(String blueprintString) throws IOException {
+		blueprintString = blueprintString.trim().replaceAll("\\r|\\n", "");
 		String versionChar = blueprintString.substring(0, 1);
 		try {
 			if (Integer.parseInt(versionChar) != 0) {
@@ -45,26 +49,37 @@ public class BSBlueprintString {
 			json = new JSONObject(jsonBuilder.toString());
 		}
 
-		return new BSBlueprintString(json);
+		return json;
 	}
 
 	public final Optional<BSBlueprint> blueprint;
 	public final Optional<BSBlueprintBook> blueprintBook;
 	public final Optional<BSUpgradePlanner> upgradePlanner;
-
 	public final Optional<BSDeconstructionPlanner> deconstructionPlanner;
 
 	public final OptionalInt index;
 
+	private final Optional<String> raw;
+
 	public BSBlueprintString(JSONObject json) {
+		this(json, Optional.empty());
+	}
+
+	private BSBlueprintString(JSONObject json, Optional<String> raw) {
 		blueprint = BSUtils.opt(json, "blueprint", BSBlueprint::new);
 		blueprintBook = BSUtils.opt(json, "blueprint_book", BSBlueprintBook::new);
 		upgradePlanner = BSUtils.opt(json, "upgrade_planner", BSUpgradePlanner::new);
 		deconstructionPlanner = BSUtils.opt(json, "deconstruction_planner", BSDeconstructionPlanner::new);
 		index = BSUtils.optInt(json, "index");
+
+		this.raw = raw;
 	}
 
-	public List<BSBlueprint> getAllBlueprints() {
+	public BSBlueprintString(JSONObject json, String raw) {
+		this(json, Optional.of(raw));
+	}
+
+	public List<BSBlueprint> findAllBlueprints() {
 		List<BSBlueprint> ret = new ArrayList<>();
 
 		ArrayDeque<BSBlueprintString> work = new ArrayDeque<>();
@@ -80,5 +95,22 @@ public class BSBlueprintString {
 		}
 
 		return ret;
+	}
+
+	public Optional<String> findFirstLabel() {
+		if (blueprint.isPresent()) {
+			BSBlueprint bp = blueprint.get();
+			if (bp.label.isPresent()) {
+				return bp.label;
+			}
+		}
+		if (blueprintBook.isPresent()) {
+			return blueprintBook.get().blueprints.stream().flatMap(bs -> bs.findFirstLabel().stream()).findFirst();
+		}
+		return Optional.empty();
+	}
+
+	public Optional<String> getRaw() {
+		return raw;
 	}
 }

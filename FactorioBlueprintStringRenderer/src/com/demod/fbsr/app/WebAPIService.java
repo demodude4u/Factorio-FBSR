@@ -119,8 +119,8 @@ public class WebAPIService extends AbstractIdleService {
 					String content = body.getString("blueprint");
 
 					List<BSBlueprintString> blueprintStrings = BlueprintFinder.search(content, reporting);
-					List<BSBlueprint> blueprints = blueprintStrings.stream().flatMap(s -> s.getAllBlueprints().stream())
-							.collect(Collectors.toList());
+					List<BSBlueprint> blueprints = blueprintStrings.stream()
+							.flatMap(s -> s.findAllBlueprints().stream()).collect(Collectors.toList());
 					List<Long> renderTimes = new ArrayList<>();
 
 					for (BSBlueprint blueprint : blueprints) {
@@ -138,8 +138,16 @@ public class WebAPIService extends AbstractIdleService {
 								String imageLink = saveToLocalStorage(localStorageFolder, result.image);
 								imageLinks.add(new SimpleEntry<>(blueprint.label, imageLink));
 							} else {
-								imageLinks.add(new SimpleEntry<>(blueprint.label,
-										WebUtils.uploadToHostingService("blueprint.png", result.image).toString()));
+								// TODO links expire, need a new approach
+								Optional<BlueprintBotDiscordService> discordService = ServiceFinder
+										.findService(BlueprintBotDiscordService.class);
+								if (discordService.isPresent()) {
+									imageLinks
+											.add(new SimpleEntry<>(blueprint.label,
+													discordService.get().useDiscordForFileHosting(
+															WebUtils.formatBlueprintFilename(blueprint.label, "png"),
+															result.image).toString()));
+								}
 							}
 						} catch (Exception e) {
 							reporting.addException(e);

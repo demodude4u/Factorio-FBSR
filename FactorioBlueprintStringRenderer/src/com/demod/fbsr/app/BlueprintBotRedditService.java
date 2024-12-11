@@ -145,7 +145,7 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 
 		try {
 			List<BSBlueprintString> blueprintStrings = BlueprintFinder.search(content, reporting);
-			List<BSBlueprint> blueprints = blueprintStrings.stream().flatMap(s -> s.getAllBlueprints().stream())
+			List<BSBlueprint> blueprints = blueprintStrings.stream().flatMap(s -> s.findAllBlueprints().stream())
 					.collect(Collectors.toList());
 			List<Long> renderTimes = new ArrayList<>();
 
@@ -153,8 +153,11 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 				watchdog.ifPresent(w -> w.notifyActive(WATCHDOG_LABEL));
 				try {
 					RenderResult result = FBSR.renderBlueprint(blueprint, reporting);
-					imageLinks.add(new SimpleEntry<>(blueprint.label,
-							WebUtils.uploadToHostingService("blueprint.png", result.image).toString()));
+					Optional<BlueprintBotDiscordService> discordService = ServiceFinder
+							.findService(BlueprintBotDiscordService.class);
+					// TODO links expire, need a new approach
+					imageLinks.add(new SimpleEntry<>(blueprint.label, discordService.get().useDiscordForFileHosting(
+							WebUtils.formatBlueprintFilename(blueprint.label, "png"), result.image).toString()));
 					renderTimes.add(result.renderTime);
 				} catch (Exception e) {
 					reporting.addException(e);
@@ -271,7 +274,12 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 			System.out.println("IM TRYING TO REPLY TO A COMMENT!");
 			String message = pair.getValue();
 			if (message.length() > 10000) {
-				message = WebUtils.uploadToHostingService("MESSAGE_TOO_LONG.txt", message.getBytes()).toString();
+
+				// TODO links expire, need a new approach
+				Optional<BlueprintBotDiscordService> discordService = ServiceFinder
+						.findService(BlueprintBotDiscordService.class);
+				message = discordService.get().useDiscordForFileHosting("MESSAGE_TOO_LONG.txt", message.getBytes())
+						.toString();
 			}
 
 			while (true) {
@@ -344,7 +352,11 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 			System.out.println("IM TRYING TO REPLY TO A MESSAGE!");
 			String message = pair.getValue();
 			if (message.length() > 10000) {
-				message = WebUtils.uploadToHostingService("MESSAGE_TOO_LONG.txt", message.getBytes()).toString();
+				// TODO links expire, need a new approach
+				Optional<BlueprintBotDiscordService> discordService = ServiceFinder
+						.findService(BlueprintBotDiscordService.class);
+				message = discordService.get().useDiscordForFileHosting("MESSAGE_TOO_LONG.txt", message.getBytes())
+						.toString();
 			}
 
 			while (true) {
@@ -416,7 +428,11 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 			System.out.println("IM TRYING TO REPLY TO A SUBMISSION!");
 			String message = pair.getValue();
 			if (message.length() > 10000) {
-				message = WebUtils.uploadToHostingService("MESSAGE_TOO_LONG.txt", message.getBytes()).toString();
+				// TODO links expire, need a new approach
+				Optional<BlueprintBotDiscordService> discordService = ServiceFinder
+						.findService(BlueprintBotDiscordService.class);
+				message = discordService.get().useDiscordForFileHosting("MESSAGE_TOO_LONG.txt", message.getBytes())
+						.toString();
 			}
 
 			while (true) {
