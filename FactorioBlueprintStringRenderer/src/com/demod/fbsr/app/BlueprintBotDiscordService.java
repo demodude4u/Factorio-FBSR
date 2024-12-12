@@ -59,6 +59,7 @@ import net.dv8tion.jda.api.entities.Message.Attachment;
 import net.dv8tion.jda.api.entities.MessageEmbed.Field;
 import net.dv8tion.jda.api.entities.channel.concrete.PrivateChannel;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
@@ -80,6 +81,12 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		upgradeBeltsEntityMapping.put("fast-underground-belt", "express-underground-belt");
 		upgradeBeltsEntityMapping.put("fast-splitter", "express-splitter");
 	}
+
+	public static final Emoji EMOJI_BLUEPRINT = Emoji.fromFormatted("<:blueprint:1316556635761672244>");
+	public static final Emoji EMOJI_BLUEPRINTBOOK = Emoji.fromFormatted("<:blueprintbook:1316556633073258569>");
+	public static final Emoji EMOJI_DECONSTRUCTIONPLANNER = Emoji
+			.fromFormatted("<:deconstructionplanner:1316556636621508688>");
+	public static final Emoji EMOJI_UPGRADEPLANNER = Emoji.fromFormatted("<:upgradeplanner:1316556634528546887>");
 
 	private static BufferedImage shrinkImageToFitDiscordLimits(BufferedImage image) {
 		byte[] imageData = WebUtils.getImageData(image);// XXX this is done multiple times
@@ -376,8 +383,17 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			// TODO more details from upgrade planner
 		}
 
-		actionRow
-				.add(Button.secondary("reply-blueprint|" + futBlueprintStringUpload.get().getId(), "Blueprint String"));
+		Emoji emoji = EMOJI_BLUEPRINT;
+		if (blueprintString.blueprintBook.isPresent()) {
+			emoji = EMOJI_BLUEPRINTBOOK;
+		} else if (blueprintString.deconstructionPlanner.isPresent()) {
+			emoji = EMOJI_DECONSTRUCTIONPLANNER;
+		} else if (blueprintString.upgradePlanner.isPresent()) {
+			emoji = EMOJI_UPGRADEPLANNER;
+		}
+
+		actionRow.add(Button.secondary("reply-blueprint|" + futBlueprintStringUpload.get().getId(), "Download")
+				.withEmoji(emoji));
 
 		if (!renderTimes.isEmpty()) {
 			reporting.addField(new Field("Render Time", renderTimes.stream().mapToLong(l1 -> l1).sum() + " ms"
