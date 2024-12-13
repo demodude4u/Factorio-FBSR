@@ -256,13 +256,18 @@ public class TileRendererFactory {
 		@Override
 		public void tileEdge(Random rand, Consumer<Renderer> register, Point2D.Double pos,
 				List<TileEdgeRuleParam> params) {
+
+			FPTileTransitions transitions = protoVariantsTransition.get();
+			FPTileTransitionVariantLayout overlay = transitions.overlayLayout.get();
+			FPTileTransitionVariantLayout mask = transitions.maskLayout.get();
+
 			// TODO material edge
 		}
 	}
 
 	public static List<List<TileEdgeRuleParam>> tileRules = new ArrayList<>();
 	static {
-		IntStream.range(0, 0xFF).forEach(i -> tileRules.add(new ArrayList<>()));
+		IntStream.range(0, 256).forEach(i -> tileRules.add(new ArrayList<>()));
 		for (TileEdgeRule rule : TileEdgeRule.values()) {
 			int adjCodePresent = rule.adjCodePresent;
 			int adjCodeEmpty = rule.adjCodeEmpty;
@@ -287,7 +292,7 @@ public class TileRendererFactory {
 				adjCodeEmpty = nextAdjCodeEmpty;
 			}
 		}
-		for (int adjCode = 0; adjCode < 0xFF; adjCode++) {
+		for (int adjCode = 0; adjCode < 256; adjCode++) {
 			List<TileEdgeRuleParam> params = tileRules.get(adjCode);
 			if (params.isEmpty()) {
 				continue;
@@ -343,15 +348,20 @@ public class TileRendererFactory {
 
 	static {
 		byName.put("concrete", new TileRendererFactory());
+		byName.put("foundation", new TileRendererFactory());
 		byName.put("hazard-concrete-left", new TileRendererFactory());
 		byName.put("hazard-concrete-right", new TileRendererFactory());
+		byName.put("ice-platform", new TileRendererFactory());
+		byName.put("artificial-jellynut-soil", new TileRendererFactory());
+		byName.put("overgrowth-jellynut-soil", new TileRendererFactory());
 		byName.put("landfill", new TileRendererFactory());
 		byName.put("refined-concrete", new TileRendererFactory());
 		byName.put("refined-hazard-concrete-left", new TileRendererFactory());
 		byName.put("refined-hazard-concrete-right", new TileRendererFactory());
 		byName.put("space-platform-foundation", new TileRendererFactory());
 		byName.put("stone-path", new TileRendererFactory());
-		// TODO other space age stuff (planet fills)
+		byName.put("artificial-yumako-soil", new TileRendererFactory());
+		byName.put("overgrowth-yumako-soil", new TileRendererFactory());
 	}
 
 	private static volatile boolean prototypesInitialized = false;

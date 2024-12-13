@@ -10,7 +10,10 @@ import com.demod.fbsr.bs.BSEntity;
 public class ReactorRendering extends SimpleEntityRendering<BSEntity> {
 	@Override
 	public void defineEntity(Bindings bind, LuaValue lua) {
-		bind.sprite(lua.get("lower_layer_picture"));
+		LuaValue luaLowerLayerPicture = lua.get("lower_layer_picture");
+		if (!luaLowerLayerPicture.isnil()) {
+			bind.sprite(luaLowerLayerPicture);
+		}
 		bind.sprite(lua.get("picture"));
 		bind.circuitConnector(lua.get("circuit_connector"));
 	}
