@@ -41,7 +41,8 @@ import com.demod.factorio.Utils;
 import com.demod.factorio.prototype.DataPrototype;
 import com.demod.fbsr.BlueprintFinder;
 import com.demod.fbsr.FBSR;
-import com.demod.fbsr.FBSR.RenderResult;
+import com.demod.fbsr.RenderRequest;
+import com.demod.fbsr.RenderResult;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.WebUtils;
 import com.demod.fbsr.app.WatchdogService.WatchdogReporter;
@@ -49,6 +50,7 @@ import com.demod.fbsr.bs.BSBlueprint;
 import com.demod.fbsr.bs.BSBlueprintString;
 import com.demod.fbsr.bs.BSDeconstructionPlanner;
 import com.demod.fbsr.bs.BSUpgradePlanner;
+import com.demod.fbsr.gui.layout.GUILayoutBlueprint;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.AbstractIdleService;
 
@@ -56,6 +58,7 @@ import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.Message.Attachment;
+import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.MessageEmbed.Field;
 import net.dv8tion.jda.api.entities.channel.concrete.PrivateChannel;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
@@ -144,6 +147,33 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			event.reply(choices);
 		};
 	}
+
+	// TODO
+//	private AutoCompleteHandler createDataRawAutoCompleteHandler(Function<String[], Optional<LuaValue>> query) {
+//		return (event) -> {
+//			String name = event.getParamString("name").trim().toLowerCase();
+//
+//			if (name.isEmpty()) {
+//				event.reply(ImmutableList.of());
+//				return;
+//			}
+//
+//			List<String> nameStartsWith = new ArrayList<>();
+//			List<String> nameContains = new ArrayList<>();
+//			map.keySet().stream().sorted().forEach(n -> {
+//				String lowerCase = n.toLowerCase();
+//				if (lowerCase.startsWith(name)) {
+//					nameStartsWith.add(n);
+//				} else if (lowerCase.contains(name)) {
+//					nameContains.add(n);
+//				}
+//			});
+//
+//			List<String> choices = ImmutableList.<String>builder().addAll(nameStartsWith).addAll(nameContains).build()
+//					.stream().limit(OptionData.MAX_CHOICES).collect(Collectors.toList());
+//			event.reply(choices);
+//		};
+//	}
 
 	private SlashCommandHandler createPrototypeCommandHandler(String category,
 			Map<String, ? extends DataPrototype> map) {
@@ -338,7 +368,10 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 		List<Long> renderTimes = new ArrayList<>();
 
-		EmbedBuilder builder = new EmbedBuilder();
+		Optional<MessageEmbed> embed = Optional.empty();
+		String imageFilename = null;
+		BufferedImage image = null;
+
 		List<ItemComponent> actionRow = new ArrayList<>();
 
 		Future<Message> futBlueprintStringUpload = useDiscordForFileHosting(
@@ -347,18 +380,30 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 		if (blueprintString.blueprint.isPresent()) {
 			BSBlueprint blueprint = blueprintString.blueprint.get();
-			RenderResult result = FBSR.renderBlueprint(blueprint, reporting, options);
-			renderTimes.add(result.renderTime);
-			BufferedImage image = shrinkImageToFitDiscordLimits(result.image);
-			String url = useDiscordForFileHosting(WebUtils.formatBlueprintFilename(blueprint.label, "png"), image).get()
-					.getAttachments().get(0).getUrl();
-			blueprint.label.ifPresent(builder::setTitle);
-			builder.setImage(url);
+
+			if (event.optParamBoolean("simple").orElse(false)) {
+				RenderRequest request = new RenderRequest(blueprint, reporting);
+				RenderResult result = FBSR.renderBlueprint(request);
+				image = result.image;
+				renderTimes.add(result.renderTime);
+
+			} else {
+				GUILayoutBlueprint layout = new GUILayoutBlueprint();
+				layout.setBlueprint(blueprint);
+				layout.setReporting(reporting);
+				image = layout.generateDiscordImage();
+				renderTimes.add(layout.getResult().renderTime);
+			}
+
+			image = shrinkImageToFitDiscordLimits(image);
+			imageFilename = WebUtils.formatBlueprintFilename(blueprint.label, "png");
+			// TODO full resolution render and upload
 
 		} else if (blueprintString.blueprintBook.isPresent()) {
 			// TODO blueprint book - render in a grid or grouping of blueprints
 
 		} else if (blueprintString.deconstructionPlanner.isPresent()) {
+			EmbedBuilder builder = new EmbedBuilder();
 			BSDeconstructionPlanner planner = blueprintString.deconstructionPlanner.get();
 			builder.setColor(Color.darkGray);
 			builder.setDescription("Blueprint string is a deconstruction planner.");
@@ -368,9 +413,11 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			if (planner.description.isPresent()) {
 				builder.addField(new Field("Description", planner.description.get(), false));
 			}
+			embed = Optional.of(builder.build());
 			// TODO more details from deconstruction planner
 
 		} else if (blueprintString.upgradePlanner.isPresent()) {
+			EmbedBuilder builder = new EmbedBuilder();
 			BSUpgradePlanner planner = blueprintString.upgradePlanner.get();
 			builder.setColor(Color.darkGray);
 			builder.setDescription("Blueprint string is an upgrade planner.");
@@ -380,6 +427,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			if (planner.description.isPresent()) {
 				builder.addField(new Field("Description", planner.description.get(), false));
 			}
+			embed = Optional.of(builder.build());
 			// TODO more details from upgrade planner
 		}
 
@@ -404,7 +452,11 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 					true));
 		}
 
-		event.replyEmbed(builder.build(), actionRow);
+		if (embed.isPresent()) {
+			event.replyEmbed(embed.get(), actionRow);
+		} else {
+			event.replyFile(WebUtils.getImageData(image), imageFilename);
+		}
 
 //		List<BSBlueprint> blueprints = blueprintString.findAllBlueprints();
 //		System.out.println("Parsing blueprints: " + blueprints.size());

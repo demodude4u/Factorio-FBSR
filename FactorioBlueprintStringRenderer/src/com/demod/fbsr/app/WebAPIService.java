@@ -26,7 +26,7 @@ import com.demod.factorio.Config;
 import com.demod.factorio.Utils;
 import com.demod.fbsr.BlueprintFinder;
 import com.demod.fbsr.FBSR;
-import com.demod.fbsr.FBSR.RenderResult;
+import com.demod.fbsr.RenderResult;
 import com.demod.fbsr.WebUtils;
 import com.demod.fbsr.bs.BSBlueprint;
 import com.demod.fbsr.bs.BSBlueprintString;

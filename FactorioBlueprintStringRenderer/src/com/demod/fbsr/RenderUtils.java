@@ -58,8 +58,8 @@ public final class RenderUtils {
 			ret.image = Utils.tintImage(ret.image, tint);
 		}
 
-		double scaledWidth = dstScale * srcWidth / FBSR.tileSize;
-		double scaledHeight = dstScale * srcHeight / FBSR.tileSize;
+		double scaledWidth = dstScale * srcWidth / FBSR.TILE_SIZE;
+		double scaledHeight = dstScale * srcHeight / FBSR.TILE_SIZE;
 		ret.source = new Rectangle(srcX, srcY, srcWidth, srcHeight);
 		ret.bounds = new Rectangle2D.Double(dstX - scaledWidth / 2.0, dstY - scaledHeight / 2.0, scaledWidth,
 				scaledHeight);
