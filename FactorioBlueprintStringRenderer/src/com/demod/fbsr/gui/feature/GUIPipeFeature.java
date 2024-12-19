@@ -22,6 +22,27 @@ public class GUIPipeFeature extends GUISourcedFeature {
 	public static final int SEW = 0b1110;
 	public static final int NSEW = 0b1111;
 
+	public static GUIPipeFeature dragLines(String filename, GUIBox source) {
+		return new GUIPipeFeature(filename, source, new int[] { //
+				-1, // ....
+				0, // ...N
+				-1, // ..E.
+				-1, // ..EN
+				2, // .S..
+				1, // .S.N
+				-1, // .SE.
+				-1, // .SEN
+				-1, // W...
+				-1, // W..N
+				-1, // W.E.
+				-1, // W.EN
+				-1, // WS..
+				-1, // WS.N
+				-1, // WSE.
+				-1,// WSEN
+		});
+	}
+
 	public static GUIPipeFeature full(String filename, GUIBox source) {
 		return new GUIPipeFeature(filename, source, new int[] { //
 				-1, // ....
@@ -83,5 +104,24 @@ public class GUIPipeFeature extends GUISourcedFeature {
 		g.drawImage(image, x1, y3, x2, y4, sx[NE], sy1, sx[NE] + size, sy2, null);
 		// Left Side
 		g.drawImage(image, x1, y2, x2, y3, sx[NS], sy1, sx[NS] + size, sy1 + 1, null);
+	}
+
+	public void renderVertical(Graphics2D g, int x, int yStart, int yEnd) {
+		int x1 = x;
+		int x2 = x + size;
+		int y1 = yStart;
+		int y2 = yStart + size;
+		int y3 = yEnd - size;
+		int y4 = yEnd;
+
+		int sy1 = source.y;
+		int sy2 = source.y + size;
+
+		// Top
+		g.drawImage(image, x1, y1, x2, y2, sx[S], sy1, sx[S] + size, sy2, null);
+		// Middle
+		g.drawImage(image, x1, y2, x2, y3, sx[NS], sy1, sx[NS] + size, sy1 + 1, null);
+		// Bottom
+		g.drawImage(image, x1, y3, x2, y4, sx[N], sy1, sx[N] + size, sy2, null);
 	}
 }

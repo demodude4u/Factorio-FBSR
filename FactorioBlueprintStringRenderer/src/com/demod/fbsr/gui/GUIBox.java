@@ -18,11 +18,11 @@ public class GUIBox {
 	}
 
 	public GUIBox cutLeft(int left) {
-		return new GUIBox(x + (width - left), y, left, height);
+		return new GUIBox(x, y, left, height);
 	}
 
 	public GUIBox cutRight(int right) {
-		return new GUIBox(x, y, right, height);
+		return new GUIBox(x + (width - right), y, right, height);
 	}
 
 	public GUIBox cutTop(int top) {

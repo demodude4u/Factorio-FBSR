@@ -13,10 +13,10 @@ public class GUIPanel extends GUIPart {
 	public final Optional<GUISliceFeature> inner;
 	public final Optional<GUIStaticFeature> stat;
 
-	public GUIPanel(GUIBox box, GUISliceFeature outer) {
+	public GUIPanel(GUIBox box, GUISliceFeature inner) {
 		super(box);
-		this.outer = Optional.of(outer);
-		this.inner = Optional.empty();
+		this.outer = Optional.empty();
+		this.inner = Optional.of(inner);
 		this.stat = Optional.empty();
 	}
 

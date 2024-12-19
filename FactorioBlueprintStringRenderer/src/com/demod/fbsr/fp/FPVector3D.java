@@ -2,8 +2,6 @@ package com.demod.fbsr.fp;
 
 import org.luaj.vm2.LuaValue;
 
-import com.demod.fbsr.Point3D;
-
 public class FPVector3D {
 
 	public static FPVector3D opt(LuaValue lua, double x, double y, double z) {
@@ -36,10 +34,6 @@ public class FPVector3D {
 			y = lua.get(2).checkdouble();
 			z = lua.get(3).checkdouble();
 		}
-	}
-
-	public Point3D createPoint() {
-		return new Point3D(x, y, z);
 	}
 
 }

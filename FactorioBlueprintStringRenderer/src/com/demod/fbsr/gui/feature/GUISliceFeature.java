@@ -7,11 +7,11 @@ import com.demod.fbsr.gui.GUISpacing;
 
 public class GUISliceFeature extends GUISourcedFeature {
 	public static GUISliceFeature inner(String filename, GUIBox source, GUISpacing slice) {
-		return new GUISliceFeature(slice, GUISpacing.NONE, filename, source, slice);
+		return new GUISliceFeature(GUISpacing.NONE, slice, filename, source, slice);
 	}
 
 	public static GUISliceFeature outer(String filename, GUIBox source, GUISpacing slice) {
-		return new GUISliceFeature(GUISpacing.NONE, slice, filename, source, slice);
+		return new GUISliceFeature(slice, GUISpacing.NONE, filename, source, slice);
 	}
 
 	public final GUISpacing slice;
@@ -26,8 +26,10 @@ public class GUISliceFeature extends GUISourcedFeature {
 
 		dx = new int[] { -margin.left, padding.left, -padding.right, margin.right };
 		dy = new int[] { -margin.top, padding.top, -padding.bottom, margin.bottom };
-		sx = new int[] { source.x, source.x + slice.left, source.width - slice.right, source.width };
-		sy = new int[] { source.y, source.y + slice.top, source.height - slice.bottom, source.height };
+		sx = new int[] { source.x, source.x + slice.left, source.x + source.width - slice.right,
+				source.x + source.width };
+		sy = new int[] { source.y, source.y + slice.top, source.y + source.height - slice.bottom,
+				source.y + source.height };
 	}
 
 	public void render(Graphics2D g, GUIBox r) {

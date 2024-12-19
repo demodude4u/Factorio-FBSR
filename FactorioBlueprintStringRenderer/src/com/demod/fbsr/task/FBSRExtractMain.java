@@ -1,12 +1,16 @@
 package com.demod.fbsr.task;
 
-import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.luaj.vm2.LuaValue;
 
 import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
 import com.demod.factorio.Utils;
+import com.demod.fbsr.fp.FPVector;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.Multimap;
 
 public class FBSRExtractMain {
 
@@ -14,32 +18,97 @@ public class FBSRExtractMain {
 	public static void main(String[] args) throws Exception {
 		DataTable table = FactorioData.getTable();
 
-		class Search {
-			private void debugListLua(String prefix, LuaValue value, PrintStream ps, boolean dontPrintUnlessTypeFound) {
-				boolean hasType = !value.get("type").isnil();
-				if (!dontPrintUnlessTypeFound || hasType) {
-					System.out.println(prefix);
-					ps.println(prefix);
-				}
-				if (hasType) {
-					dontPrintUnlessTypeFound = true;
-				}
-				final boolean dputf = dontPrintUnlessTypeFound;
-				Utils.forEachSorted(value, (k, v) -> {
-					if (v.istable()) {
-						debugListLua(prefix + "." + k, v, ps, dputf);
+		Multimap<String, String> elementPropsByType = ImmutableMultimap.<String, String>builder()//
+				.putAll("activity_bar_style", "bar", "bar_background")//
+				.putAll("empty_widget_style", "graphical_set")//
+				.putAll("frame_style", "graphical_set", "header_background", "background_graphical_set")//
+				.putAll("glow_style", "image_set")//
+				.putAll("image_style", "graphical_set")//
+				.putAll("other_colors", "bar")//
+				.putAll("progress_bar_style", "bar", "bar_background")//
+				.putAll("scroll_bar_style", "background_graphical_set")//
+				.putAll("scroll_pane_style", "graphical_set", "background_graphical_set")//
+				.putAll("slider_style", "full_bar", "full_bar_disabled", "empty_bar", "empty_bar_disabled", "notch")//
+				.putAll("speech_bubble_style", "arrow_graphical_set")//
+				.putAll("style_with_clickable_graphical_set", "default_graphical_set", "hovered_graphical_set",
+						"clicked_graphical_set", "disabled_graphical_set", "selected_graphical_set",
+						"selected_hovered_graphical_set", "game_controller_selected_hovered_graphical_set",
+						"selected_clicked_graphical_set")//
+				.putAll("tab_style", "left_edge_selected_graphical_set", "right_edge_selected_graphical_set",
+						"default_badge_graphical_set", "selected_badge_graphical_set", "hover_badge_graphical_set",
+						"press_badge_graphical_set", "disabled_badge_graphical_set")//
+				.putAll("table_style", "column_graphical_set", "default_row_graphical_set", "even_row_graphical_set",
+						"odd_row_graphical_set", "hovered_graphical_set", "clicked_graphical_set",
+						"selected_graphical_set", "selected_hovered_graphical_set", "selected_clicked_graphical_set",
+						"background_graphical_set")//
+				.putAll("technology_slot_style", "highlighted_graphical_set", "default_background_shadow", "level_band",
+						"hovered_level_band", "level_range_band", "hovered_level_range_band",
+						"default_ingredients_background", "hovered_ingredients_background",
+						"clicked_ingredients_background", "disabled_ingredients_background",
+						"highlighted_ingredients_background", "clicked_overlay", "progress_bar_background",
+						"progress_bar", "progress_bar_shadow")//
+				.putAll("text_box_style", "default_background", "active_background",
+						"game_controller_hovered_background", "disabled_background")//
+				.build();
+		LuaValue luaGUI = table.getRaw("gui-style", "default").get();
+		Utils.forEach(luaGUI, (k, v) -> {
+			if (v.istable()) {
+				LuaValue luaType = v.get("type");
+				if (!luaType.isnil()) {
+					String type = luaType.tojstring();
+					for (String prop : elementPropsByType.get(type)) {
+						LuaValue luaProp = v.get(prop);
+						if (luaProp.isnil()) {
+							continue;
+						}
+						List<LuaValue> layers = new ArrayList<>();
+						layers.add(luaProp.get("base"));
+						layers.add(luaProp.get("shadow"));
+						layers.add(luaProp.get("glow"));
+						layers.removeIf(l -> l.isnil());
+						if (layers.isEmpty()) {
+							layers.add(luaProp);
+						}
+						for (LuaValue luaLayer : layers) {
+							if (luaLayer.get("corner_size").isnil()) {
+								System.out.println(k.tojstring() + "." + prop + " -- (no corner size)");
+							} else {
+								System.out.println(k.tojstring() + "." + prop + " -- "
+										+ new FPVector(luaLayer.get("position")).createPoint() + " "
+										+ luaLayer.get("corner_size"));
+							}
+						}
 					}
-				});
-			}
-		}
-		try (PrintStream ps = new PrintStream("raw.txt")) {
-			Search search = new Search();
-			Utils.forEachSorted(table.getRawLua(), (k, v) -> {
-				if (v.istable()) {
-					search.debugListLua(k.tojstring(), v, ps, false);
 				}
-			});
-		}
+			}
+		});
+
+//		class Search {
+//			private void debugListLua(String prefix, LuaValue value, PrintStream ps, boolean dontPrintUnlessTypeFound) {
+//				boolean hasType = !value.get("type").isnil();
+//				if (!dontPrintUnlessTypeFound || hasType) {
+//					System.out.println(prefix);
+//					ps.println(prefix);
+//				}
+//				if (hasType) {
+//					dontPrintUnlessTypeFound = true;
+//				}
+//				final boolean dputf = dontPrintUnlessTypeFound;
+//				Utils.forEachSorted(value, (k, v) -> {
+//					if (v.istable()) {
+//						debugListLua(prefix + "." + k, v, ps, dputf);
+//					}
+//				});
+//			}
+//		}
+//		try (PrintStream ps = new PrintStream("raw.txt")) {
+//			Search search = new Search();
+//			Utils.forEachSorted(table.getRawLua(), (k, v) -> {
+//				if (v.istable()) {
+//					search.debugListLua(k.tojstring(), v, ps, false);
+//				}
+//			});
+//		}
 
 //		String[] checkNames = { "accumulator", "discharge-defense-equipment", "personal-laser-defense-equipment",
 //				"agricultural-tower", "gun-turret", "railgun-turret", "rocket-turret", "arithmetic-combinator",

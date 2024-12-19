@@ -123,20 +123,22 @@ public class FBSR {
 				Math.floor(worldBounds.getMinY() + 0.4) - 1, Math.ceil(worldBounds.getMaxX() - 0.4) + 1,
 				Math.ceil(worldBounds.getMaxY() - 0.4) + 1);
 
+		float worldRenderScale = 1;
+
 		// Shrink down the scale to fit the max requirements
 		int maxWidthPixels = request.getMaxWidth().orElse(Integer.MAX_VALUE);
 		int maxHeightPixels = request.getMaxHeight().orElse(Integer.MAX_VALUE);
 		long maxPixels = Math.min(MAX_WORLD_RENDER_PIXELS, (long) maxWidthPixels * (long) maxHeightPixels);
 
-		float worldRenderScale = 1;
-		while (true) {
-			long width = (long) (worldBounds.getWidth() * worldRenderScale * TILE_SIZE);
-			long height = (long) (worldBounds.getHeight() * worldRenderScale * TILE_SIZE);
-			if (width > maxWidthPixels || height > maxHeightPixels || (width * height) > maxPixels) {
-				worldRenderScale /= 2;
-			} else {
-				break;
-			}
+		if ((worldBounds.getWidth() * worldRenderScale * TILE_SIZE) > maxWidthPixels) {
+			worldRenderScale *= (maxWidthPixels / (worldBounds.getWidth() * worldRenderScale * TILE_SIZE));
+		}
+		if ((worldBounds.getHeight() * worldRenderScale * TILE_SIZE) > maxHeightPixels) {
+			worldRenderScale *= (maxHeightPixels / (worldBounds.getHeight() * worldRenderScale * TILE_SIZE));
+		}
+		if ((worldBounds.getWidth() * worldBounds.getHeight() * worldRenderScale * TILE_SIZE) > maxPixels) {
+			worldRenderScale *= (maxPixels
+					/ (worldBounds.getWidth() * worldBounds.getHeight() * worldRenderScale * TILE_SIZE));
 		}
 
 		// Expand the world to fit the min requirements
@@ -162,7 +164,7 @@ public class FBSR {
 				Math.min(maxHeightPixels, (int) (worldBounds.getHeight() * worldRenderScale * TILE_SIZE)));
 		System.out.println("\t" + imageWidth + "x" + imageHeight + " (" + worldRenderScale + ")");
 
-		BufferedImage image = new BufferedImage(imageWidth, imageHeight, BufferedImage.TYPE_INT_RGB);
+		BufferedImage image = new BufferedImage(imageWidth, imageHeight, BufferedImage.TYPE_INT_ARGB);
 		Graphics2D g = image.createGraphics();
 
 		BufferedImage shadowImage = new BufferedImage(imageWidth, imageHeight, BufferedImage.TYPE_INT_ARGB);
@@ -170,14 +172,22 @@ public class FBSR {
 		AffineTransform noXform = g.getTransform();
 
 		g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-		g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+		g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+		g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+		g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+		g.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
+		g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
 
 		g.scale(image.getWidth() / worldBounds.getWidth(), image.getHeight() / worldBounds.getHeight());
 		g.translate(-worldBounds.getX(), -worldBounds.getY());
 		AffineTransform worldXform = g.getTransform();
 
 		shadowG.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-		shadowG.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+		shadowG.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+		shadowG.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+		shadowG.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+		shadowG.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
+		shadowG.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
 		shadowG.setTransform(worldXform);
 
 		// Background
