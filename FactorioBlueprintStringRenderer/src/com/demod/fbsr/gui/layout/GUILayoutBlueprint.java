@@ -26,6 +26,7 @@ public class GUILayoutBlueprint {
 
 	// Discord messages at 100% scale embed images at 550x350
 	// This is double so it has a nice zoom but also crisp in detail
+	// This is also doubled again with the scale setting (4x total)
 	public static final GUISize DISCORD_IMAGE_SIZE = new GUISize(1100, 700);
 
 	private BSBlueprint blueprint;
@@ -45,7 +46,7 @@ public class GUILayoutBlueprint {
 		drawImagePane(g, bounds.shrinkTop(titleHeight).shrinkLeft(infoPaneWidth));
 
 		GUILabel lblCredit = new GUILabel(
-				bounds.cutLeft(infoPaneWidth).cutBottom(creditHeight).expandTop(8).shrinkBottom(8),
+				bounds.cutLeft(infoPaneWidth).cutBottom(creditHeight).expandTop(8).shrink(0, 12, 8, 0),
 				"BlueprintBot " + FBSR.getVersion(), GUIStyle.FONT_BP_BOLD.deriveFont(16f), Color.GRAY, Align.CENTER);
 		lblCredit.render(g);
 	}
@@ -90,11 +91,11 @@ public class GUILayoutBlueprint {
 				GUIStyle.FONT_BP_COLOR, Align.CENTER_LEFT);
 		lblTitle.render(g);
 
-		int startX = bounds.x + lblTitle.getTextWidth(g) + 24;
+		int startX = bounds.x + (int) (lblTitle.getTextWidth(g) + 44);
 		int endX = bounds.x + bounds.width - 24;
 		GUIPipeFeature pipe = GUIStyle.DRAG_LINES;
 		for (int x = endX - pipe.size; x >= startX; x -= pipe.size) {
-			pipe.renderVertical(g, x, bounds.y + 16, bounds.y + bounds.height - 16);
+			pipe.renderVertical(g, x, bounds.y + 10, bounds.y + bounds.height - 10);
 		}
 	}
 
@@ -109,17 +110,17 @@ public class GUILayoutBlueprint {
 		GUIBox bounds = new GUIBox(0, 0, (int) (ret.getWidth() / scale), (int) (ret.getHeight() / scale));
 
 		Graphics2D g = ret.createGraphics();
-		g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-		g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-		g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-		g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-		g.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
-		g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
-		g.scale(scale, scale);
 
 		try {
-			drawFrame(g, bounds);
+			g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+			g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+			g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+			g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+			g.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
+			g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+			g.scale(scale, scale);
 
+			drawFrame(g, bounds);
 		} finally {
 			g.dispose();
 		}

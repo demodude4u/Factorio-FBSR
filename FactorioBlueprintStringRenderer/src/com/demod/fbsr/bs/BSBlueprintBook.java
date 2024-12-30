@@ -1,8 +1,11 @@
 package com.demod.fbsr.bs;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
+import java.util.function.Consumer;
 
 import org.json.JSONObject;
 
@@ -24,5 +27,20 @@ public class BSBlueprintBook {
 		icons = BSUtils.optList(json, "icons", BSIcon::new);
 		blueprints = BSUtils.list(json, "blueprints", j -> new BSBlueprintString(j));
 		activeIndex = BSUtils.optInt(json, "active_index");
+	}
+
+	public List<BSBlueprint> getAllBlueprints() {
+		List<BSBlueprint> ret = new ArrayList<>();
+		getAllBlueprints(ret::add);
+		return ret;
+	}
+
+	public void getAllBlueprints(Consumer<BSBlueprint> consumer) {
+		for (BSBlueprintString blueprintString : blueprints) {
+			blueprintString.blueprint.ifPresent(consumer);
+			blueprintString.blueprintBook.stream()
+					.sorted(Comparator.comparing(b -> b.activeIndex.orElse(Integer.MAX_VALUE)))
+					.forEach(b -> b.getAllBlueprints(consumer));
+		}
 	}
 }

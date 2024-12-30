@@ -2,6 +2,7 @@ package com.demod.fbsr;
 
 import java.awt.Color;
 import java.util.Optional;
+import java.util.OptionalDouble;
 import java.util.OptionalInt;
 
 import com.demod.dcba.CommandReporting;
@@ -24,6 +25,7 @@ public class RenderRequest {
 	private OptionalInt maxHeight = OptionalInt.empty();
 	private OptionalInt minWidth = OptionalInt.empty();
 	private OptionalInt minHeight = OptionalInt.empty();
+	private OptionalDouble maxScale = OptionalDouble.empty();
 
 	private Optional<Color> background = Optional.of(FBSR.GROUND_COLOR);
 	private Optional<Color> gridLines = Optional.of(FBSR.GRID_COLOR);
@@ -49,6 +51,10 @@ public class RenderRequest {
 
 	public OptionalInt getMaxHeight() {
 		return maxHeight;
+	}
+
+	public OptionalDouble getMaxScale() {
+		return maxScale;
 	}
 
 	public OptionalInt getMaxWidth() {
@@ -83,6 +89,10 @@ public class RenderRequest {
 		this.maxHeight = maxHeight;
 	}
 
+	public void setMaxScale(OptionalDouble maxScale) {
+		this.maxScale = maxScale;
+	}
+
 	public void setMaxWidth(OptionalInt maxWidth) {
 		this.maxWidth = maxWidth;
 	}
@@ -98,4 +108,5 @@ public class RenderRequest {
 	public void setReporting(CommandReporting reporting) {
 		this.reporting = reporting;
 	}
+
 }

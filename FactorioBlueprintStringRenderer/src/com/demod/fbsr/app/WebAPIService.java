@@ -26,6 +26,7 @@ import com.demod.factorio.Config;
 import com.demod.factorio.Utils;
 import com.demod.fbsr.BlueprintFinder;
 import com.demod.fbsr.FBSR;
+import com.demod.fbsr.RenderRequest;
 import com.demod.fbsr.RenderResult;
 import com.demod.fbsr.WebUtils;
 import com.demod.fbsr.bs.BSBlueprint;
@@ -125,7 +126,8 @@ public class WebAPIService extends AbstractIdleService {
 
 					for (BSBlueprint blueprint : blueprints) {
 						try {
-							RenderResult result = FBSR.renderBlueprint(blueprint, reporting, body);
+							RenderRequest request = new RenderRequest(blueprint, reporting);
+							RenderResult result = FBSR.renderBlueprint(request);
 							renderTimes.add(result.renderTime);
 
 							if (body.optBoolean("return-single-image")) {

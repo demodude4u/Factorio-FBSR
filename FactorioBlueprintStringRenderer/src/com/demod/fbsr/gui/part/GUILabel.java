@@ -42,8 +42,8 @@ public class GUILabel extends GUIPart {
 		this.align = align;
 	}
 
-	public int getTextWidth(Graphics2D g) {
-		return g.getFontMetrics().stringWidth(text);
+	public double getTextWidth(Graphics2D g) {
+		return g.getFontMetrics(font).stringWidth(text) / g.getTransform().getScaleX();
 	}
 
 	@Override

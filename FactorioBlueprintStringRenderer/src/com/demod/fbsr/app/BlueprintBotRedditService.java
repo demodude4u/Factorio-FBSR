@@ -26,6 +26,7 @@ import com.demod.factorio.Config;
 import com.demod.factorio.Utils;
 import com.demod.fbsr.BlueprintFinder;
 import com.demod.fbsr.FBSR;
+import com.demod.fbsr.RenderRequest;
 import com.demod.fbsr.RenderResult;
 import com.demod.fbsr.WebUtils;
 import com.demod.fbsr.bs.BSBlueprint;
@@ -152,7 +153,8 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 			for (BSBlueprint blueprint : blueprints) {
 				watchdog.ifPresent(w -> w.notifyActive(WATCHDOG_LABEL));
 				try {
-					RenderResult result = FBSR.renderBlueprint(blueprint, reporting);
+					RenderRequest request = new RenderRequest(blueprint, reporting);
+					RenderResult result = FBSR.renderBlueprint(request);
 					Optional<BlueprintBotDiscordService> discordService = ServiceFinder
 							.findService(BlueprintBotDiscordService.class);
 					// TODO links expire, need a new approach

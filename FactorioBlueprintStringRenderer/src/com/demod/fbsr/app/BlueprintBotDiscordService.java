@@ -47,10 +47,12 @@ import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.WebUtils;
 import com.demod.fbsr.app.WatchdogService.WatchdogReporter;
 import com.demod.fbsr.bs.BSBlueprint;
+import com.demod.fbsr.bs.BSBlueprintBook;
 import com.demod.fbsr.bs.BSBlueprintString;
 import com.demod.fbsr.bs.BSDeconstructionPlanner;
 import com.demod.fbsr.bs.BSUpgradePlanner;
 import com.demod.fbsr.gui.layout.GUILayoutBlueprint;
+import com.demod.fbsr.gui.layout.GUILayoutBook;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.AbstractIdleService;
 
@@ -68,6 +70,7 @@ import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import net.dv8tion.jda.api.interactions.components.ItemComponent;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
+import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu;
 import net.dv8tion.jda.api.utils.ChunkingFilter;
 import net.dv8tion.jda.api.utils.FileUpload;
 
@@ -90,6 +93,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 	public static final Emoji EMOJI_DECONSTRUCTIONPLANNER = Emoji
 			.fromFormatted("<:deconstructionplanner:1316556636621508688>");
 	public static final Emoji EMOJI_UPGRADEPLANNER = Emoji.fromFormatted("<:upgradeplanner:1316556634528546887>");
+	public static final Emoji EMOJI_SEARCH = Emoji.fromFormatted("<:search:1319740035825799259>");
 
 	private static BufferedImage shrinkImageToFitDiscordLimits(BufferedImage image) {
 		byte[] imageData = WebUtils.getImageData(image);// XXX this is done multiple times
@@ -372,7 +376,8 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		String imageFilename = null;
 		BufferedImage image = null;
 
-		List<ItemComponent> actionRow = new ArrayList<>();
+		List<List<ItemComponent>> actionRows = new ArrayList<>();
+		List<ItemComponent> actionButtonRow = new ArrayList<>();
 
 		Future<Message> futBlueprintStringUpload = useDiscordForFileHosting(
 				WebUtils.formatBlueprintFilename(blueprintString.findFirstLabel(), "txt"),
@@ -393,6 +398,17 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				layout.setReporting(reporting);
 				image = layout.generateDiscordImage();
 				renderTimes.add(layout.getResult().renderTime);
+
+				if (layout.getResult().renderScale < 0.501) {
+					RenderRequest request = new RenderRequest(blueprint, reporting);
+					RenderResult result = FBSR.renderBlueprint(request);
+					BufferedImage fullImage = shrinkImageToFitDiscordLimits(result.image);
+					renderTimes.add(result.renderTime);
+					Message messageFullImage = useDiscordForFileHosting(
+							WebUtils.formatBlueprintFilename(blueprintString.findFirstLabel(), "png"), fullImage).get();
+					actionButtonRow.add(Button.secondary("reply-zoom|" + messageFullImage.getId(), "Zoom In")
+							.withEmoji(EMOJI_SEARCH));
+				}
 			}
 
 			image = shrinkImageToFitDiscordLimits(image);
@@ -400,7 +416,25 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			// TODO full resolution render and upload
 
 		} else if (blueprintString.blueprintBook.isPresent()) {
-			// TODO blueprint book - render in a grid or grouping of blueprints
+			BSBlueprintBook book = blueprintString.blueprintBook.get();
+
+			GUILayoutBook layout = new GUILayoutBook();
+			layout.setBook(book);
+			layout.setReporting(reporting);
+			image = layout.generateDiscordImage();
+			renderTimes.add(layout.getResults().stream().mapToLong(r -> r.renderTime).sum());
+
+			List<BSBlueprint> blueprints = book.getAllBlueprints();
+			StringSelectMenu.Builder menuBuilder = StringSelectMenu.create("reply-blueprint");
+			for (int i = 0; i < blueprints.size(); i++) {
+				menuBuilder.addOption("[" + (i + 1) + "] " + blueprints.get(i).label.orElse("Untitled Blueprint"),
+						Integer.toString(i));
+			}
+			actionRows.add(ImmutableList.of(menuBuilder.build()));
+			// TODO each blueprint renders and upload
+
+			image = shrinkImageToFitDiscordLimits(image);
+			imageFilename = WebUtils.formatBlueprintFilename(book.label, "png");
 
 		} else if (blueprintString.deconstructionPlanner.isPresent()) {
 			EmbedBuilder builder = new EmbedBuilder();
@@ -440,7 +474,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			emoji = EMOJI_UPGRADEPLANNER;
 		}
 
-		actionRow.add(Button.secondary("reply-blueprint|" + futBlueprintStringUpload.get().getId(), "Download")
+		actionButtonRow.add(Button.secondary("reply-blueprint|" + futBlueprintStringUpload.get().getId(), "Download")
 				.withEmoji(emoji));
 
 		if (!renderTimes.isEmpty()) {
@@ -452,10 +486,14 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 					true));
 		}
 
+		if (!actionButtonRow.isEmpty()) {
+			actionRows.add(actionButtonRow);
+		}
+
 		if (embed.isPresent()) {
-			event.replyEmbed(embed.get(), actionRow);
+			event.replyEmbed(embed.get(), actionRows);
 		} else {
-			event.replyFile(WebUtils.getImageData(image), imageFilename);
+			event.replyFile(WebUtils.getImageData(image), imageFilename, actionRows);
 		}
 
 //		List<BSBlueprint> blueprints = blueprintString.findAllBlueprints();
@@ -592,11 +630,14 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		String command = split[0];
 		String messageId = split[1];
 
-		TextChannel hostingChannel = bot.getJDA().getTextChannelById(hostingChannelID);
-		Message message = hostingChannel.retrieveMessageById(messageId).complete();
+		if (command.equals("reply-blueprint") || command.equals("reply-zoom")) {
+			TextChannel hostingChannel = bot.getJDA().getTextChannelById(hostingChannelID);
+			Message message = hostingChannel.retrieveMessageById(messageId).complete();
 
-		PrivateChannel privateChannel = event.getUser().openPrivateChannel().complete();
-		privateChannel.sendMessage(message.getAttachments().get(0).getUrl()).queue();
+			PrivateChannel privateChannel = event.getUser().openPrivateChannel().complete();
+			privateChannel.sendMessage(message.getAttachments().get(0).getUrl()).queue();
+		}
+
 		event.deferEdit().queue();
 	}
 
