@@ -4,6 +4,7 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
+import java.awt.Shape;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
@@ -35,13 +36,15 @@ public class GUILayoutBook {
 	public static class ImageBlock {
 		public final int rows;
 		public final int cols;
+		public final Optional<String> label;
 		public final BufferedImage image;
 
 		private final Rectangle location;
 
-		public ImageBlock(int rows, int cols, BufferedImage image) {
+		public ImageBlock(int rows, int cols, Optional<String> label, BufferedImage image) {
 			this.rows = rows;
 			this.cols = cols;
+			this.label = label;
 			this.image = image;
 
 			location = new Rectangle(cols, rows);
@@ -49,9 +52,9 @@ public class GUILayoutBook {
 
 	}
 
-	public static final GUISize BP_CELL_SIZE = new GUISize(400, 300);
-	public static final GUISize BP_IMAGE_MIN = new GUISize(BP_CELL_SIZE.width * 2, BP_CELL_SIZE.height * 2);
-	public static final GUISize BP_IMAGE_MAX = new GUISize(BP_CELL_SIZE.width * 4, BP_CELL_SIZE.height * 4);
+	public static final GUISize BP_CELL_SIZE = new GUISize(200, 150);
+	public static final GUISize BP_IMAGE_MIN = new GUISize(BP_CELL_SIZE.width, BP_CELL_SIZE.height);
+	public static final GUISize BP_IMAGE_MAX = new GUISize(BP_CELL_SIZE.width * 8, BP_CELL_SIZE.height * 8);
 
 	public static final double DISCORD_IMAGE_RATIO = GUILayoutBlueprint.DISCORD_IMAGE_SIZE.width
 			/ GUILayoutBlueprint.DISCORD_IMAGE_SIZE.height;
@@ -201,17 +204,32 @@ public class GUILayoutBook {
 		double cellWidth = (BP_CELL_SIZE.width + 20) / renderScaleX;
 		double cellHeight = (BP_CELL_SIZE.height + 20) / renderScaleY;
 
+		int centerShiftX = (int) (20 / renderScaleX);
+		int centerShiftY = (int) (20 / renderScaleY);
+
+		g.setFont(GUIStyle.FONT_BP_REGULAR.deriveFont(12f));
+		g.setColor(Color.gray);
+		Shape prevClip = g.getClip();
+
 		for (ImageBlock block : blocks) {
-			int centerX = (int) (bounds.x + bounds.width / 2
-					+ (-packBounds.width / 2.0 - packBounds.x + block.location.x + block.location.width / 2.0)
-							* cellWidth
-					+ cellOffsetX);
-			int centerY = (int) (bounds.y + bounds.height / 2
-					+ (-packBounds.height / 2.0 - packBounds.y + block.location.y + block.location.height / 2.0)
-							* cellHeight
-					+ cellOffsetY);
+			int x = (int) (bounds.x + bounds.width / 2
+					+ (-packBounds.width / 2.0 - packBounds.x + block.location.x) * cellWidth + cellOffsetX);
+			int y = (int) (bounds.y + bounds.height / 2
+					+ (-packBounds.height / 2.0 - packBounds.y + block.location.y) * cellHeight + cellOffsetY);
+			int w = (int) (block.location.width * cellWidth);
+			int h = (int) (block.location.height * cellHeight);
+			g.setClip(new Rectangle(x, y, w, h));
+
+			int centerX = x + w / 2 + centerShiftX;
+			int centerY = y + h / 2 + centerShiftY;
+
 			GUIImage image = new GUIImage(new GUIBox(centerX, centerY, 0, 0), block.image, true);
 			image.render(g);
+
+			if (block.label.isPresent()) {
+				String label = block.label.get();
+				g.drawString(label, x + 25, y + 35);
+			}
 
 //			g.setColor(new Color(block.hashCode()));
 //			g.drawRect(
@@ -221,6 +239,8 @@ public class GUILayoutBook {
 //							+ (-packBounds.height / 2.0 - packBounds.y + block.location.y) * cellHeight + cellOffsetY),
 //					-20 + (int) (block.location.width * cellWidth), -20 + (int) (block.location.height * cellHeight));
 		}
+
+		g.setClip(prevClip);
 
 		Table<Integer, Integer, Integer> groupings = ArrayTable.create(
 				IntStream.rangeClosed(packBounds.y, packBounds.y + packBounds.height).mapToObj(i -> (Integer) i)
@@ -292,7 +312,7 @@ public class GUILayoutBook {
 
 			int rows = (result.image.getHeight() + BP_CELL_SIZE.height - 1) / BP_CELL_SIZE.height;
 			int cols = (result.image.getWidth() + BP_CELL_SIZE.width - 1) / BP_CELL_SIZE.width;
-			blocks.add(new ImageBlock(rows, cols, result.image));
+			blocks.add(new ImageBlock(rows, cols, blueprint.label, result.image));
 		}
 
 		packBounds = packBlocks(blocks, DISCORD_IMAGE_RATIO);

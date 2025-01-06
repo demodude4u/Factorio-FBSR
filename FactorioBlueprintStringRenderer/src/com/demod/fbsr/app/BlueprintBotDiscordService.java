@@ -66,6 +66,7 @@ import net.dv8tion.jda.api.entities.channel.concrete.PrivateChannel;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
+import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionEvent;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import net.dv8tion.jda.api.interactions.components.ItemComponent;
@@ -413,7 +414,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 			image = shrinkImageToFitDiscordLimits(image);
 			imageFilename = WebUtils.formatBlueprintFilename(blueprint.label, "png");
-			// TODO full resolution render and upload
+			// TODO lazy full resolution render upload
 
 		} else if (blueprintString.blueprintBook.isPresent()) {
 			BSBlueprintBook book = blueprintString.blueprintBook.get();
@@ -425,10 +426,22 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			renderTimes.add(layout.getResults().stream().mapToLong(r -> r.renderTime).sum());
 
 			List<BSBlueprint> blueprints = book.getAllBlueprints();
-			StringSelectMenu.Builder menuBuilder = StringSelectMenu.create("reply-blueprint");
+			StringSelectMenu.Builder menuBuilder = StringSelectMenu.create("reply-book-blueprint");
 			for (int i = 0; i < blueprints.size(); i++) {
-				menuBuilder.addOption("[" + (i + 1) + "] " + blueprints.get(i).label.orElse("Untitled Blueprint"),
-						Integer.toString(i));
+				if (i < 25) {
+					BSBlueprint blueprint = blueprints.get(i);
+
+					RenderRequest request = new RenderRequest(blueprint, reporting);
+					RenderResult result = FBSR.renderBlueprint(request);
+					BufferedImage fullImage = shrinkImageToFitDiscordLimits(result.image);
+					renderTimes.add(result.renderTime);
+					Message messageFullImage = useDiscordForFileHosting(
+							WebUtils.formatBlueprintFilename(blueprintString.findFirstLabel(), "png"), fullImage).get();
+
+					menuBuilder.addOption("[" + (i + 1) + "] " + blueprint.label.orElse("Untitled Blueprint"),
+							messageFullImage.getId());
+				}
+				// TODO figure out how to handle more than 25 blueprint options
 			}
 			actionRows.add(ImmutableList.of(menuBuilder.build()));
 			// TODO each blueprint renders and upload
@@ -478,12 +491,13 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				.withEmoji(emoji));
 
 		if (!renderTimes.isEmpty()) {
-			reporting.addField(new Field("Render Time", renderTimes.stream().mapToLong(l1 -> l1).sum() + " ms"
-					+ (renderTimes.size() > 1
-							? (" [" + renderTimes.stream().map(Object::toString).collect(Collectors.joining(", "))
-									+ "]")
-							: ""),
-					true));
+			String renderTimesStr = renderTimes.stream().mapToLong(l1 -> l1).sum() + " ms" + (renderTimes.size() > 1
+					? (" [" + renderTimes.stream().map(Object::toString).collect(Collectors.joining(", ")) + "]")
+					: "");
+			if (renderTimesStr.length() > 256) {
+				renderTimesStr = renderTimesStr.substring(0, 256) + "...";
+			}
+			reporting.addField(new Field("Render Time", renderTimesStr, true));
 		}
 
 		if (!actionButtonRow.isEmpty()) {
@@ -629,13 +643,44 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		String[] split = raw.split("\\|");
 		String command = split[0];
 		String messageId = split[1];
+		Optional<String> label = split.length > 2 ? Optional.of(split[2]) : Optional.empty();
 
 		if (command.equals("reply-blueprint") || command.equals("reply-zoom")) {
 			TextChannel hostingChannel = bot.getJDA().getTextChannelById(hostingChannelID);
 			Message message = hostingChannel.retrieveMessageById(messageId).complete();
+			String replyContent = label.map(s -> s + " ").orElse("") + message.getAttachments().get(0).getUrl();
 
 			PrivateChannel privateChannel = event.getUser().openPrivateChannel().complete();
-			privateChannel.sendMessage(message.getAttachments().get(0).getUrl()).queue();
+			privateChannel.sendMessage(replyContent).queue();
+
+			event.reply(replyContent).setEphemeral(true).queue();
+		} else {
+			System.out.println("UNKNOWN COMMAND " + command);
+		}
+
+		event.deferEdit().queue();
+	}
+
+	public void onSelectionInteraction(StringSelectInteractionEvent event) {
+		String command = event.getComponentId();
+
+		if (command.equals("reply-book-blueprint")) {
+			for (String raw : event.getValues()) {
+				String[] split = raw.split("\\|");
+				String messageId = split[0];
+				Optional<String> label = split.length > 1 ? Optional.of(split[1]) : Optional.empty();
+
+				TextChannel hostingChannel = bot.getJDA().getTextChannelById(hostingChannelID);
+				Message message = hostingChannel.retrieveMessageById(messageId).complete();
+				String replyContent = label.map(s -> s + " ").orElse("") + message.getAttachments().get(0).getUrl();
+
+				PrivateChannel privateChannel = event.getUser().openPrivateChannel().complete();
+				privateChannel.sendMessage(replyContent).queue();
+
+				event.reply(replyContent).setEphemeral(true).queue();
+			}
+		} else {
+			System.out.println("UNKNOWN COMMAND " + command);
 		}
 
 		event.deferEdit().queue();
@@ -802,6 +847,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				//
 				//
 				.addButtonHandler(this::onButtonInteraction)//
+				.addStringSelectHandler(this::onSelectionInteraction)//
 				//
 				//
 				.withCustomSetup(builder -> {

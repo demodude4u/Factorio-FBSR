@@ -43,7 +43,7 @@ public class GUILabel extends GUIPart {
 	}
 
 	public double getTextWidth(Graphics2D g) {
-		return g.getFontMetrics(font).stringWidth(text) / g.getTransform().getScaleX();
+		return g.getFontMetrics(font).stringWidth(text);
 	}
 
 	@Override

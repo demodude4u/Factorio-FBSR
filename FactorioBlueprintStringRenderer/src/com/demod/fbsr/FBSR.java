@@ -80,6 +80,8 @@ public class FBSR {
 		}
 	}
 
+	private static final int MAX_WORLD_RENDER_WIDTH = 24000;
+	private static final int MAX_WORLD_RENDER_HEIGHT = 24000;
 	private static final long MAX_WORLD_RENDER_PIXELS = 17000 * 17000;
 
 	public static final Color GROUND_COLOR = new Color(40, 40, 40);
@@ -937,8 +939,8 @@ public class FBSR {
 		}
 
 		// Shrink down the scale to fit the max requirements
-		int maxWidthPixels = request.getMaxWidth().orElse(Integer.MAX_VALUE);
-		int maxHeightPixels = request.getMaxHeight().orElse(Integer.MAX_VALUE);
+		int maxWidthPixels = request.getMaxWidth().orElse(MAX_WORLD_RENDER_WIDTH);
+		int maxHeightPixels = request.getMaxHeight().orElse(MAX_WORLD_RENDER_HEIGHT);
 		long maxPixels = Math.min(MAX_WORLD_RENDER_PIXELS, (long) maxWidthPixels * (long) maxHeightPixels);
 
 		if ((worldBounds.getWidth() * worldRenderScale * TILE_SIZE) > maxWidthPixels) {

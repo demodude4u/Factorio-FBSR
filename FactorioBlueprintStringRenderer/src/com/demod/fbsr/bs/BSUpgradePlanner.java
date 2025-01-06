@@ -7,6 +7,7 @@ import org.json.JSONObject;
 
 import com.demod.fbsr.BSUtils;
 import com.demod.fbsr.MapVersion;
+import com.google.common.collect.ImmutableList;
 
 public class BSUpgradePlanner {
 	public final Optional<String> label;
@@ -19,9 +20,15 @@ public class BSUpgradePlanner {
 		label = BSUtils.optString(json, "label");
 		version = new MapVersion(json.getInt("version"));
 
-		JSONObject jsonSettings = json.getJSONObject("settings");
-		description = BSUtils.optString(jsonSettings, "description");
-		icons = BSUtils.optList(jsonSettings, "icons", BSIcon::new);
-		mappers = BSUtils.list(jsonSettings, "mappers", BSUpgradeMapping::new);
+		JSONObject jsonSettings = json.optJSONObject("settings");
+		if (jsonSettings != null) {
+			description = BSUtils.optString(jsonSettings, "description");
+			icons = BSUtils.optList(jsonSettings, "icons", BSIcon::new);
+			mappers = BSUtils.list(jsonSettings, "mappers", BSUpgradeMapping::new);
+		} else {
+			description = Optional.empty();
+			icons = Optional.empty();
+			mappers = ImmutableList.of();
+		}
 	}
 }
