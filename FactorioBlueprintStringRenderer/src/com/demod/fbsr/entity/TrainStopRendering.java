@@ -64,7 +64,7 @@ public class TrainStopRendering extends SimpleEntityRendering<BSTrainStopEntity>
 				protoSelectionBox));
 		register.accept(RenderUtils.spriteRenderer(Layer.HIGHER_OBJECT_UNDER, topSprites, entity, protoSelectionBox));
 
-		if (entity.station.isPresent()) {
+		if (entity.station.isPresent() && map.isAltMode()) {
 			String stationName = entity.station.get();
 			register.accept(RenderUtils.drawString(Layer.ENTITY_INFO_TEXT, entity.position.createPoint(), Color.white,
 					stationName));

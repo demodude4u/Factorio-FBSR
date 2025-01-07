@@ -281,6 +281,8 @@ public class WorldMap {
 
 	private final List<Entry<RailEdge, RailEdge>> railEdges = new ArrayList<>();
 
+	private boolean altMode = false;
+
 	private int flag(Direction facing) {
 		return 1 << facing.cardinal();
 	}
@@ -377,6 +379,10 @@ public class WorldMap {
 		return railNodes;
 	}
 
+	public boolean isAltMode() {
+		return altMode;
+	}
+
 	public boolean isBeltFacingMeFrom(Point2D.Double pos, Direction dir) {
 		return getBelt(dir.offset(pos)).filter(b -> b.bendOthers).map(b -> b.facing)
 				.map(d -> pos.distance(d.offset(dir.offset(pos))) < 0.1).orElse(false);
@@ -417,6 +423,10 @@ public class WorldMap {
 		int kr = (int) Math.floor(pos.x);
 		int kc = (int) Math.floor(pos.y);
 		return walls.contains(kr, kc);
+	}
+
+	public void setAltMode(boolean altMode) {
+		this.altMode = altMode;
 	}
 
 	public void setBeaconed(Point2D.Double pos, BSEntity beacon, double distributionEffectivity) {

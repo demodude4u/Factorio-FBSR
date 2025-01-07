@@ -57,7 +57,7 @@ public abstract class CraftingMachineRendering extends SimpleEntityRendering<BSC
 		Sprite spriteIcon = new Sprite();
 
 		Optional<String> recipe = entity.recipe;
-		if (recipe.isPresent()) {
+		if (recipe.isPresent() && map.isAltMode()) {
 			Optional<RecipePrototype> optRecipe = dataTable.getRecipe(recipe.get());
 			if (optRecipe.isPresent()) {
 				RecipePrototype protoRecipe = optRecipe.get();

@@ -73,7 +73,7 @@ public abstract class LoaderRendering extends TransportBeltConnectableRendering<
 		register.accept(
 				RenderUtils.spriteRenderer(Layer.HIGHER_OBJECT_UNDER, structureSprites, entity, protoSelectionBox));
 
-		if (!entity.filters.isEmpty()) {
+		if (!entity.filters.isEmpty() && map.isAltMode()) {
 			List<String> items = entity.filters.stream().map(bs -> bs.name).collect(Collectors.toList());
 
 			// TODO double/quad icons

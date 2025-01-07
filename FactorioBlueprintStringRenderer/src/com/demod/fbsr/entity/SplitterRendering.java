@@ -90,7 +90,7 @@ public class SplitterRendering extends TransportBeltConnectableRendering<BSSplit
 		Point2D.Double leftPos = dir.left().offset(pos, 0.5);
 		Point2D.Double rightPos = dir.right().offset(pos, 0.5);
 
-		if (entity.inputPriority.isPresent()) {
+		if (entity.inputPriority.isPresent() && map.isAltMode()) {
 			boolean right = entity.inputPriority.get().equals("right");
 			Point2D.Double inputPos = dir.offset(right ? rightPos : leftPos, 0);
 
@@ -121,7 +121,7 @@ public class SplitterRendering extends TransportBeltConnectableRendering<BSSplit
 			});
 		}
 
-		if (entity.outputPriority.isPresent()) {
+		if (entity.outputPriority.isPresent() && map.isAltMode()) {
 			boolean right = entity.outputPriority.get().equals("right");
 			Point2D.Double outputPos = dir.offset(right ? rightPos : leftPos, 0.6);
 

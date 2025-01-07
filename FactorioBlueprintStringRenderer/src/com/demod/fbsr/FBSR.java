@@ -575,6 +575,8 @@ public class FBSR {
 		}
 		WorldMap map = new WorldMap();
 
+		map.setAltMode(request.show.altMode);
+
 		List<EntityRenderingTuple> entityRenderingTuples = new ArrayList<EntityRenderingTuple>();
 		List<TileRenderingTuple> tileRenderingTuples = new ArrayList<TileRenderingTuple>();
 		Map<Integer, EntityRenderingTuple> entityByNumber = new HashMap<>();
@@ -650,13 +652,15 @@ public class FBSR {
 			}
 		});
 
-		entityRenderingTuples.forEach(t -> {
-			try {
-				t.factory.createModuleIcons(register, map, table, t.entity);
-			} catch (Exception e) {
-				reporting.addException(e, t.factory.getClass().getSimpleName() + ", " + t.entity.name);
-			}
-		});
+		if (map.isAltMode()) {
+			entityRenderingTuples.forEach(t -> {
+				try {
+					t.factory.createModuleIcons(register, map, table, t.entity);
+				} catch (Exception e) {
+					reporting.addException(e, t.factory.getClass().getSimpleName() + ", " + t.entity.name);
+				}
+			});
+		}
 
 		Map<Integer, Double> connectorOrientations = new HashMap<>();
 		int[] wireEntityNumbers = blueprint.wires.stream()
@@ -703,8 +707,8 @@ public class FBSR {
 			}
 		}
 
-		showLogisticGrid(renderers::add, table, map, request.debug.pathItems);
-		showRailLogistics(renderers::add, table, map, request.debug.pathRails);
+		showLogisticGrid(register, table, map, request.debug.pathItems);
+		showRailLogistics(register, table, map, request.debug.pathRails);
 
 		if (request.debug.entityPlacement) {
 			entityRenderingTuples.forEach(t -> {

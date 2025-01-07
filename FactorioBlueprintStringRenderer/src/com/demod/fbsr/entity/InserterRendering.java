@@ -139,86 +139,88 @@ public class InserterRendering extends SimpleEntityRendering<BSInserterEntity> {
 				}
 			}
 		});
-		register.accept(new Renderer(Layer.ENTITY_INFO_ICON_ABOVE, pos) {
-			@Override
-			public void render(Graphics2D g) {
-				AffineTransform pat = g.getTransform();
+		if (map.isAltMode()) {
+			register.accept(new Renderer(Layer.ENTITY_INFO_ICON_ABOVE, pos) {
+				@Override
+				public void render(Graphics2D g) {
+					AffineTransform pat = g.getTransform();
 
-				double pickupRotate = Math.atan2(pickupPos.y, pickupPos.x);
+					double pickupRotate = Math.atan2(pickupPos.y, pickupPos.x);
 
-				for (Sprite sprite : protoIndicationLine.createSprites()) {
-					Rectangle2D.Double bounds = sprite.bounds;
-					Rectangle source = sprite.source;
-					BufferedImage image = sprite.image;
+					for (Sprite sprite : protoIndicationLine.createSprites()) {
+						Rectangle2D.Double bounds = sprite.bounds;
+						Rectangle source = sprite.source;
+						BufferedImage image = sprite.image;
 
-					if (modded) {
+						if (modded) {
+							g.setTransform(pat);
+							g.setColor(RenderUtils.withAlpha(Color.yellow, 64));
+							g.setStroke(new BasicStroke(0.1f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+							g.draw(new Line2D.Double(pos, inPos));
+						}
+
 						g.setTransform(pat);
-						g.setColor(RenderUtils.withAlpha(Color.yellow, 64));
-						g.setStroke(new BasicStroke(0.1f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-						g.draw(new Line2D.Double(pos, inPos));
-					}
+						g.translate(inPos.x, inPos.y);
+						// HACK magic numbers
+						Point2D.Double magicImageShift = new Point2D.Double(bounds.x + 0.1, bounds.y + -0.05);
+						g.translate(magicImageShift.x, magicImageShift.y);
+						if (modded) {
+							g.translate(-Math.cos(pickupRotate) * 0.2, -Math.sin(pickupRotate) * 0.2);
+							g.rotate(pickupRotate + Math.PI / 2.0, -magicImageShift.x, -magicImageShift.y);
+						} else {
+							g.rotate(dir.back().ordinal() * Math.PI / 4.0, -magicImageShift.x, -magicImageShift.y);
+						}
+						// magic numbers from Factorio code
+						g.scale(0.8, 0.8);
+						g.drawImage(image, 0, 0, 1, 1, source.x, source.y, source.x + source.width,
+								source.y + source.height, null);
 
-					g.setTransform(pat);
-					g.translate(inPos.x, inPos.y);
-					// HACK magic numbers
-					Point2D.Double magicImageShift = new Point2D.Double(bounds.x + 0.1, bounds.y + -0.05);
-					g.translate(magicImageShift.x, magicImageShift.y);
-					if (modded) {
-						g.translate(-Math.cos(pickupRotate) * 0.2, -Math.sin(pickupRotate) * 0.2);
-						g.rotate(pickupRotate + Math.PI / 2.0, -magicImageShift.x, -magicImageShift.y);
-					} else {
-						g.rotate(dir.back().ordinal() * Math.PI / 4.0, -magicImageShift.x, -magicImageShift.y);
-					}
-					// magic numbers from Factorio code
-					g.scale(0.8, 0.8);
-					g.drawImage(image, 0, 0, 1, 1, source.x, source.y, source.x + source.width,
-							source.y + source.height, null);
-
-					g.setTransform(pat);
-				}
-			}
-		});
-		register.accept(new Renderer(Layer.ENTITY_INFO_ICON_ABOVE, pos) {
-			@Override
-			public void render(Graphics2D g) {
-				AffineTransform pat = g.getTransform();
-
-				double insertRotate = Math.atan2(insertPos.y, insertPos.x);
-
-				for (Sprite sprite : protoIndicationArrow.createSprites()) {
-					Rectangle2D.Double bounds = sprite.bounds;
-					Rectangle source = sprite.source;
-					BufferedImage image = sprite.image;
-
-					if (modded) {
 						g.setTransform(pat);
-						g.setColor(RenderUtils.withAlpha(Color.yellow, 64));
-						g.setStroke(new BasicStroke(0.1f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-						g.draw(new Line2D.Double(pos, outPos));
 					}
-
-					g.setTransform(pat);
-					g.translate(outPos.x, outPos.y);
-					// HACK magic numbers
-					Point2D.Double magicImageShift = new Point2D.Double(bounds.x + 0.1, bounds.y + 0.35);
-					g.translate(magicImageShift.x, magicImageShift.y);
-					if (modded) {
-						g.translate(Math.cos(insertRotate) * 0.2, Math.sin(insertRotate) * 0.2);
-						g.rotate(insertRotate + Math.PI / 2.0, -magicImageShift.x, -magicImageShift.y);
-					} else {
-						g.rotate(dir.back().ordinal() * Math.PI / 4.0, -magicImageShift.x, -magicImageShift.y);
-					}
-					// magic numbers from Factorio code
-					g.scale(0.8, 0.8);
-					g.drawImage(image, 0, 0, 1, 1, source.x, source.y, source.x + source.width,
-							source.y + source.height, null);
-
-					g.setTransform(pat);
 				}
-			}
-		});
+			});
+			register.accept(new Renderer(Layer.ENTITY_INFO_ICON_ABOVE, pos) {
+				@Override
+				public void render(Graphics2D g) {
+					AffineTransform pat = g.getTransform();
 
-		if (entity.useFilters) {
+					double insertRotate = Math.atan2(insertPos.y, insertPos.x);
+
+					for (Sprite sprite : protoIndicationArrow.createSprites()) {
+						Rectangle2D.Double bounds = sprite.bounds;
+						Rectangle source = sprite.source;
+						BufferedImage image = sprite.image;
+
+						if (modded) {
+							g.setTransform(pat);
+							g.setColor(RenderUtils.withAlpha(Color.yellow, 64));
+							g.setStroke(new BasicStroke(0.1f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+							g.draw(new Line2D.Double(pos, outPos));
+						}
+
+						g.setTransform(pat);
+						g.translate(outPos.x, outPos.y);
+						// HACK magic numbers
+						Point2D.Double magicImageShift = new Point2D.Double(bounds.x + 0.1, bounds.y + 0.35);
+						g.translate(magicImageShift.x, magicImageShift.y);
+						if (modded) {
+							g.translate(Math.cos(insertRotate) * 0.2, Math.sin(insertRotate) * 0.2);
+							g.rotate(insertRotate + Math.PI / 2.0, -magicImageShift.x, -magicImageShift.y);
+						} else {
+							g.rotate(dir.back().ordinal() * Math.PI / 4.0, -magicImageShift.x, -magicImageShift.y);
+						}
+						// magic numbers from Factorio code
+						g.scale(0.8, 0.8);
+						g.drawImage(image, 0, 0, 1, 1, source.x, source.y, source.x + source.width,
+								source.y + source.height, null);
+
+						g.setTransform(pat);
+					}
+				}
+			});
+		}
+
+		if (entity.useFilters && map.isAltMode()) {
 			List<String> items = entity.filters.stream().map(bs -> bs.name).collect(Collectors.toList());
 
 			// TODO show double/quad icons if more than one

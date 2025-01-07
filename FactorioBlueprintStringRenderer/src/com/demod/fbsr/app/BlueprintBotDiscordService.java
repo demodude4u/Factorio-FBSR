@@ -4,6 +4,7 @@ import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
@@ -423,7 +424,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			if (bookFilter.isPresent()) {
 				String match = bookFilter.get().toLowerCase();
 				blueprints = blueprints.stream()
-						.filter(b -> b.label.isPresent() && !b.label.get().toLowerCase().contains(match)).toList();
+						.filter(b -> b.label.isPresent() && b.label.get().toLowerCase().contains(match)).toList();
 			}
 
 			if (bookIndex.isPresent()) {
@@ -514,10 +515,10 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			content += " " + attachment.get().getUrl();
 		}
 
-		List<BSBlueprintString> blueprintStringDatas = BlueprintFinder.search(content, event.getReporting());
+		List<BSBlueprintString> blueprintStrings = BlueprintFinder.search(content, event.getReporting());
 
 		Map<String, Double> totalItems = new LinkedHashMap<>();
-		for (BSBlueprintString bs : blueprintStringDatas) {
+		for (BSBlueprintString bs : blueprintStrings) {
 			for (BSBlueprint blueprint : bs.findAllBlueprints()) {
 				Map<String, Double> items = FBSR.generateTotalItems(table, blueprint);
 				items.forEach((k, v) -> {
@@ -538,7 +539,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			} else {
 				event.replyFile(responseContent.getBytes(), "items.txt");
 			}
-		} else if (!blueprintStringDatas.isEmpty() && totalItems.isEmpty()) {
+		} else if (!blueprintStrings.isEmpty() && totalItems.isEmpty()) {
 			event.replyIfNoException("I couldn't find any items!");
 		} else {
 			event.replyIfNoException("No blueprint found!");
@@ -560,10 +561,10 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			content += " " + attachment.get().getUrl();
 		}
 
-		List<BSBlueprintString> blueprintStringDatas = BlueprintFinder.search(content, event.getReporting());
+		List<BSBlueprintString> blueprintStrings = BlueprintFinder.search(content, event.getReporting());
 
 		Map<String, Double> totalItems = new LinkedHashMap<>();
-		for (BSBlueprintString bs : blueprintStringDatas) {
+		for (BSBlueprintString bs : blueprintStrings) {
 			for (BSBlueprint blueprint : bs.findAllBlueprints()) {
 				Map<String, Double> items = FBSR.generateTotalItems(table, blueprint);
 				items.forEach((k, v) -> {
@@ -585,7 +586,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			} else {
 				event.replyFile(responseContent.getBytes(), "raw-items.txt");
 			}
-		} else if (!blueprintStringDatas.isEmpty() && rawItems.isEmpty()) {
+		} else if (!blueprintStrings.isEmpty() && rawItems.isEmpty()) {
 			event.replyIfNoException("I couldn't find any items!");
 		} else {
 			event.replyIfNoException("No blueprint found!");
@@ -642,10 +643,10 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			content += " " + attachment.get().getUrl();
 		}
 
-		List<BSBlueprintString> blueprintStringDatas = BlueprintFinder.search(content, event.getReporting());
+		List<BSBlueprintString> blueprintStrings = BlueprintFinder.search(content, event.getReporting());
 
 		Map<String, Double> totalItems = new LinkedHashMap<>();
-		for (BSBlueprintString bs : blueprintStringDatas) {
+		for (BSBlueprintString bs : blueprintStrings) {
 			for (BSBlueprint blueprint : bs.findAllBlueprints()) {
 				Map<String, Double> items = FBSR.generateSummedTotalItems(table, blueprint);
 				items.forEach((k, v) -> {
@@ -666,10 +667,86 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			} else {
 				event.replyFile(responseContent.getBytes(), "totals.txt");
 			}
-		} else if (!blueprintStringDatas.isEmpty() && totalItems.isEmpty()) {
+		} else if (!blueprintStrings.isEmpty() && totalItems.isEmpty()) {
 			event.replyIfNoException("I couldn't find any items!");
 		} else {
 			event.replyIfNoException("No blueprint found!");
+		}
+	}
+
+	private void handleBookDirectoryCommand(SlashCommandEvent event) throws IOException {
+		String content = event.getCommandString();
+
+		Optional<Attachment> attachment = event.optParamAttachment("file");
+		if (attachment.isPresent()) {
+			content += " " + attachment.get().getUrl();
+		}
+
+		List<BSBlueprintString> blueprintStrings = BlueprintFinder.search(content, event.getReporting());
+
+		try (StringWriter sw = new StringWriter()) {
+			for (BSBlueprintString blueprintString : blueprintStrings) {
+				handleBookDirectoryCommand_dirWalk(0, false, sw, blueprintString);
+			}
+
+			event.reply(sw.toString());
+		}
+	}
+
+	private void handleBookDirectoryCommand_dirWalk(int level, boolean ending, StringWriter sw,
+			BSBlueprintString blueprintString) {
+		if (blueprintString.blueprint.isPresent()) {
+			sw.append('`');
+			for (int i = 0; i < level; i++) {
+				sw.append(' ');
+				if (i == level - 1) {
+					if (ending) {
+						sw.append('\u2514'); // single up and single right
+					} else {
+						sw.append('\u251C'); // single vertical and single right
+					}
+				} else {
+					sw.append('\u2502'); // single vertical
+				}
+			}
+			sw.append('\u2500'); // single horizontal
+			sw.append('\u2500'); // single horizontal
+			sw.append(' ');
+			sw.append(blueprintString.blueprint.get().label.orElse("Untitled Blueprint"));
+			sw.append('`');
+			sw.append('\n');
+
+		} else if (blueprintString.blueprintBook.isPresent()) {
+			BSBlueprintBook book = blueprintString.blueprintBook.get();
+			sw.append('`');
+			for (int i = 0; i < level; i++) {
+				sw.append(' ');
+				if (i == level - 1) {
+					if (ending && book.blueprints.isEmpty()) {
+						sw.append('\u2558'); // single up and double right
+					} else {
+						sw.append('\u255E'); // single vertical and double right
+					}
+				} else {
+					sw.append('\u2502'); // single vertical
+				}
+			}
+			if (book.blueprints.isEmpty()) {
+				sw.append('\u2550'); // double horizontal
+				sw.append('\u2550'); // double horizontal
+			} else {
+				sw.append('\u2550'); // double horizontal
+				sw.append('\u2564'); // double horizontal and single down
+			}
+			sw.append(' ');
+			sw.append(book.label.orElse("Untitled Book"));
+			sw.append('`');
+			sw.append('\n');
+			List<BSBlueprintString> blueprints = book.blueprints;
+			for (int i = 0; i < blueprints.size(); i++) {
+				BSBlueprintString child = blueprints.get(i);
+				handleBookDirectoryCommand_dirWalk(level + 1, i == blueprints.size() - 1, sw, child);
+			}
 		}
 	}
 
@@ -857,6 +934,11 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				.withOptionalParam(OptionType.STRING, "url", "Url containing blueprint string.")//
 				.withOptionalParam(OptionType.ATTACHMENT, "file", "File containing blueprint string.")//
 				//
+				.addSlashCommand("book/directory", "Prints out list of all blueprints in a blueprint book.",
+						event -> handleBookDirectoryCommand(event))
+				.withOptionalParam(OptionType.STRING, "string", "Blueprint string.")//
+				.withOptionalParam(OptionType.STRING, "url", "Url containing blueprint string.")//
+				.withOptionalParam(OptionType.ATTACHMENT, "file", "File containing blueprint string.")//
 				//
 				.addSlashCommand("prototype/entity", "Lua data for the specified entity prototype.",
 						createPrototypeCommandHandler("entity", table.getEntities()),

@@ -43,7 +43,7 @@ public class InfinityContainerRendering extends ContainerRendering<BSInfinityCon
 			BSInfinityContainerEntity entity) {
 		super.createRenderers(register, map, dataTable, entity);
 
-		if (entity.infinitySettings.isPresent()) {
+		if (entity.infinitySettings.isPresent() && map.isAltMode()) {
 			List<String> items = entity.infinitySettings.get().filters.stream().filter(bs -> bs.count > 0)
 					.map(bs -> bs.name).collect(Collectors.toList());
 
