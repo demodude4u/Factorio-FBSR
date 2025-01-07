@@ -490,40 +490,42 @@ public class FBSR {
 		});
 	}
 
-	private static void populateTransitLogistics(WorldMap map, boolean debugInputs) {
+	private static void populateTransitLogistics(WorldMap map, boolean populateInputs, boolean populateOutputs) {
 		Table<Integer, Integer, LogisticGridCell> logisticGrid = map.getLogisticGrid();
 		ArrayDeque<Entry<Point2D.Double, LogisticGridCell>> work = new ArrayDeque<>();
 
-		logisticGrid.cellSet().stream().filter(c -> c.getValue().isTransitStart()).forEach(c -> {
-			Set<String> outputs = c.getValue().getOutputs().get();
-			for (String item : outputs) {
-				work.add(new SimpleEntry<>(map.getLogisticCellPosition(c), c.getValue()));
-				while (!work.isEmpty()) {
-					Entry<Point2D.Double, LogisticGridCell> pair = work.pop();
-					Point2D.Double cellPos = pair.getKey();
-					LogisticGridCell cell = pair.getValue();
-					if (cell.addTransit(item) && !cell.isBannedOutput(item)) {
-						cell.getMove().ifPresent(d -> {
-							Point2D.Double nextCellPos = d.offset(cellPos, 0.5);
-							map.getLogisticGridCell(nextCellPos)
-									.filter(nc -> !nc.isBlockTransit() && nc.acceptMoveFrom(d))
-									.ifPresent(next -> work.add(new SimpleEntry<>(nextCellPos, next)));
-						});
-						cell.getWarps().ifPresent(l -> {
-							for (Point2D.Double p : l) {
-								map.getLogisticGridCell(p)
-										.filter(nc -> !nc.isBlockTransit()
-												&& !(nc.getMove().isPresent() && cell.isBlockWarpFromIfMove())
-												&& !(cell.getMove().isPresent() && nc.isBlockWarpToIfMove()))
-										.ifPresent(next -> work.add(new SimpleEntry<>(p, next)));
-							}
-						});
+		if (populateOutputs) {
+			logisticGrid.cellSet().stream().filter(c -> c.getValue().isTransitStart()).forEach(c -> {
+				Set<String> outputs = c.getValue().getOutputs().get();
+				for (String item : outputs) {
+					work.add(new SimpleEntry<>(map.getLogisticCellPosition(c), c.getValue()));
+					while (!work.isEmpty()) {
+						Entry<Point2D.Double, LogisticGridCell> pair = work.pop();
+						Point2D.Double cellPos = pair.getKey();
+						LogisticGridCell cell = pair.getValue();
+						if (cell.addTransit(item) && !cell.isBannedOutput(item)) {
+							cell.getMove().ifPresent(d -> {
+								Point2D.Double nextCellPos = d.offset(cellPos, 0.5);
+								map.getLogisticGridCell(nextCellPos)
+										.filter(nc -> !nc.isBlockTransit() && nc.acceptMoveFrom(d))
+										.ifPresent(next -> work.add(new SimpleEntry<>(nextCellPos, next)));
+							});
+							cell.getWarps().ifPresent(l -> {
+								for (Point2D.Double p : l) {
+									map.getLogisticGridCell(p)
+											.filter(nc -> !nc.isBlockTransit()
+													&& !(nc.getMove().isPresent() && cell.isBlockWarpFromIfMove())
+													&& !(cell.getMove().isPresent() && nc.isBlockWarpToIfMove()))
+											.ifPresent(next -> work.add(new SimpleEntry<>(p, next)));
+								}
+							});
+						}
 					}
 				}
-			}
-		});
+			});
+		}
 
-		if (debugInputs) {
+		if (populateInputs) {
 			logisticGrid.cellSet().stream().filter(c -> c.getValue().isTransitEnd()).forEach(c -> {
 				Set<String> inputs = c.getValue().getInputs().get();
 				for (String item : inputs) {
@@ -588,22 +590,12 @@ public class FBSR {
 				factory = new ErrorRendering(factory);
 				reporting.addException(entity.getParseException().get(), entity.name + " " + entity.entityNumber);
 			}
-			if (factory == EntityRendererFactory.UNKNOWN) {
-				if (request.debug.typeMapping) {
-					reporting.addDebug("Unknown Entity! " + entity.name);
-				}
-			}
 			EntityRenderingTuple tuple = new EntityRenderingTuple(entity, factory);
 			entityRenderingTuples.add(tuple);
 			entityByNumber.put(entity.entityNumber, tuple);
 		}
 		for (BSTile tile : blueprint.tiles) {
 			TileRendererFactory factory = TileRendererFactory.forName(tile.name);
-			if (factory == TileRendererFactory.UNKNOWN) {
-				if (request.debug.typeMapping) {
-					reporting.addDebug("Unknown Tile! " + tile.name);
-				}
-			}
 			TileRenderingTuple tuple = new TileRenderingTuple(tile, factory);
 			tileRenderingTuples.add(tuple);
 		}
@@ -632,7 +624,7 @@ public class FBSR {
 		});
 
 		populateReverseLogistics(map);
-		populateTransitLogistics(map, request.debug.inputs);
+		populateTransitLogistics(map, request.show.pathInputs, request.show.pathOutputs);
 
 		populateRailBlocking(map);
 		populateRailStationLogistics(map);
@@ -711,10 +703,10 @@ public class FBSR {
 			}
 		}
 
-		showLogisticGrid(renderers::add, table, map, request.debug.logistic);
-		showRailLogistics(renderers::add, table, map, request.debug.rail);
+		showLogisticGrid(renderers::add, table, map, request.debug.pathItems);
+		showRailLogistics(renderers::add, table, map, request.debug.pathRails);
 
-		if (request.debug.placement) {
+		if (request.debug.entityPlacement) {
 			entityRenderingTuples.forEach(t -> {
 				Point2D.Double pos = t.entity.position.createPoint();
 				renderers.add(new Renderer(Layer.DEBUG_P, pos) {
@@ -858,7 +850,7 @@ public class FBSR {
 			}
 		});
 
-		boolean debugBounds = request.debug.bounds;
+		boolean debugBounds = request.debug.entityPlacement;
 		renderers.stream().sorted((r11, r21) -> {
 			int ret;
 
@@ -932,8 +924,7 @@ public class FBSR {
 		return result;
 	}
 
-	private static void showLogisticGrid(Consumer<Renderer> register, DataTable table, WorldMap map,
-			boolean debugLogistic) {
+	private static void showLogisticGrid(Consumer<Renderer> register, DataTable table, WorldMap map, boolean debug) {
 		Table<Integer, Integer, LogisticGridCell> logisticGrid = map.getLogisticGrid();
 		logisticGrid.cellSet().forEach(c -> {
 			Point2D.Double pos = new Point2D.Double(c.getRowKey() / 2.0 + 0.25, c.getColumnKey() / 2.0 + 0.25);
@@ -967,7 +958,7 @@ public class FBSR {
 
 			});
 
-			if (debugLogistic) {
+			if (debug) {
 				cell.getMovedFrom().ifPresent(l -> {
 					for (Direction d : l) {
 						Point2D.Double p = d.offset(pos, 0.5);
@@ -999,8 +990,7 @@ public class FBSR {
 		});
 	}
 
-	private static void showRailLogistics(Consumer<Renderer> register, DataTable table, WorldMap map,
-			boolean debugRail) {
+	private static void showRailLogistics(Consumer<Renderer> register, DataTable table, WorldMap map, boolean debug) {
 		for (Entry<RailEdge, RailEdge> pair : map.getRailEdges()) {
 			boolean input = pair.getKey().isInput() || pair.getValue().isInput();
 			boolean output = pair.getKey().isOutput() || pair.getValue().isOutput();
@@ -1036,7 +1026,7 @@ public class FBSR {
 				});
 			}
 
-			if (debugRail) {
+			if (debug) {
 				for (RailEdge edge : ImmutableList.of(pair.getKey(), pair.getValue())) {
 					if (edge.isBlocked()) {
 						continue;
@@ -1062,7 +1052,7 @@ public class FBSR {
 			}
 		}
 
-		if (debugRail) {
+		if (debug) {
 			map.getRailNodes().cellSet().forEach(c -> {
 				Point2D.Double pos = new Point2D.Double(c.getRowKey() / 2.0, c.getColumnKey() / 2.0);
 				RailNode node = c.getValue();

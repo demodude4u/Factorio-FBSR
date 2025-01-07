@@ -10,12 +10,16 @@ import com.demod.fbsr.bs.BSBlueprint;
 
 public class RenderRequest {
 	public static class Debug {
-		public boolean typeMapping = false;
-		public boolean inputs = false;
-		public boolean logistic = false;
-		public boolean rail = false;
-		public boolean placement = false;
-		public boolean bounds = false;
+		public boolean pathItems = false;
+		public boolean pathRails = false;
+		public boolean entityPlacement = false;
+	}
+
+	public static class Show {
+		public boolean altMode = true;
+		public boolean pathOutputs = true;
+		public boolean pathInputs = false;
+		public boolean pathRails = true;
 	}
 
 	private BSBlueprint blueprint;
@@ -31,6 +35,7 @@ public class RenderRequest {
 	private Optional<Color> gridLines = Optional.of(FBSR.GRID_COLOR);
 
 	public final Debug debug = new Debug();
+	public final Show show = new Show();
 
 	public RenderRequest(BSBlueprint blueprint, CommandReporting reporting) {
 		this.blueprint = blueprint;

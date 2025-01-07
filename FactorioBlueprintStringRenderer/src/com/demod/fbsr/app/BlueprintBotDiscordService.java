@@ -13,10 +13,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalDouble;
+import java.util.OptionalInt;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.function.Function;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
@@ -62,6 +63,7 @@ import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.Message.Attachment;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.MessageEmbed.Field;
+import net.dv8tion.jda.api.entities.channel.ChannelType;
 import net.dv8tion.jda.api.entities.channel.concrete.PrivateChannel;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
@@ -96,6 +98,14 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 	public static final Emoji EMOJI_UPGRADEPLANNER = Emoji.fromFormatted("<:upgradeplanner:1316556634528546887>");
 	public static final Emoji EMOJI_SEARCH = Emoji.fromFormatted("<:search:1319740035825799259>");
 
+	private static OptionalDouble optDouble(Optional<Double> value) {
+		return value.map(OptionalDouble::of).orElse(OptionalDouble.empty());
+	}
+
+	private static OptionalInt optInt(Optional<Long> value) {
+		return value.map(Long::intValue).map(OptionalInt::of).orElse(OptionalInt.empty());
+	}
+
 	private static BufferedImage shrinkImageToFitDiscordLimits(BufferedImage image) {
 		byte[] imageData = WebUtils.getImageData(image);// XXX this is done multiple times
 
@@ -127,32 +137,6 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		};
 	}
 
-	private AutoCompleteHandler createPrototypeAutoCompleteHandler(Map<String, ? extends DataPrototype> map) {
-		return (event) -> {
-			String name = event.getParamString("name").trim().toLowerCase();
-
-			if (name.isEmpty()) {
-				event.reply(ImmutableList.of());
-				return;
-			}
-
-			List<String> nameStartsWith = new ArrayList<>();
-			List<String> nameContains = new ArrayList<>();
-			map.keySet().stream().sorted().forEach(n -> {
-				String lowerCase = n.toLowerCase();
-				if (lowerCase.startsWith(name)) {
-					nameStartsWith.add(n);
-				} else if (lowerCase.contains(name)) {
-					nameContains.add(n);
-				}
-			});
-
-			List<String> choices = ImmutableList.<String>builder().addAll(nameStartsWith).addAll(nameContains).build()
-					.stream().limit(OptionData.MAX_CHOICES).collect(Collectors.toList());
-			event.reply(choices);
-		};
-	}
-
 	// TODO
 //	private AutoCompleteHandler createDataRawAutoCompleteHandler(Function<String[], Optional<LuaValue>> query) {
 //		return (event) -> {
@@ -180,6 +164,32 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 //		};
 //	}
 
+	private AutoCompleteHandler createPrototypeAutoCompleteHandler(Map<String, ? extends DataPrototype> map) {
+		return (event) -> {
+			String name = event.getParamString("name").trim().toLowerCase();
+
+			if (name.isEmpty()) {
+				event.reply(ImmutableList.of());
+				return;
+			}
+
+			List<String> nameStartsWith = new ArrayList<>();
+			List<String> nameContains = new ArrayList<>();
+			map.keySet().stream().sorted().forEach(n -> {
+				String lowerCase = n.toLowerCase();
+				if (lowerCase.startsWith(name)) {
+					nameStartsWith.add(n);
+				} else if (lowerCase.contains(name)) {
+					nameContains.add(n);
+				}
+			});
+
+			List<String> choices = ImmutableList.<String>builder().addAll(nameStartsWith).addAll(nameContains).build()
+					.stream().limit(OptionData.MAX_CHOICES).collect(Collectors.toList());
+			event.reply(choices);
+		};
+	}
+
 	private SlashCommandHandler createPrototypeCommandHandler(String category,
 			Map<String, ? extends DataPrototype> map) {
 		return (event) -> {
@@ -201,16 +211,292 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		};
 	}
 
-	private void findDebugOptions(CommandReporting reporting, String content, JSONObject options) {
-		Matcher matcher = debugPattern.matcher(content);
-		while (matcher.find()) {
-			String fieldName = matcher.group(1);
-			options.put("debug-" + fieldName, true);
+	public DiscordBot getBot() {
+		return bot;
+	}
+
+	private void handleBlueprintCommand(SlashCommandEvent event)
+			throws IOException, InterruptedException, ExecutionException {
+
+		String content = event.getCommandString();
+
+		Optional<Attachment> attachment = event.optParamAttachment("file");
+		if (attachment.isPresent()) {
+			content += " " + attachment.get().getUrl();
+		}
+
+		Optional<BSBlueprintString> optBlueprintString = BlueprintFinder.search(content, event.getReporting()).stream()
+				.findFirst();
+
+		if (optBlueprintString.isEmpty()) {
+			event.replyEmbed(new EmbedBuilder()//
+					.setColor(Color.red)//
+					.setDescription("Blueprint string not found!")//
+					.build());
+			return;
+		}
+
+		BSBlueprintString blueprintString = optBlueprintString.get();
+		CommandReporting reporting = event.getReporting();
+
+		List<Long> renderTimes = new ArrayList<>();
+
+		Optional<MessageEmbed> embed = Optional.empty();
+		String imageFilename = null;
+		BufferedImage image = null;
+
+		List<List<ItemComponent>> actionRows = new ArrayList<>();
+		List<ItemComponent> actionButtonRow = new ArrayList<>();
+
+		Future<Message> futBlueprintStringUpload = useDiscordForFileHosting(
+				WebUtils.formatBlueprintFilename(blueprintString.findFirstLabel(), "txt"),
+				blueprintString.getRaw().get());
+
+		if (blueprintString.blueprint.isPresent()) {
+			BSBlueprint blueprint = blueprintString.blueprint.get();
+
+			if (event.optParamBoolean("simple").orElse(false)) {
+				RenderRequest request = new RenderRequest(blueprint, reporting);
+				RenderResult result = FBSR.renderBlueprint(request);
+				image = result.image;
+				renderTimes.add(result.renderTime);
+
+			} else {
+				GUILayoutBlueprint layout = new GUILayoutBlueprint();
+				layout.setBlueprint(blueprint);
+				layout.setReporting(reporting);
+				image = layout.generateDiscordImage();
+				renderTimes.add(layout.getResult().renderTime);
+
+				if (layout.getResult().renderScale < 0.501) {
+					RenderRequest request = new RenderRequest(blueprint, reporting);
+					RenderResult result = FBSR.renderBlueprint(request);
+					BufferedImage fullImage = shrinkImageToFitDiscordLimits(result.image);
+					renderTimes.add(result.renderTime);
+					Message messageFullImage = useDiscordForFileHosting(
+							WebUtils.formatBlueprintFilename(blueprintString.findFirstLabel(), "png"), fullImage).get();
+					actionButtonRow
+							.add(Button
+									.secondary("reply-zoom|" + messageFullImage.getId()
+											+ blueprint.label.map(s -> "|" + s).orElse(""), "Zoom In")
+									.withEmoji(EMOJI_SEARCH));
+				}
+			}
+
+			image = shrinkImageToFitDiscordLimits(image);
+			imageFilename = WebUtils.formatBlueprintFilename(blueprint.label, "png");
+			// TODO lazy full resolution render upload
+
+		} else if (blueprintString.blueprintBook.isPresent()) {
+			BSBlueprintBook book = blueprintString.blueprintBook.get();
+
+			GUILayoutBook layout = new GUILayoutBook();
+			layout.setBook(book);
+			layout.setReporting(reporting);
+			image = layout.generateDiscordImage();
+			renderTimes.add(layout.getResults().stream().mapToLong(r -> r.renderTime).sum());
+
+			List<BSBlueprint> blueprints = book.getAllBlueprints();
+			StringSelectMenu.Builder menuBuilder = StringSelectMenu.create("reply-book-blueprint");
+			for (int i = 0; i < blueprints.size(); i++) {
+				if (i < 25) {
+					BSBlueprint blueprint = blueprints.get(i);
+
+					RenderRequest request = new RenderRequest(blueprint, reporting);
+					RenderResult result = FBSR.renderBlueprint(request);
+					BufferedImage fullImage = shrinkImageToFitDiscordLimits(result.image);
+					renderTimes.add(result.renderTime);
+					Message messageFullImage = useDiscordForFileHosting(
+							WebUtils.formatBlueprintFilename(blueprintString.findFirstLabel(), "png"), fullImage).get();
+
+					menuBuilder.addOption("[" + (i + 1) + "] " + blueprint.label.orElse("Untitled Blueprint"),
+							messageFullImage.getId() + blueprint.label.map(s -> "|" + s).orElse(""));
+				}
+				// TODO figure out how to handle more than 25 blueprint options
+			}
+			actionRows.add(ImmutableList.of(menuBuilder.build()));
+			// TODO each blueprint renders and upload
+
+			image = shrinkImageToFitDiscordLimits(image);
+			imageFilename = WebUtils.formatBlueprintFilename(book.label, "png");
+
+		} else if (blueprintString.deconstructionPlanner.isPresent()) {
+			EmbedBuilder builder = new EmbedBuilder();
+			BSDeconstructionPlanner planner = blueprintString.deconstructionPlanner.get();
+			builder.setColor(Color.darkGray);
+			builder.setDescription("Blueprint string is a deconstruction planner.");
+			if (planner.label.isPresent()) {
+				builder.addField(new Field("Label", planner.label.get(), false));
+			}
+			if (planner.description.isPresent()) {
+				builder.addField(new Field("Description", planner.description.get(), false));
+			}
+			embed = Optional.of(builder.build());
+			// TODO more details from deconstruction planner
+
+		} else if (blueprintString.upgradePlanner.isPresent()) {
+			EmbedBuilder builder = new EmbedBuilder();
+			BSUpgradePlanner planner = blueprintString.upgradePlanner.get();
+			builder.setColor(Color.darkGray);
+			builder.setDescription("Blueprint string is an upgrade planner.");
+			if (planner.label.isPresent()) {
+				builder.addField(new Field("Label", planner.label.get(), false));
+			}
+			if (planner.description.isPresent()) {
+				builder.addField(new Field("Description", planner.description.get(), false));
+			}
+			embed = Optional.of(builder.build());
+			// TODO more details from upgrade planner
+		}
+
+		Emoji emoji = EMOJI_BLUEPRINT;
+		if (blueprintString.blueprintBook.isPresent()) {
+			emoji = EMOJI_BLUEPRINTBOOK;
+		} else if (blueprintString.deconstructionPlanner.isPresent()) {
+			emoji = EMOJI_DECONSTRUCTIONPLANNER;
+		} else if (blueprintString.upgradePlanner.isPresent()) {
+			emoji = EMOJI_UPGRADEPLANNER;
+		}
+
+		actionButtonRow
+				.add(Button
+						.secondary("reply-blueprint|" + futBlueprintStringUpload.get().getId()
+								+ blueprintString.findFirstLabel().map(s -> "|" + s).orElse(""), "Download")
+						.withEmoji(emoji));
+
+		if (!renderTimes.isEmpty()) {
+			String renderTimesStr = renderTimes.stream().mapToLong(l1 -> l1).sum() + " ms" + (renderTimes.size() > 1
+					? (" [" + renderTimes.stream().map(Object::toString).collect(Collectors.joining(", ")) + "]")
+					: "");
+			if (renderTimesStr.length() > 256) {
+				renderTimesStr = renderTimesStr.substring(0, 256) + "...";
+			}
+			reporting.addField(new Field("Render Time", renderTimesStr, true));
+		}
+
+		if (!actionButtonRow.isEmpty()) {
+			actionRows.add(actionButtonRow);
+		}
+
+		if (embed.isPresent()) {
+			event.replyEmbed(embed.get(), actionRows);
+		} else {
+			event.replyFile(WebUtils.getImageData(image), imageFilename, actionRows);
 		}
 	}
 
-	public DiscordBot getBot() {
-		return bot;
+	private void handleBlueprintCustomCommand(SlashCommandEvent event)
+			throws IOException, InterruptedException, ExecutionException {
+
+		String content = event.getCommandString();
+
+		Optional<Attachment> attachment = event.optParamAttachment("file");
+		if (attachment.isPresent()) {
+			content += " " + attachment.get().getUrl();
+		}
+
+		List<BSBlueprintString> blueprintStrings = BlueprintFinder.search(content, event.getReporting());
+
+		if (blueprintStrings.isEmpty()) {
+			event.reply("No blueprint string was found. Make sure to specify a string, url, or file.");
+			return;
+		}
+
+		if (blueprintStrings.size() > 1) {
+			event.reply("More than one blueprint string was found. Please specify only one blueprint string.");
+			return;
+		}
+
+		BSBlueprintString blueprintString = blueprintStrings.get(0);
+
+		BSBlueprint blueprint = null;
+		if (blueprintString.blueprint.isPresent()) {
+			blueprint = blueprintString.blueprint.get();
+
+		} else if (blueprintString.blueprintBook.isPresent()) {
+			BSBlueprintBook book = blueprintString.blueprintBook.get();
+
+			Optional<String> bookFilter = event.optParamString("book-filter");
+			Optional<Long> bookIndex = event.optParamLong("book-index");
+
+			List<BSBlueprint> blueprints = book.getAllBlueprints();
+			if (bookFilter.isPresent()) {
+				String match = bookFilter.get().toLowerCase();
+				blueprints = blueprints.stream()
+						.filter(b -> b.label.isPresent() && !b.label.get().toLowerCase().contains(match)).toList();
+			}
+
+			if (bookIndex.isPresent()) {
+				int index = bookIndex.get().intValue();
+
+				if (index < 0 || index >= blueprints.size()) {
+					event.reply("Book index out of range. There are " + blueprints.size() + " blueprints.");
+					return;
+				}
+
+				blueprint = blueprints.get(index);
+
+			} else {
+
+				if (blueprints.isEmpty()) {
+					event.reply("No blueprints in book matched the filter.");
+					return;
+				}
+
+				if (blueprints.size() > 1) {
+					event.reply(blueprints.size() + " blueprints in book matched the filter, please be more specific:\n"
+							+ blueprints.stream().flatMap(b -> b.label.stream()).map(l -> "- " + l)
+									.collect(Collectors.joining("\n")));
+					return;
+				}
+
+				blueprint = blueprints.get(0);
+			}
+		}
+
+		Optional<Long> minWidth = event.optParamLong("min-width");
+		Optional<Long> minHeight = event.optParamLong("min-height");
+		Optional<Long> maxWidth = event.optParamLong("max-width");
+		Optional<Long> maxHeight = event.optParamLong("max-height");
+		Optional<Double> maxScale = event.optParamDouble("max-scale");
+
+		boolean showBackground = event.optParamBoolean("show-background").orElse(false);
+		boolean showGridlines = event.optParamBoolean("show-gridlines").orElse(false);
+
+		boolean showAltMode = event.optParamBoolean("show-alt-mode").orElse(false);
+		boolean showPathOutputs = event.optParamBoolean("show-path-outputs").orElse(false);
+		boolean showPathInputs = event.optParamBoolean("show-path-inputs").orElse(false);
+		boolean showPathRails = event.optParamBoolean("show-path-rails").orElse(false);
+
+		boolean debugPathItems = event.optParamBoolean("debug-path-items").orElse(false);
+		boolean debugPathRails = event.optParamBoolean("debug-path-rails").orElse(false);
+		boolean debugEntityPlacement = event.optParamBoolean("debug-entity-placement").orElse(false);
+
+		RenderRequest request = new RenderRequest(blueprint, event.getReporting());
+
+		request.setMinWidth(optInt(minWidth));
+		request.setMinHeight(optInt(minHeight));
+		request.setMaxWidth(optInt(maxWidth));
+		request.setMaxHeight(optInt(maxHeight));
+		request.setMaxScale(optDouble(maxScale));
+
+		request.setBackground(showBackground ? Optional.of(FBSR.GROUND_COLOR) : Optional.empty());
+		request.setGridLines(showGridlines ? Optional.of(FBSR.GRID_COLOR) : Optional.empty());
+
+		request.show.altMode = showAltMode;
+		request.show.pathOutputs = showPathOutputs;
+		request.show.pathInputs = showPathInputs;
+		request.show.pathRails = showPathRails;
+
+		request.debug.pathItems = debugPathItems;
+		request.debug.pathRails = debugPathRails;
+		request.debug.entityPlacement = debugEntityPlacement;
+
+		RenderResult result = FBSR.renderBlueprint(request);
+
+		String filename = WebUtils.formatBlueprintFilename(blueprint.label, "png");
+		BufferedImage image = shrinkImageToFitDiscordLimits(result.image);
+		event.replyFile(WebUtils.getImageData(image), filename);
 	}
 
 	private void handleBlueprintItemsCommand(SlashCommandEvent event) throws IOException {
@@ -341,257 +627,6 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		}
 	}
 
-	private void handleBlueprintSlashCommand(SlashCommandEvent event)
-			throws IOException, InterruptedException, ExecutionException {
-
-		String content = event.getCommandString();
-
-		Optional<Attachment> attachment = event.optParamAttachment("file");
-		if (attachment.isPresent()) {
-			content += " " + attachment.get().getUrl();
-		}
-
-		JSONObject options = new JSONObject();
-		findDebugOptions(event.getReporting(), content, options);
-		event.optParamBoolean("simple").ifPresent(b -> options.put("show-info-panels", !b));
-		event.optParamLong("max-width").ifPresent(l -> options.put("max-width", l.intValue()));
-		event.optParamLong("max-height").ifPresent(l -> options.put("max-height", l.intValue()));
-
-		Optional<BSBlueprintString> optBlueprintString = BlueprintFinder.search(content, event.getReporting()).stream()
-				.findFirst();
-
-		if (optBlueprintString.isEmpty()) {
-			event.replyEmbed(new EmbedBuilder()//
-					.setColor(Color.red)//
-					.setDescription("Blueprint string not found!")//
-					.build());
-			return;
-		}
-
-		BSBlueprintString blueprintString = optBlueprintString.get();
-		CommandReporting reporting = event.getReporting();
-
-		List<Long> renderTimes = new ArrayList<>();
-
-		Optional<MessageEmbed> embed = Optional.empty();
-		String imageFilename = null;
-		BufferedImage image = null;
-
-		List<List<ItemComponent>> actionRows = new ArrayList<>();
-		List<ItemComponent> actionButtonRow = new ArrayList<>();
-
-		Future<Message> futBlueprintStringUpload = useDiscordForFileHosting(
-				WebUtils.formatBlueprintFilename(blueprintString.findFirstLabel(), "txt"),
-				blueprintString.getRaw().get());
-
-		if (blueprintString.blueprint.isPresent()) {
-			BSBlueprint blueprint = blueprintString.blueprint.get();
-
-			if (event.optParamBoolean("simple").orElse(false)) {
-				RenderRequest request = new RenderRequest(blueprint, reporting);
-				RenderResult result = FBSR.renderBlueprint(request);
-				image = result.image;
-				renderTimes.add(result.renderTime);
-
-			} else {
-				GUILayoutBlueprint layout = new GUILayoutBlueprint();
-				layout.setBlueprint(blueprint);
-				layout.setReporting(reporting);
-				image = layout.generateDiscordImage();
-				renderTimes.add(layout.getResult().renderTime);
-
-				if (layout.getResult().renderScale < 0.501) {
-					RenderRequest request = new RenderRequest(blueprint, reporting);
-					RenderResult result = FBSR.renderBlueprint(request);
-					BufferedImage fullImage = shrinkImageToFitDiscordLimits(result.image);
-					renderTimes.add(result.renderTime);
-					Message messageFullImage = useDiscordForFileHosting(
-							WebUtils.formatBlueprintFilename(blueprintString.findFirstLabel(), "png"), fullImage).get();
-					actionButtonRow.add(Button.secondary("reply-zoom|" + messageFullImage.getId(), "Zoom In")
-							.withEmoji(EMOJI_SEARCH));
-				}
-			}
-
-			image = shrinkImageToFitDiscordLimits(image);
-			imageFilename = WebUtils.formatBlueprintFilename(blueprint.label, "png");
-			// TODO lazy full resolution render upload
-
-		} else if (blueprintString.blueprintBook.isPresent()) {
-			BSBlueprintBook book = blueprintString.blueprintBook.get();
-
-			GUILayoutBook layout = new GUILayoutBook();
-			layout.setBook(book);
-			layout.setReporting(reporting);
-			image = layout.generateDiscordImage();
-			renderTimes.add(layout.getResults().stream().mapToLong(r -> r.renderTime).sum());
-
-			List<BSBlueprint> blueprints = book.getAllBlueprints();
-			StringSelectMenu.Builder menuBuilder = StringSelectMenu.create("reply-book-blueprint");
-			for (int i = 0; i < blueprints.size(); i++) {
-				if (i < 25) {
-					BSBlueprint blueprint = blueprints.get(i);
-
-					RenderRequest request = new RenderRequest(blueprint, reporting);
-					RenderResult result = FBSR.renderBlueprint(request);
-					BufferedImage fullImage = shrinkImageToFitDiscordLimits(result.image);
-					renderTimes.add(result.renderTime);
-					Message messageFullImage = useDiscordForFileHosting(
-							WebUtils.formatBlueprintFilename(blueprintString.findFirstLabel(), "png"), fullImage).get();
-
-					menuBuilder.addOption("[" + (i + 1) + "] " + blueprint.label.orElse("Untitled Blueprint"),
-							messageFullImage.getId());
-				}
-				// TODO figure out how to handle more than 25 blueprint options
-			}
-			actionRows.add(ImmutableList.of(menuBuilder.build()));
-			// TODO each blueprint renders and upload
-
-			image = shrinkImageToFitDiscordLimits(image);
-			imageFilename = WebUtils.formatBlueprintFilename(book.label, "png");
-
-		} else if (blueprintString.deconstructionPlanner.isPresent()) {
-			EmbedBuilder builder = new EmbedBuilder();
-			BSDeconstructionPlanner planner = blueprintString.deconstructionPlanner.get();
-			builder.setColor(Color.darkGray);
-			builder.setDescription("Blueprint string is a deconstruction planner.");
-			if (planner.label.isPresent()) {
-				builder.addField(new Field("Label", planner.label.get(), false));
-			}
-			if (planner.description.isPresent()) {
-				builder.addField(new Field("Description", planner.description.get(), false));
-			}
-			embed = Optional.of(builder.build());
-			// TODO more details from deconstruction planner
-
-		} else if (blueprintString.upgradePlanner.isPresent()) {
-			EmbedBuilder builder = new EmbedBuilder();
-			BSUpgradePlanner planner = blueprintString.upgradePlanner.get();
-			builder.setColor(Color.darkGray);
-			builder.setDescription("Blueprint string is an upgrade planner.");
-			if (planner.label.isPresent()) {
-				builder.addField(new Field("Label", planner.label.get(), false));
-			}
-			if (planner.description.isPresent()) {
-				builder.addField(new Field("Description", planner.description.get(), false));
-			}
-			embed = Optional.of(builder.build());
-			// TODO more details from upgrade planner
-		}
-
-		Emoji emoji = EMOJI_BLUEPRINT;
-		if (blueprintString.blueprintBook.isPresent()) {
-			emoji = EMOJI_BLUEPRINTBOOK;
-		} else if (blueprintString.deconstructionPlanner.isPresent()) {
-			emoji = EMOJI_DECONSTRUCTIONPLANNER;
-		} else if (blueprintString.upgradePlanner.isPresent()) {
-			emoji = EMOJI_UPGRADEPLANNER;
-		}
-
-		actionButtonRow.add(Button.secondary("reply-blueprint|" + futBlueprintStringUpload.get().getId(), "Download")
-				.withEmoji(emoji));
-
-		if (!renderTimes.isEmpty()) {
-			String renderTimesStr = renderTimes.stream().mapToLong(l1 -> l1).sum() + " ms" + (renderTimes.size() > 1
-					? (" [" + renderTimes.stream().map(Object::toString).collect(Collectors.joining(", ")) + "]")
-					: "");
-			if (renderTimesStr.length() > 256) {
-				renderTimesStr = renderTimesStr.substring(0, 256) + "...";
-			}
-			reporting.addField(new Field("Render Time", renderTimesStr, true));
-		}
-
-		if (!actionButtonRow.isEmpty()) {
-			actionRows.add(actionButtonRow);
-		}
-
-		if (embed.isPresent()) {
-			event.replyEmbed(embed.get(), actionRows);
-		} else {
-			event.replyFile(WebUtils.getImageData(image), imageFilename, actionRows);
-		}
-
-//		List<BSBlueprint> blueprints = blueprintString.findAllBlueprints();
-//		System.out.println("Parsing blueprints: " + blueprints.size());
-//		for (BSBlueprint blueprint : blueprints) {
-//			try {
-//				RenderResult result = FBSR.renderBlueprint(blueprint, reporting, options);
-//				images.add(new SimpleEntry<>(blueprint.label, result.image));
-//				renderTimes.add(result.renderTime);
-//			} catch (Exception e) {
-//				reporting.addException(e);
-//			}
-//		}
-//
-//
-//		if (images.size() == 0) {
-//			embedBuilders1.add();
-//
-//		} else if (images.size() == 1) {
-//			Entry<Optional<String>, BufferedImage> entry = images.get(0);
-//			BufferedImage image = entry.getValue();
-//			String url = WebUtils.uploadToHostingService("blueprint.png", image);
-//			EmbedBuilder builder = new EmbedBuilder();
-//			builder.setImage(url);
-//			embedBuilders1.add(builder);
-//
-//		} else {
-//			List<Entry<String, String>> links = new ArrayList<>();
-//			for (Entry<Optional<String>, BufferedImage> entry : images) {
-//				BufferedImage image = entry.getValue();
-//				links.add(new SimpleEntry<>(WebUtils.uploadToHostingService("blueprint.png", image),
-//						entry.getKey().orElse("")));
-//			}
-//
-//			ArrayDeque<String> lines = new ArrayDeque<>();
-//			for (int i = 0; i < links.size(); i++) {
-//				Entry<String, String> entry = links.get(i);
-//				if (entry.getValue() != null && !entry.getValue().trim().isEmpty()) {
-//					lines.add("[" + entry.getValue().trim() + "](" + entry.getKey() + ")");
-//				} else {
-//					lines.add("[Blueprint Image " + (i + 1) + "](" + entry.getKey() + ")");
-//				}
-//			}
-//
-//			while (!lines.isEmpty()) {
-//				EmbedBuilder builder = new EmbedBuilder();
-//				for (int i = 0; i < 3 && !lines.isEmpty(); i++) {
-//					StringBuilder description = new StringBuilder();
-//					while (!lines.isEmpty()) {
-//						if (description.length() + lines.peek().length() + 1 < MessageEmbed.VALUE_MAX_LENGTH) {
-//							description.append(lines.pop()).append('\n');
-//						} else {
-//							break;
-//						}
-//					}
-//					builder.addField("", description.toString(), true);
-//				}
-//				embedBuilders1.add(builder);
-//			}
-//		}
-//
-//		if (!blueprintStringDatas.isEmpty() && !embedBuilders1.isEmpty()) {
-//			List<String> links = new ArrayList<>();
-//			for (int i = 0; i < blueprintStringDatas.size(); i++) {
-//				BSBlueprintString blueprintString = blueprintStringDatas.get(i);
-//				String label = blueprintString.findFirstLabel().orElse(
-//						(blueprintString.findAllBlueprints().size() > 1 ? "Blueprint Book " : "Blueprint ") + (i + 1));
-//				String link = WebUtils.uploadToHostingService("blueprint.txt", blueprintString.toString().getBytes());
-//				links.add("[" + label + "](" + link + ")");
-//			}
-//
-//			embedBuilders1.get(0).getFields().add(0,
-//					new Field("Blueprint String" + (blueprintStringDatas.size() > 1 ? "s" : ""),
-//							links.stream().collect(Collectors.joining("\n")), false));
-//		}
-//
-//		List<MessageEmbed> embeds = embedBuilders.stream().map(EmbedBuilder::build).collect(Collectors.toList());
-//		for (MessageEmbed embed : embeds) {
-//			event.replyEmbed(embed);
-//		}
-
-		// TODO try out buttons
-	}
-
 	private void handleBlueprintTotalsCommand(SlashCommandEvent event) {
 		DataTable table;
 		try {
@@ -643,26 +678,31 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		String[] split = raw.split("\\|");
 		String command = split[0];
 		String messageId = split[1];
-		Optional<String> label = split.length > 2 ? Optional.of(split[2]) : Optional.empty();
+
+		event.deferEdit().queue();
 
 		if (command.equals("reply-blueprint") || command.equals("reply-zoom")) {
 			TextChannel hostingChannel = bot.getJDA().getTextChannelById(hostingChannelID);
 			Message message = hostingChannel.retrieveMessageById(messageId).complete();
-			String replyContent = label.map(s -> s + " ").orElse("") + message.getAttachments().get(0).getUrl();
+			String replyContent = message.getAttachments().get(0).getUrl();
 
-			PrivateChannel privateChannel = event.getUser().openPrivateChannel().complete();
-			privateChannel.sendMessage(replyContent).queue();
+			if (event.getChannelType() != ChannelType.PRIVATE) {
+				PrivateChannel privateChannel = event.getUser().openPrivateChannel().complete();
+				privateChannel.sendMessage(replyContent).queue();
+			}
 
 			event.reply(replyContent).setEphemeral(true).queue();
-		} else {
-			System.out.println("UNKNOWN COMMAND " + command);
-		}
 
-		event.deferEdit().queue();
+		} else {
+			System.err.println("UNKNOWN COMMAND " + command);
+			event.reply("Unknown Command: " + command).setEphemeral(true).queue();
+		}
 	}
 
 	public void onSelectionInteraction(StringSelectInteractionEvent event) {
 		String command = event.getComponentId();
+
+		event.deferEdit().queue();
 
 		if (command.equals("reply-book-blueprint")) {
 			for (String raw : event.getValues()) {
@@ -674,16 +714,19 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				Message message = hostingChannel.retrieveMessageById(messageId).complete();
 				String replyContent = label.map(s -> s + " ").orElse("") + message.getAttachments().get(0).getUrl();
 
-				PrivateChannel privateChannel = event.getUser().openPrivateChannel().complete();
-				privateChannel.sendMessage(replyContent).queue();
+				if (event.getChannelType() != ChannelType.PRIVATE) {
+					PrivateChannel privateChannel = event.getUser().openPrivateChannel().complete();
+					privateChannel.sendMessage(replyContent).queue();
+				}
 
 				event.reply(replyContent).setEphemeral(true).queue();
 			}
+
 		} else {
 			System.out.println("UNKNOWN COMMAND " + command);
+			event.reply("Unknown Command: " + command).setEphemeral(true).queue();
 		}
 
-		event.deferEdit().queue();
 	}
 
 	private void sendLuaDumpFile(EventReply event, String category, String name, LuaValue lua) throws IOException {
@@ -738,46 +781,56 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 						Permission.MESSAGE_ADD_REACTION,//
 				})//
 				.addSlashCommand("bp/string", "Renders an image of the blueprint string.",
-						event -> handleBlueprintSlashCommand(event))//
+						event -> handleBlueprintCommand(event))//
 				.withParam(OptionType.STRING, "string", "Blueprint string.")//
-				.withOptionalParam(OptionType.BOOLEAN, "simple", "Set True to show just the image, no side panels.")
-				.withOptionalParam(OptionType.INTEGER, "max-width", "Maximum width of image, in pixels.")
-				.withOptionalParam(OptionType.INTEGER, "max-height", "Maximum height of image, in pixels.")
 				//
 				.addSlashCommand("bp/url", "Renders an image of the blueprint url.",
-						event -> handleBlueprintSlashCommand(event))//
+						event -> handleBlueprintCommand(event))//
 				.withParam(OptionType.STRING, "url", "Url containing blueprint string.")//
-				.withOptionalParam(OptionType.BOOLEAN, "simple", "Set True to show just the image, no side panels.")
-				.withOptionalParam(OptionType.INTEGER, "max-width", "Maximum width of image, in pixels.")
-				.withOptionalParam(OptionType.INTEGER, "max-height", "Maximum height of image, in pixels.")
 				//
 				.addSlashCommand("bp/file", "Renders an image of the blueprint attachment.",
-						event -> handleBlueprintSlashCommand(event))//
+						event -> handleBlueprintCommand(event))//
 				.withParam(OptionType.ATTACHMENT, "file", "File containing blueprint string.")//
-				.withOptionalParam(OptionType.BOOLEAN, "simple", "Set True to show just the image, no side panels.")
-				.withOptionalParam(OptionType.INTEGER, "max-width", "Maximum width of image, in pixels.")
-				.withOptionalParam(OptionType.INTEGER, "max-height", "Maximum height of image, in pixels.")
 				//
 				.addSlashCommand("blueprint/string", "Renders an image of the blueprint string.",
-						event -> handleBlueprintSlashCommand(event))//
+						event -> handleBlueprintCommand(event))//
 				.withParam(OptionType.STRING, "string", "Blueprint string.")//
-				.withOptionalParam(OptionType.BOOLEAN, "simple", "Set True to show just the image, no side panels.")
-				.withOptionalParam(OptionType.INTEGER, "max-width", "Maximum width of image, in pixels.")
-				.withOptionalParam(OptionType.INTEGER, "max-height", "Maximum height of image, in pixels.")
 				//
 				.addSlashCommand("blueprint/url", "Renders an image of the blueprint url.",
-						event -> handleBlueprintSlashCommand(event))//
+						event -> handleBlueprintCommand(event))//
 				.withParam(OptionType.STRING, "url", "Url containing blueprint string.")//
-				.withOptionalParam(OptionType.BOOLEAN, "simple", "Set True to show just the image, no side panels.")
-				.withOptionalParam(OptionType.INTEGER, "max-width", "Maximum width of image, in pixels.")
-				.withOptionalParam(OptionType.INTEGER, "max-height", "Maximum height of image, in pixels.")
 				//
 				.addSlashCommand("blueprint/file", "Renders an image of the blueprint attachment.",
-						event -> handleBlueprintSlashCommand(event))//
+						event -> handleBlueprintCommand(event))//
 				.withParam(OptionType.ATTACHMENT, "file", "File containing blueprint string.")//
-				.withOptionalParam(OptionType.BOOLEAN, "simple", "Set True to show just the image, no side panels.")
-				.withOptionalParam(OptionType.INTEGER, "max-width", "Maximum width of image, in pixels.")
-				.withOptionalParam(OptionType.INTEGER, "max-height", "Maximum height of image, in pixels.")
+				//
+				.addSlashCommand("blueprint/custom", "Alternative rendering options to display a blueprint.",
+						event -> handleBlueprintCustomCommand(event))//
+				.withOptionalParam(OptionType.STRING, "string", "Blueprint string.")//
+				.withOptionalParam(OptionType.STRING, "url", "Url containing blueprint string.")//
+				.withOptionalParam(OptionType.ATTACHMENT, "file", "File containing blueprint string.")//
+				.withOptionalParam(OptionType.STRING, "book-filter",
+						"If the blueprint is a book, specify blueprint label matching this filter.")//
+				.withOptionalParam(OptionType.INTEGER, "book-index",
+						"If the blueprint is a book, specify blueprint at index.")//
+				.withOptionalParam(OptionType.INTEGER, "min-width", "Minimum width of image, in pixels.")//
+				.withOptionalParam(OptionType.INTEGER, "min-height", "Minimum height of image, in pixels.")//
+				.withOptionalParam(OptionType.INTEGER, "max-width", "Maximum width of image, in pixels.")//
+				.withOptionalParam(OptionType.INTEGER, "max-height", "Maximum height of image, in pixels.")//
+				.withOptionalParam(OptionType.NUMBER, "max-scale", "Maximum scale of entities.")//
+				.withOptionalParam(OptionType.BOOLEAN, "show-background", "Show background.")//
+				.withOptionalParam(OptionType.BOOLEAN, "show-gridlines", "Show grid lines.")//
+				.withOptionalParam(OptionType.BOOLEAN, "show-alt-mode",
+						"Show alt mode information, like filters and indicators.")//
+				.withOptionalParam(OptionType.BOOLEAN, "show-path-outputs",
+						"Show item path coloring coming from crafting or filtered outputs.")//
+				.withOptionalParam(OptionType.BOOLEAN, "show-path-inputs",
+						"Show item path coloring leading to crafting or filtered inputs.")//
+				.withOptionalParam(OptionType.BOOLEAN, "show-path-rails", "Show rail station path coloring.")//
+				.withOptionalParam(OptionType.BOOLEAN, "debug-path-items", "Show debug markers for item pathing.")//
+				.withOptionalParam(OptionType.BOOLEAN, "debug-path-rails", "Show debug markers for rail pathing.")//
+				.withOptionalParam(OptionType.BOOLEAN, "debug-entity-placement",
+						"Show debug markers for entity position, direction, and bounds.")//
 				//
 				.addSlashCommand("json", "Provides a dump of the json data in the specified blueprint string.",
 						event -> handleBlueprintJsonCommand(event))//
