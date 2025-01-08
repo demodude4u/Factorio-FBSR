@@ -809,12 +809,8 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 						+ messageImage.getAttachments().get(0).getUrl();
 			}
 
-			if (event.getChannelType() != ChannelType.PRIVATE) {
-				PrivateChannel privateChannel = event.getUser().openPrivateChannel().complete();
-				privateChannel.sendMessage(replyContent).queue();
-			}
-
-			event.reply(replyContent).setEphemeral(true).queue();
+			PrivateChannel privateChannel = event.getUser().openPrivateChannel().complete();
+			privateChannel.sendMessage(replyContent).queue();
 
 		} else {
 			System.err.println("UNKNOWN COMMAND " + command);
@@ -872,12 +868,9 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 						+ messageImage.getAttachments().get(0).getUrl();
 
 			}
-			if (event.getChannelType() != ChannelType.PRIVATE) {
-				PrivateChannel privateChannel = event.getUser().openPrivateChannel().complete();
-				privateChannel.sendMessage(replyContent).queue();
-			}
 
-			event.reply(replyContent).setEphemeral(true).queue();
+			PrivateChannel privateChannel = event.getUser().openPrivateChannel().complete();
+			privateChannel.sendMessage(replyContent).queue();
 
 		} else {
 			System.out.println("UNKNOWN COMMAND " + command);
