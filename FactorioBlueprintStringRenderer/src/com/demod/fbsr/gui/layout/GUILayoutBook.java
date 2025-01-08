@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.OptionalInt;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import com.demod.dcba.CommandReporting;
@@ -244,9 +245,9 @@ public class GUILayoutBook {
 
 		Table<Integer, Integer, Integer> groupings = ArrayTable.create(
 				IntStream.rangeClosed(packBounds.y, packBounds.y + packBounds.height).mapToObj(i -> (Integer) i)
-						.toList(),
+						.collect(Collectors.toList()),
 				IntStream.rangeClosed(packBounds.x, packBounds.x + packBounds.width).mapToObj(i -> (Integer) i)
-						.toList());
+						.collect(Collectors.toList()));
 		for (int i = 0; i < blocks.size(); i++) {
 			ImageBlock block = blocks.get(i);
 			for (int row = block.location.y; row < block.location.y + block.location.height; row++) {

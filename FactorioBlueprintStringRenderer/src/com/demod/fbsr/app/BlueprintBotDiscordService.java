@@ -424,7 +424,8 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			if (bookFilter.isPresent()) {
 				String match = bookFilter.get().toLowerCase();
 				blueprints = blueprints.stream()
-						.filter(b -> b.label.isPresent() && b.label.get().toLowerCase().contains(match)).toList();
+						.filter(b -> b.label.isPresent() && b.label.get().toLowerCase().contains(match))
+						.collect(Collectors.toList());
 			}
 
 			if (bookIndex.isPresent()) {
