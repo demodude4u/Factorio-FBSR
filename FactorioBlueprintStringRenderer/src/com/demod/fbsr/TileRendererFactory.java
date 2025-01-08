@@ -168,59 +168,64 @@ public class TileRendererFactory {
 		public void tileEdge(Random rand, Consumer<Renderer> register, Point2D.Double pos,
 				List<TileEdgeRuleParam> params) {
 
-			FPTileTransitionVariantLayout overlay = protoVariantsTransition.get().overlayLayout.get();
-			List<TileEdgeRuleParam> overlayParams;
-			if (overlay.doubleSide.isPresent()) {
-				overlayParams = convertSidesToDoubleSides(params);
-			} else {
-				overlayParams = params;
-			}
-			for (TileEdgeRuleParam param : overlayParams) {
-				Optional<FPTileSpriteLayoutVariant> optVariant = param.getSelector().apply(overlay);
-				if (optVariant.isPresent()) {
-					FPTileSpriteLayoutVariant variant = optVariant.get();
+			// TODO figure out why some tiles do not have an overlay!
+			if (protoVariantsTransition.get().overlayLayout.isPresent()) {
+				FPTileTransitionVariantLayout overlay = protoVariantsTransition.get().overlayLayout.get();
+				List<TileEdgeRuleParam> overlayParams;
+				if (overlay.doubleSide.isPresent()) {
+					overlayParams = convertSidesToDoubleSides(params);
+				} else {
+					overlayParams = params;
+				}
+				for (TileEdgeRuleParam param : overlayParams) {
+					Optional<FPTileSpriteLayoutVariant> optVariant = param.getSelector().apply(overlay);
+					if (optVariant.isPresent()) {
+						FPTileSpriteLayoutVariant variant = optVariant.get();
 
-					int frame = rand.nextInt(variant.count);
+						int frame = rand.nextInt(variant.count);
 
-					int sourceWidth = (int) Math.round(64 / variant.scale);
-					int sourceHeight = (int) Math.round(variant.tileHeight * 64 / variant.scale);
+						int sourceWidth = (int) Math.round(64 / variant.scale);
+						int sourceHeight = (int) Math.round(variant.tileHeight * 64 / variant.scale);
 
-					Sprite sprite = new Sprite();
-					sprite.bounds = new Rectangle2D.Double(pos.x, pos.y, 1, variant.tileHeight);
-					sprite.image = FactorioData.getModImage(variant.spritesheet);
-					sprite.source = new Rectangle(0, 0, sourceWidth, sourceHeight);
-					sprite.source.x = frame * sprite.source.width;
-					sprite.source.y = param.variant * sprite.source.height;
-					register.accept(RenderUtils.spriteRenderer(Layer.DECALS, sprite,
-							new Rectangle2D.Double(pos.x, pos.y, 1, 1)));
+						Sprite sprite = new Sprite();
+						sprite.bounds = new Rectangle2D.Double(pos.x, pos.y, 1, variant.tileHeight);
+						sprite.image = FactorioData.getModImage(variant.spritesheet);
+						sprite.source = new Rectangle(0, 0, sourceWidth, sourceHeight);
+						sprite.source.x = frame * sprite.source.width;
+						sprite.source.y = param.variant * sprite.source.height;
+						register.accept(RenderUtils.spriteRenderer(Layer.DECALS, sprite,
+								new Rectangle2D.Double(pos.x, pos.y, 1, 1)));
+					}
 				}
 			}
 
-			FPTileTransitionVariantLayout background = protoVariantsTransition.get().backgroundLayout.get();
-			List<TileEdgeRuleParam> backgroundParams;
-			if (background.doubleSide.isPresent()) {
-				backgroundParams = convertSidesToDoubleSides(params);
-			} else {
-				backgroundParams = params;
-			}
-			for (TileEdgeRuleParam param : backgroundParams) {
-				Optional<FPTileSpriteLayoutVariant> optVariant = param.getSelector().apply(background);
-				if (optVariant.isPresent()) {
-					FPTileSpriteLayoutVariant variant = optVariant.get();
+			if (protoVariantsTransition.get().backgroundLayout.isPresent()) {
+				FPTileTransitionVariantLayout background = protoVariantsTransition.get().backgroundLayout.get();
+				List<TileEdgeRuleParam> backgroundParams;
+				if (background.doubleSide.isPresent()) {
+					backgroundParams = convertSidesToDoubleSides(params);
+				} else {
+					backgroundParams = params;
+				}
+				for (TileEdgeRuleParam param : backgroundParams) {
+					Optional<FPTileSpriteLayoutVariant> optVariant = param.getSelector().apply(background);
+					if (optVariant.isPresent()) {
+						FPTileSpriteLayoutVariant variant = optVariant.get();
 
-					int frame = rand.nextInt(variant.count);
+						int frame = rand.nextInt(variant.count);
 
-					int sourceWidth = (int) Math.round(64 / variant.scale);
-					int sourceHeight = (int) Math.round(variant.tileHeight * 64 / variant.scale);
+						int sourceWidth = (int) Math.round(64 / variant.scale);
+						int sourceHeight = (int) Math.round(variant.tileHeight * 64 / variant.scale);
 
-					Sprite sprite = new Sprite();
-					sprite.bounds = new Rectangle2D.Double(pos.x, pos.y, 1, variant.tileHeight);
-					sprite.image = FactorioData.getModImage(variant.spritesheet);
-					sprite.source = new Rectangle(0, 0, sourceWidth, sourceHeight);
-					sprite.source.x = frame * sprite.source.width;
-					sprite.source.y = param.variant * sprite.source.height;
-					register.accept(RenderUtils.spriteRenderer(Layer.UNDER_TILES, sprite,
-							new Rectangle2D.Double(pos.x, pos.y, 1, 1)));
+						Sprite sprite = new Sprite();
+						sprite.bounds = new Rectangle2D.Double(pos.x, pos.y, 1, variant.tileHeight);
+						sprite.image = FactorioData.getModImage(variant.spritesheet);
+						sprite.source = new Rectangle(0, 0, sourceWidth, sourceHeight);
+						sprite.source.x = frame * sprite.source.width;
+						sprite.source.y = param.variant * sprite.source.height;
+						register.accept(RenderUtils.spriteRenderer(Layer.UNDER_TILES, sprite,
+								new Rectangle2D.Double(pos.x, pos.y, 1, 1)));
+					}
 				}
 			}
 		}
@@ -258,8 +263,9 @@ public class TileRendererFactory {
 				List<TileEdgeRuleParam> params) {
 
 			FPTileTransitions transitions = protoVariantsTransition.get();
-			FPTileTransitionVariantLayout overlay = transitions.overlayLayout.get();
-			FPTileTransitionVariantLayout mask = transitions.maskLayout.get();
+			// TODO some tiles do not have overlay/mask!
+//			FPTileTransitionVariantLayout overlay = transitions.overlayLayout.get();
+//			FPTileTransitionVariantLayout mask = transitions.maskLayout.get();
 
 			// TODO material edge
 		}
