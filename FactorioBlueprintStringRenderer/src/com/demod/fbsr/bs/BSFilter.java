@@ -19,7 +19,7 @@ public class BSFilter {
 
 	public BSFilter(JSONObject json) {
 		index = json.optInt("index", 1);
-		name = json.getString("name");
+		name = BSUtils.optString(json, "name").orElse("UNKNOWN");// XXX could be handled better
 		type = BSUtils.optString(json, "type");// TODO default value item? enum?
 		quality = BSUtils.optQuality(json, "quality");
 		comparator = BSUtils.optString(json, "comparator");
