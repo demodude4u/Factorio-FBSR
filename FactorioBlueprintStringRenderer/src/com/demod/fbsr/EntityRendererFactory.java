@@ -48,6 +48,7 @@ import com.demod.fbsr.entity.BasicContainerRendering;
 import com.demod.fbsr.entity.BeaconRendering;
 import com.demod.fbsr.entity.BoilerRendering;
 import com.demod.fbsr.entity.BurnerGeneratorRendering;
+import com.demod.fbsr.entity.CarRendering;
 import com.demod.fbsr.entity.CargoBayRendering;
 import com.demod.fbsr.entity.CargoLandingPadRendering;
 import com.demod.fbsr.entity.ConstantCombinatorRendering;
@@ -207,6 +208,8 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 		byName.put("rocket-turret", new AmmoTurretRendering());
 		byName.put("railgun-turret", new AmmoTurretRendering());
 		byName.put("cargo-bay", new CargoBayRendering());
+		byName.put("car", new CarRendering());
+		byName.put("tank", new CarRendering());
 		byName.put("cargo-landing-pad", new CargoLandingPadRendering());
 		byName.put("iron-chest", new BasicContainerRendering());
 		byName.put("steel-chest", new BasicContainerRendering());

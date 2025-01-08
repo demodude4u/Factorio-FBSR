@@ -30,7 +30,7 @@ public class FPRotatedAnimation extends FPAnimationParameters {
 
 		layers = FPUtils.optList(lua.get("layers"), FPRotatedAnimation::new);
 		directionCount = lua.get("direction_count").optint(1);
-		stripes = FPUtils.optList(lua.get("stripes"), l -> new FPStripe(lua, OptionalInt.of(directionCount)));
+		stripes = FPUtils.optList(lua.get("stripes"), l -> new FPStripe(l, OptionalInt.of(directionCount)));
 		filenames = FPUtils.optList(lua.get("filenames"), LuaValue::toString);
 		slice = lua.get("slice").optint(frameCount);
 		linesPerFile = lua.get("lines_per_file").optint(0);
@@ -54,20 +54,30 @@ public class FPRotatedAnimation extends FPAnimationParameters {
 		frame = index * lineLength + frame;
 
 		if (stripes.isPresent()) {
+
+			int stripeStartIndex = 0;
 			for (FPStripe stripe : stripes.get()) {
+
+				if (stripeStartIndex + stripe.heightInFrames < index) {
+					stripeStartIndex += stripe.heightInFrames;
+					continue;
+				}
+
+				int stripeIndex = index - stripeStartIndex;
 
 				// XXX at least it is cached
 				BufferedImage image = FactorioData.getModImage(stripe.filename);
 
-				// TODO do I ignore width/height in Animation proto?
 				int width = image.getWidth() / stripe.widthInFrames;
 				int height = image.getHeight() / stripe.heightInFrames;
 
-				int x = stripe.x + width * (frame % stripe.widthInFrames);
-				int y = stripe.y + height * (frame / stripe.heightInFrames);
+				int x = stripe.x + width * frame;
+				int y = stripe.y + height * stripeIndex;
 
 				consumer.accept(RenderUtils.createSprite(stripe.filename, drawAsShadow, blendMode, getEffectiveTint(),
 						x, y, width, height, shift.x, shift.y, scale));
+
+				break;
 			}
 
 			return;
