@@ -9,7 +9,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,7 +18,6 @@ import java.util.OptionalInt;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.function.Function;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -55,6 +53,8 @@ import com.demod.fbsr.bs.BSDeconstructionPlanner;
 import com.demod.fbsr.bs.BSUpgradePlanner;
 import com.demod.fbsr.gui.layout.GUILayoutBlueprint;
 import com.demod.fbsr.gui.layout.GUILayoutBook;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.AbstractIdleService;
 
@@ -80,16 +80,15 @@ import net.dv8tion.jda.api.utils.FileUpload;
 
 public class BlueprintBotDiscordService extends AbstractIdleService {
 
-	private static final Pattern debugPattern = Pattern.compile("DEBUG:([A-Za-z0-9_]+)");
+	private static class CachedMessageImageResult {
+		public final Optional<String> label;
+		public final String messageId;
 
-	private static final Map<String, String> upgradeBeltsEntityMapping = new HashMap<>();
-	static {
-		upgradeBeltsEntityMapping.put("transport-belt", "fast-transport-belt");
-		upgradeBeltsEntityMapping.put("underground-belt", "fast-underground-belt");
-		upgradeBeltsEntityMapping.put("splitter", "fast-splitter");
-		upgradeBeltsEntityMapping.put("fast-transport-belt", "express-transport-belt");
-		upgradeBeltsEntityMapping.put("fast-underground-belt", "express-underground-belt");
-		upgradeBeltsEntityMapping.put("fast-splitter", "express-splitter");
+		public CachedMessageImageResult(Optional<String> label, String messageId) {
+			this.label = label;
+			this.messageId = messageId;
+		}
+
 	}
 
 	public static final Emoji EMOJI_BLUEPRINT = Emoji.fromFormatted("<:blueprint:1316556635761672244>");
@@ -97,7 +96,11 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 	public static final Emoji EMOJI_DECONSTRUCTIONPLANNER = Emoji
 			.fromFormatted("<:deconstructionplanner:1316556636621508688>");
 	public static final Emoji EMOJI_UPGRADEPLANNER = Emoji.fromFormatted("<:upgradeplanner:1316556634528546887>");
+
 	public static final Emoji EMOJI_SEARCH = Emoji.fromFormatted("<:search:1319740035825799259>");
+
+	private static Cache<String, CachedMessageImageResult> recentLazyLoadedMessages = CacheBuilder.newBuilder()//
+			.maximumSize(1000).build();
 
 	private static OptionalDouble optDouble(Optional<Double> value) {
 		return value.map(OptionalDouble::of).orElse(OptionalDouble.empty());
@@ -123,20 +126,6 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 	private JSONObject configJson;
 
 	private String hostingChannelID;
-
-	private SlashCommandHandler createDataRawCommandHandler(Function<String[], Optional<LuaValue>> query) {
-		return (event) -> {
-			String key = event.getParamString("path");
-			String[] path = key.split("\\.");
-			Optional<LuaValue> lua = query.apply(path);
-			if (!lua.isPresent()) {
-				event.reply("I could not find a lua table for the path [`"
-						+ Arrays.asList(path).stream().collect(Collectors.joining(", ")) + "`] :frowning:");
-				return;
-			}
-			sendLuaDumpFile(event, "raw", key, lua.get());
-		};
-	}
 
 	// TODO
 //	private AutoCompleteHandler createDataRawAutoCompleteHandler(Function<String[], Optional<LuaValue>> query) {
@@ -164,6 +153,20 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 //			event.reply(choices);
 //		};
 //	}
+
+	private SlashCommandHandler createDataRawCommandHandler(Function<String[], Optional<LuaValue>> query) {
+		return (event) -> {
+			String key = event.getParamString("path");
+			String[] path = key.split("\\.");
+			Optional<LuaValue> lua = query.apply(path);
+			if (!lua.isPresent()) {
+				event.reply("I could not find a lua table for the path [`"
+						+ Arrays.asList(path).stream().collect(Collectors.joining(", ")) + "`] :frowning:");
+				return;
+			}
+			sendLuaDumpFile(event, "raw", key, lua.get());
+		};
+	}
 
 	private AutoCompleteHandler createPrototypeAutoCompleteHandler(Map<String, ? extends DataPrototype> map) {
 		return (event) -> {
@@ -270,23 +273,14 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				renderTimes.add(layout.getResult().renderTime);
 
 				if (layout.getResult().renderScale < 0.501) {
-					RenderRequest request = new RenderRequest(blueprint, reporting);
-					RenderResult result = FBSR.renderBlueprint(request);
-					BufferedImage fullImage = shrinkImageToFitDiscordLimits(result.image);
-					renderTimes.add(result.renderTime);
-					Message messageFullImage = useDiscordForFileHosting(
-							WebUtils.formatBlueprintFilename(blueprintString.findFirstLabel(), "png"), fullImage).get();
 					actionButtonRow
-							.add(Button
-									.secondary("reply-zoom|" + messageFullImage.getId()
-											+ blueprint.label.map(s -> "|" + s).orElse(""), "Zoom In")
+							.add(Button.secondary("reply-zoom|" + futBlueprintStringUpload.get().getId(), "Zoom In")
 									.withEmoji(EMOJI_SEARCH));
 				}
 			}
 
 			image = shrinkImageToFitDiscordLimits(image);
 			imageFilename = WebUtils.formatBlueprintFilename(blueprint.label, "png");
-			// TODO lazy full resolution render upload
 
 		} else if (blueprintString.blueprintBook.isPresent()) {
 			BSBlueprintBook book = blueprintString.blueprintBook.get();
@@ -302,16 +296,15 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			for (int i = 0; i < blueprints.size(); i++) {
 				if (i < 25) {
 					BSBlueprint blueprint = blueprints.get(i);
+//					RenderRequest request = new RenderRequest(blueprint, reporting);
+//					RenderResult result = FBSR.renderBlueprint(request);
+//					BufferedImage fullImage = shrinkImageToFitDiscordLimits(result.image);
+//					renderTimes.add(result.renderTime);
+//					Message messageFullImage = useDiscordForFileHosting(
+//							WebUtils.formatBlueprintFilename(blueprintString.findFirstLabel(), "png"), fullImage).get();
 
-					RenderRequest request = new RenderRequest(blueprint, reporting);
-					RenderResult result = FBSR.renderBlueprint(request);
-					BufferedImage fullImage = shrinkImageToFitDiscordLimits(result.image);
-					renderTimes.add(result.renderTime);
-					Message messageFullImage = useDiscordForFileHosting(
-							WebUtils.formatBlueprintFilename(blueprintString.findFirstLabel(), "png"), fullImage).get();
-
-					menuBuilder.addOption("[" + (i + 1) + "] " + blueprint.label.orElse("Untitled Blueprint"),
-							messageFullImage.getId() + blueprint.label.map(s -> "|" + s).orElse(""));
+					menuBuilder.addOption(blueprint.label.orElse("Untitled Blueprint " + (i + 1)),
+							futBlueprintStringUpload.get().getId() + "|" + i);
 				}
 				// TODO figure out how to handle more than 25 blueprint options
 			}
@@ -496,6 +489,8 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 		RenderResult result = FBSR.renderBlueprint(request);
 
+		event.getReporting().addField(new Field("Render Time", result.renderTime + " ms", true));
+
 		String filename = WebUtils.formatBlueprintFilename(blueprint.label, "png");
 		BufferedImage image = shrinkImageToFitDiscordLimits(result.image);
 		event.replyFile(WebUtils.getImageData(image), filename);
@@ -629,7 +624,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		}
 	}
 
-	private void handleBlueprintTotalsCommand(SlashCommandEvent event) {
+	private void handleBlueprintTotalsCommand(SlashCommandEvent event) throws IOException {
 		DataTable table;
 		try {
 			table = FactorioData.getTable();
@@ -751,18 +746,68 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		}
 	}
 
-	public void onButtonInteraction(ButtonInteractionEvent event) {
+	public void onButtonInteraction(ButtonInteractionEvent event, CommandReporting reporting)
+			throws IOException, InterruptedException, ExecutionException {
 		String raw = event.getComponentId();
 		String[] split = raw.split("\\|");
 		String command = split[0];
-		String messageId = split[1];
 
 		event.deferEdit().queue();
 
-		if (command.equals("reply-blueprint") || command.equals("reply-zoom")) {
+		if (command.equals("reply-blueprint")) {
+			String messageId = split[1];
+			Optional<String> label = split.length > 2 ? Optional.of(split[2]) : Optional.empty();
+
 			TextChannel hostingChannel = bot.getJDA().getTextChannelById(hostingChannelID);
 			Message message = hostingChannel.retrieveMessageById(messageId).complete();
-			String replyContent = message.getAttachments().get(0).getUrl();
+			String replyContent = label.map(s -> s + " ").orElse("") + message.getAttachments().get(0).getUrl();
+
+			if (event.getChannelType() != ChannelType.PRIVATE) {
+				PrivateChannel privateChannel = event.getUser().openPrivateChannel().complete();
+				privateChannel.sendMessage(replyContent).queue();
+			}
+
+			event.reply(replyContent).setEphemeral(true).queue();
+
+		} else if (command.equals("reply-zoom")) {
+
+			String cacheKey = raw;
+			CachedMessageImageResult cachedResult = recentLazyLoadedMessages.getIfPresent(cacheKey);
+
+			String replyContent;
+
+			if (cachedResult != null) {
+				TextChannel hostingChannel = bot.getJDA().getTextChannelById(hostingChannelID);
+				Message messageImage = hostingChannel.retrieveMessageById(cachedResult.messageId).complete();
+
+				replyContent = cachedResult.label.map(s -> s + " ").orElse("")
+						+ messageImage.getAttachments().get(0).getUrl();
+
+			} else {
+				String messageId = split[1];
+
+				TextChannel hostingChannel = bot.getJDA().getTextChannelById(hostingChannelID);
+				Message message = hostingChannel.retrieveMessageById(messageId).complete();
+
+				BSBlueprintString blueprintString = BlueprintFinder
+						.search(message.getAttachments().get(0).getUrl(), reporting).get(0);
+				BSBlueprint blueprint = blueprintString.blueprint.get();
+
+				RenderRequest request = new RenderRequest(blueprint, reporting);
+				RenderResult result = FBSR.renderBlueprint(request);
+				BufferedImage image = shrinkImageToFitDiscordLimits(result.image);
+
+				reporting.addField(new Field("Render Time", result.renderTime + " ms", true));
+
+				Message messageImage = useDiscordForFileHosting(
+						WebUtils.formatBlueprintFilename(blueprint.label, "png"), image).get();
+
+				recentLazyLoadedMessages.put(cacheKey,
+						new CachedMessageImageResult(blueprint.label, messageImage.getId()));
+
+				replyContent = blueprint.label.map(s -> s + " ").orElse("")
+						+ messageImage.getAttachments().get(0).getUrl();
+			}
 
 			if (event.getChannelType() != ChannelType.PRIVATE) {
 				PrivateChannel privateChannel = event.getUser().openPrivateChannel().complete();
@@ -777,28 +822,62 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		}
 	}
 
-	public void onSelectionInteraction(StringSelectInteractionEvent event) {
+	public void onSelectionInteraction(StringSelectInteractionEvent event, CommandReporting reporting)
+			throws InterruptedException, ExecutionException, IOException {
 		String command = event.getComponentId();
 
 		event.deferEdit().queue();
 
 		if (command.equals("reply-book-blueprint")) {
-			for (String raw : event.getValues()) {
+			String raw = event.getValues().get(0);
+
+			String cacheKey = command + "|" + raw;
+			CachedMessageImageResult cachedResult = recentLazyLoadedMessages.getIfPresent(cacheKey);
+
+			String replyContent;
+
+			if (cachedResult != null) {
+				TextChannel hostingChannel = bot.getJDA().getTextChannelById(hostingChannelID);
+				Message messageImage = hostingChannel.retrieveMessageById(cachedResult.messageId).complete();
+
+				replyContent = cachedResult.label.map(s -> s + " ").orElse("")
+						+ messageImage.getAttachments().get(0).getUrl();
+
+			} else {
+
 				String[] split = raw.split("\\|");
 				String messageId = split[0];
-				Optional<String> label = split.length > 1 ? Optional.of(split[1]) : Optional.empty();
+				int index = Integer.parseInt(split[1]);
 
 				TextChannel hostingChannel = bot.getJDA().getTextChannelById(hostingChannelID);
 				Message message = hostingChannel.retrieveMessageById(messageId).complete();
-				String replyContent = label.map(s -> s + " ").orElse("") + message.getAttachments().get(0).getUrl();
 
-				if (event.getChannelType() != ChannelType.PRIVATE) {
-					PrivateChannel privateChannel = event.getUser().openPrivateChannel().complete();
-					privateChannel.sendMessage(replyContent).queue();
-				}
+				BSBlueprintString blueprintString = BlueprintFinder
+						.search(message.getAttachments().get(0).getUrl(), reporting).get(0);
+				BSBlueprint blueprint = blueprintString.blueprintBook.get().getAllBlueprints().get(index);
 
-				event.reply(replyContent).setEphemeral(true).queue();
+				RenderRequest request = new RenderRequest(blueprint, reporting);
+				RenderResult result = FBSR.renderBlueprint(request);
+				BufferedImage image = shrinkImageToFitDiscordLimits(result.image);
+
+				reporting.addField(new Field("Render Time", result.renderTime + " ms", true));
+
+				Message messageImage = useDiscordForFileHosting(
+						WebUtils.formatBlueprintFilename(blueprint.label, "png"), image).get();
+
+				recentLazyLoadedMessages.put(cacheKey,
+						new CachedMessageImageResult(blueprint.label, messageImage.getId()));
+
+				replyContent = blueprint.label.map(s -> s + " ").orElse("")
+						+ messageImage.getAttachments().get(0).getUrl();
+
 			}
+			if (event.getChannelType() != ChannelType.PRIVATE) {
+				PrivateChannel privateChannel = event.getUser().openPrivateChannel().complete();
+				privateChannel.sendMessage(replyContent).queue();
+			}
+
+			event.reply(replyContent).setEphemeral(true).queue();
 
 		} else {
 			System.out.println("UNKNOWN COMMAND " + command);
@@ -849,6 +928,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				.withCredits("Contributors", "FactorioBlueprints")//
 				.withCredits("Contributors", "acid")//
 				.withCredits("Contributors", "Vilsol")//
+				.withCredits("Testers", "Team Steelaxe")//
 				.withInvite(new Permission[] { //
 						Permission.VIEW_CHANNEL, //
 						Permission.MESSAGE_SEND, //
