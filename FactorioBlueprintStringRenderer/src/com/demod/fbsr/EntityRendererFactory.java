@@ -102,6 +102,7 @@ import com.demod.fbsr.entity.RollingStockRendering;
 import com.demod.fbsr.entity.SelectorCombinatorRendering;
 import com.demod.fbsr.entity.SolarPanelRendering;
 import com.demod.fbsr.entity.SpacePlatformHubRendering;
+import com.demod.fbsr.entity.SpiderVehicleRendering;
 import com.demod.fbsr.entity.SplitterRendering;
 import com.demod.fbsr.entity.StorageTankRendering;
 import com.demod.fbsr.entity.StraightRailRendering;
@@ -293,6 +294,7 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 		byName.put("selector-combinator", new SelectorCombinatorRendering());
 		byName.put("solar-panel", new SolarPanelRendering());
 		byName.put("space-platform-hub", new SpacePlatformHubRendering());
+		byName.put("spidertron", new SpiderVehicleRendering());
 		byName.put("turbo-splitter", new SplitterRendering());
 		byName.put("express-splitter", new SplitterRendering());
 		byName.put("fast-splitter", new SplitterRendering());
