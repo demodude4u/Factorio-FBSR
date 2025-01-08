@@ -73,6 +73,7 @@ import com.demod.fbsr.entity.InserterRendering;
 import com.demod.fbsr.entity.LabRendering;
 import com.demod.fbsr.entity.LampRendering;
 import com.demod.fbsr.entity.LandMineRendering;
+import com.demod.fbsr.entity.LaneSplitterRendering;
 import com.demod.fbsr.entity.LegacyCurvedRailRendering;
 import com.demod.fbsr.entity.LegacyStraightRailRendering;
 import com.demod.fbsr.entity.LightningAttractorRendering;
@@ -249,6 +250,7 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 		byName.put("stack-inserter", new InserterRendering());
 		byName.put("biolab", new LabRendering());
 		byName.put("lab", new LabRendering());
+		byName.put("lane-splitter", new LaneSplitterRendering());
 		byName.put("small-lamp", new LampRendering());
 		byName.put("land-mine", new LandMineRendering());
 		byName.put("lightning-collector", new LightningAttractorRendering());
