@@ -29,6 +29,10 @@ public class GUIBox {
 		return new GUIBox(x, y, width, top);
 	}
 
+	public GUIBox expand(GUISpacing s) {
+		return new GUIBox(x - s.left, y - s.top, width + s.left + s.right, height + s.top + s.bottom);
+	}
+
 	public GUIBox expand(int top, int left, int bottom, int right) {
 		return new GUIBox(x - left, y - top, width + left + right, height + top + bottom);
 	}
@@ -47,6 +51,14 @@ public class GUIBox {
 
 	public GUIBox expandTop(int top) {
 		return new GUIBox(x, y - top, width, height + top);
+	}
+
+	public GUIBox indexed(int row, int col) {
+		return new GUIBox(x + width * col, y + height * row, width, height);
+	}
+
+	public GUIBox shrink(GUISpacing s) {
+		return new GUIBox(x + s.left, y + s.top, width - s.left - s.right, height - s.top - s.bottom);
 	}
 
 	public GUIBox shrink(int top, int left, int bottom, int right) {

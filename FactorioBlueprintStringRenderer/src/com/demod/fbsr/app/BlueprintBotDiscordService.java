@@ -296,13 +296,6 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			for (int i = 0; i < blueprints.size(); i++) {
 				if (i < 25) {
 					BSBlueprint blueprint = blueprints.get(i);
-//					RenderRequest request = new RenderRequest(blueprint, reporting);
-//					RenderResult result = FBSR.renderBlueprint(request);
-//					BufferedImage fullImage = shrinkImageToFitDiscordLimits(result.image);
-//					renderTimes.add(result.renderTime);
-//					Message messageFullImage = useDiscordForFileHosting(
-//							WebUtils.formatBlueprintFilename(blueprintString.findFirstLabel(), "png"), fullImage).get();
-
 					menuBuilder.addOption(blueprint.label.orElse("Untitled Blueprint " + (i + 1)),
 							futBlueprintStringUpload.get().getId() + "|" + i);
 				}
@@ -497,13 +490,6 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 	}
 
 	private void handleBlueprintItemsCommand(SlashCommandEvent event) throws IOException {
-		DataTable table;
-		try {
-			table = FactorioData.getTable();
-		} catch (JSONException | IOException e1) {
-			throw new InternalError(e1);
-		}
-
 		String content = event.getCommandString();
 
 		Optional<Attachment> attachment = event.optParamAttachment("file");
@@ -516,7 +502,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		Map<String, Double> totalItems = new LinkedHashMap<>();
 		for (BSBlueprintString bs : blueprintStrings) {
 			for (BSBlueprint blueprint : bs.findAllBlueprints()) {
-				Map<String, Double> items = FBSR.generateTotalItems(table, blueprint);
+				Map<String, Double> items = FBSR.generateTotalItems(blueprint);
 				items.forEach((k, v) -> {
 					totalItems.compute(k, ($, old) -> old == null ? v : old + v);
 				});
@@ -524,6 +510,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		}
 
 		if (!totalItems.isEmpty()) {
+			DataTable table = FactorioData.getTable();
 			String responseContent = totalItems.entrySet().stream()
 					.sorted((e1, e2) -> e1.getKey().compareTo(e2.getKey()))
 					.map(e -> table.getWikiItemName(e.getKey()) + ": " + RenderUtils.fmtDouble2(e.getValue()))
@@ -543,12 +530,6 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 	}
 
 	private void handleBlueprintItemsRawCommand(SlashCommandEvent event) throws IOException {
-		DataTable table;
-		try {
-			table = FactorioData.getTable();
-		} catch (JSONException | IOException e1) {
-			throw new InternalError(e1);
-		}
 
 		String content = event.getCommandString();
 
@@ -562,16 +543,17 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		Map<String, Double> totalItems = new LinkedHashMap<>();
 		for (BSBlueprintString bs : blueprintStrings) {
 			for (BSBlueprint blueprint : bs.findAllBlueprints()) {
-				Map<String, Double> items = FBSR.generateTotalItems(table, blueprint);
+				Map<String, Double> items = FBSR.generateTotalItems(blueprint);
 				items.forEach((k, v) -> {
 					totalItems.compute(k, ($, old) -> old == null ? v : old + v);
 				});
 			}
 		}
 
-		Map<String, Double> rawItems = FBSR.generateTotalRawItems(table, table.getRecipes(), totalItems);
+		Map<String, Double> rawItems = FBSR.generateTotalRawItems(totalItems);
 
 		if (!rawItems.isEmpty()) {
+			DataTable table = FactorioData.getTable();
 			String responseContent = rawItems.entrySet().stream().sorted((e1, e2) -> e1.getKey().compareTo(e2.getKey()))
 					.map(e -> table.getWikiItemName(e.getKey()) + ": " + RenderUtils.fmtDouble2(e.getValue()))
 					.collect(Collectors.joining("\n"));
@@ -625,13 +607,6 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 	}
 
 	private void handleBlueprintTotalsCommand(SlashCommandEvent event) throws IOException {
-		DataTable table;
-		try {
-			table = FactorioData.getTable();
-		} catch (JSONException | IOException e1) {
-			throw new InternalError(e1);
-		}
-
 		String content = event.getCommandString();
 
 		Optional<Attachment> attachment = event.optParamAttachment("file");
@@ -644,7 +619,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		Map<String, Double> totalItems = new LinkedHashMap<>();
 		for (BSBlueprintString bs : blueprintStrings) {
 			for (BSBlueprint blueprint : bs.findAllBlueprints()) {
-				Map<String, Double> items = FBSR.generateSummedTotalItems(table, blueprint);
+				Map<String, Double> items = FBSR.generateSummedTotalItems(blueprint);
 				items.forEach((k, v) -> {
 					totalItems.compute(k, ($, old) -> old == null ? v : old + v);
 				});

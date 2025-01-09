@@ -106,12 +106,12 @@ public class GUIPipeFeature extends GUISourcedFeature {
 	public void renderBox(Graphics2D g, GUIBox r) {
 		int x1 = r.x;
 		int x2 = r.x + size;
-		int x3 = r.width - size;
-		int x4 = r.width;
+		int x3 = r.x + r.width - size;
+		int x4 = r.x + r.width;
 		int y1 = r.y;
 		int y2 = r.y + size;
-		int y3 = r.height - size;
-		int y4 = r.height;
+		int y3 = r.y + r.height - size;
+		int y4 = r.y + r.height;
 
 		int sy1 = source.y;
 		int sy2 = source.y + size;

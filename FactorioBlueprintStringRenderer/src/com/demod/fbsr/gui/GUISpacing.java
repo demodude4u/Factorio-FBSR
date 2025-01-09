@@ -14,4 +14,20 @@ public class GUISpacing {
 		this.bottom = bottom;
 		this.right = right;
 	}
+
+	public GUISpacing add(GUISpacing s) {
+		return new GUISpacing(top + s.top, left + s.left, bottom + s.bottom, right + s.bottom);
+	}
+
+	public int getHorizontal() {
+		return left + right;
+	}
+
+	public int getVertical() {
+		return top + bottom;
+	}
+
+	public GUISpacing subtract(GUISpacing s) {
+		return new GUISpacing(top + s.top, left + s.left, bottom + s.bottom, right + s.bottom);
+	}
 }

@@ -131,8 +131,7 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 			register.accept(new Renderer(Layer.ENTITY_INFO_ICON_ABOVE, bounds) {
 				@Override
 				public void render(Graphics2D g) {
-					g.setColor(RenderUtils.withAlpha(
-							Color.getHSBColor(new Random(entity.name.hashCode()).nextFloat(), 0.6f, 0.4f), 128));
+					g.setColor(RenderUtils.withAlpha(getUnknownColor(entity.name), 128));
 					g.fill(new Ellipse2D.Double(bounds.x, bounds.y, bounds.width, bounds.height));
 					g.setColor(Color.gray);
 					g.setFont(new Font("Monospaced", Font.BOLD, 1).deriveFont(1f));
@@ -180,6 +179,7 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 
 	@SuppressWarnings("rawtypes")
 	private static final Map<String, EntityRendererFactory> byName = new LinkedHashMap<>();
+
 	static {
 		byName.put("accumulator", new AccumulatorRendering());
 		byName.put("agricultural-tower", new AgriculturalTowerRendering());
@@ -314,12 +314,15 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 		byName.put("underground-belt", new UndergroundBeltRendering());
 		byName.put("stone-wall", new WallRendering());
 	}
-
 	private static volatile boolean prototypesInitialized = false;
 
 	@SuppressWarnings("unchecked")
 	public static <E extends BSEntity> EntityRendererFactory<E> forName(String name) {
 		return Optional.ofNullable(byName.get(name)).orElse(UNKNOWN);
+	}
+
+	public static Color getUnknownColor(String name) {
+		return Color.getHSBColor(new Random(name.hashCode()).nextFloat(), 0.6f, 0.4f);
 	}
 
 	@SuppressWarnings({ "rawtypes", "unchecked" })

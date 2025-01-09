@@ -9,4 +9,8 @@ public class GUISize {
 		this.height = height;
 
 	}
+
+	public GUIBox toBox(int x, int y) {
+		return new GUIBox(x, y, width, height);
+	}
 }

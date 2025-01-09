@@ -203,10 +203,12 @@ public class FBSR {
 //		};
 //	}
 
-	public static Map<String, Double> generateSummedTotalItems(DataTable table, BSBlueprint blueprint) {
+	public static Map<String, Double> generateSummedTotalItems(BSBlueprint blueprint) {
 		Map<String, Double> ret = new LinkedHashMap<>();
 		if (!blueprint.entities.isEmpty())
 			ret.put("Entities", (double) blueprint.entities.size());
+
+		DataTable table = FactorioData.getTable();
 
 		for (BSEntity entity : blueprint.entities) {
 			Multiset<String> modules = RenderUtils.getModules(entity, table);
@@ -239,7 +241,9 @@ public class FBSR {
 		return ret;
 	}
 
-	public static Map<String, Double> generateTotalItems(DataTable table, BSBlueprint blueprint) {
+	public static Map<String, Double> generateTotalItems(BSBlueprint blueprint) {
+		DataTable table = FactorioData.getTable();
+
 		Map<String, Double> ret = new LinkedHashMap<>();
 		for (BSEntity entity : blueprint.entities) {
 			String entityName = entity.name;
@@ -282,8 +286,9 @@ public class FBSR {
 		return ret;
 	}
 
-	public static Map<String, Double> generateTotalRawItems(DataTable table, Map<String, RecipePrototype> recipes,
-			Map<String, Double> totalItems) {
+	public static Map<String, Double> generateTotalRawItems(Map<String, Double> totalItems) {
+		DataTable table = FactorioData.getTable();
+		Map<String, RecipePrototype> recipes = table.getRecipes();
 		Map<String, Double> ret = new LinkedHashMap<>();
 		TotalRawCalculator calculator = new TotalRawCalculator(recipes);
 		for (Entry<String, Double> entry : totalItems.entrySet()) {
@@ -566,13 +571,7 @@ public class FBSR {
 		System.out.println("Rendering " + blueprint.label.orElse("(No Name)"));
 		long startMillis = System.currentTimeMillis();
 
-		DataTable table;
-		try {
-			table = FactorioData.getTable();
-		} catch (JSONException | IOException e) {
-			reporting.addException(e);
-			throw new RuntimeException(e);
-		}
+		DataTable table = FactorioData.getTable();
 		WorldMap map = new WorldMap();
 
 		map.setAltMode(request.show.altMode);

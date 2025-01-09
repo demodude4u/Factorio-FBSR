@@ -172,6 +172,18 @@ public final class RenderUtils {
 		return DECIMAL_FORMAT_2_PLACES.format(value);
 	}
 
+	public static String fmtItemQuantity(double amount) {
+		String amountStr;
+		if (amount < 10000) {
+			amountStr = fmtDouble(Math.ceil(amount));
+		} else if (amount < 1000000) {
+			amountStr = fmtDouble(Math.ceil(amount / 1000)) + "k";
+		} else {
+			amountStr = fmtDouble(Math.ceil(amount / 1000000)) + "M";
+		}
+		return amountStr;
+	}
+
 	public static Color getAverageColor(BufferedImage image) {
 		int[] pixels = image.getRGB(0, 0, image.getWidth(), image.getHeight(), null, 0, image.getWidth());
 		float sumR = 0, sumG = 0, sumB = 0, sumA = 0;

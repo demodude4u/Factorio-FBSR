@@ -33,6 +33,8 @@ public final class GUIStyle {
 	// table_with_selection
 	public static GUISliceFeature FRAME_DARK_OUTER = GUISliceFeature.outer(DEFAULT_TILESET, //
 			new GUIBox(51, 0, 17, 17), new GUISpacing(8, 8, 8, 8));
+	public static GUISliceFeature FRAME_DARK_BUMP_OUTER = GUISliceFeature.outer(DEFAULT_TILESET, //
+			new GUIBox(282, 17, 17, 17), new GUISpacing(8, 8, 8, 8));
 
 	// train_with_minimap_frame, shallow_frame, bonus_card_frame,
 	// mods_explore_results_table, research_progress_inner_frame_active
