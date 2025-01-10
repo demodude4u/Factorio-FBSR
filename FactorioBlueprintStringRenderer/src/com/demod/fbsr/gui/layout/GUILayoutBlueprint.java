@@ -60,12 +60,23 @@ public class GUILayoutBlueprint {
 	private CommandReporting reporting;
 	private RenderResult result;
 
+	private Map<String, Double> totalItems;
+	private Map<String, Double> totalRawItems;
+
+	private int itemColumns;
+	private int itemCellSize;
+
+	private double itemIconScale;
+
+	private float itemFontSize;
+
+	private int itemFontOffset;
+
 	private void drawFrame(Graphics2D g, GUIBox bounds) {
 		int titleHeight = 50;
-		// TODO dynamically widen for another column if the total items (comp +
-		// crafting) exceeds number
-		int infoPaneWidth = 196 + 40;
 		int creditHeight = 25;
+
+		int infoPaneWidth = 76 + itemColumns * itemCellSize;
 
 		GUIPanel panel = new GUIPanel(bounds, GUIStyle.FRAME_INNER);
 		panel.render(g);
@@ -111,7 +122,7 @@ public class GUILayoutBlueprint {
 	private void drawInfoPane(Graphics2D g, GUIBox bounds) {
 		GUISpacing subPanelInset = new GUISpacing(40, 12, 12, 12);
 		GUISpacing itemGridInset = new GUISpacing(8, 8, 8, 8);
-		GUISize itemGridCell = new GUISize(GUIStyle.ITEM_SLOT.source.width / 2, GUIStyle.ITEM_SLOT.source.height / 2);
+		GUISize itemGridCell = new GUISize(itemCellSize, itemCellSize);
 
 		bounds = bounds.shrink(0, 24, 12, 12);
 
@@ -141,14 +152,11 @@ public class GUILayoutBlueprint {
 		List<SubPanel> subPanels = new ArrayList<>();
 		int cutY = 0;
 
-		Map<String, Double> totalItems = FBSR.generateTotalItems(blueprint);
-
 		// Components
 		{
-			int itemCols = (bounds.width - subPanelInset.add(itemGridInset).getHorizontal()) / itemGridCell.width;
-			int itemRows = (totalItems.size() + itemCols - 1) / itemCols;
+			int itemRows = (totalItems.size() + itemColumns - 1) / itemColumns;
 			int subPanelHeight = subPanelInset.add(itemGridInset).getVertical() + itemGridCell.height * itemRows;
-			subPanels.add(new SubPanel(bounds.shrinkTop(cutY).cutTop(subPanelHeight), "Components") {
+			subPanels.add(new SubPanel(bounds.shrinkTop(cutY).cutTop(subPanelHeight), "Items") {
 				@Override
 				void render(Graphics2D g) {
 					super.render(g);
@@ -159,10 +167,11 @@ public class GUILayoutBlueprint {
 					itemGridPanel.render(g);
 
 					for (int row = 0; row < itemRows; row++) {
-						for (int col = 0; col < itemCols; col++) {
+						for (int col = 0; col < itemColumns; col++) {
 							GUIBox cellBounds = itemGridCell.toBox(itemGridBounds.x, itemGridBounds.y).indexed(row,
 									col);
-							GUIStyle.FRAME_DARK_BUMP_OUTER.render(g, cellBounds.shrink(10, 10, 10, 10));
+							int bump = itemCellSize / 4;
+							GUIStyle.FRAME_DARK_BUMP_OUTER.render(g, cellBounds.shrink(bump, bump, bump, bump));
 						}
 					}
 
@@ -174,8 +183,8 @@ public class GUILayoutBlueprint {
 						Entry<String, Double> entry = itemOrder.get(i);
 						String item = entry.getKey();
 						double quantity = entry.getValue();
-						int col = i % itemCols;
-						int row = i / itemCols;
+						int col = i % itemColumns;
+						int row = i / itemColumns;
 						GUIBox cellBounds = itemGridCell.toBox(itemGridBounds.x, itemGridBounds.y).indexed(row, col);
 
 						GUIStyle.ITEM_SLOT.render(g, cellBounds);
@@ -183,7 +192,8 @@ public class GUILayoutBlueprint {
 						Optional<ItemPrototype> protoItem = table.getItem(item);
 
 						if (protoItem.isPresent()) {
-							GUIImage imgIcon = new GUIImage(cellBounds, FactorioData.getIcon(protoItem.get()), true);
+							GUIImage imgIcon = new GUIImage(cellBounds, FactorioData.getIcon(protoItem.get()),
+									itemIconScale, false);
 							imgIcon.render(g);
 						} else {
 							g.setColor(EntityRendererFactory.getUnknownColor(item));
@@ -191,10 +201,10 @@ public class GUILayoutBlueprint {
 						}
 
 						String fmtQty = RenderUtils.fmtItemQuantity(quantity);
-						g.setFont(GUIStyle.FONT_BP_BOLD.deriveFont(12f));
+						g.setFont(GUIStyle.FONT_BP_BOLD.deriveFont(itemFontSize));
 						int strW = g.getFontMetrics().stringWidth(fmtQty);
-						int x = cellBounds.x + cellBounds.width - strW - 5;
-						int y = cellBounds.y + cellBounds.height - 5;
+						int x = cellBounds.x + cellBounds.width - strW - itemFontOffset;
+						int y = cellBounds.y + cellBounds.height - itemFontOffset;
 						g.setColor(new Color(0, 0, 0, 128));
 						g.drawString(fmtQty, x - 1, y - 1);
 						g.drawString(fmtQty, x + 1, y + 1);
@@ -208,12 +218,9 @@ public class GUILayoutBlueprint {
 
 		// Raw
 		{
-			Map<String, Double> totalRawItems = FBSR.generateTotalRawItems(totalItems);
-
-			int itemCols = (bounds.width - subPanelInset.add(itemGridInset).getHorizontal()) / itemGridCell.width;
-			int itemRows = (totalRawItems.size() + itemCols - 1) / itemCols;
+			int itemRows = (totalRawItems.size() + itemColumns - 1) / itemColumns;
 			int subPanelHeight = subPanelInset.add(itemGridInset).getVertical() + itemGridCell.height * itemRows;
-			subPanels.add(new SubPanel(bounds.shrinkTop(cutY).cutTop(subPanelHeight), "Crafting") {
+			subPanels.add(new SubPanel(bounds.shrinkTop(cutY).cutTop(subPanelHeight), "Raw") {
 				@Override
 				void render(Graphics2D g) {
 					super.render(g);
@@ -224,10 +231,11 @@ public class GUILayoutBlueprint {
 					itemGridPanel.render(g);
 
 					for (int row = 0; row < itemRows; row++) {
-						for (int col = 0; col < itemCols; col++) {
+						for (int col = 0; col < itemColumns; col++) {
 							GUIBox cellBounds = itemGridCell.toBox(itemGridBounds.x, itemGridBounds.y).indexed(row,
 									col);
-							GUIStyle.FRAME_DARK_BUMP_OUTER.render(g, cellBounds.shrink(10, 10, 10, 10));
+							int bump = itemCellSize / 4;
+							GUIStyle.FRAME_DARK_BUMP_OUTER.render(g, cellBounds.shrink(bump, bump, bump, bump));
 						}
 					}
 
@@ -239,8 +247,8 @@ public class GUILayoutBlueprint {
 						Entry<String, Double> entry = itemOrder.get(i);
 						String item = entry.getKey();
 						double quantity = entry.getValue();
-						int col = i % itemCols;
-						int row = i / itemCols;
+						int col = i % itemColumns;
+						int row = i / itemColumns;
 						GUIBox cellBounds = itemGridCell.toBox(itemGridBounds.x, itemGridBounds.y).indexed(row, col);
 
 						GUIStyle.ITEM_SLOT.render(g, cellBounds);
@@ -257,7 +265,7 @@ public class GUILayoutBlueprint {
 						}
 
 						if (image.isPresent()) {
-							GUIImage imgIcon = new GUIImage(cellBounds, image.get(), true);
+							GUIImage imgIcon = new GUIImage(cellBounds, image.get(), itemIconScale, false);
 							imgIcon.render(g);
 						} else {
 							g.setColor(EntityRendererFactory.getUnknownColor(item));
@@ -265,10 +273,10 @@ public class GUILayoutBlueprint {
 						}
 
 						String fmtQty = RenderUtils.fmtItemQuantity(quantity);
-						g.setFont(GUIStyle.FONT_BP_BOLD.deriveFont(12f));
+						g.setFont(GUIStyle.FONT_BP_BOLD.deriveFont(itemFontSize));
 						int strW = g.getFontMetrics().stringWidth(fmtQty);
-						int x = cellBounds.x + cellBounds.width - strW - 5;
-						int y = cellBounds.y + cellBounds.height - 5;
+						int x = cellBounds.x + cellBounds.width - strW - itemFontOffset;
+						int y = cellBounds.y + cellBounds.height - itemFontOffset;
 						g.setColor(new Color(0, 0, 0, 128));
 						g.drawString(fmtQty, x - 1, y - 1);
 						g.drawString(fmtQty, x + 1, y + 1);
@@ -306,6 +314,33 @@ public class GUILayoutBlueprint {
 	}
 
 	public BufferedImage generateDiscordImage() {
+
+		totalItems = FBSR.generateTotalItems(blueprint);
+		totalRawItems = FBSR.generateTotalRawItems(totalItems);
+
+		int itemCount = totalItems.size() + totalRawItems.size();
+		int itemRowMax;
+		if (itemCount <= 32) {
+			itemRowMax = 8;
+			itemCellSize = 40;
+			itemIconScale = 0.5;
+			itemFontSize = 12f;
+			itemFontOffset = 5;
+		} else if (itemCount <= 72) {
+			itemRowMax = 12;
+			itemCellSize = 30;
+			itemIconScale = 0.375;
+			itemFontSize = 10f;
+			itemFontOffset = 4;
+		} else {
+			itemRowMax = 16;
+			itemCellSize = 20;
+			itemIconScale = 0.25;
+			itemFontSize = 8f;
+			itemFontOffset = 3;
+		}
+
+		itemColumns = (itemCount + itemRowMax - 1) / itemRowMax;
 
 		double scale = 2;
 
