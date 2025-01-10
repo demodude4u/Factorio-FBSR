@@ -345,11 +345,12 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			emoji = EMOJI_UPGRADEPLANNER;
 		}
 
-		actionButtonRow
-				.add(Button
-						.secondary("reply-blueprint|" + futBlueprintStringUpload.get().getId()
-								+ blueprintString.findFirstLabel().map(s -> "|" + s).orElse(""), "Download")
-						.withEmoji(emoji));
+		String actionId = "reply-blueprint|" + futBlueprintStringUpload.get().getId()
+				+ blueprintString.findFirstLabel().map(s -> "|" + s).orElse("");
+		if (actionId.length() > 100) {
+			actionId = actionId.substring(0, 100);// XXX need a better solution
+		}
+		actionButtonRow.add(Button.secondary(actionId, "Download").withEmoji(emoji));
 
 		if (!renderTimes.isEmpty()) {
 			String renderTimesStr = renderTimes.stream().mapToLong(l1 -> l1).sum() + " ms" + (renderTimes.size() > 1
