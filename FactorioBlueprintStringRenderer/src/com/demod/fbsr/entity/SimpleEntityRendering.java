@@ -1,5 +1,6 @@
 package com.demod.fbsr.entity;
 
+import java.awt.geom.Point2D;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -29,7 +30,9 @@ import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.fp.FPAnimation;
 import com.demod.fbsr.fp.FPAnimation4Way;
 import com.demod.fbsr.fp.FPCircuitConnectorDefinition;
+import com.demod.fbsr.fp.FPFluidBox;
 import com.demod.fbsr.fp.FPLayeredSprite;
+import com.demod.fbsr.fp.FPPipeConnectionDefinition;
 import com.demod.fbsr.fp.FPRotatedAnimation;
 import com.demod.fbsr.fp.FPRotatedAnimation8Way;
 import com.demod.fbsr.fp.FPRotatedSprite;
@@ -168,6 +171,18 @@ public abstract class SimpleEntityRendering<E extends BSEntity> extends EntityRe
 			if (!lua.isnil()) {
 				List<FPCircuitConnectorDefinition> list = FPUtils.list(lua, FPCircuitConnectorDefinition::new);
 				SimpleEntityRendering.this.circuitConnectors = Optional.of(list);
+			}
+		}
+
+		public void fluidBox(LuaValue lua) {
+			if (!lua.isnil()) {
+				SimpleEntityRendering.this.fluidBoxes.add(new FPFluidBox(lua));
+			}
+		}
+
+		public void fluidBoxes(LuaValue lua) {
+			if (!lua.isnil()) {
+				SimpleEntityRendering.this.fluidBoxes.addAll(FPUtils.list(lua, FPFluidBox::new));
 			}
 		}
 
@@ -375,6 +390,7 @@ public abstract class SimpleEntityRendering<E extends BSEntity> extends EntityRe
 
 	private List<BindAction<?>> bindings;
 	private Optional<List<FPCircuitConnectorDefinition>> circuitConnectors = Optional.empty();
+	private List<FPFluidBox> fluidBoxes;
 
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, E entity) {
@@ -402,6 +418,7 @@ public abstract class SimpleEntityRendering<E extends BSEntity> extends EntityRe
 	@Override
 	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
 		List<BindAction<?>> bindings = new ArrayList<>();
+		fluidBoxes = new ArrayList<>();
 		Bindings fluent = new Bindings(bindings);
 		defineEntity(fluent, prototype.lua());
 		this.bindings = bindings;
@@ -435,6 +452,22 @@ public abstract class SimpleEntityRendering<E extends BSEntity> extends EntityRe
 		}
 
 		return entity.directionRaw / 16.0;
+	}
+
+	@Override
+	public void populateWorldMap(WorldMap map, DataTable dataTable, E entity) {
+		Direction dir = entity.direction;
+		for (FPFluidBox fluidBox : fluidBoxes) {
+			for (FPPipeConnectionDefinition conn : fluidBox.pipeConnections) {
+				if (conn.direction.isPresent() && conn.position.isPresent()) {
+					Direction facing = conn.direction.get().rotate(dir);
+					Point2D.Double pos = dir.rotatePoint(conn.position.get().createPoint());
+					pos.x += entity.position.x;
+					pos.y += entity.position.y;
+					map.setPipe(pos, facing);
+				}
+			}
+		}
 	}
 
 }

@@ -21,6 +21,7 @@ import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.factorio.prototype.RecipePrototype;
 import com.demod.fbsr.BSUtils;
 import com.demod.fbsr.Direction;
+import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
@@ -28,7 +29,10 @@ import com.demod.fbsr.Sprite;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.entity.CraftingMachineRendering.BSCraftingMachineEntity;
+import com.demod.fbsr.fp.FPFluidBox;
+import com.demod.fbsr.fp.FPPipeConnectionDefinition;
 import com.demod.fbsr.fp.FPWorkingVisualisations;
+import com.google.common.collect.ImmutableList;
 
 public abstract class CraftingMachineRendering extends SimpleEntityRendering<BSCraftingMachineEntity> {
 
@@ -43,8 +47,7 @@ public abstract class CraftingMachineRendering extends SimpleEntityRendering<BSC
 	}
 
 	private FPWorkingVisualisations protoGraphicsSet;
-	private boolean protoOffWhenNoFluidRecipe;
-	private List<Point2D.Double> protoFluidBoxes;
+	private List<FPFluidBox> protoConditionalFluidBoxes;
 
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
@@ -95,6 +98,13 @@ public abstract class CraftingMachineRendering extends SimpleEntityRendering<BSC
 
 	@Override
 	public void defineEntity(Bindings bind, LuaValue lua) {
+		boolean fluidBoxesOffWhenNoFluidRecipe = lua.get("fluid_boxes_off_when_no_fluid_recipe").optboolean(false);
+		if (!fluidBoxesOffWhenNoFluidRecipe) {
+			bind.fluidBoxes(lua.get("fluid_boxes"));
+			protoConditionalFluidBoxes = ImmutableList.of();
+		} else {
+			protoConditionalFluidBoxes = FPUtils.list(lua.get("fluid_boxes"), FPFluidBox::new);
+		}
 	}
 
 	@Override
@@ -102,30 +112,6 @@ public abstract class CraftingMachineRendering extends SimpleEntityRendering<BSC
 		super.initFromPrototype(dataTable, prototype);
 
 		protoGraphicsSet = new FPWorkingVisualisations(prototype.lua().get("graphics_set"));
-
-		LuaValue fluidBoxesLua = prototype.lua().get("fluid_boxes");
-
-		if (!fluidBoxesLua.isnil()) {
-			protoFluidBoxes = new ArrayList<>();
-			protoOffWhenNoFluidRecipe = fluidBoxesLua.get("off_when_no_fluid_recipe").optboolean(false);
-			Utils.forEach(fluidBoxesLua, fluidBoxLua -> {
-				if (!fluidBoxLua.istable()) {
-					return;
-				}
-				Utils.forEach(fluidBoxLua.get("pipe_connections"), pipeConnectionLua -> {
-					Point2D.Double offset = Utils.parsePoint2D(pipeConnectionLua.get("position"));
-					if (Math.abs(offset.y) > Math.abs(offset.x)) {
-						offset.y += -Math.signum(offset.y);
-					} else {
-						offset.x += -Math.signum(offset.x);
-					}
-					protoFluidBoxes.add(offset);
-				});
-			});
-		} else {
-			protoFluidBoxes = null;
-			protoOffWhenNoFluidRecipe = true;
-		}
 	}
 
 	@Override
@@ -142,32 +128,43 @@ public abstract class CraftingMachineRendering extends SimpleEntityRendering<BSC
 
 	@Override
 	public void populateWorldMap(WorldMap map, DataTable dataTable, BSCraftingMachineEntity entity) {
-		Optional<String> recipe = entity.recipe;
-		boolean hasFluid = false;
-		if (recipe.isPresent()) {
-			Optional<RecipePrototype> optRecipe = dataTable.getRecipe(recipe.get());
-			if (optRecipe.isPresent()) {
-				RecipePrototype protoRecipe = optRecipe.get();
+		super.populateWorldMap(map, dataTable, entity);
 
-				List<LuaValue> items = new ArrayList<>();
-				Utils.forEach(protoRecipe.lua().get("ingredients"), (Consumer<LuaValue>) items::add);
-				LuaValue resultsLua = protoRecipe.lua().get("results");
-				if (resultsLua != LuaValue.NIL) {
-					items.add(resultsLua);
+		if (!protoConditionalFluidBoxes.isEmpty()) {
+
+			Optional<String> recipe = entity.recipe;
+			boolean hasFluid = false;
+			if (recipe.isPresent()) {
+				Optional<RecipePrototype> optRecipe = dataTable.getRecipe(recipe.get());
+				if (optRecipe.isPresent()) {
+					RecipePrototype protoRecipe = optRecipe.get();
+
+					List<LuaValue> items = new ArrayList<>();
+					Utils.forEach(protoRecipe.lua().get("ingredients"), (Consumer<LuaValue>) items::add);
+					LuaValue resultsLua = protoRecipe.lua().get("results");
+					if (resultsLua != LuaValue.NIL) {
+						items.add(resultsLua);
+					}
+					hasFluid = items.stream().anyMatch(lua -> {
+						LuaValue typeLua = lua.get("type");
+						return typeLua != LuaValue.NIL && typeLua.toString().equals("fluid");
+					});
 				}
-				hasFluid = items.stream().anyMatch(lua -> {
-					LuaValue typeLua = lua.get("type");
-					return typeLua != LuaValue.NIL && typeLua.toString().equals("fluid");
-				});
 			}
-		}
 
-		if ((protoFluidBoxes != null) && (!protoOffWhenNoFluidRecipe || hasFluid)) {
-			for (Point2D.Double offset : protoFluidBoxes) {
-				Point2D.Double pos = entity.direction.left()
-						.offset(entity.direction.back().offset(entity.position.createPoint(), offset.y), offset.x);
-				Direction direction = offset.y > 0 ? entity.direction.back() : entity.direction;
-				map.setPipe(pos, direction);
+			if (hasFluid) {
+				Direction dir = entity.direction;
+				for (FPFluidBox fluidBox : protoConditionalFluidBoxes) {
+					for (FPPipeConnectionDefinition conn : fluidBox.pipeConnections) {
+						if (conn.direction.isPresent() && conn.position.isPresent()) {
+							Direction facing = conn.direction.get().rotate(dir);
+							Point2D.Double pos = dir.rotatePoint(conn.position.get().createPoint());
+							pos.x += entity.position.x;
+							pos.y += entity.position.y;
+							map.setPipe(pos, facing);
+						}
+					}
+				}
 			}
 		}
 	}

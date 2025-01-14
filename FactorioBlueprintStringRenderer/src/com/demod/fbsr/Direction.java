@@ -125,4 +125,12 @@ public enum Direction {
 		at.rotate(Math.PI * 2.0 * ordinal() / 8.0);
 		return at.createTransformedShape(bounds).getBounds2D();
 	}
+
+	public Point2D.Double rotatePoint(Point2D.Double point) {
+		AffineTransform at = new AffineTransform();
+		at.rotate(Math.PI * 2.0 * ordinal() / 8.0);
+		Point2D.Double ret = new Point2D.Double();
+		at.deltaTransform(point, ret);
+		return ret;
+	}
 }

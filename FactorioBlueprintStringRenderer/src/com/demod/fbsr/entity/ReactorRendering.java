@@ -20,6 +20,8 @@ public class ReactorRendering extends SimpleEntityRendering<BSEntity> {
 
 	@Override
 	public void populateWorldMap(WorldMap map, DataTable dataTable, BSEntity entity) {
+		super.populateWorldMap(map, dataTable, entity);
+
 		for (Direction dir : Direction.values()) {
 			map.setHeatPipe(dir.offset(entity.position.createPoint(), 2));
 		}

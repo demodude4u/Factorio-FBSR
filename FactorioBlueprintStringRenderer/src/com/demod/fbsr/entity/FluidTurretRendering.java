@@ -1,5 +1,12 @@
 package com.demod.fbsr.entity;
 
-public class FluidTurretRendering extends TurretRendering {
+import org.luaj.vm2.LuaValue;
 
+public class FluidTurretRendering extends TurretRendering {
+	@Override
+	public void defineEntity(Bindings bind, LuaValue lua) {
+		super.defineEntity(bind, lua);
+
+		bind.fluidBox(lua.get("fluid_box"));
+	}
 }

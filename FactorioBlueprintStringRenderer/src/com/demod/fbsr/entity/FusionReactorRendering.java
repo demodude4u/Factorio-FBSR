@@ -11,6 +11,8 @@ public class FusionReactorRendering extends SimpleEntityRendering<BSEntity> {
 		LuaValue luaGraphicsSet = lua.get("graphics_set");
 		bind.sprite4Way(luaGraphicsSet.get("structure"));
 
+		bind.fluidBox(lua.get("input_fluid_box"));
+		bind.fluidBox(lua.get("output_fluid_box"));
 	}
 
 	// TODO connectors between adjacent fusion reactors and generators

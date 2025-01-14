@@ -8,7 +8,6 @@ import org.luaj.vm2.LuaValue;
 import com.demod.factorio.DataTable;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.Direction;
-import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
 import com.demod.fbsr.Sprite;
@@ -17,7 +16,7 @@ import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.fp.FPAnimation;
 import com.google.common.collect.ImmutableList;
 
-public class FusionGeneratorRendering extends EntityRendererFactory<BSEntity> {
+public class FusionGeneratorRendering extends SimpleEntityRendering<BSEntity> {
 
 	private FPAnimation protoNorthAnimation;
 	private FPAnimation protoEastAnimation;
@@ -26,6 +25,8 @@ public class FusionGeneratorRendering extends EntityRendererFactory<BSEntity> {
 
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSEntity entity) {
+		super.createRenderers(register, map, dataTable, entity);
+
 		Direction dir = entity.direction;
 
 		List<Sprite> sprites = ImmutableList.of();
@@ -42,8 +43,14 @@ public class FusionGeneratorRendering extends EntityRendererFactory<BSEntity> {
 	}
 
 	@Override
+	public void defineEntity(Bindings bind, LuaValue lua) {
+		bind.fluidBox(lua.get("input_fluid_box"));
+		bind.fluidBox(lua.get("output_fluid_box"));
+	}
+
+	@Override
 	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
-		// TODO Auto-generated method stub
+		super.initFromPrototype(dataTable, prototype);
 
 		LuaValue luaGraphicsSet = prototype.lua().get("graphics_set");
 		protoNorthAnimation = new FPAnimation(luaGraphicsSet.get("north_graphics_set").get("animation"));

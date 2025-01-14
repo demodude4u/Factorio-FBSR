@@ -1,15 +1,11 @@
 package com.demod.fbsr.entity;
 
-import java.awt.geom.Point2D;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 
 import org.luaj.vm2.LuaValue;
 
 import com.demod.factorio.DataTable;
-import com.demod.factorio.Utils;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.RenderUtils;
@@ -23,7 +19,6 @@ public class MiningDrillRendering extends SimpleEntityRendering<BSEntity> {
 
 	private Optional<FPSprite4Way> protoBasePicture;
 	private Optional<FPWorkingVisualisations> protoGraphicsSet;
-	private List<Point2D.Double> protoFluidBoxOffsets;
 
 	// pumpjack:
 	// - base_picture
@@ -54,6 +49,8 @@ public class MiningDrillRendering extends SimpleEntityRendering<BSEntity> {
 	@Override
 	public void defineEntity(Bindings bind, LuaValue lua) {
 		bind.circuitConnector4Way(lua.get("circuit_connector"));
+		bind.fluidBox(lua.get("input_fluid_box"));
+		bind.fluidBox(lua.get("output_fluid_box"));
 	}
 
 	@Override
@@ -62,27 +59,5 @@ public class MiningDrillRendering extends SimpleEntityRendering<BSEntity> {
 
 		protoBasePicture = FPUtils.opt(prototype.lua().get("base_picture"), FPSprite4Way::new);
 		protoGraphicsSet = FPUtils.opt(prototype.lua().get("graphics_set"), FPWorkingVisualisations::new);
-
-		protoFluidBoxOffsets = new ArrayList<>();
-		LuaValue luaOutputFluidBox = prototype.lua().get("output_fluid_box");
-		if (!luaOutputFluidBox.isnil()) {
-			Utils.forEach(luaOutputFluidBox.get("pipe_connections").get(1).get("positions"), l -> {
-				protoFluidBoxOffsets.add(Utils.parsePoint2D(l));
-			});
-		}
-	}
-
-	@Override
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BSEntity entity) {
-		// TODO hardcoded
-		if (entity.name.equals("pumpjack")) {
-			Point2D.Double entityPos = entity.position.createPoint();
-			Point2D.Double pipePos = entity.direction.back()
-					.offset(protoFluidBoxOffsets.get(entity.direction.cardinal()));
-			pipePos.x += entityPos.x;
-			pipePos.y += entityPos.y;
-
-			map.setPipe(pipePos, entity.direction);
-		}
 	}
 }

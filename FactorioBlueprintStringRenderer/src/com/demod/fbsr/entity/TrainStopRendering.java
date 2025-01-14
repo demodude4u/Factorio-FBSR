@@ -87,6 +87,8 @@ public class TrainStopRendering extends SimpleEntityRendering<BSTrainStopEntity>
 
 	@Override
 	public void populateWorldMap(WorldMap map, DataTable dataTable, BSTrainStopEntity entity) {
+		super.populateWorldMap(map, dataTable, entity);
+
 		Point2D.Double pos = entity.position.createPoint();
 		Direction dir = entity.direction;
 

@@ -63,6 +63,7 @@ import com.demod.fbsr.entity.ElevatedHalfDiagonalRailRendering;
 import com.demod.fbsr.entity.ElevatedStraightRailRendering;
 import com.demod.fbsr.entity.FluidTurretRendering;
 import com.demod.fbsr.entity.FurnaceRendering;
+import com.demod.fbsr.entity.FusionGeneratorRendering;
 import com.demod.fbsr.entity.FusionReactorRendering;
 import com.demod.fbsr.entity.GateRendering;
 import com.demod.fbsr.entity.GeneratorRendering;
@@ -237,6 +238,7 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 		byName.put("recycler", new FurnaceRendering());
 		byName.put("steel-furnace", new FurnaceRendering());
 		byName.put("stone-furnace", new FurnaceRendering());
+		byName.put("fusion-generator", new FusionGeneratorRendering());
 		byName.put("fusion-reactor", new FusionReactorRendering());
 		byName.put("gate", new GateRendering());
 		byName.put("steam-engine", new GeneratorRendering());

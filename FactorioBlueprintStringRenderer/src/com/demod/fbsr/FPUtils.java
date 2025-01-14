@@ -15,6 +15,10 @@ public final class FPUtils {
 
 	public static double PROJECTION_CONSTANT = 0.7071067811865;
 
+	public static Direction direction(LuaValue lua) {
+		return Direction.values()[lua.toint() / 2];
+	}
+
 	public static Layer layer(LuaValue lua) {
 		return Layer.fromKey(lua.tojstring());
 	}
@@ -33,6 +37,13 @@ public final class FPUtils {
 			return Optional.empty();
 		}
 		return Optional.of(factory.apply(lua));
+	}
+
+	public static Optional<Direction> optDirection(LuaValue lua) {
+		if (lua.isnil()) {
+			return Optional.empty();
+		}
+		return Optional.of(Direction.values()[lua.toint() / 2]);
 	}
 
 	public static OptionalInt optInt(LuaValue lua) {

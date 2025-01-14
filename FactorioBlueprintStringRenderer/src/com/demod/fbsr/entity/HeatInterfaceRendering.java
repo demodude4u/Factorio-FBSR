@@ -15,6 +15,8 @@ public class HeatInterfaceRendering extends SimpleEntityRendering<BSEntity> {
 
 	@Override
 	public void populateWorldMap(WorldMap map, DataTable dataTable, BSEntity entity) {
+		super.populateWorldMap(map, dataTable, entity);
+
 		map.setHeatPipe(entity.position.createPoint());
 	}
 }

@@ -14,6 +14,8 @@ public class PipeToGroundRendering extends SimpleEntityRendering<BSEntity> {
 
 	@Override
 	public void populateWorldMap(WorldMap map, DataTable dataTable, BSEntity entity) {
+		super.populateWorldMap(map, dataTable, entity);
+
 		map.setPipe(entity.position.createPoint(), entity.direction);
 	}
 }
