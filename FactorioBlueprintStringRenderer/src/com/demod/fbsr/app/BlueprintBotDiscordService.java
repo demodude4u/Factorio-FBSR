@@ -285,6 +285,14 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		} else if (blueprintString.blueprintBook.isPresent()) {
 			BSBlueprintBook book = blueprintString.blueprintBook.get();
 
+			if (book.blueprints.isEmpty()) {
+				event.replyEmbed(new EmbedBuilder()//
+						.setColor(Color.red)//
+						.setDescription("Blueprint Book is empty!")//
+						.build());
+				return;
+			}
+
 			GUILayoutBook layout = new GUILayoutBook();
 			layout.setBook(book);
 			layout.setReporting(reporting);
@@ -397,6 +405,10 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 		BSBlueprintString blueprintString = blueprintStrings.get(0);
 
+		Future<Message> futBlueprintStringUpload = useDiscordForFileHosting(
+				WebUtils.formatBlueprintFilename(blueprintString.findFirstLabel(), "txt"),
+				blueprintString.getRaw().get());
+
 		BSBlueprint blueprint = null;
 		if (blueprintString.blueprint.isPresent()) {
 			blueprint = blueprintString.blueprint.get();
@@ -449,10 +461,10 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		Optional<Long> maxHeight = event.optParamLong("max-height");
 		Optional<Double> maxScale = event.optParamDouble("max-scale");
 
-		boolean showBackground = event.optParamBoolean("show-background").orElse(false);
-		boolean showGridlines = event.optParamBoolean("show-gridlines").orElse(false);
+		boolean showBackground = event.optParamBoolean("show-background").orElse(true);
+		boolean showGridlines = event.optParamBoolean("show-gridlines").orElse(true);
 
-		boolean showAltMode = event.optParamBoolean("show-alt-mode").orElse(false);
+		boolean showAltMode = event.optParamBoolean("show-alt-mode").orElse(true);
 		boolean showPathOutputs = event.optParamBoolean("show-path-outputs").orElse(false);
 		boolean showPathInputs = event.optParamBoolean("show-path-inputs").orElse(false);
 		boolean showPathRails = event.optParamBoolean("show-path-rails").orElse(false);
@@ -487,7 +499,24 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 		String filename = WebUtils.formatBlueprintFilename(blueprint.label, "png");
 		BufferedImage image = shrinkImageToFitDiscordLimits(result.image);
-		event.replyFile(WebUtils.getImageData(image), filename);
+
+		Emoji emoji = EMOJI_BLUEPRINT;
+		if (blueprintString.blueprintBook.isPresent()) {
+			emoji = EMOJI_BLUEPRINTBOOK;
+		} else if (blueprintString.deconstructionPlanner.isPresent()) {
+			emoji = EMOJI_DECONSTRUCTIONPLANNER;
+		} else if (blueprintString.upgradePlanner.isPresent()) {
+			emoji = EMOJI_UPGRADEPLANNER;
+		}
+		String actionId = "reply-blueprint|" + futBlueprintStringUpload.get().getId()
+				+ blueprintString.findFirstLabel().map(s -> "|" + s).orElse("");
+		if (actionId.length() > 100) {
+			actionId = actionId.substring(0, 100);// XXX need a better solution
+		}
+		Button btnDownload = Button.secondary(actionId, "Download").withEmoji(emoji);
+		List<List<ItemComponent>> actionRows = ImmutableList.of(ImmutableList.of(btnDownload));
+
+		event.replyFile(WebUtils.getImageData(image), filename, actionRows);
 	}
 
 	private void handleBlueprintItemsCommand(SlashCommandEvent event) throws IOException {
