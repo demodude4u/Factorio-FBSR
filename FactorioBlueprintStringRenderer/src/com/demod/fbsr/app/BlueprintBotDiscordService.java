@@ -70,6 +70,7 @@ import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionEvent;
+import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import net.dv8tion.jda.api.interactions.components.ItemComponent;
@@ -757,7 +758,9 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		String[] split = raw.split("\\|");
 		String command = split[0];
 
-		event.deferEdit().queue();
+		InteractionHook hook = event.deferReply(true).complete();
+
+		String replyContent = null;
 
 		if (command.equals("reply-blueprint")) {
 			String messageId = split[1];
@@ -765,21 +768,12 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 			TextChannel hostingChannel = bot.getJDA().getTextChannelById(hostingChannelID);
 			Message message = hostingChannel.retrieveMessageById(messageId).complete();
-			String replyContent = label.map(s -> s + " ").orElse("") + message.getAttachments().get(0).getUrl();
-
-			if (event.getChannelType() != ChannelType.PRIVATE) {
-				PrivateChannel privateChannel = event.getUser().openPrivateChannel().complete();
-				privateChannel.sendMessage(replyContent).queue();
-			}
-
-			event.reply(replyContent).setEphemeral(true).queue();
+			replyContent = label.map(s -> s + " ").orElse("") + message.getAttachments().get(0).getUrl();
 
 		} else if (command.equals("reply-zoom")) {
 
 			String cacheKey = raw;
 			CachedMessageImageResult cachedResult = recentLazyLoadedMessages.getIfPresent(cacheKey);
-
-			String replyContent;
 
 			if (cachedResult != null) {
 				TextChannel hostingChannel = bot.getJDA().getTextChannelById(hostingChannelID);
@@ -814,12 +808,20 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 						+ messageImage.getAttachments().get(0).getUrl();
 			}
 
-			PrivateChannel privateChannel = event.getUser().openPrivateChannel().complete();
-			privateChannel.sendMessage(replyContent).queue();
-
 		} else {
 			System.err.println("UNKNOWN COMMAND " + command);
 			event.reply("Unknown Command: " + command).setEphemeral(true).queue();
+		}
+
+		if (replyContent != null) {
+			if (event.getChannelType() != ChannelType.PRIVATE) {
+				hook.sendMessage(replyContent).queue();
+			}
+
+			PrivateChannel privateChannel = event.getUser().openPrivateChannel().complete();
+			Message replyMessage = privateChannel
+					.sendMessage(event.getMessage().getJumpUrl() + "\n====> " + replyContent).complete();
+			reporting.addReply(replyMessage);
 		}
 	}
 
@@ -827,15 +829,15 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			throws InterruptedException, ExecutionException, IOException {
 		String command = event.getComponentId();
 
-		event.deferEdit().queue();
+		InteractionHook hook = event.deferReply(true).complete();
+
+		String replyContent = null;
 
 		if (command.equals("reply-book-blueprint")) {
 			String raw = event.getValues().get(0);
 
 			String cacheKey = command + "|" + raw;
 			CachedMessageImageResult cachedResult = recentLazyLoadedMessages.getIfPresent(cacheKey);
-
-			String replyContent;
 
 			if (cachedResult != null) {
 				TextChannel hostingChannel = bot.getJDA().getTextChannelById(hostingChannelID);
@@ -874,14 +876,21 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 			}
 
-			PrivateChannel privateChannel = event.getUser().openPrivateChannel().complete();
-			privateChannel.sendMessage(replyContent).queue();
-
 		} else {
 			System.out.println("UNKNOWN COMMAND " + command);
 			event.reply("Unknown Command: " + command).setEphemeral(true).queue();
 		}
 
+		if (replyContent != null) {
+			if (event.getChannelType() != ChannelType.PRIVATE) {
+				hook.sendMessage(replyContent).queue();
+			}
+
+			PrivateChannel privateChannel = event.getUser().openPrivateChannel().complete();
+			Message replyMessage = privateChannel
+					.sendMessage(event.getMessage().getJumpUrl() + "\n====> " + replyContent).complete();
+			reporting.addReply(replyMessage);
+		}
 	}
 
 	private void sendLuaDumpFile(EventReply event, String category, String name, LuaValue lua) throws IOException {
