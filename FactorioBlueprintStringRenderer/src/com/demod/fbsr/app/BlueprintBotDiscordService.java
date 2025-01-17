@@ -533,6 +533,8 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		boolean showPathOutputs = event.optParamBoolean("show-path-outputs").orElse(false);
 		boolean showPathInputs = event.optParamBoolean("show-path-inputs").orElse(false);
 		boolean showPathRails = event.optParamBoolean("show-path-rails").orElse(false);
+		boolean showGridNumbers = event.optParamBoolean("show-grid-numbers").orElse(false);
+		boolean showGridAboveBelts = event.optParamBoolean("show-grid-above-belts").orElse(false);
 
 		boolean debugPathItems = event.optParamBoolean("debug-path-items").orElse(false);
 		boolean debugPathRails = event.optParamBoolean("debug-path-rails").orElse(false);
@@ -553,6 +555,8 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		request.show.pathOutputs = showPathOutputs;
 		request.show.pathInputs = showPathInputs;
 		request.show.pathRails = showPathRails;
+		request.show.gridNumbers = showGridNumbers;
+		request.show.gridAboveBelts = showGridAboveBelts;
 
 		request.debug.pathItems = debugPathItems;
 		request.debug.pathRails = debugPathRails;
@@ -1061,6 +1065,8 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				.withOptionalParam(OptionType.BOOLEAN, "show-path-inputs",
 						"Show item path coloring leading to crafting or filtered inputs.")//
 				.withOptionalParam(OptionType.BOOLEAN, "show-path-rails", "Show rail station path coloring.")//
+				.withOptionalParam(OptionType.BOOLEAN, "show-grid-numbers", "Show grid numbers.")//
+				.withOptionalParam(OptionType.BOOLEAN, "show-grid-above-belts", "Show grid lines over the belts.")//
 				.withOptionalParam(OptionType.BOOLEAN, "debug-path-items", "Show debug markers for item pathing.")//
 				.withOptionalParam(OptionType.BOOLEAN, "debug-path-rails", "Show debug markers for rail pathing.")//
 				.withOptionalParam(OptionType.BOOLEAN, "debug-entity-placement",

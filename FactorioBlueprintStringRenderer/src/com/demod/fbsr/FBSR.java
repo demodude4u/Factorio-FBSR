@@ -53,6 +53,7 @@ import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.bs.BSTile;
 import com.demod.fbsr.bs.BSWire;
 import com.demod.fbsr.entity.ErrorRendering;
+import com.demod.fbsr.gui.GUIStyle;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Table;
@@ -85,26 +86,13 @@ public class FBSR {
 	private static final long MAX_WORLD_RENDER_PIXELS = 17000 * 17000;
 
 	public static final Color GROUND_COLOR = new Color(40, 40, 40);
-	public static final Color GRID_COLOR = new Color(60, 60, 60);
+	public static final Color GRID_COLOR = GUIStyle.FONT_BP_COLOR.darker().darker();
 
 	private static final BasicStroke GRID_STROKE = new BasicStroke((float) (3 / FBSR.TILE_SIZE));
 
 	private static volatile String version = null;
 
 	private static final Map<String, Color> itemColorCache = new HashMap<>();
-
-	// TODO find this in the factorio install
-	// TODO move into GUI layout
-	// private static BufferedImage timeIcon = null;
-	//
-	// static {
-	// try {
-	// timeIcon =
-	// ImageIO.read(FBSR.class.getClassLoader().getResourceAsStream("Time_icon.png"));
-	// } catch (IOException e) {
-	// e.printStackTrace();
-	// }
-	// }
 
 	public static final double TILE_SIZE = 64.0;
 
@@ -139,69 +127,6 @@ public class FBSR {
 		}
 		return new Rectangle2D.Double(minX, minY, maxX - minX, maxY - minY);
 	}
-
-	// TODO move into GUI layout
-//	private static PanelRenderer createItemListPanel(DataTable table, String title, Map<String, Double> items) {
-//		final double header = 0.8;
-//		final double spacing = 0.7;
-//		final double iconSize = 0.6;
-//		return new PanelRenderer(3.0, header + items.size() * spacing + 0.2) {
-//			@Override
-//			public void render(Graphics2D g, double width, double height) {
-//				g.setColor(GRID_COLOR);
-//				g.setStroke(GRID_STROKE);
-//				g.draw(new Rectangle2D.Double(0, 0, width, height));
-//
-//				Font font = new Font("Monospaced", Font.BOLD, 1).deriveFont(0.6f);
-//
-//				g.setFont(font);
-//				g.drawString(title, 0.3f, 0.65f);
-//
-//				double startX = 0.6;
-//				double startY = header + spacing / 2.0;
-//				Rectangle2D.Double spriteBox = new Rectangle2D.Double(startX - iconSize / 2.0, startY - iconSize / 2.0,
-//						iconSize, iconSize);
-//				Point2D.Double textPos = new Point2D.Double(startX + 0.5, startY + 0.18);
-//
-//				items.entrySet().stream().sorted((e1, e2) -> e1.getKey().compareTo(e2.getKey())).forEach(e -> {
-//					String itemName = e.getKey();
-//					double amount = e.getValue();
-//
-//					Optional<BufferedImage> image = Optional.empty();
-//					if (itemName.equals(TotalRawCalculator.RAW_TIME)) {
-//						image = Optional.of(timeIcon);
-//					} else {
-//						Optional<? extends DataPrototype> prototype = table.getItem(itemName);
-//						if (!prototype.isPresent()) {
-//							prototype = table.getFluid(itemName);
-//						}
-//						image = prototype.map(FactorioData::getIcon);
-//					}
-//					image.ifPresent(i -> {
-//						RenderUtils.drawImageInBounds(i, new Rectangle(0, 0, i.getWidth(), i.getHeight()), spriteBox,
-//								g);
-//					});
-//
-//					String amountStr;
-//					if (amount < 99999) {
-//						g.setColor(GRID_COLOR);
-//						amountStr = RenderUtils.fmtDouble(Math.ceil(amount));
-//					} else if (amount < 9999999) {
-//						g.setColor(GRID_COLOR.brighter());
-//						amountStr = RenderUtils.fmtDouble(Math.ceil(amount / 1000)) + "k";
-//					} else {
-//						g.setColor(GRID_COLOR.brighter().brighter());
-//						amountStr = RenderUtils.fmtDouble(Math.ceil(amount / 1000000)) + "M";
-//					}
-//					g.setFont(font);
-//					g.drawString(amountStr, (float) textPos.x, (float) textPos.y);
-//
-//					spriteBox.y += spacing;
-//					textPos.y += spacing;
-//				});
-//			}
-//		};
-//	}
 
 	public static Map<String, Double> generateSummedTotalItems(BSBlueprint blueprint) {
 		Map<String, Double> ret = new LinkedHashMap<>();
@@ -737,10 +662,15 @@ public class FBSR {
 			});
 		}
 
+		double gridPadding = (!request.getGridLines().isEmpty() && request.show.gridNumbers) ? 1 : 0;
+
 		Rectangle2D.Double worldBounds = computeBounds(renderers);
-		worldBounds.setFrameFromDiagonal(Math.floor(worldBounds.getMinX() + 0.4) - 1,
-				Math.floor(worldBounds.getMinY() + 0.4) - 1, Math.ceil(worldBounds.getMaxX() - 0.4) + 1,
-				Math.ceil(worldBounds.getMaxY() - 0.4) + 1);
+		worldBounds.setFrameFromDiagonal(Math.floor(worldBounds.getMinX() + 0.4) - gridPadding,
+				Math.floor(worldBounds.getMinY() + 0.4) - gridPadding,
+				Math.ceil(worldBounds.getMaxX() - 0.4) + gridPadding,
+				Math.ceil(worldBounds.getMaxY() - 0.4) + gridPadding);
+		Rectangle2D.Double gridBounds = new Rectangle2D.Double(worldBounds.x, worldBounds.y, worldBounds.width,
+				worldBounds.height);
 
 		double worldRenderScale = 1;
 
@@ -820,16 +750,30 @@ public class FBSR {
 			g.fill(worldBounds);
 		}
 
+		boolean gridTooSmall = (1 / worldRenderScale) > 5;
+
+		Layer gridLayer;
+		if (request.show.gridAboveBelts) {
+			gridLayer = Layer.GRID_ABOVE_BELTS;
+		} else {
+			gridLayer = Layer.GRID;
+		}
+
 		// Grid Lines
-		if (request.getGridLines().isPresent()) {
-			g.setStroke(GRID_STROKE);
-			g.setColor(request.getGridLines().get());
-			for (double x = Math.round(worldBounds.getMinX()); x <= worldBounds.getMaxX(); x++) {
-				g.draw(new Line2D.Double(x, worldBounds.getMinY(), x, worldBounds.getMaxY()));
-			}
-			for (double y = Math.round(worldBounds.getMinY()); y <= worldBounds.getMaxY(); y++) {
-				g.draw(new Line2D.Double(worldBounds.getMinX(), y, worldBounds.getMaxX(), y));
-			}
+		if (request.getGridLines().isPresent() && !gridTooSmall) {
+			renderers.add(new Renderer(gridLayer, gridBounds) {
+				@Override
+				public void render(Graphics2D g) throws Exception {
+					g.setStroke(GRID_STROKE);
+					g.setColor(request.getGridLines().get());
+					for (double x = Math.round(gridBounds.getMinX()); x <= gridBounds.getMaxX(); x++) {
+						g.draw(new Line2D.Double(x, gridBounds.getMinY(), x, gridBounds.getMaxY()));
+					}
+					for (double y = Math.round(gridBounds.getMinY()); y <= gridBounds.getMaxY(); y++) {
+						g.draw(new Line2D.Double(gridBounds.getMinX(), y, gridBounds.getMaxX(), y));
+					}
+				}
+			});
 		}
 
 		renderers.stream().filter(r1 -> r1 instanceof EntityRenderer).map(r3 -> (EntityRenderer) r3).forEach(r2 -> {
@@ -893,19 +837,19 @@ public class FBSR {
 		g.setTransform(worldXform);
 
 		// Grid Numbers
-		if (request.getGridLines().isPresent()) {
+		if (request.getGridLines().isPresent() && request.show.gridNumbers && !gridTooSmall) {
 			g.setColor(request.getGridLines().get());
 			g.setFont(new Font("Monospaced", Font.BOLD, 1).deriveFont(0.6f));
-			for (double x = Math.round(worldBounds.getMinX()) + 1, i = 1; x <= worldBounds.getMaxX() - 2; x++, i++) {
+			for (double x = Math.round(gridBounds.getMinX()) + 1, i = 1; x <= gridBounds.getMaxX() - 2; x++, i++) {
 				g.drawString(String.format("%02d", (int) Math.round(i) % 100), (float) x + 0.2f,
-						(float) (worldBounds.getMaxY() - 1 + 0.65f));
+						(float) (gridBounds.getMaxY() - 1 + 0.65f));
 				g.drawString(String.format("%02d", (int) Math.round(i) % 100), (float) x + 0.2f,
-						(float) (worldBounds.getMinY() + 0.65f));
+						(float) (gridBounds.getMinY() + 0.65f));
 			}
-			for (double y = Math.round(worldBounds.getMinY()) + 1, i = 1; y <= worldBounds.getMaxY() - 2; y++, i++) {
+			for (double y = Math.round(gridBounds.getMinY()) + 1, i = 1; y <= gridBounds.getMaxY() - 2; y++, i++) {
 				g.drawString(String.format("%02d", (int) Math.round(i) % 100),
-						(float) (worldBounds.getMaxX() - 1 + 0.2f), (float) y + 0.65f);
-				g.drawString(String.format("%02d", (int) Math.round(i) % 100), (float) (worldBounds.getMinX() + 0.2f),
+						(float) (gridBounds.getMaxX() - 1 + 0.2f), (float) y + 0.65f);
+				g.drawString(String.format("%02d", (int) Math.round(i) % 100), (float) (gridBounds.getMinX() + 0.2f),
 						(float) y + 0.65f);
 			}
 		}

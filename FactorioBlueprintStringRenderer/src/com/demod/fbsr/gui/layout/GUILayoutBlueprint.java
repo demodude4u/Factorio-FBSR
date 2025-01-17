@@ -45,6 +45,8 @@ public class GUILayoutBlueprint {
 	// This is double so it has a nice zoom but also crisp in detail
 	// This is also doubled again with the scale setting (4x total)
 	public static final GUISize DISCORD_IMAGE_SIZE = new GUISize(1100, 700);
+	public static final GUISize MIN_RENDER_SIZE = new GUISize(200, 150);
+	// TODO use min render size to be able to shrink down the frame as needed
 
 	// TODO use the prototype sprite instead
 	private static BufferedImage timeIcon = null;
@@ -111,7 +113,7 @@ public class GUILayoutBlueprint {
 		request.setMaxWidth(OptionalInt.of(renderWidth));
 		request.setMaxHeight(OptionalInt.of(renderHeight));
 		request.setBackground(Optional.empty());
-		request.setGridLines(Optional.empty());
+		request.setGridLines(Optional.of(GUIStyle.FONT_BP_COLOR.darker().darker()));
 
 		this.result = FBSR.renderBlueprint(request);
 
@@ -221,6 +223,7 @@ public class GUILayoutBlueprint {
 			int itemRows = (totalRawItems.size() + itemColumns - 1) / itemColumns;
 			int subPanelHeight = subPanelInset.add(itemGridInset).getVertical() + itemGridCell.height * itemRows;
 			subPanels.add(new SubPanel(bounds.shrinkTop(cutY).cutTop(subPanelHeight), "Raw") {
+
 				@Override
 				void render(Graphics2D g) {
 					super.render(g);
