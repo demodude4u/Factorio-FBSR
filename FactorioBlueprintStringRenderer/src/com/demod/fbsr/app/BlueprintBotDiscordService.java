@@ -1,6 +1,8 @@
 package com.demod.fbsr.app;
 
 import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.Image;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -21,6 +23,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
+
+import javax.imageio.ImageIO;
 
 import org.apache.commons.text.similarity.LevenshteinDistance;
 import org.json.JSONException;
@@ -92,16 +96,33 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 	}
 
+	public static class ImageShrinkResult {
+		public final boolean scaled;
+		public final double scale;
+		public final byte[] data;
+		public final String extension;
+
+		public ImageShrinkResult(boolean scaled, double scale, byte[] data, String extension) {
+			this.scaled = scaled;
+			this.scale = scale;
+			this.data = data;
+			this.extension = extension;
+		}
+	}
+
 	public static final Emoji EMOJI_BLUEPRINT = Emoji.fromFormatted("<:blueprint:1316556635761672244>");
 	public static final Emoji EMOJI_BLUEPRINTBOOK = Emoji.fromFormatted("<:blueprintbook:1316556633073258569>");
 	public static final Emoji EMOJI_DECONSTRUCTIONPLANNER = Emoji
 			.fromFormatted("<:deconstructionplanner:1316556636621508688>");
+
 	public static final Emoji EMOJI_UPGRADEPLANNER = Emoji.fromFormatted("<:upgradeplanner:1316556634528546887>");
 
 	public static final Emoji EMOJI_SEARCH = Emoji.fromFormatted("<:search:1319740035825799259>");
 
 	private static Cache<String, CachedMessageImageResult> recentLazyLoadedMessages = CacheBuilder.newBuilder()//
 			.maximumSize(1000).build();
+
+	public static final int MAX_FILE_SIZE = 10 << 20; // JDA has not updated 25MB -> 10MB yet
 
 	private static OptionalDouble optDouble(Optional<Double> value) {
 		return value.map(OptionalDouble::of).orElse(OptionalDouble.empty());
@@ -111,15 +132,56 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		return value.map(Long::intValue).map(OptionalInt::of).orElse(OptionalInt.empty());
 	}
 
-	private static BufferedImage shrinkImageToFitDiscordLimits(BufferedImage image) {
-		byte[] imageData = WebUtils.getImageData(image);// XXX this is done multiple times
+	private static ImageShrinkResult shrinkImageToFitUploadLimit(BufferedImage image) {
+		int width = image.getWidth();
+		int height = image.getHeight();
 
-		while (imageData.length > Message.MAX_FILE_SIZE) {
-			image = RenderUtils.scaleImage(image, image.getWidth() / 2, image.getHeight() / 2);
-			imageData = WebUtils.getImageData(image);
+		boolean scaled = false;
+		double scale = 1.0;
+
+		try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+			while (true) {
+
+				BufferedImage scaledImage;
+				if (scaled) {
+					int scaledWidth = (int) (width * scale);
+					int scaledHeight = (int) (height * scale);
+					scaledImage = new BufferedImage(scaledWidth, scaledHeight, image.getType());
+					Graphics2D g = scaledImage.createGraphics();
+					g.drawImage(image.getScaledInstance(scaledWidth, scaledHeight, Image.SCALE_SMOOTH), 0, 0, null);
+					g.dispose();
+				} else {
+					scaledImage = image;
+				}
+
+				if (!scaled) {
+					ImageIO.write(scaledImage, "PNG", baos);
+					if (baos.size() <= MAX_FILE_SIZE) {
+						return new ImageShrinkResult(scaled, scale, baos.toByteArray(), "png");
+					}
+					baos.reset();
+				}
+
+				if (!ImageIO.write(scaledImage, "JPG", baos)) {
+					BufferedImage noAlphaImage = new BufferedImage(scaledImage.getWidth(), scaledImage.getHeight(),
+							BufferedImage.TYPE_INT_RGB);
+					Graphics2D g = noAlphaImage.createGraphics();
+					g.drawImage(scaledImage, 0, 0, Color.black, null);
+					g.dispose();
+					ImageIO.write(noAlphaImage, "JPG", baos);
+				}
+				if (baos.size() <= MAX_FILE_SIZE) {
+					return new ImageShrinkResult(scaled, scale, baos.toByteArray(), "jpg");
+				}
+				baos.reset();
+
+				scaled = true;
+				scale *= 0.9;
+			}
+
+		} catch (IOException e) {
+			throw new InternalError(e);
 		}
-
-		return image;
 	}
 
 	private DiscordBot bot;
@@ -247,7 +309,8 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		List<Long> renderTimes = new ArrayList<>();
 
 		Optional<MessageEmbed> embed = Optional.empty();
-		String imageFilename = null;
+
+		Optional<String> label = null;
 		BufferedImage image = null;
 
 		List<List<ItemComponent>> actionRows = new ArrayList<>();
@@ -280,8 +343,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				}
 			}
 
-			image = shrinkImageToFitDiscordLimits(image);
-			imageFilename = WebUtils.formatBlueprintFilename(blueprint.label, "png");
+			label = blueprint.label;
 
 		} else if (blueprintString.blueprintBook.isPresent()) {
 			BSBlueprintBook book = blueprintString.blueprintBook.get();
@@ -313,8 +375,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			actionRows.add(ImmutableList.of(menuBuilder.build()));
 			// TODO each blueprint renders and upload
 
-			image = shrinkImageToFitDiscordLimits(image);
-			imageFilename = WebUtils.formatBlueprintFilename(book.label, "png");
+			label = book.label;
 
 		} else if (blueprintString.deconstructionPlanner.isPresent()) {
 			EmbedBuilder builder = new EmbedBuilder();
@@ -378,7 +439,10 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		if (embed.isPresent()) {
 			event.replyEmbed(embed.get(), actionRows);
 		} else {
-			event.replyFile(WebUtils.getImageData(image), imageFilename, actionRows);
+
+			ImageShrinkResult shrinkResult = shrinkImageToFitUploadLimit(image);
+			String imageFilename = WebUtils.formatBlueprintFilename(label, shrinkResult.extension);
+			event.replyFile(shrinkResult.data, imageFilename, actionRows);
 		}
 	}
 
@@ -498,9 +562,6 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 		event.getReporting().addField(new Field("Render Time", result.renderTime + " ms", true));
 
-		String filename = WebUtils.formatBlueprintFilename(blueprint.label, "png");
-		BufferedImage image = shrinkImageToFitDiscordLimits(result.image);
-
 		Emoji emoji = EMOJI_BLUEPRINT;
 		if (blueprintString.blueprintBook.isPresent()) {
 			emoji = EMOJI_BLUEPRINTBOOK;
@@ -517,7 +578,9 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		Button btnDownload = Button.secondary(actionId, "Download").withEmoji(emoji);
 		List<List<ItemComponent>> actionRows = ImmutableList.of(ImmutableList.of(btnDownload));
 
-		event.replyFile(WebUtils.getImageData(image), filename, actionRows);
+		ImageShrinkResult shrinkResult = shrinkImageToFitUploadLimit(result.image);
+		String imageFilename = WebUtils.formatBlueprintFilename(blueprint.label, shrinkResult.extension);
+		event.replyFile(shrinkResult.data, imageFilename, actionRows);
 	}
 
 	private void handleBlueprintItemsCommand(SlashCommandEvent event) throws IOException {
@@ -794,12 +857,13 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 				RenderRequest request = new RenderRequest(blueprint, reporting);
 				RenderResult result = FBSR.renderBlueprint(request);
-				BufferedImage image = shrinkImageToFitDiscordLimits(result.image);
 
 				reporting.addField(new Field("Render Time", result.renderTime + " ms", true));
 
-				Message messageImage = useDiscordForFileHosting(
-						WebUtils.formatBlueprintFilename(blueprint.label, "png"), image).get();
+				ImageShrinkResult shrinkResult = shrinkImageToFitUploadLimit(result.image);
+				String imageFilename = WebUtils.formatBlueprintFilename(blueprint.label, shrinkResult.extension);
+
+				Message messageImage = useDiscordForFileHosting(imageFilename, shrinkResult.data).get();
 
 				recentLazyLoadedMessages.put(cacheKey,
 						new CachedMessageImageResult(blueprint.label, messageImage.getId()));
@@ -816,6 +880,8 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		if (replyContent != null) {
 			if (event.getChannelType() != ChannelType.PRIVATE) {
 				hook.sendMessage(replyContent).queue();
+			} else {
+				hook.deleteOriginal().queue();
 			}
 
 			PrivateChannel privateChannel = event.getUser().openPrivateChannel().complete();
@@ -861,12 +927,13 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 				RenderRequest request = new RenderRequest(blueprint, reporting);
 				RenderResult result = FBSR.renderBlueprint(request);
-				BufferedImage image = shrinkImageToFitDiscordLimits(result.image);
 
 				reporting.addField(new Field("Render Time", result.renderTime + " ms", true));
 
-				Message messageImage = useDiscordForFileHosting(
-						WebUtils.formatBlueprintFilename(blueprint.label, "png"), image).get();
+				ImageShrinkResult shrinkResult = shrinkImageToFitUploadLimit(result.image);
+				String imageFilename = WebUtils.formatBlueprintFilename(blueprint.label, shrinkResult.extension);
+
+				Message messageImage = useDiscordForFileHosting(imageFilename, shrinkResult.data).get();
 
 				recentLazyLoadedMessages.put(cacheKey,
 						new CachedMessageImageResult(blueprint.label, messageImage.getId()));
@@ -884,6 +951,8 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		if (replyContent != null) {
 			if (event.getChannelType() != ChannelType.PRIVATE) {
 				hook.sendMessage(replyContent).queue();
+			} else {
+				hook.deleteOriginal().queue();
 			}
 
 			PrivateChannel privateChannel = event.getUser().openPrivateChannel().complete();
