@@ -84,7 +84,7 @@ public abstract class CraftingMachineRendering extends SimpleEntityRendering<BSC
 				spriteIcon.bounds = new Rectangle2D.Double(-0.7, -1.0, 1.4, 1.4);
 
 				Renderer delegate = RenderUtils.spriteRenderer(spriteIcon, entity, protoSelectionBox);
-				register.accept(new Renderer(Layer.ENTITY_INFO_ICON, delegate.getBounds()) {
+				register.accept(new Renderer(Layer.ENTITY_INFO_ICON, delegate.getBounds(), true) {
 					@Override
 					public void render(Graphics2D g) throws Exception {
 						g.setColor(new Color(0, 0, 0, 180));

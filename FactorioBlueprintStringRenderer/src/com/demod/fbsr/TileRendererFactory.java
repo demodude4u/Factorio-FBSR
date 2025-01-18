@@ -316,7 +316,7 @@ public class TileRendererFactory {
 			Point2D.Double pos = tile.position.createPoint();
 			Rectangle2D.Double bounds = new Rectangle2D.Double(pos.x + 0.25, pos.y + 0.25, 0.5, 0.5);
 			float randomFactor = new Random(tile.name.hashCode()).nextFloat();
-			register.accept(new Renderer(Layer.ABOVE_TILES, bounds) {
+			register.accept(new Renderer(Layer.ABOVE_TILES, bounds, false) {
 				@Override
 				public void render(Graphics2D g) {
 					g.setColor(RenderUtils.withAlpha(Color.getHSBColor(randomFactor, 0.6f, 0.4f), 128));
@@ -326,7 +326,7 @@ public class TileRendererFactory {
 					g.drawString("?", (float) bounds.getCenterX() - 0.125f, (float) bounds.getCenterY() + 0.15f);
 				}
 			});
-			register.accept(new Renderer(Layer.ENTITY_INFO_TEXT, bounds) {
+			register.accept(new Renderer(Layer.ENTITY_INFO_TEXT, bounds, false) {
 				@Override
 				public void render(Graphics2D g) {
 					if (labeledTypes.add(tile.name)) {

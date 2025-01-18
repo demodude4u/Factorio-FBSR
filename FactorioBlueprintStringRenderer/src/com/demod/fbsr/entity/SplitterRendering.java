@@ -94,7 +94,7 @@ public class SplitterRendering extends TransportBeltConnectableRendering<BSSplit
 			boolean right = entity.inputPriority.get().equals("right");
 			Point2D.Double inputPos = dir.offset(right ? rightPos : leftPos, 0);
 
-			register.accept(new Renderer(Layer.ENTITY_INFO_ICON_ABOVE, inputPos) {
+			register.accept(new Renderer(Layer.ENTITY_INFO_ICON_ABOVE, inputPos, true) {
 				@Override
 				public void render(Graphics2D g) {
 					AffineTransform pat = g.getTransform();
@@ -137,7 +137,7 @@ public class SplitterRendering extends TransportBeltConnectableRendering<BSSplit
 
 					Renderer delegate = RenderUtils.spriteRenderer(spriteIcon, entity, protoSelectionBox);
 					spriteIcon.bounds = new Rectangle2D.Double(iconPos.x - 0.3, iconPos.y - 0.3, 0.6, 0.6);
-					register.accept(new Renderer(Layer.ENTITY_INFO_ICON, delegate.getBounds()) {
+					register.accept(new Renderer(Layer.ENTITY_INFO_ICON, delegate.getBounds(), true) {
 						@Override
 						public void render(Graphics2D g) throws Exception {
 							g.setColor(new Color(0, 0, 0, 128));
@@ -147,7 +147,7 @@ public class SplitterRendering extends TransportBeltConnectableRendering<BSSplit
 					});
 				}
 			} else {
-				register.accept(new Renderer(Layer.ENTITY_INFO_ICON_ABOVE, outputPos) {
+				register.accept(new Renderer(Layer.ENTITY_INFO_ICON_ABOVE, outputPos, true) {
 					@Override
 					public void render(Graphics2D g) {
 						AffineTransform pat = g.getTransform();

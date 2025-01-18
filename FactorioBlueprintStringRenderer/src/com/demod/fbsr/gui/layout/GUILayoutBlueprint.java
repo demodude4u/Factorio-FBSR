@@ -45,8 +45,6 @@ public class GUILayoutBlueprint {
 	// This is double so it has a nice zoom but also crisp in detail
 	// This is also doubled again with the scale setting (4x total)
 	public static final GUISize DISCORD_IMAGE_SIZE = new GUISize(1100, 700);
-	public static final GUISize MIN_RENDER_SIZE = new GUISize(200, 150);
-	// TODO use min render size to be able to shrink down the frame as needed
 
 	// TODO use the prototype sprite instead
 	private static BufferedImage timeIcon = null;

@@ -81,9 +81,9 @@ public class FBSR {
 		}
 	}
 
-	private static final int MAX_WORLD_RENDER_WIDTH = 24000;
-	private static final int MAX_WORLD_RENDER_HEIGHT = 24000;
-	private static final long MAX_WORLD_RENDER_PIXELS = 17000 * 17000;
+	private static final int MAX_WORLD_RENDER_WIDTH = 8000;
+	private static final int MAX_WORLD_RENDER_HEIGHT = 8000;
+	private static final long MAX_WORLD_RENDER_PIXELS = 3000 * 3000;
 
 	public static final Color GROUND_COLOR = new Color(40, 40, 40);
 	public static final Color GRID_COLOR = GUIStyle.FONT_BP_COLOR.darker().darker();
@@ -104,13 +104,16 @@ public class FBSR {
 		items.put(itemName, amount);
 	}
 
-	private static Rectangle2D.Double computeBounds(List<Renderer> renderers) {
+	private static Rectangle2D.Double computeBounds(List<Renderer> renderers, boolean includeIgnoredBounds) {
 		if (renderers.isEmpty()) {
 			return new Rectangle2D.Double();
 		}
 		boolean first = true;
 		double minX = 0, minY = 0, maxX = 0, maxY = 0;
 		for (Renderer renderer : renderers) {
+			if (!includeIgnoredBounds && renderer.ignoreBoundsCalculation()) {
+				continue;
+			}
 			Rectangle2D.Double bounds = renderer.bounds;
 			if (first) {
 				first = false;
@@ -637,7 +640,7 @@ public class FBSR {
 		if (request.debug.entityPlacement) {
 			entityRenderingTuples.forEach(t -> {
 				Point2D.Double pos = t.entity.position.createPoint();
-				renderers.add(new Renderer(Layer.DEBUG_P, pos) {
+				renderers.add(new Renderer(Layer.DEBUG_P, pos, true) {
 					@Override
 					public void render(Graphics2D g) {
 						g.setColor(Color.cyan);
@@ -652,7 +655,7 @@ public class FBSR {
 			});
 			tileRenderingTuples.forEach(t -> {
 				Point2D.Double pos = t.tile.position.createPoint();
-				renderers.add(new Renderer(Layer.DEBUG_P, pos) {
+				renderers.add(new Renderer(Layer.DEBUG_P, pos, true) {
 					@Override
 					public void render(Graphics2D g) {
 						g.setColor(Color.cyan);
@@ -662,15 +665,14 @@ public class FBSR {
 			});
 		}
 
-		double gridPadding = (!request.getGridLines().isEmpty() && request.show.gridNumbers) ? 1 : 0;
+		double gridPadding = (!request.getGridLines().isEmpty() && request.show.gridNumbers) ? 1.25 : 0.25;
 
-		Rectangle2D.Double worldBounds = computeBounds(renderers);
+		Rectangle2D.Double worldBounds = computeBounds(renderers, true);
 		worldBounds.setFrameFromDiagonal(Math.floor(worldBounds.getMinX() + 0.4) - gridPadding,
 				Math.floor(worldBounds.getMinY() + 0.4) - gridPadding,
 				Math.ceil(worldBounds.getMaxX() - 0.4) + gridPadding,
 				Math.ceil(worldBounds.getMaxY() - 0.4) + gridPadding);
-		Rectangle2D.Double gridBounds = new Rectangle2D.Double(worldBounds.x, worldBounds.y, worldBounds.width,
-				worldBounds.height);
+		Rectangle2D.Double gridBounds = computeBounds(renderers, false);
 
 		double worldRenderScale = 1;
 
@@ -761,7 +763,7 @@ public class FBSR {
 
 		// Grid Lines
 		if (request.getGridLines().isPresent() && !gridTooSmall) {
-			renderers.add(new Renderer(gridLayer, gridBounds) {
+			renderers.add(new Renderer(gridLayer, gridBounds, true) {
 				@Override
 				public void render(Graphics2D g) throws Exception {
 					g.setStroke(GRID_STROKE);
@@ -786,7 +788,7 @@ public class FBSR {
 		shadowG.dispose();
 		RenderUtils.halveAlpha(shadowImage);
 
-		renderers.add(new Renderer(Layer.SHADOW_BUFFER, worldBounds) {
+		renderers.add(new Renderer(Layer.SHADOW_BUFFER, worldBounds, true) {
 			@Override
 			public void render(Graphics2D g) throws Exception {
 				AffineTransform tempXform = g.getTransform();
@@ -827,7 +829,7 @@ public class FBSR {
 
 				if (debugBounds) {
 					g.setStroke(new BasicStroke(1f / (float) TILE_SIZE));
-					g.setColor(Color.magenta);
+					g.setColor(r4.ignoreBoundsCalculation() ? Color.gray : Color.magenta);
 					g.draw(r4.bounds);
 				}
 			} catch (Exception e) {
@@ -886,7 +888,7 @@ public class FBSR {
 					double shift = ((i + 1) / (double) (s.size() + 1) - 0.5) / 3.0; // -0.25..0.25
 					cell.getMove().filter(d -> map.getLogisticGridCell(d.offset(pos, 0.5))
 							.map(LogisticGridCell::isAccepting).orElse(false)).ifPresent(d -> {
-								register.accept(new Renderer(Layer.LOGISTICS_MOVE, pos) {
+								register.accept(new Renderer(Layer.LOGISTICS_MOVE, pos, true) {
 									@Override
 									public void render(Graphics2D g) {
 										Stroke ps = g.getStroke();
@@ -909,7 +911,7 @@ public class FBSR {
 				cell.getMovedFrom().ifPresent(l -> {
 					for (Direction d : l) {
 						Point2D.Double p = d.offset(pos, 0.5);
-						register.accept(new Renderer(Layer.DEBUG_LA1, p) {
+						register.accept(new Renderer(Layer.DEBUG_LA1, p, true) {
 							@Override
 							public void render(Graphics2D g) {
 								Stroke ps = g.getStroke();
@@ -949,7 +951,7 @@ public class FBSR {
 				Point2D.Double p2 = edge.getEndPos();
 				Direction d2 = edge.getEndDir();
 
-				register.accept(new Renderer(Layer.LOGISTICS_RAIL_IO, edge.getStartPos()) {
+				register.accept(new Renderer(Layer.LOGISTICS_RAIL_IO, edge.getStartPos(), true) {
 					@Override
 					public void render(Graphics2D g) {
 						Shape path;
@@ -984,7 +986,7 @@ public class FBSR {
 					Point2D.Double p2 = edge.getEndPos();
 					Direction d2 = edge.getEndDir();
 
-					register.accept(new Renderer(Layer.LOGISTICS_RAIL_IO, edge.getStartPos()) {
+					register.accept(new Renderer(Layer.LOGISTICS_RAIL_IO, edge.getStartPos(), true) {
 						@Override
 						public void render(Graphics2D g) {
 							Stroke ps = g.getStroke();
@@ -1004,7 +1006,7 @@ public class FBSR {
 				Point2D.Double pos = new Point2D.Double(c.getRowKey() / 2.0, c.getColumnKey() / 2.0);
 				RailNode node = c.getValue();
 
-				register.accept(new Renderer(Layer.DEBUG_RAIL1, pos) {
+				register.accept(new Renderer(Layer.DEBUG_RAIL1, pos, true) {
 					@Override
 					public void render(Graphics2D g) {
 						Stroke ps = g.getStroke();
@@ -1027,7 +1029,7 @@ public class FBSR {
 					}
 				});
 
-				register.accept(new Renderer(Layer.DEBUG_RAIL2, pos) {
+				register.accept(new Renderer(Layer.DEBUG_RAIL2, pos, true) {
 					@Override
 					public void render(Graphics2D g) {
 						Stroke ps = g.getStroke();

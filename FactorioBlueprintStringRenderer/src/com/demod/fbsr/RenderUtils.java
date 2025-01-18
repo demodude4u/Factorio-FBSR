@@ -72,7 +72,7 @@ public final class RenderUtils {
 		Rectangle2D.Double bounds = new Rectangle2D.Double();
 		bounds.setFrameFromDiagonal(p1, p2);
 
-		return new EntityRenderer(Layer.WIRE, bounds) {
+		return new EntityRenderer(Layer.WIRE, bounds, true) {
 			final double drop = 0.6;
 
 			@Override
@@ -119,7 +119,7 @@ public final class RenderUtils {
 
 	public static Renderer drawRotatedString(Layer layer, Point2D.Double position, double angle, Color color,
 			String string) {
-		return new Renderer(layer, position) {
+		return new Renderer(layer, position, true) {
 			@Override
 			public void render(Graphics2D g) {
 				AffineTransform pat = g.getTransform();
@@ -146,7 +146,7 @@ public final class RenderUtils {
 	}
 
 	public static Renderer drawString(Layer layer, Point2D.Double position, Color color, String string) {
-		return new Renderer(layer, position) {
+		return new Renderer(layer, position, true) {
 			@Override
 			public void render(Graphics2D g) {
 				g.setFont(new Font("Monospaced", Font.BOLD, 1).deriveFont(0.4f));
@@ -323,7 +323,7 @@ public final class RenderUtils {
 		groundBounds.x += pos.x;
 		groundBounds.y += pos.y;
 
-		return new EntityRenderer(layer, groundBounds) {
+		return new EntityRenderer(layer, groundBounds, false) {
 			@SuppressWarnings("unused")
 			private void debugShowBounds(Rectangle2D.Double groundBounds, Graphics2D g) {
 				long x = Math.round(groundBounds.getCenterX() * 2);
@@ -366,7 +366,7 @@ public final class RenderUtils {
 	}
 
 	public static Renderer spriteRenderer(Layer layer, Sprite sprite, Rectangle2D.Double bounds) {
-		return new Renderer(layer, bounds) {
+		return new Renderer(layer, bounds, false) {
 			@SuppressWarnings("unused")
 			private void debugShowBounds(Rectangle2D.Double groundBounds, Graphics2D g) {
 				long x = Math.round(groundBounds.getCenterX() * 2);

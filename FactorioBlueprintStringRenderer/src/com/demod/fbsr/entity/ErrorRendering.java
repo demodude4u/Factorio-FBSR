@@ -36,7 +36,7 @@ public class ErrorRendering extends EntityRendererFactory<BSEntity> {
 		FPBoundingBox box = factory.getBounds();
 		Rectangle2D.Double bounds = new Rectangle2D.Double(pos.x + box.leftTop.x, pos.y + box.leftTop.y,
 				box.rightBottom.x - box.leftTop.x, box.rightBottom.y - box.leftTop.y);
-		register.accept(new Renderer(Layer.ENTITY_INFO_ICON_ABOVE, bounds) {
+		register.accept(new Renderer(Layer.ENTITY_INFO_ICON_ABOVE, bounds, false) {
 			@Override
 			public void render(Graphics2D g) {
 				g.setColor(Color.red);

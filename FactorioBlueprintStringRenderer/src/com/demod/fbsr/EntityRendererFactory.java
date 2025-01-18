@@ -129,7 +129,7 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 		public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSEntity entity) {
 			Point2D.Double pos = entity.position.createPoint();
 			Rectangle2D.Double bounds = new Rectangle2D.Double(pos.x - 0.5, pos.y - 0.5, 1.0, 1.0);
-			register.accept(new Renderer(Layer.ENTITY_INFO_ICON_ABOVE, bounds) {
+			register.accept(new Renderer(Layer.ENTITY_INFO_ICON_ABOVE, bounds, false) {
 				@Override
 				public void render(Graphics2D g) {
 					g.setColor(RenderUtils.withAlpha(getUnknownColor(entity.name), 128));
@@ -139,7 +139,7 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 					g.drawString("?", (float) bounds.getCenterX() - 0.25f, (float) bounds.getCenterY() + 0.3f);
 				}
 			});
-			register.accept(new Renderer(Layer.ENTITY_INFO_TEXT, bounds) {
+			register.accept(new Renderer(Layer.ENTITY_INFO_TEXT, bounds, false) {
 				@Override
 				public void render(Graphics2D g) {
 					if (labeledTypes.add(entity.name)) {
@@ -339,8 +339,8 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 			factory.setPrototype(prototype);
 			try {
 				factory.wirePointsById = new LinkedHashMap<>();
-				factory.defineWirePoints(factory.wirePointsById::put, prototype.lua());
 				factory.initFromPrototype(table, prototype);
+				factory.defineWirePoints(factory.wirePointsById::put, prototype.lua());
 			} catch (Exception e) {
 				prototype.debugPrint();
 				throw e;
@@ -366,7 +366,7 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 		Multiset<String> renderModules = RenderUtils.getModules(entity, table);
 		if (!renderModules.isEmpty()) {
 
-			register.accept(new Renderer(Layer.ENTITY_INFO_ICON_ABOVE, entity.position.createPoint()) {
+			register.accept(new Renderer(Layer.ENTITY_INFO_ICON_ABOVE, entity.position.createPoint(), true) {
 				final double spacing = 0.7;
 				final double shadow = 0.6;
 				final double size = 0.5;
@@ -437,7 +437,7 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 					}
 				}
 
-				register.accept(new Renderer(Layer.ENTITY_INFO_ICON_ABOVE, entity.position.createPoint()) {
+				register.accept(new Renderer(Layer.ENTITY_INFO_ICON_ABOVE, entity.position.createPoint(), true) {
 					final double spacing = 0.3;
 					final double shadow = 0.3;
 					final double size = 0.25;
