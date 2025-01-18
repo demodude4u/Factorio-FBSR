@@ -49,6 +49,10 @@ public final class GUIStyle {
 	public static GUISliceFeature FRAME_LIGHT_OUTER = GUISliceFeature.outer(DEFAULT_TILESET, //
 			new GUIBox(85, 0, 17, 17), new GUISpacing(8, 8, 8, 8));
 
+	// Probably not used correctly...
+	public static GUISliceFeature FRAME_TAB = GUISliceFeature.inner(DEFAULT_TILESET, new GUIBox(448, 103, 17, 17),
+			new GUISpacing(16, 8, 0, 8));
+
 	public static GUIPipeFeature PIPE = GUIPipeFeature.full(DEFAULT_TILESET, new GUIBox(0, 40, 120, 8));
 	public static GUIPipeFeature DRAG_LINES = GUIPipeFeature.dragLines(DEFAULT_TILESET, new GUIBox(192, 8, 24, 8));
 

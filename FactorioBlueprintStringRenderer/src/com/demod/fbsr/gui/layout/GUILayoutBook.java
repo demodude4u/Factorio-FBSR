@@ -174,7 +174,6 @@ public class GUILayoutBook {
 
 	private void drawFrame(Graphics2D g, GUIBox bounds) {
 		int titleHeight = 50;
-		int creditHeight = 25;
 
 		GUIPanel panel = new GUIPanel(bounds, GUIStyle.FRAME_INNER);
 		panel.render(g);
@@ -182,11 +181,11 @@ public class GUILayoutBook {
 		drawTitleBar(g, bounds.cutTop(titleHeight));
 		drawImagePane(g, bounds.shrinkTop(titleHeight));
 
-		GUIBox creditBounds = bounds.cutLeft(175).cutBottom(creditHeight).expandTop(8).shrink(0, 8, 8, 0);
-		GUIPanel creditPanel = new GUIPanel(creditBounds.expandBottom(2), GUIStyle.FRAME_LIGHT_INNER);
+		GUIBox creditBounds = bounds.cutRight(190).cutBottom(24).expandTop(8).cutTop(16).cutLeft(160);
+		GUIPanel creditPanel = new GUIPanel(creditBounds, GUIStyle.FRAME_TAB);
 		creditPanel.render(g);
 		GUILabel lblCredit = new GUILabel(creditBounds, "BlueprintBot " + FBSR.getVersion(),
-				GUIStyle.FONT_BP_BOLD.deriveFont(16f), Color.GRAY, Align.CENTER);
+				GUIStyle.FONT_BP_BOLD.deriveFont(16f), Color.GRAY, Align.TOP_CENTER);
 		lblCredit.render(g);
 	}
 
@@ -231,14 +230,6 @@ public class GUILayoutBook {
 				String label = block.label.get();
 				g.drawString(label, x + 25, y + 35);
 			}
-
-//			g.setColor(new Color(block.hashCode()));
-//			g.drawRect(
-//					10 + (int) (bounds.x + bounds.width / 2
-//							+ (-packBounds.width / 2.0 - packBounds.x + block.location.x) * cellWidth + cellOffsetX),
-//					10 + (int) (bounds.y + bounds.height / 2
-//							+ (-packBounds.height / 2.0 - packBounds.y + block.location.y) * cellHeight + cellOffsetY),
-//					-20 + (int) (block.location.width * cellWidth), -20 + (int) (block.location.height * cellHeight));
 		}
 
 		g.setClip(prevClip);
@@ -256,13 +247,6 @@ public class GUILayoutBook {
 				}
 			}
 		}
-
-//		for (int row = packBounds.y; row < packBounds.y + packBounds.height; row++) {
-//			for (int col = packBounds.x; col < packBounds.x + packBounds.width; col++) {
-//				System.out.print(Optional.ofNullable(groupings.get(row, col)).map(i -> "" + i).orElse("."));
-//			}
-//			System.out.println();
-//		}
 
 		int pipeX = (int) (bounds.x + bounds.width / 2 + (-packBounds.width / 2.0) * cellWidth) - 4;
 		int pipeY = (int) (bounds.y + bounds.height / 2 + (-packBounds.height / 2.0) * cellHeight) - 4;

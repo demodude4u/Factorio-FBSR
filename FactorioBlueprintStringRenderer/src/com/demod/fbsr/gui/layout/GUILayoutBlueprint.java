@@ -5,7 +5,6 @@ import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -14,8 +13,6 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.stream.Collectors;
-
-import javax.imageio.ImageIO;
 
 import com.demod.dcba.CommandReporting;
 import com.demod.factorio.DataTable;
@@ -29,6 +26,7 @@ import com.demod.fbsr.RenderRequest;
 import com.demod.fbsr.RenderResult;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.bs.BSBlueprint;
+import com.demod.fbsr.fp.FPSprite;
 import com.demod.fbsr.gui.GUIBox;
 import com.demod.fbsr.gui.GUISize;
 import com.demod.fbsr.gui.GUISpacing;
@@ -43,15 +41,15 @@ public class GUILayoutBlueprint {
 
 	// Discord messages at 100% scale embed images at 550x350
 	// This is double so it has a nice zoom but also crisp in detail
-	// This is also doubled again with the scale setting (4x total)
 	public static final GUISize DISCORD_IMAGE_SIZE = new GUISize(1100, 700);
 
-	// TODO use the prototype sprite instead
-	private static BufferedImage timeIcon = null;
+	// XXX this is a bad hack
+	private static BufferedImage timeIcon;
 	static {
 		try {
-			timeIcon = ImageIO.read(FBSR.class.getClassLoader().getResourceAsStream("Time_icon.png"));
-		} catch (IOException e) {
+			timeIcon = new FPSprite(FactorioData.getTable().getRaw("utility-sprites", "default", "clock").get())
+					.createSprites().get(0).image;
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
@@ -74,22 +72,20 @@ public class GUILayoutBlueprint {
 
 	private void drawFrame(Graphics2D g, GUIBox bounds) {
 		int titleHeight = 50;
-		int creditHeight = 25;
-
 		int infoPaneWidth = 76 + itemColumns * itemCellSize;
 
 		GUIPanel panel = new GUIPanel(bounds, GUIStyle.FRAME_INNER);
 		panel.render(g);
 
 		drawTitleBar(g, bounds.cutTop(titleHeight));
-		drawInfoPane(g, bounds.shrinkTop(titleHeight).cutLeft(infoPaneWidth).shrinkBottom(creditHeight));
+		drawInfoPane(g, bounds.shrinkTop(titleHeight).cutLeft(infoPaneWidth));
 		drawImagePane(g, bounds.shrinkTop(titleHeight).shrinkLeft(infoPaneWidth));
 
-		// TODO Icon
-
-		GUILabel lblCredit = new GUILabel(
-				bounds.cutLeft(infoPaneWidth).cutBottom(creditHeight).expandTop(8).shrink(0, 12, 8, 0),
-				"BlueprintBot " + FBSR.getVersion(), GUIStyle.FONT_BP_BOLD.deriveFont(16f), Color.GRAY, Align.CENTER);
+		GUIBox creditBounds = bounds.cutRight(190).cutBottom(24).expandTop(8).cutTop(16).cutLeft(160);
+		GUIPanel creditPanel = new GUIPanel(creditBounds, GUIStyle.FRAME_TAB);
+		creditPanel.render(g);
+		GUILabel lblCredit = new GUILabel(creditBounds, "BlueprintBot " + FBSR.getVersion(),
+				GUIStyle.FONT_BP_BOLD.deriveFont(16f), Color.GRAY, Align.TOP_CENTER);
 		lblCredit.render(g);
 	}
 
@@ -124,7 +120,7 @@ public class GUILayoutBlueprint {
 		GUISpacing itemGridInset = new GUISpacing(8, 8, 8, 8);
 		GUISize itemGridCell = new GUISize(itemCellSize, itemCellSize);
 
-		bounds = bounds.shrink(0, 24, 12, 12);
+		bounds = bounds.shrink(0, 24, 24, 12);
 
 		DataTable table = FactorioData.getTable();
 
@@ -255,18 +251,21 @@ public class GUILayoutBlueprint {
 						GUIStyle.ITEM_SLOT.render(g, cellBounds);
 
 						Optional<BufferedImage> image;
+						double scale;
 						if (item.equals(TotalRawCalculator.RAW_TIME)) {
 							image = Optional.of(timeIcon);
+							scale = itemIconScale * 2;
 						} else {
 							Optional<? extends DataPrototype> prototype = table.getItem(item);
 							if (!prototype.isPresent()) {
 								prototype = table.getFluid(item);
 							}
 							image = prototype.map(FactorioData::getIcon);
+							scale = itemIconScale;
 						}
 
 						if (image.isPresent()) {
-							GUIImage imgIcon = new GUIImage(cellBounds, image.get(), itemIconScale, false);
+							GUIImage imgIcon = new GUIImage(cellBounds, image.get(), scale, false);
 							imgIcon.render(g);
 						} else {
 							g.setColor(EntityRendererFactory.getUnknownColor(item));
