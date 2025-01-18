@@ -148,7 +148,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 					int scaledHeight = (int) (height * scale);
 					scaledImage = new BufferedImage(scaledWidth, scaledHeight, image.getType());
 					Graphics2D g = scaledImage.createGraphics();
-					g.drawImage(image.getScaledInstance(scaledWidth, scaledHeight, Image.SCALE_SMOOTH), 0, 0, null);
+					g.drawImage(image.getScaledInstance(scaledWidth, scaledHeight, Image.SCALE_FAST), 0, 0, null);
 					g.dispose();
 				} else {
 					scaledImage = image;
@@ -173,10 +173,16 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				if (baos.size() <= MAX_FILE_SIZE) {
 					return new ImageShrinkResult(scaled, scale, baos.toByteArray(), "jpg");
 				}
+				int size = baos.size();
 				baos.reset();
 
 				scaled = true;
-				scale *= 0.9;
+				if (size > MAX_FILE_SIZE * 1.25) {
+					// Approximation based on file size
+					scale = MAX_FILE_SIZE / (double) size;
+				} else {
+					scale *= 0.9;
+				}
 			}
 
 		} catch (IOException e) {
