@@ -272,6 +272,7 @@ public class TileRendererFactory {
 	}
 
 	public static List<List<TileEdgeRuleParam>> tileRules = new ArrayList<>();
+
 	static {
 		IntStream.range(0, 256).forEach(i -> tileRules.add(new ArrayList<>()));
 		for (TileEdgeRule rule : TileEdgeRule.values()) {
@@ -364,12 +365,11 @@ public class TileRendererFactory {
 		byName.put("refined-concrete", new TileRendererFactory());
 		byName.put("refined-hazard-concrete-left", new TileRendererFactory());
 		byName.put("refined-hazard-concrete-right", new TileRendererFactory());
-		byName.put("space-platform-foundation", new TileRendererFactory());
+		byName.put("space-platform-foundation", new TileRendererFactory(true));
 		byName.put("stone-path", new TileRendererFactory());
 		byName.put("artificial-yumako-soil", new TileRendererFactory());
 		byName.put("overgrowth-yumako-soil", new TileRendererFactory());
 	}
-
 	private static volatile boolean prototypesInitialized = false;
 
 	public static void createAllRenderers(Consumer<Renderer> register, List<TileRenderingTuple> tiles) {
@@ -509,17 +509,30 @@ public class TileRendererFactory {
 		prototypesInitialized = true;
 	}
 
+	private final boolean gridPlatform;
+
 	protected TilePrototype prototype;
+
 	private List<FPTileMainPictures> protoVariantsMain;
+
 	private Optional<FPTileMainPictures> protoVariantsMainSize1;
+
 	private Optional<FPTileTransitions> protoVariantsTransition;
 	private Optional<FPMaterialTextureParameters> protoVariantsMaterialBackground;
-
 	private int protoLayer;
-
 	private TileRenderProcess renderProcess = null;
 	private Optional<String> protoTransitionMergesWithTileID;
+
 	private Optional<TileRendererFactory> protoTransitionMergesWithTile;
+
+	public TileRendererFactory() {
+		this(false);
+	}
+
+	public TileRendererFactory(boolean gridPlatform) {
+		this.gridPlatform = gridPlatform;
+
+	}
 
 	// TODO fix UNKNOWN so we don't need this
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSTile tile) {
@@ -546,6 +559,10 @@ public class TileRendererFactory {
 		else if (protoVariantsMaterialBackground.isPresent()) {
 			renderProcess = new TileRenderProcessMaterial();
 		}
+	}
+
+	public boolean isGridPlatform() {
+		return gridPlatform;
 	}
 
 	// TODO fix UNKNOWN so we don't need this

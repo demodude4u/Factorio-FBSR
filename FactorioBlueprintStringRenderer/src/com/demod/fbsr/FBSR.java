@@ -51,6 +51,7 @@ import com.demod.fbsr.WorldMap.RailEdge;
 import com.demod.fbsr.WorldMap.RailNode;
 import com.demod.fbsr.bs.BSBlueprint;
 import com.demod.fbsr.bs.BSEntity;
+import com.demod.fbsr.bs.BSPosition;
 import com.demod.fbsr.bs.BSTile;
 import com.demod.fbsr.bs.BSWire;
 import com.demod.fbsr.entity.ErrorRendering;
@@ -668,27 +669,29 @@ public class FBSR {
 
 		double gridPadding = (!request.getGridLines().isEmpty() && request.show.gridNumbers) ? 1 : 0;
 		double gridRound = (!request.getGridLines().isEmpty() && request.show.gridNumbers) ? 0.6 : 0.2;
-		double worldPadding = 0.25;
+		double worldPadding = 0.5;
 
 		Rectangle2D.Double visualBounds = computeBounds(renderers, true);
-		visualBounds.setFrameFromDiagonal(Math.floor(visualBounds.getMinX() + 0.4) - worldPadding,
-				Math.floor(visualBounds.getMinY() + 0.4) - worldPadding,
-				Math.ceil(visualBounds.getMaxX() - 0.4) + worldPadding,
-				Math.ceil(visualBounds.getMaxY() - 0.4) + worldPadding);
+		visualBounds.setFrameFromDiagonal(Math.floor(visualBounds.getMinX() + 0.4),
+				Math.floor(visualBounds.getMinY() + 0.4), Math.ceil(visualBounds.getMaxX() - 0.4),
+				Math.ceil(visualBounds.getMaxY() - 0.4));
 		Rectangle2D.Double gridBounds = computeBounds(renderers, false);
 		gridBounds.setFrameFromDiagonal(Math.floor(gridBounds.getMinX() + 0.4) - gridPadding,
 				Math.floor(gridBounds.getMinY() + 0.4) - gridPadding,
 				Math.ceil(gridBounds.getMaxX() - 0.4) + gridPadding,
 				Math.ceil(gridBounds.getMaxY() - 0.4) + gridPadding);
 
-		Rectangle2D.Double imageBounds = new Rectangle2D.Double();
-		imageBounds.setFrameFromDiagonal(//
+		Rectangle2D.Double worldBounds = new Rectangle2D.Double();
+		worldBounds.setFrameFromDiagonal(//
 				Math.min(visualBounds.getMinX(), gridBounds.getMinX()) - worldPadding, //
 				Math.min(visualBounds.getMinY(), gridBounds.getMinY()) - worldPadding, //
 				Math.max(visualBounds.getMaxX(), gridBounds.getMaxX()) + worldPadding, //
 				Math.max(visualBounds.getMaxY(), gridBounds.getMaxY()) + worldPadding);//
 
 		double worldRenderScale = 1;
+
+		boolean gridPlatformMode = tileRenderingTuples.stream().anyMatch(t -> t.factory.isGridPlatform())
+				&& !request.show.gridNumbers;
 
 		// Max scale limit
 		if (request.getMaxScale().isPresent()) {
@@ -700,38 +703,38 @@ public class FBSR {
 		int maxHeightPixels = request.getMaxHeight().orElse(MAX_WORLD_RENDER_HEIGHT);
 		long maxPixels = Math.min(MAX_WORLD_RENDER_PIXELS, (long) maxWidthPixels * (long) maxHeightPixels);
 
-		if ((imageBounds.getWidth() * worldRenderScale * TILE_SIZE) > maxWidthPixels) {
-			worldRenderScale *= (maxWidthPixels / (imageBounds.getWidth() * worldRenderScale * TILE_SIZE));
+		if ((worldBounds.getWidth() * worldRenderScale * TILE_SIZE) > maxWidthPixels) {
+			worldRenderScale *= (maxWidthPixels / (worldBounds.getWidth() * worldRenderScale * TILE_SIZE));
 		}
-		if ((imageBounds.getHeight() * worldRenderScale * TILE_SIZE) > maxHeightPixels) {
-			worldRenderScale *= (maxHeightPixels / (imageBounds.getHeight() * worldRenderScale * TILE_SIZE));
+		if ((worldBounds.getHeight() * worldRenderScale * TILE_SIZE) > maxHeightPixels) {
+			worldRenderScale *= (maxHeightPixels / (worldBounds.getHeight() * worldRenderScale * TILE_SIZE));
 		}
-		if ((imageBounds.getWidth() * imageBounds.getHeight() * worldRenderScale * TILE_SIZE) > maxPixels) {
+		if ((worldBounds.getWidth() * worldBounds.getHeight() * worldRenderScale * TILE_SIZE) > maxPixels) {
 			worldRenderScale *= (maxPixels
-					/ (imageBounds.getWidth() * imageBounds.getHeight() * worldRenderScale * TILE_SIZE));
+					/ (worldBounds.getWidth() * worldBounds.getHeight() * worldRenderScale * TILE_SIZE));
 		}
 
 		// Expand the world to fit the min requirements
 		int minWidthPixels = request.getMinWidth().orElse(0);
 		int minHeightPixels = request.getMinHeight().orElse(0);
 
-		if ((imageBounds.getWidth() * worldRenderScale * TILE_SIZE) < minWidthPixels) {
-			double padding = (minWidthPixels - (imageBounds.getWidth() * worldRenderScale * TILE_SIZE))
+		if ((worldBounds.getWidth() * worldRenderScale * TILE_SIZE) < minWidthPixels) {
+			double padding = (minWidthPixels - (worldBounds.getWidth() * worldRenderScale * TILE_SIZE))
 					/ (worldRenderScale * TILE_SIZE);
-			imageBounds.x -= padding / 2.0;
-			imageBounds.width += padding;
+			worldBounds.x -= padding / 2.0;
+			worldBounds.width += padding;
 		}
-		if ((imageBounds.getHeight() * worldRenderScale * TILE_SIZE) < minHeightPixels) {
-			double padding = (minHeightPixels - (imageBounds.getHeight() * worldRenderScale * TILE_SIZE))
+		if ((worldBounds.getHeight() * worldRenderScale * TILE_SIZE) < minHeightPixels) {
+			double padding = (minHeightPixels - (worldBounds.getHeight() * worldRenderScale * TILE_SIZE))
 					/ (worldRenderScale * TILE_SIZE);
-			imageBounds.y -= padding / 2.0;
-			imageBounds.height += padding;
+			worldBounds.y -= padding / 2.0;
+			worldBounds.height += padding;
 		}
 
 		int imageWidth = Math.max(minWidthPixels,
-				Math.min(maxWidthPixels, (int) (imageBounds.getWidth() * worldRenderScale * TILE_SIZE)));
+				Math.min(maxWidthPixels, (int) (worldBounds.getWidth() * worldRenderScale * TILE_SIZE)));
 		int imageHeight = Math.max(minHeightPixels,
-				Math.min(maxHeightPixels, (int) (imageBounds.getHeight() * worldRenderScale * TILE_SIZE)));
+				Math.min(maxHeightPixels, (int) (worldBounds.getHeight() * worldRenderScale * TILE_SIZE)));
 		System.out.println("\t" + imageWidth + "x" + imageHeight + " (" + worldRenderScale + ")");
 
 		BufferedImage image = new BufferedImage(imageWidth, imageHeight, BufferedImage.TYPE_INT_ARGB);
@@ -748,8 +751,8 @@ public class FBSR {
 		g.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
 		g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
 
-		g.scale(image.getWidth() / imageBounds.getWidth(), image.getHeight() / imageBounds.getHeight());
-		g.translate(-imageBounds.getX(), -imageBounds.getY());
+		g.scale(image.getWidth() / worldBounds.getWidth(), image.getHeight() / worldBounds.getHeight());
+		g.translate(-worldBounds.getX(), -worldBounds.getY());
 		AffineTransform worldXform = g.getTransform();
 
 		shadowG.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -763,7 +766,7 @@ public class FBSR {
 		// Background
 		if (request.getBackground().isPresent()) {
 			g.setColor(request.getBackground().get());
-			g.fill(imageBounds);
+			g.fill(worldBounds);
 		}
 
 		boolean gridTooSmall = (1 / worldRenderScale) > 5;
@@ -777,21 +780,38 @@ public class FBSR {
 
 		// Grid Lines
 		if (request.getGridLines().isPresent() && !gridTooSmall) {
-			renderers.add(new Renderer(gridLayer, gridBounds, true) {
-				@Override
-				public void render(Graphics2D g) throws Exception {
-					g.setStroke(GRID_STROKE);
-					g.setColor(request.getGridLines().get());
-					for (double x = Math.round(gridBounds.getMinX()) + 1; x <= gridBounds.getMaxX() - 1; x++) {
-						g.draw(new Line2D.Double(x, gridBounds.getMinY(), x, gridBounds.getMaxY()));
+			if (gridPlatformMode) {
+				renderers.add(new Renderer(gridLayer, gridBounds, true) {
+					@Override
+					public void render(Graphics2D g) throws Exception {
+						g.setStroke(GRID_STROKE);
+						g.setColor(request.getGridLines().get());
+						Rectangle2D.Double rect = new Rectangle2D.Double(0, 0, 1, 1);
+						for (TileRenderingTuple tuple : tileRenderingTuples) {
+							BSPosition pos = tuple.tile.position;
+							rect.x = pos.x;
+							rect.y = pos.y;
+							g.draw(rect);
+						}
 					}
-					for (double y = Math.round(gridBounds.getMinY()) + 1; y <= gridBounds.getMaxY() - 1; y++) {
-						g.draw(new Line2D.Double(gridBounds.getMinX(), y, gridBounds.getMaxX(), y));
+				});
+			} else {
+				renderers.add(new Renderer(gridLayer, gridBounds, true) {
+					@Override
+					public void render(Graphics2D g) throws Exception {
+						g.setStroke(GRID_STROKE);
+						g.setColor(request.getGridLines().get());
+						for (double x = Math.round(gridBounds.getMinX()) + 1; x <= gridBounds.getMaxX() - 1; x++) {
+							g.draw(new Line2D.Double(x, gridBounds.getMinY(), x, gridBounds.getMaxY()));
+						}
+						for (double y = Math.round(gridBounds.getMinY()) + 1; y <= gridBounds.getMaxY() - 1; y++) {
+							g.draw(new Line2D.Double(gridBounds.getMinX(), y, gridBounds.getMaxX(), y));
+						}
+						g.draw(new RoundRectangle2D.Double(gridBounds.x, gridBounds.y, gridBounds.width,
+								gridBounds.height, gridRound, gridRound));
 					}
-					g.draw(new RoundRectangle2D.Double(gridBounds.x, gridBounds.y, gridBounds.width, gridBounds.height,
-							gridRound, gridRound));
-				}
-			});
+				});
+			}
 		}
 
 		renderers.stream().filter(r1 -> r1 instanceof EntityRenderer).map(r3 -> (EntityRenderer) r3).forEach(r2 -> {
@@ -804,7 +824,7 @@ public class FBSR {
 		shadowG.dispose();
 		RenderUtils.halveAlpha(shadowImage);
 
-		renderers.add(new Renderer(Layer.SHADOW_BUFFER, imageBounds, true) {
+		renderers.add(new Renderer(Layer.SHADOW_BUFFER, worldBounds, true) {
 			@Override
 			public void render(Graphics2D g) throws Exception {
 				AffineTransform tempXform = g.getTransform();
@@ -885,7 +905,7 @@ public class FBSR {
 			g.setTransform(worldXform);
 			g.setStroke(GRID_STROKE);
 			g.setColor(level.getColor().darker());
-			g.draw(imageBounds);
+			g.draw(worldBounds);
 		}
 
 		g.dispose();
