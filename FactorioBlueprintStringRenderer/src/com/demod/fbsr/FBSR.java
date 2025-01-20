@@ -83,9 +83,9 @@ public class FBSR {
 		}
 	}
 
-	private static final int MAX_WORLD_RENDER_WIDTH = 8000;
-	private static final int MAX_WORLD_RENDER_HEIGHT = 8000;
-	private static final long MAX_WORLD_RENDER_PIXELS = 3000 * 3000;
+	private static final long TARGET_FILE_SIZE = 10 << 20; // 10MB
+	private static final float ESTIMATED_JPG_PIXELS_PER_BYTE = 3.5f; // Based on measuring large JPG renders
+	private static final long MAX_WORLD_RENDER_PIXELS = (long) (TARGET_FILE_SIZE * ESTIMATED_JPG_PIXELS_PER_BYTE);
 
 	public static final Color GROUND_COLOR = new Color(40, 40, 40);
 	public static final Color GRID_COLOR = GUIStyle.FONT_BP_COLOR.darker().darker();
@@ -658,6 +658,7 @@ public class FBSR {
 			tileRenderingTuples.forEach(t -> {
 				Point2D.Double pos = t.tile.position.createPoint();
 				renderers.add(new Renderer(Layer.DEBUG_P, pos, true) {
+
 					@Override
 					public void render(Graphics2D g) {
 						g.setColor(Color.cyan);
@@ -699,8 +700,8 @@ public class FBSR {
 		}
 
 		// Shrink down the scale to fit the max requirements
-		int maxWidthPixels = request.getMaxWidth().orElse(MAX_WORLD_RENDER_WIDTH);
-		int maxHeightPixels = request.getMaxHeight().orElse(MAX_WORLD_RENDER_HEIGHT);
+		int maxWidthPixels = request.getMaxWidth().orElse(Integer.MAX_VALUE);
+		int maxHeightPixels = request.getMaxHeight().orElse(Integer.MAX_VALUE);
 		long maxPixels = Math.min(MAX_WORLD_RENDER_PIXELS, (long) maxWidthPixels * (long) maxHeightPixels);
 
 		if ((worldBounds.getWidth() * worldRenderScale * TILE_SIZE) > maxWidthPixels) {
@@ -709,9 +710,10 @@ public class FBSR {
 		if ((worldBounds.getHeight() * worldRenderScale * TILE_SIZE) > maxHeightPixels) {
 			worldRenderScale *= (maxHeightPixels / (worldBounds.getHeight() * worldRenderScale * TILE_SIZE));
 		}
-		if ((worldBounds.getWidth() * worldBounds.getHeight() * worldRenderScale * TILE_SIZE) > maxPixels) {
-			worldRenderScale *= (maxPixels
-					/ (worldBounds.getWidth() * worldBounds.getHeight() * worldRenderScale * TILE_SIZE));
+		if ((worldBounds.getWidth() * worldRenderScale * TILE_SIZE)
+				* (worldBounds.getHeight() * worldRenderScale * TILE_SIZE) > maxPixels) {
+			worldRenderScale *= Math.sqrt(maxPixels / ((worldBounds.getWidth() * worldRenderScale * TILE_SIZE)
+					* (worldBounds.getHeight() * worldRenderScale * TILE_SIZE)));
 		}
 
 		// Expand the world to fit the min requirements
@@ -731,10 +733,14 @@ public class FBSR {
 			worldBounds.height += padding;
 		}
 
+//		int imageWidth = Math.max(minWidthPixels,
+//				Math.min(maxWidthPixels, (int) (worldBounds.getWidth() * worldRenderScale * TILE_SIZE)));
+//		int imageHeight = Math.max(minHeightPixels,
+//				Math.min(maxHeightPixels, (int) (worldBounds.getHeight() * worldRenderScale * TILE_SIZE)));
 		int imageWidth = Math.max(minWidthPixels,
-				Math.min(maxWidthPixels, (int) (worldBounds.getWidth() * worldRenderScale * TILE_SIZE)));
+				Math.min(maxWidthPixels, (int) Math.round(worldBounds.getWidth() * worldRenderScale * TILE_SIZE)));
 		int imageHeight = Math.max(minHeightPixels,
-				Math.min(maxHeightPixels, (int) (worldBounds.getHeight() * worldRenderScale * TILE_SIZE)));
+				Math.min(maxHeightPixels, (int) Math.round(worldBounds.getHeight() * worldRenderScale * TILE_SIZE)));
 		System.out.println("\t" + imageWidth + "x" + imageHeight + " (" + worldRenderScale + ")");
 
 		BufferedImage image = new BufferedImage(imageWidth, imageHeight, BufferedImage.TYPE_INT_ARGB);
@@ -956,6 +962,7 @@ public class FBSR {
 					for (Direction d : l) {
 						Point2D.Double p = d.offset(pos, 0.5);
 						register.accept(new Renderer(Layer.DEBUG_LA1, p, true) {
+
 							@Override
 							public void render(Graphics2D g) {
 								Stroke ps = g.getStroke();
@@ -965,6 +972,7 @@ public class FBSR {
 								g.draw(new Line2D.Double(pos, p));
 								g.setStroke(ps);
 							}
+
 						});
 					}
 				});
@@ -1031,6 +1039,7 @@ public class FBSR {
 					Direction d2 = edge.getEndDir();
 
 					register.accept(new Renderer(Layer.LOGISTICS_RAIL_IO, edge.getStartPos(), true) {
+
 						@Override
 						public void render(Graphics2D g) {
 							Stroke ps = g.getStroke();
