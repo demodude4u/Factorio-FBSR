@@ -21,7 +21,7 @@ public class RenderRequest {
 		public boolean pathInputs = false;
 		public boolean pathRails = true;
 		public boolean gridNumbers = false;
-		public boolean gridAboveBelts = true;
+		public boolean gridAboveBelts = false;
 	}
 
 	private BSBlueprint blueprint;
