@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.OptionalDouble;
 import java.util.OptionalInt;
 import java.util.stream.Collectors;
 
@@ -106,6 +107,7 @@ public class GUILayoutBlueprint {
 		request.setMinHeight(OptionalInt.of(renderHeight));
 		request.setMaxWidth(OptionalInt.of(renderWidth));
 		request.setMaxHeight(OptionalInt.of(renderHeight));
+		request.setMaxScale(OptionalDouble.of(2.0));
 		request.setBackground(Optional.empty());
 		request.setGridLines(Optional.of(GUIStyle.FONT_BP_COLOR.darker().darker()));
 
