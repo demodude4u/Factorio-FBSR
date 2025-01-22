@@ -9,6 +9,7 @@ import java.awt.image.BufferedImage;
 import java.awt.image.PixelGrabber;
 import java.io.File;
 import java.lang.reflect.Field;
+import java.util.Arrays;
 import java.util.List;
 
 import javax.imageio.ImageIO;
@@ -42,6 +43,11 @@ public class FBSRExtractMain {
 				List<SpriteWithLayer> sprites = protoVariations.createSpritesWithLayers(variation);
 				for (SpriteWithLayer swl : sprites) {
 					Sprite sprite = swl.getSprite();
+
+					if (sprite.shadow) {
+						continue;
+					}
+
 					Rectangle source = sprite.source;
 					BufferedImage imageSheet = sprite.image;
 					Rectangle2D.Double bounds = sprite.bounds;
@@ -50,11 +56,11 @@ public class FBSRExtractMain {
 					g.drawImage(imageSheet, 0, 0, source.width, source.height, source.x, source.y,
 							source.x + source.width, source.y + source.height, null);
 
-					// TODO Thanks ChatGPT, it doesn't work
-					boolean isEmpty = !new PixelGrabber(image, 0, 0, image.getWidth(), image.getHeight(),
-							new int[image.getWidth() * image.getHeight()], 0, image.getWidth()).grabPixels()
-							|| java.util.Arrays.stream(new int[image.getWidth() * image.getHeight()])
-									.allMatch(p -> (p >> 24) == 0);
+					// Thanks ChatGPT
+					int[] pix = new int[image.getWidth() * image.getHeight()];
+					boolean isEmpty = !new PixelGrabber(image, 0, 0, image.getWidth(), image.getHeight(), pix, 0,
+							image.getWidth()).grabPixels() || Arrays.stream(pix).allMatch(p -> (p >> 24) == 0);
+
 					if (isEmpty) {
 						continue;
 					}
