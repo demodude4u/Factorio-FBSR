@@ -5,7 +5,7 @@ import java.util.List;
 import org.luaj.vm2.LuaValue;
 
 import com.demod.fbsr.FPUtils;
-import com.demod.fbsr.Sprite;
+import com.demod.fbsr.SpriteWithLayer;
 
 public class FPLayeredSpriteVariations {
 	private final List<FPLayeredSprite> layeredSprites;
@@ -14,8 +14,8 @@ public class FPLayeredSpriteVariations {
 		layeredSprites = FPUtils.list(lua, FPLayeredSprite::new);
 	}
 
-	public List<Sprite> createSprites(int variation) {
-		return layeredSprites.get(variation).createSprites();
+	public List<SpriteWithLayer> createSpritesWithLayers(int variation) {
+		return layeredSprites.get(variation).createSpritesWithLayers();
 	}
 
 }
