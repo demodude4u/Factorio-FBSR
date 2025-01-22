@@ -273,6 +273,7 @@ public class WorldMap {
 	private final Table<Integer, Integer, Boolean> gates = HashBasedTable.create();
 	private final Table<Integer, Integer, Entry<String, Direction>> undergroundBeltEndings = HashBasedTable.create();
 	private final Table<Integer, Integer, List<BeaconSource>> beaconed = HashBasedTable.create();
+	private final Table<Integer, Integer, BSEntity> cargoBayConnectables = HashBasedTable.create();
 
 	// Row: X*2
 	// Column: Y*2
@@ -388,6 +389,12 @@ public class WorldMap {
 				.map(d -> pos.distance(d.offset(dir.offset(pos))) < 0.1).orElse(false);
 	}
 
+	public boolean isCargoBayConnectable(Point2D.Double pos) {
+		int kr = (int) Math.floor(pos.x) / 2;
+		int kc = (int) Math.floor(pos.y) / 2;
+		return cargoBayConnectables.contains(kr, kc);
+	}
+
 	public boolean isHeatPipe(Point2D.Double pos, Direction facing) {
 		int kr = (int) Math.floor(pos.x);
 		int kc = (int) Math.floor(pos.y);
@@ -443,6 +450,12 @@ public class WorldMap {
 		int kr = (int) Math.floor(pos.x);
 		int kc = (int) Math.floor(pos.y);
 		belts.put(kr, kc, new BeltCell(facing, bendable, bendOthers));
+	}
+
+	public void setCargoBayConnectable(Point2D.Double pos, BSEntity entity) {
+		int kr = (int) Math.floor(pos.x) / 2;
+		int kc = (int) Math.floor(pos.y) / 2;
+		cargoBayConnectables.put(kr, kc, entity);
 	}
 
 	public void setHeatPipe(Point2D.Double pos, Direction... facings) {
