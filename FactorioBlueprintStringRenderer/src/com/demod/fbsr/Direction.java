@@ -6,23 +6,35 @@ import java.awt.geom.Point2D.Double;
 import java.awt.geom.Rectangle2D;
 
 public enum Direction {
-	NORTH(0, -1), //
-	NORTHEAST(1, -1), //
-	EAST(1, 0), //
-	SOUTHEAST(1, 1), //
-	SOUTH(0, 1), //
-	SOUTHWEST(-1, 1), //
-	WEST(-1, 0), //
-	NORTHWEST(-1, -1);
+	NORTH("N", 0, -1), //
+	NORTHEAST("NE", 1, -1), //
+	EAST("E", 1, 0), //
+	SOUTHEAST("SE", 1, 1), //
+	SOUTH("S", 0, 1), //
+	SOUTHWEST("SW", -1, 1), //
+	WEST("W", -1, 0), //
+	NORTHWEST("NW", -1, -1);
 
 	public static Direction fromCardinal(int cardinal) {
 		return values()[cardinal * 2];
 	}
 
+	public static Direction fromSymbol(String symbol) {
+		for (Direction direction : values()) {
+			if (direction.symbol.equals(symbol)) {
+				return direction;
+			}
+		}
+		throw new IllegalArgumentException("Unknown symbol \"" + symbol + "\"");
+	}
+
+	private final String symbol;
 	private final int dx;
+
 	private final int dy;
 
-	private Direction(int dx, int dy) {
+	private Direction(String symbol, int dx, int dy) {
+		this.symbol = symbol;
 		this.dx = dx;
 		this.dy = dy;
 	}

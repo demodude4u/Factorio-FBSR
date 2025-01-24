@@ -390,8 +390,8 @@ public class WorldMap {
 	}
 
 	public boolean isCargoBayConnectable(Point2D.Double pos) {
-		int kr = (int) Math.floor(pos.x) / 2;
-		int kc = (int) Math.floor(pos.y) / 2;
+		int kr = (int) Math.floor(pos.x);
+		int kc = (int) Math.floor(pos.y);
 		return cargoBayConnectables.contains(kr, kc);
 	}
 
@@ -453,8 +453,8 @@ public class WorldMap {
 	}
 
 	public void setCargoBayConnectable(Point2D.Double pos, BSEntity entity) {
-		int kr = (int) Math.floor(pos.x) / 2;
-		int kc = (int) Math.floor(pos.y) / 2;
+		int kr = (int) Math.floor(pos.x);
+		int kc = (int) Math.floor(pos.y);
 		cargoBayConnectables.put(kr, kc, entity);
 	}
 

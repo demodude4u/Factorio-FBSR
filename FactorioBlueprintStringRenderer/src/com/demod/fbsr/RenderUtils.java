@@ -313,7 +313,11 @@ public final class RenderUtils {
 
 	public static EntityRenderer spriteRenderer(Layer layer, List<Sprite> sprites, BSEntity entity,
 			FPBoundingBox bounds) {
-		Point2D.Double pos = entity.position.createPoint();
+		return spriteRenderer(layer, sprites, entity.position.createPoint(), bounds);
+	}
+
+	public static EntityRenderer spriteRenderer(Layer layer, List<Sprite> sprites, Point2D.Double pos,
+			FPBoundingBox bounds) {
 		RenderUtils.shiftSprites(sprites, pos);
 
 		Map<Boolean, List<Sprite>> groupedSprites = sprites.stream()
@@ -363,6 +367,10 @@ public final class RenderUtils {
 
 	public static EntityRenderer spriteRenderer(Layer layer, Sprite sprite, BSEntity entity, FPBoundingBox bounds) {
 		return spriteRenderer(layer, ImmutableList.of(sprite), entity, bounds);
+	}
+
+	public static EntityRenderer spriteRenderer(Layer layer, Sprite sprite, Point2D.Double pos, FPBoundingBox bounds) {
+		return spriteRenderer(layer, ImmutableList.of(sprite), pos, bounds);
 	}
 
 	public static Renderer spriteRenderer(Layer layer, Sprite sprite, Rectangle2D.Double bounds) {

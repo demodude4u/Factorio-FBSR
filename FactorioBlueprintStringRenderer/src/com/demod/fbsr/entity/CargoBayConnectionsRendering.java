@@ -2,22 +2,65 @@ package com.demod.fbsr.entity;
 
 import java.awt.geom.Point2D;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Random;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import org.luaj.vm2.LuaValue;
 
 import com.demod.factorio.DataTable;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.Direction;
+import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
+import com.demod.fbsr.SpriteWithLayer;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.bs.BSEntity;
+import com.demod.fbsr.bs.BSPosition;
+import com.demod.fbsr.fp.FPBoundingBox;
 import com.demod.fbsr.fp.FPLayeredSpriteVariations;
-import com.demod.fbsr.fp.FPVector;
 
 //Not a real prototype, but to render cargo bay connection tilings
 public abstract class CargoBayConnectionsRendering extends SimpleEntityRendering<BSEntity> {
+
+	private static class ElCon {
+		public final ElType type;
+		public final Point2D.Double shift;
+		public final Direction direction;
+		public final FPLayeredSpriteVariations protoSprites;
+
+		public ElCon(ElType type, double dx, double dy, Direction direction, FPLayeredSpriteVariations protoSprites) {
+			this.shift = new Point2D.Double(dx, dy);
+			this.type = type;
+			this.direction = direction;
+			this.protoSprites = protoSprites;
+		}
+	}
+
+	private static enum ElType {
+		WALL(0, 0, "E|W", "N"), //
+		OUTSIDE_CORNER(0, 0, "S|W", "N|E"), //
+		INSIDE_CORNER(0, 0, "N|E", "NE"), //
+		BRIDGE_NARROW_LEFT(0, 1, "N", "NE|W"), //
+		BRIDGE_NARROW_RIGHT(0, 1, "N", "E|NW"), //
+		BRIDGE_WIDE(1, 1, "NW|N", ""), //
+		BRIDGE_CROSSING(-1, 1, "N|NE|E", ""),//
+		;
+
+		public final Point2D.Double cellOffset;
+		public final List<Direction> requireOccupied;
+		public final List<Direction> requireEmpty;
+
+		private ElType(double cellDx, double cellDy, String requireOccupiedSymbols, String requireEmptySymbols) {
+			cellOffset = new Point2D.Double(cellDx, cellDy);
+			requireOccupied = Arrays.asList(requireOccupiedSymbols.split("\\|")).stream()
+					.filter(s -> !s.trim().isEmpty()).map(Direction::fromSymbol).collect(Collectors.toList());
+			requireEmpty = Arrays.asList(requireEmptySymbols.split("\\|")).stream().filter(s -> !s.trim().isEmpty())
+					.map(Direction::fromSymbol).collect(Collectors.toList());
+		}
+	}
 
 	public static class FPCargoBayConnections {
 		public final FPLayeredSpriteVariations topWall;
@@ -59,24 +102,66 @@ public abstract class CargoBayConnectionsRendering extends SimpleEntityRendering
 		}
 	}
 
+	public static long getRandomSeed(Point2D.Double point, ElType type, Direction direction) {
+		int x = (int) Math.floor(point.x);
+		int y = (int) Math.floor(point.y);
+		return ((y * 73856093) ^ (x * 19349663) ^ (type.ordinal() * 83492791) ^ (direction.ordinal() * 123456789));
+	}
+
 	private FPCargoBayConnections protoGraphicsSetConnections;
-	private List<FPVector> protoConnectionPoints;
+	private List<Point2D.Double> protoConnectionPoints;
+	private List<ElCon> protoElCons;
 
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSEntity entity) {
 		super.createRenderers(register, map, dataTable, entity);
 
-		for (FPVector dcp : protoConnectionPoints) {
-			Point2D.Double cpos = entity.position.createPoint(dcp.createPoint());
+		Random rand = new Random();
 
-			int adjCode = 0;
-			for (Direction dir : Direction.values()) {
-				if (map.isCargoBayConnectable(dir.offset(cpos, 2))) {
-					adjCode |= 1 << dir.ordinal();
+		elConLoop: for (ElCon elementCondition : protoElCons) {
+
+			ElType type = elementCondition.type;
+			Direction direction = elementCondition.direction;
+			FPLayeredSpriteVariations protoSprites = elementCondition.protoSprites;
+
+			Point2D.Double shift = elementCondition.shift;
+			Point2D.Double rco = direction.rotatePoint(type.cellOffset);
+			Point2D.Double point = entity.position.createPoint(shift);
+			Point2D.Double cellPoint = new Point2D.Double(point.x + rco.x, point.y + rco.y);
+
+//			System.out.println("DEBUG ELCON ATTEMPT - " + entity.name + "#" + entity.entityNumber + " - " + type.name()
+//					+ " " + direction.name() + "\n\t\t\tSHIFT " + shift + "\n\t\t\tRCO " + rco + "\n\t\t\tPOINT "
+//					+ point + "\n\t\t\tCELL POINT " + cellPoint);
+
+			for (Direction dirOccupied : type.requireOccupied) {
+				Direction rotatedDirOccupied = direction.rotate(dirOccupied);
+				Point2D.Double checkPoint = rotatedDirOccupied.offset(cellPoint, 2);
+//				System.out.println("DEBUG\t\tOCCUPIED? - " + rotatedDirOccupied.name() + " - " + checkPoint + " "
+//						+ map.isCargoBayConnectable(checkPoint));
+				if (!map.isCargoBayConnectable(checkPoint)) {
+					continue elConLoop;
 				}
 			}
 
-			// TODO what do?
+			for (Direction dirEmpty : type.requireEmpty) {
+				Direction rotatedDirEmpty = direction.rotate(dirEmpty);
+				Point2D.Double checkPoint = rotatedDirEmpty.offset(cellPoint, 2);
+//				System.out.println("DEBUG\t\tEMPTY? - " + rotatedDirEmpty.name() + " - " + checkPoint + " "
+//						+ !map.isCargoBayConnectable(checkPoint));
+				if (map.isCargoBayConnectable(checkPoint)) {
+					continue elConLoop;
+				}
+			}
+
+//			System.out.println("DEBUG\t\t\tSUCCESS!");
+
+			rand.setSeed(getRandomSeed(point, type, direction));
+			int variation = rand.nextInt(protoSprites.getVariationCount());
+			for (SpriteWithLayer swl : protoSprites.createSpritesWithLayers(variation)) {
+				register.accept(RenderUtils.spriteRenderer(swl.getLayer(), swl.getSprite(), point,
+						new FPBoundingBox(0, 0, 0, 0)));
+			}
+
 		}
 	}
 
@@ -87,19 +172,95 @@ public abstract class CargoBayConnectionsRendering extends SimpleEntityRendering
 		// TODO CargoBay also has platform_graphics_set, need to figure out if needed
 		protoGraphicsSetConnections = new FPCargoBayConnections(prototype.lua().get("graphics_set").get("connections"));
 
+		// XXX is there something better than selection box to determine dimensions?
+		Point2D.Double p1 = protoSelectionBox.leftTop.createPoint();
+		Point2D.Double p2 = protoSelectionBox.rightBottom.createPoint();
+
+		{
+			protoElCons = new ArrayList<>();
+
+			// Outer Corners
+			protoElCons.add(new ElCon(ElType.OUTSIDE_CORNER, p2.x - 1, p1.y + 1, Direction.NORTH,
+					protoGraphicsSetConnections.topRightOuterCorner));
+			protoElCons.add(new ElCon(ElType.OUTSIDE_CORNER, p2.x - 1, p2.y - 1, Direction.EAST,
+					protoGraphicsSetConnections.bottomRightOuterCorner));
+			protoElCons.add(new ElCon(ElType.OUTSIDE_CORNER, p1.x + 1, p2.y - 1, Direction.SOUTH,
+					protoGraphicsSetConnections.bottomLeftOuterCorner));
+			protoElCons.add(new ElCon(ElType.OUTSIDE_CORNER, p1.x + 1, p1.y + 1, Direction.WEST,
+					protoGraphicsSetConnections.topLeftOuterCorner));
+
+			// Bridge Crossings (TODO verify this is correct)
+			protoElCons.add(new ElCon(ElType.BRIDGE_CROSSING, p2.x, p1.y, Direction.NORTH,
+					protoGraphicsSetConnections.bridgeCrossing));
+			protoElCons.add(new ElCon(ElType.BRIDGE_CROSSING, p2.x, p2.y, Direction.EAST,
+					protoGraphicsSetConnections.bridgeCrossing));
+			protoElCons.add(new ElCon(ElType.BRIDGE_CROSSING, p1.x, p2.y, Direction.SOUTH,
+					protoGraphicsSetConnections.bridgeCrossing));
+			protoElCons.add(new ElCon(ElType.BRIDGE_CROSSING, p1.x, p1.y, Direction.WEST,
+					protoGraphicsSetConnections.bridgeCrossing));
+
+			// Narrow Bridges
+			protoElCons.add(new ElCon(ElType.BRIDGE_NARROW_LEFT, p1.x + 1, p1.y, Direction.NORTH,
+					protoGraphicsSetConnections.bridgeVerticalNarrow));
+			protoElCons.add(new ElCon(ElType.BRIDGE_NARROW_RIGHT, p2.x - 1, p1.y, Direction.NORTH,
+					protoGraphicsSetConnections.bridgeVerticalNarrow));
+			protoElCons.add(new ElCon(ElType.BRIDGE_NARROW_LEFT, p1.x, p2.y - 1, Direction.WEST,
+					protoGraphicsSetConnections.bridgeHorizontalNarrow));
+			protoElCons.add(new ElCon(ElType.BRIDGE_NARROW_RIGHT, p1.x, p1.y + 1, Direction.WEST,
+					protoGraphicsSetConnections.bridgeHorizontalNarrow));
+
+			// Walls, Inside Corners
+			for (double x = p1.x + 1; x < p2.x; x += 2) {
+				protoElCons
+						.add(new ElCon(ElType.WALL, x, p1.y + 1, Direction.NORTH, protoGraphicsSetConnections.topWall));
+				protoElCons.add(new ElCon(ElType.INSIDE_CORNER, x, p1.y + 1, Direction.NORTH,
+						protoGraphicsSetConnections.topRightInnerCorner));
+				protoElCons.add(new ElCon(ElType.INSIDE_CORNER, x, p1.y + 1, Direction.WEST,
+						protoGraphicsSetConnections.topLeftInnerCorner));
+
+				protoElCons.add(
+						new ElCon(ElType.WALL, x, p2.y - 1, Direction.SOUTH, protoGraphicsSetConnections.bottomWall));
+				protoElCons.add(new ElCon(ElType.INSIDE_CORNER, x, p2.y - 1, Direction.SOUTH,
+						protoGraphicsSetConnections.bottomLeftInnerCorner));
+				protoElCons.add(new ElCon(ElType.INSIDE_CORNER, x, p2.y - 1, Direction.EAST,
+						protoGraphicsSetConnections.bottomRightInnerCorner));
+			}
+			for (double y = p1.y + 1; y < p2.y; y += 2) {
+				protoElCons
+						.add(new ElCon(ElType.WALL, p1.x + 1, y, Direction.WEST, protoGraphicsSetConnections.leftWall));
+				protoElCons.add(new ElCon(ElType.INSIDE_CORNER, p1.x + 1, y, Direction.WEST,
+						protoGraphicsSetConnections.topLeftInnerCorner));
+				protoElCons.add(new ElCon(ElType.INSIDE_CORNER, p1.x + 1, y, Direction.SOUTH,
+						protoGraphicsSetConnections.bottomLeftInnerCorner));
+
+				protoElCons.add(
+						new ElCon(ElType.WALL, p2.x - 1, y, Direction.EAST, protoGraphicsSetConnections.rightWall));
+				protoElCons.add(new ElCon(ElType.INSIDE_CORNER, p2.x - 1, y, Direction.EAST,
+						protoGraphicsSetConnections.bottomRightInnerCorner));
+				protoElCons.add(new ElCon(ElType.INSIDE_CORNER, p2.x - 1, y, Direction.NORTH,
+						protoGraphicsSetConnections.topRightInnerCorner));
+			}
+
+			// Wide Bridges
+			for (double x = p1.x + 2; x < p2.x - 1; x += 2) {
+				protoElCons.add(new ElCon(ElType.BRIDGE_WIDE, x, p1.y, Direction.NORTH,
+						protoGraphicsSetConnections.bridgeVerticalWide));
+			}
+			for (double y = p1.y + 2; y < p2.y - 1; y += 2) {
+				protoElCons.add(new ElCon(ElType.BRIDGE_WIDE, p1.x, y, Direction.WEST,
+						protoGraphicsSetConnections.bridgeHorizontalWide));
+			}
+		}
+
 		{
 			protoConnectionPoints = new ArrayList<>();
-			Point2D.Double p1 = protoSelectionBox.leftTop.createPoint();
-			Point2D.Double p2 = protoSelectionBox.rightBottom.createPoint();
-			Point2D.Double start = Direction.SOUTHEAST.offset(p1);
-			Point2D.Double end = Direction.NORTHWEST.offset(p2);
-			for (double x = start.x; x < p2.x; x += 2) {
-				protoConnectionPoints.add(new FPVector(x, start.y));
-				protoConnectionPoints.add(new FPVector(x, end.y));
+			for (double x = p1.x + 1; x < p2.x; x += 2) {
+				protoConnectionPoints.add(new Point2D.Double(x, p1.y + 1));
+				protoConnectionPoints.add(new Point2D.Double(x, p2.y - 1));
 			}
-			for (double y = start.y + 2; y < p2.y - 2; y += 2) {
-				protoConnectionPoints.add(new FPVector(start.x, y));
-				protoConnectionPoints.add(new FPVector(end.x, y));
+			for (double y = p1.y + 3; y < p2.y - 2; y += 2) {
+				protoConnectionPoints.add(new Point2D.Double(p1.x + 1, y));
+				protoConnectionPoints.add(new Point2D.Double(p2.x - 1, y));
 			}
 		}
 	}
@@ -108,8 +269,9 @@ public abstract class CargoBayConnectionsRendering extends SimpleEntityRendering
 	public void populateWorldMap(WorldMap map, DataTable dataTable, BSEntity entity) {
 		super.populateWorldMap(map, dataTable, entity);
 
-		for (FPVector dcp : protoConnectionPoints) {
-			map.setCargoBayConnectable(dcp.createPoint(), entity);
+		BSPosition pos = entity.position;
+		for (Point2D.Double dcp : protoConnectionPoints) {
+			map.setCargoBayConnectable(pos.createPoint(dcp), entity);
 		}
 	}
 

@@ -18,4 +18,8 @@ public class FPLayeredSpriteVariations {
 		return layeredSprites.get(variation).createSpritesWithLayers();
 	}
 
+	public int getVariationCount() {
+		return layeredSprites.size();
+	}
+
 }
