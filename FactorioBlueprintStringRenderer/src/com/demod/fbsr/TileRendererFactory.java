@@ -509,7 +509,7 @@ public class TileRendererFactory {
 		prototypesInitialized = true;
 	}
 
-	private final boolean gridPlatform;
+	private final boolean spacePlatform;
 
 	protected TilePrototype prototype;
 
@@ -529,8 +529,8 @@ public class TileRendererFactory {
 		this(false);
 	}
 
-	public TileRendererFactory(boolean gridPlatform) {
-		this.gridPlatform = gridPlatform;
+	public TileRendererFactory(boolean spacePlatform) {
+		this.spacePlatform = spacePlatform;
 
 	}
 
@@ -561,8 +561,8 @@ public class TileRendererFactory {
 		}
 	}
 
-	public boolean isGridPlatform() {
-		return gridPlatform;
+	public boolean isSpacePlatform() {
+		return spacePlatform;
 	}
 
 	// TODO fix UNKNOWN so we don't need this

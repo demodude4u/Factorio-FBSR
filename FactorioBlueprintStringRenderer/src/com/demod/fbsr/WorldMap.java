@@ -283,6 +283,7 @@ public class WorldMap {
 	private final List<Entry<RailEdge, RailEdge>> railEdges = new ArrayList<>();
 
 	private boolean altMode = false;
+	private boolean spacePlatform = false;
 
 	private int flag(Direction facing) {
 		return 1 << facing.cardinal();
@@ -420,6 +421,10 @@ public class WorldMap {
 		return pipes.contains(kr, kc) && (pipes.get(kr, kc) & flag(facing)) > 0;
 	}
 
+	public boolean isSpacePlatform() {
+		return spacePlatform;
+	}
+
 	public boolean isVerticalGate(Point2D.Double pos) {
 		int kr = (int) Math.floor(pos.x);
 		int kc = (int) Math.floor(pos.y);
@@ -502,6 +507,10 @@ public class WorldMap {
 		node2.addOutgoingEdge(edge2);
 		node1.addIncomingEdge(edge2);
 		railEdges.add(new SimpleEntry<>(edge1, edge2));
+	}
+
+	public void setSpacePlatform(boolean spacePlatform) {
+		this.spacePlatform = spacePlatform;
 	}
 
 	public void setUndergroundBeltEnding(String name, Point2D.Double pos, Direction dir) {
