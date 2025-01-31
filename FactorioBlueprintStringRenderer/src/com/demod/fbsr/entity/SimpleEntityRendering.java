@@ -39,6 +39,7 @@ import com.demod.fbsr.fp.FPRotatedSprite;
 import com.demod.fbsr.fp.FPSprite;
 import com.demod.fbsr.fp.FPSprite4Way;
 import com.demod.fbsr.fp.FPSpriteVariations;
+import com.demod.fbsr.fp.FPVector;
 import com.demod.fbsr.fp.FPWireConnectionPoint;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -296,16 +297,35 @@ public abstract class SimpleEntityRendering<E extends BSEntity> extends EntityRe
 
 	public static abstract class BindLayerAction<T> extends BindAction<T> {
 		protected Layer layer = Layer.OBJECT;
+		protected Optional<FPVector> offset = Optional.empty();
 
 		@Override
 		public List<SpritesWithLayer> createLayeredSprites(BSEntity entity) {
-			return ImmutableList.of(new SpritesWithLayer(layer, createSprites(entity)));
+			List<Sprite> sprites = createSprites(entity);
+			if (offset.isPresent()) {
+				FPVector offset = this.offset.get();
+				for (Sprite sprite : sprites) {
+					sprite.bounds.x += offset.x;
+					sprite.bounds.y += offset.y;
+				}
+			}
+			return ImmutableList.of(new SpritesWithLayer(layer, sprites));
 		}
 
 		public abstract List<Sprite> createSprites(BSEntity entity);
 
 		public BindLayerAction<T> layer(Layer layer) {
 			this.layer = layer;
+			return this;
+		}
+
+		public BindLayerAction<T> offset(FPVector offset) {
+			this.offset = Optional.of(offset);
+			return this;
+		}
+
+		public BindLayerAction<T> offset(Optional<FPVector> offset) {
+			this.offset = offset;
 			return this;
 		}
 	}

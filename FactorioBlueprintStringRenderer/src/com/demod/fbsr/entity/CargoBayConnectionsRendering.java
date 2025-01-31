@@ -13,9 +13,11 @@ import java.util.stream.Collectors;
 import org.luaj.vm2.LuaValue;
 
 import com.demod.factorio.DataTable;
+import com.demod.factorio.Utils;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.FPUtils;
+import com.demod.fbsr.Layer;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
 import com.demod.fbsr.SpriteWithLayer;
@@ -26,6 +28,7 @@ import com.demod.fbsr.fp.FPAnimation;
 import com.demod.fbsr.fp.FPBoundingBox;
 import com.demod.fbsr.fp.FPLayeredSprite;
 import com.demod.fbsr.fp.FPLayeredSpriteVariations;
+import com.demod.fbsr.fp.FPVector;
 
 //Not a real prototype, but to render cargo bay connection tilings
 public abstract class CargoBayConnectionsRendering extends SimpleEntityRendering<BSEntity> {
@@ -127,9 +130,43 @@ public abstract class CargoBayConnectionsRendering extends SimpleEntityRendering
 	}
 
 	private FPCargoBayConnectableGraphicsSet protoGraphicsSet;
+
 	private Optional<FPCargoBayConnectableGraphicsSet> protoPlatformGraphicsSet;
 	private List<Point2D.Double> protoConnectionPoints;
 	private List<ElCon> protoElCons;
+
+	protected void bindCargoStationParameters(Bindings bind, LuaValue lua) {
+		bindHatchDefinitions(bind, lua.get("hatch_definitions"));
+
+		LuaValue luaGigaHatchDefinitions = lua.get("giga_hatch_definitions");
+		if (!luaGigaHatchDefinitions.isnil()) {
+			Utils.forEach(luaGigaHatchDefinitions, l -> {
+				LuaValue luaHatchGraphicsBack = l.get("hatch_graphics_back");
+				if (!luaHatchGraphicsBack.isnil()) {
+					Layer layer = FPUtils.optLayer(l.get("hatch_render_layer_back")).orElse(Layer.HIGHER_OBJECT_UNDER);
+					bind.animation(luaHatchGraphicsBack).layer(layer);
+				}
+				LuaValue luaHatchGraphicsFront = l.get("hatch_graphics_front");
+				if (!luaHatchGraphicsFront.isnil()) {
+					Layer layer = FPUtils.optLayer(l.get("hatch_render_layer_front")).orElse(Layer.HIGHER_OBJECT_ABOVE);
+					bind.animation(luaHatchGraphicsFront).layer(layer);
+				}
+			});
+		}
+	}
+
+	protected void bindHatchDefinitions(Bindings bind, LuaValue lua) {
+		if (!lua.isnil()) {
+			Utils.forEach(lua, l -> {
+				LuaValue luaHatchGraphics = l.get("hatch_graphics");
+				if (!luaHatchGraphics.isnil()) {
+					Layer layer = FPUtils.optLayer(l.get("hatch_render_layer")).orElse(Layer.CARGO_HATCH);
+					Optional<FPVector> offset = FPUtils.opt(l.get("offset"), FPVector::new);
+					bind.animation(luaHatchGraphics).layer(layer).offset(offset);
+				}
+			});
+		}
+	}
 
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSEntity entity) {

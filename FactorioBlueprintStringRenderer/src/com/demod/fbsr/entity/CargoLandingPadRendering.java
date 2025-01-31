@@ -6,5 +6,7 @@ public class CargoLandingPadRendering extends CargoBayConnectionsRendering {
 	@Override
 	public void defineEntity(Bindings bind, LuaValue lua) {
 		bind.layeredSprite(lua.get("graphics_set").get("picture"));
+
+		bindCargoStationParameters(bind, lua.get("cargo_station_parameters"));
 	}
 }

@@ -9,5 +9,7 @@ public class CargoBayRendering extends CargoBayConnectionsRendering {
 		// whether on a space platform or not
 
 		bind.layeredSprite(lua.get("platform_graphics_set").get("picture"));
+
+		bindHatchDefinitions(bind, lua.get("hatch_definitions"));
 	}
 }

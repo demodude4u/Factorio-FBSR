@@ -61,6 +61,13 @@ public final class FPUtils {
 		return OptionalInt.of(lua.optint(defaultValue));
 	}
 
+	public static Optional<Layer> optLayer(LuaValue lua) {
+		if (lua.isnil()) {
+			return Optional.empty();
+		}
+		return Optional.of(Layer.fromKey(lua.tojstring()));
+	}
+
 	public static <T> Optional<List<T>> optList(LuaValue lua, Function<LuaValue, T> factory) {
 		if (lua.isnil()) {
 			return Optional.empty();

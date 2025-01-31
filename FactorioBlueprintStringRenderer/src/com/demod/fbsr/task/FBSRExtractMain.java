@@ -1,26 +1,9 @@
 package com.demod.fbsr.task;
 
-import java.awt.Color;
-import java.awt.Desktop;
-import java.awt.Graphics2D;
-import java.awt.Rectangle;
-import java.awt.geom.Rectangle2D;
-import java.awt.image.BufferedImage;
-import java.awt.image.PixelGrabber;
-import java.io.File;
-import java.lang.reflect.Field;
-import java.util.Arrays;
-import java.util.List;
-
-import javax.imageio.ImageIO;
+import org.luaj.vm2.LuaTable;
 
 import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
-import com.demod.factorio.prototype.EntityPrototype;
-import com.demod.fbsr.Sprite;
-import com.demod.fbsr.SpriteWithLayer;
-import com.demod.fbsr.entity.CargoBayConnectionsRendering.FPCargoBayConnections;
-import com.demod.fbsr.fp.FPLayeredSpriteVariations;
 
 public class FBSRExtractMain {
 
@@ -28,56 +11,61 @@ public class FBSRExtractMain {
 	public static void main(String[] args) throws Exception {
 		DataTable table = FactorioData.getTable();
 
-		File folder = new File("export-sprites");
-		folder.mkdirs();
-		EntityPrototype prototype = table.getEntity("cargo-bay").get();
-		FPCargoBayConnections protoConnections = new FPCargoBayConnections(
-				prototype.lua().get("graphics_set").get("connections"));
-		for (Field fldVariations : protoConnections.getClass().getFields()) {
-			FPLayeredSpriteVariations protoVariations = (FPLayeredSpriteVariations) fldVariations.get(protoConnections);
-			Field fldLayeredSprites = protoVariations.getClass().getDeclaredField("layeredSprites");
-			fldLayeredSprites.setAccessible(true);
-			List layeredSprites = (List) fldLayeredSprites.get(protoVariations);
-			int varCount = layeredSprites.size();
-			for (int variation = 0; variation < varCount; variation++) {
-				List<SpriteWithLayer> sprites = protoVariations.createSpritesWithLayers(variation);
-				for (SpriteWithLayer swl : sprites) {
-					Sprite sprite = swl.getSprite();
+		System.out.println("Energy Sources with heat type:");
+		table.getEntities().values().stream().filter(
+				p -> p.lua().get("energy_source").opttable(new LuaTable()).get("type").optjstring("").equals("heat"))
+				.forEach(p -> System.out.println("\t" + p.getName() + " (" + p.getType() + ")"));
 
-					if (sprite.shadow) {
-						continue;
-					}
-
-					Rectangle source = sprite.source;
-					BufferedImage imageSheet = sprite.image;
-					Rectangle2D.Double bounds = sprite.bounds;
-					BufferedImage image = new BufferedImage(source.width, source.height, imageSheet.getType());
-					Graphics2D g = image.createGraphics();
-					g.drawImage(imageSheet, 0, 0, source.width, source.height, source.x, source.y,
-							source.x + source.width, source.y + source.height, null);
-
-					// Thanks ChatGPT
-					int[] pix = new int[image.getWidth() * image.getHeight()];
-					boolean isEmpty = !new PixelGrabber(image, 0, 0, image.getWidth(), image.getHeight(), pix, 0,
-							image.getWidth()).grabPixels() || Arrays.stream(pix).allMatch(p -> (p >> 24) == 0);
-
-					if (isEmpty) {
-						continue;
-					}
-
-					int originX = (int) ((-bounds.x / bounds.width) * image.getWidth());
-					int originY = (int) ((-bounds.y / bounds.height) * image.getHeight());
-					g.setColor(Color.red);
-					g.drawOval(originX - 5, originY - 5, 10, 10);
-					g.dispose();
-					File file = new File(folder,
-							fldVariations.getName() + "_" + variation + "_" + swl.getLayer().name() + ".png");
-					ImageIO.write(image, "PNG", file);
-					System.out.println(file.getName());
-				}
-			}
-		}
-		Desktop.getDesktop().open(folder);
+//		File folder = new File("export-sprites");
+//		folder.mkdirs();
+//		EntityPrototype prototype = table.getEntity("cargo-bay").get();
+//		FPCargoBayConnections protoConnections = new FPCargoBayConnections(
+//				prototype.lua().get("graphics_set").get("connections"));
+//		for (Field fldVariations : protoConnections.getClass().getFields()) {
+//			FPLayeredSpriteVariations protoVariations = (FPLayeredSpriteVariations) fldVariations.get(protoConnections);
+//			Field fldLayeredSprites = protoVariations.getClass().getDeclaredField("layeredSprites");
+//			fldLayeredSprites.setAccessible(true);
+//			List layeredSprites = (List) fldLayeredSprites.get(protoVariations);
+//			int varCount = layeredSprites.size();
+//			for (int variation = 0; variation < varCount; variation++) {
+//				List<SpriteWithLayer> sprites = protoVariations.createSpritesWithLayers(variation);
+//				for (SpriteWithLayer swl : sprites) {
+//					Sprite sprite = swl.getSprite();
+//
+//					if (sprite.shadow) {
+//						continue;
+//					}
+//
+//					Rectangle source = sprite.source;
+//					BufferedImage imageSheet = sprite.image;
+//					Rectangle2D.Double bounds = sprite.bounds;
+//					BufferedImage image = new BufferedImage(source.width, source.height, imageSheet.getType());
+//					Graphics2D g = image.createGraphics();
+//					g.drawImage(imageSheet, 0, 0, source.width, source.height, source.x, source.y,
+//							source.x + source.width, source.y + source.height, null);
+//
+//					// Thanks ChatGPT
+//					int[] pix = new int[image.getWidth() * image.getHeight()];
+//					boolean isEmpty = !new PixelGrabber(image, 0, 0, image.getWidth(), image.getHeight(), pix, 0,
+//							image.getWidth()).grabPixels() || Arrays.stream(pix).allMatch(p -> (p >> 24) == 0);
+//
+//					if (isEmpty) {
+//						continue;
+//					}
+//
+//					int originX = (int) ((-bounds.x / bounds.width) * image.getWidth());
+//					int originY = (int) ((-bounds.y / bounds.height) * image.getHeight());
+//					g.setColor(Color.red);
+//					g.drawOval(originX - 5, originY - 5, 10, 10);
+//					g.dispose();
+//					File file = new File(folder,
+//							fldVariations.getName() + "_" + variation + "_" + swl.getLayer().name() + ".png");
+//					ImageIO.write(image, "PNG", file);
+//					System.out.println(file.getName());
+//				}
+//			}
+//		}
+//		Desktop.getDesktop().open(folder);
 
 //		Multimap<String, String> elementPropsByType = ImmutableMultimap.<String, String>builder()//
 //				.putAll("activity_bar_style", "bar", "bar_background")//
