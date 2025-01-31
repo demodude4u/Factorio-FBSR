@@ -401,6 +401,34 @@ public abstract class SimpleEntityRendering<E extends BSEntity> extends EntityRe
 						entity, protoSelectionBox));
 			}
 		}
+
+		Direction dir = entity.direction;
+		for (FPFluidBox fluidBox : fluidBoxes) {
+			if (fluidBox.pipeCovers.isPresent() || fluidBox.pipePicture.isPresent()) {
+				for (FPPipeConnectionDefinition conn : fluidBox.pipeConnections) {
+					Direction facing = conn.direction.get().rotate(dir);
+					Point2D.Double pos = dir.rotatePoint(conn.position.get().createPoint());
+
+					if (fluidBox.pipePicture.isPresent()) {
+						List<Sprite> sprites = fluidBox.pipePicture.get().createSprites(facing);
+						for (Sprite sprite : sprites) {
+							sprite.bounds.x += pos.x;
+							sprite.bounds.y += pos.y;
+						}
+						register.accept(RenderUtils.spriteRenderer(sprites, entity, protoSelectionBox));
+					}
+
+					if (fluidBox.pipeCovers.isPresent() && map.isPipe(facing.offset(pos, 1.0), facing)) {
+						List<Sprite> sprites = fluidBox.pipeCovers.get().createSprites(facing);
+						for (Sprite sprite : sprites) {
+							sprite.bounds.x += pos.x;
+							sprite.bounds.y += pos.y;
+						}
+						register.accept(RenderUtils.spriteRenderer(sprites, entity, protoSelectionBox));
+					}
+				}
+			}
+		}
 	}
 
 	public abstract void defineEntity(Bindings bind, LuaValue lua);
@@ -464,6 +492,7 @@ public abstract class SimpleEntityRendering<E extends BSEntity> extends EntityRe
 					Point2D.Double pos = dir.rotatePoint(conn.position.get().createPoint());
 					pos.x += entity.position.x;
 					pos.y += entity.position.y;
+					// TODO use flow direction for pipe arrow logistics
 					map.setPipe(pos, facing);
 				}
 			}
