@@ -172,12 +172,22 @@ public abstract class CargoBayConnectionsRendering extends SimpleEntityRendering
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSEntity entity) {
 		super.createRenderers(register, map, dataTable, entity);
 
-		FPCargoBayConnections protoCargoBayConnections;
+		FPCargoBayConnectableGraphicsSet protoSelectedGraphicsSet;
+
 		if (map.isSpacePlatform() && protoPlatformGraphicsSet.isPresent()) {
-			protoCargoBayConnections = protoPlatformGraphicsSet.get().connections.get();
+			protoSelectedGraphicsSet = protoPlatformGraphicsSet.get();
 		} else {
-			protoCargoBayConnections = protoGraphicsSet.connections.get();
+			protoSelectedGraphicsSet = protoGraphicsSet;
 		}
+
+		if (protoSelectedGraphicsSet.picture.isPresent()) {
+			List<SpriteWithLayer> sprites = protoSelectedGraphicsSet.picture.get().createSpritesWithLayers();
+			for (SpriteWithLayer swl : sprites) {
+				register.accept(RenderUtils.spriteRenderer(swl.getLayer(), swl.getSprite(), entity, protoSelectionBox));
+			}
+		}
+
+		FPCargoBayConnections protoCargoBayConnections = protoSelectedGraphicsSet.connections.get();
 
 		Random rand = new Random();
 
