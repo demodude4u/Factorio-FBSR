@@ -9,4 +9,9 @@ public class BSDeciderCondition extends BSCircuitCondition {
 		super(json);
 		compareType = json.optString("compare_type", "or");
 	}
+
+	public BSDeciderCondition(String legacyComparatorString) {
+		super(legacyComparatorString);
+		compareType = "or";
+	}
 }

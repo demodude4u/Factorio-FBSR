@@ -21,15 +21,6 @@ public final class BSUtils {
 		return Direction.values()[json.getInt(key) / 2];
 	}
 
-	public static <T> List<T> list(JSONObject json, String key, BiFunction<JSONObject, String, T> factory) {
-		if (!json.has(key)) {
-			return ImmutableList.of();
-		}
-		Builder<T> builder = ImmutableList.builder();
-		Utils.forEach(json.getJSONArray(key), (JSONObject j) -> builder.add(factory.apply(j, key)));
-		return builder.build();
-	}
-
 	public static <T> List<T> list(JSONObject json, String key, Function<JSONObject, T> factory) {
 		if (!json.has(key)) {
 			return ImmutableList.of();
@@ -46,13 +37,6 @@ public final class BSUtils {
 		Builder<Integer> builder = ImmutableList.builder();
 		Utils.forEach(json.getJSONArray(key), (Integer j) -> builder.add(j));
 		return builder.build();
-	}
-
-	public static <T> Optional<T> opt(JSONObject json, String key, BiFunction<JSONObject, String, T> factory) {
-		if (!json.has(key)) {
-			return Optional.empty();
-		}
-		return Optional.of(factory.apply(json, key));
 	}
 
 	public static <T> Optional<T> opt(JSONObject json, String key, Function<JSONObject, T> factory) {
@@ -83,6 +67,13 @@ public final class BSUtils {
 		return OptionalInt.of(json.getInt(key));
 	}
 
+	public static <T> Optional<T> optKeyed(JSONObject json, String key, BiFunction<JSONObject, String, T> factory) {
+		if (!json.has(key)) {
+			return Optional.empty();
+		}
+		return Optional.of(factory.apply(json, key));
+	}
+
 	public static <T> Optional<List<T>> optList(JSONObject json, String key, Function<JSONObject, T> factory) {
 		if (!json.has(key)) {
 			return Optional.empty();
@@ -93,7 +84,7 @@ public final class BSUtils {
 	}
 
 	public static Optional<ItemQuality> optQuality(JSONObject json, String key) {
-		return BSUtils.opt(json, key, (j, k) -> ItemQuality.valueOf(j.getString(k).toUpperCase()));
+		return BSUtils.optKeyed(json, key, (j, k) -> ItemQuality.valueOf(j.getString(k).toUpperCase()));
 	}
 
 	public static Optional<String> optString(JSONObject json, String key) {

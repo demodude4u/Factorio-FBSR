@@ -8,6 +8,11 @@ public class BSPosition {
 	public final double x;
 	public final double y;
 
+	public BSPosition(double x, double y) {
+		this.x = x;
+		this.y = y;
+	}
+
 	public BSPosition(JSONObject json) {
 		x = json.getDouble("x");
 		y = json.getDouble("y");

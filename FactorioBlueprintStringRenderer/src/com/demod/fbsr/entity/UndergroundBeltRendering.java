@@ -21,6 +21,7 @@ import com.demod.fbsr.WorldMap.BeltBend;
 import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.entity.UndergroundBeltRendering.BSUndergroundBeltEntity;
 import com.demod.fbsr.fp.FPSprite4Way;
+import com.demod.fbsr.legacy.LegacyBlueprintEntity;
 
 public class UndergroundBeltRendering extends TransportBeltConnectableRendering<BSUndergroundBeltEntity> {
 
@@ -31,6 +32,11 @@ public class UndergroundBeltRendering extends TransportBeltConnectableRendering<
 			super(json);
 
 			type = BSUtils.optString(json, "type");
+		}
+
+		public BSUndergroundBeltEntity(LegacyBlueprintEntity legacy) {
+			super(legacy);
+			// TODO Auto-generated constructor stub
 		}
 	}
 

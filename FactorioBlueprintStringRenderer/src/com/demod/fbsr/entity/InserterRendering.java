@@ -38,6 +38,7 @@ import com.demod.fbsr.entity.InserterRendering.BSInserterEntity;
 import com.demod.fbsr.fp.FPSprite;
 import com.demod.fbsr.fp.FPSprite4Way;
 import com.demod.fbsr.fp.FPVector;
+import com.demod.fbsr.legacy.LegacyBlueprintEntity;
 
 public class InserterRendering extends SimpleEntityRendering<BSInserterEntity> {
 
@@ -54,6 +55,11 @@ public class InserterRendering extends SimpleEntityRendering<BSInserterEntity> {
 			pickupPosition = BSUtils.opt(json, "pickup_position", BSPosition::new);
 			dropPosition = BSUtils.opt(json, "drop_position", BSPosition::new);
 			filters = BSUtils.list(json, "filters", BSFilter::new);
+		}
+
+		public BSInserterEntity(LegacyBlueprintEntity legacy) {
+			super(legacy);
+
 		}
 	}
 

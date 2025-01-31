@@ -11,6 +11,7 @@ import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.bs.BSNetworkPorts;
 import com.demod.fbsr.bs.BSSignalID;
 import com.demod.fbsr.entity.ArithmeticCombinatorRendering.BSArithmeticCombinatorEntity;
+import com.demod.fbsr.legacy.LegacyBlueprintEntity;
 
 public class ArithmeticCombinatorRendering extends CombinatorRendering<BSArithmeticCombinatorEntity> {
 
@@ -30,6 +31,16 @@ public class ArithmeticCombinatorRendering extends CombinatorRendering<BSArithme
 			} else {
 				arithmeticConditions = Optional.empty();
 			}
+		}
+
+		public BSArithmeticCombinatorEntity(LegacyBlueprintEntity legacy) {
+			super(legacy);
+
+			playerDescription = Optional.empty();
+
+			String operationString = legacy.json().getJSONObject("control_behavior")
+					.getJSONObject("arithmetic_conditions").getString("operational");
+			arithmeticConditions = Optional.of(new BSArithmeticConditions(operationString));
 		}
 	}
 
@@ -53,6 +64,17 @@ public class ArithmeticCombinatorRendering extends CombinatorRendering<BSArithme
 			outputSignal = BSUtils.opt(json, "output_signal", BSSignalID::new);
 			firstSignalNetworks = BSUtils.opt(json, "first_signal_networks", BSNetworkPorts::new);
 			secondSignalNetworks = BSUtils.opt(json, "second_signal_networks", BSNetworkPorts::new);
+		}
+
+		public BSArithmeticConditions(String legacyOperationString) {
+			firstSignal = Optional.empty();
+			secondSignal = Optional.empty();
+			firstConstant = OptionalDouble.empty();
+			secondConstant = OptionalDouble.empty();
+			operation = legacyOperationString;
+			outputSignal = Optional.empty();
+			firstSignalNetworks = Optional.empty();
+			secondSignalNetworks = Optional.empty();
 		}
 	}
 

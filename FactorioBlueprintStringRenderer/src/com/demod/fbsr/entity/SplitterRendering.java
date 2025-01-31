@@ -31,6 +31,7 @@ import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.bs.BSFilter;
 import com.demod.fbsr.entity.SplitterRendering.BSSplitterEntity;
 import com.demod.fbsr.fp.FPAnimation4Way;
+import com.demod.fbsr.legacy.LegacyBlueprintEntity;
 
 public class SplitterRendering extends TransportBeltConnectableRendering<BSSplitterEntity> {
 
@@ -45,6 +46,11 @@ public class SplitterRendering extends TransportBeltConnectableRendering<BSSplit
 			inputPriority = BSUtils.optString(json, "input_priority");
 			outputPriority = BSUtils.optString(json, "output_priority");
 			filter = BSUtils.opt(json, "filter", BSFilter::new);
+		}
+
+		public BSSplitterEntity(LegacyBlueprintEntity legacy) {
+			super(legacy);
+			// TODO Auto-generated constructor stub
 		}
 	}
 

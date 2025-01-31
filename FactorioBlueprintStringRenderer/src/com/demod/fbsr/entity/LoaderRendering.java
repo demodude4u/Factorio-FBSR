@@ -31,6 +31,7 @@ import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.bs.BSFilter;
 import com.demod.fbsr.entity.LoaderRendering.BSLoaderEntity;
 import com.demod.fbsr.fp.FPSprite4Way;
+import com.demod.fbsr.legacy.LegacyBlueprintEntity;
 
 public abstract class LoaderRendering extends TransportBeltConnectableRendering<BSLoaderEntity> {
 
@@ -44,6 +45,12 @@ public abstract class LoaderRendering extends TransportBeltConnectableRendering<
 			type = BSUtils.optString(json, "type");
 			filters = BSUtils.list(json, "filters", BSFilter::new);
 		}
+
+		public BSLoaderEntity(LegacyBlueprintEntity legacy) {
+			super(legacy);
+			// TODO Auto-generated constructor stub
+		}
+
 	}
 
 	private final double beltDistance;

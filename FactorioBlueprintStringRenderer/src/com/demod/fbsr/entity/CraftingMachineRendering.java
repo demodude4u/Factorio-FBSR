@@ -25,6 +25,7 @@ import com.demod.fbsr.entity.CraftingMachineRendering.BSCraftingMachineEntity;
 import com.demod.fbsr.fp.FPFluidBox;
 import com.demod.fbsr.fp.FPPipeConnectionDefinition;
 import com.demod.fbsr.fp.FPWorkingVisualisations;
+import com.demod.fbsr.legacy.LegacyBlueprintEntity;
 import com.google.common.collect.ImmutableList;
 
 public abstract class CraftingMachineRendering extends SimpleEntityRendering<BSCraftingMachineEntity> {
@@ -37,6 +38,13 @@ public abstract class CraftingMachineRendering extends SimpleEntityRendering<BSC
 
 			recipe = BSUtils.optString(json, "recipe");
 		}
+
+		public BSCraftingMachineEntity(LegacyBlueprintEntity legacy) {
+			super(legacy);
+
+			recipe = BSUtils.optString(legacy.json(), "recipe");
+		}
+
 	}
 
 	private FPWorkingVisualisations protoGraphicsSet;

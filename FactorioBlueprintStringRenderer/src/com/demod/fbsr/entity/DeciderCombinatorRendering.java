@@ -11,6 +11,8 @@ import com.demod.fbsr.bs.BSConditionOutput;
 import com.demod.fbsr.bs.BSDeciderCondition;
 import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.entity.DeciderCombinatorRendering.BSDeciderCombinatorEntity;
+import com.demod.fbsr.legacy.LegacyBlueprintEntity;
+import com.google.common.collect.ImmutableList;
 
 public class DeciderCombinatorRendering extends CombinatorRendering<BSDeciderCombinatorEntity> {
 
@@ -30,6 +32,16 @@ public class DeciderCombinatorRendering extends CombinatorRendering<BSDeciderCom
 				deciderConditions = Optional.empty();
 			}
 		}
+
+		public BSDeciderCombinatorEntity(LegacyBlueprintEntity legacy) {
+			super(legacy);
+
+			playerDescription = Optional.empty();
+
+			String comparatorString = legacy.json().getJSONObject("control_behavior")
+					.getJSONObject("decider_conditions").getString("comparator");
+			deciderConditions = Optional.of(new BSDeciderConditions(comparatorString));
+		}
 	}
 
 	public static class BSDeciderConditions {
@@ -39,6 +51,11 @@ public class DeciderCombinatorRendering extends CombinatorRendering<BSDeciderCom
 		public BSDeciderConditions(JSONObject json) {
 			conditions = BSUtils.list(json, "conditions", BSDeciderCondition::new);
 			outputs = BSUtils.list(json, "outputs", BSConditionOutput::new);
+		}
+
+		public BSDeciderConditions(String legacyComparatorString) {
+			conditions = ImmutableList.of(new BSDeciderCondition(legacyComparatorString));
+			outputs = ImmutableList.of();
 		}
 	}
 

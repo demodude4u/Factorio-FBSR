@@ -5,6 +5,7 @@ import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -15,6 +16,7 @@ import org.json.JSONObject;
 
 import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
+import com.demod.factorio.Utils;
 import com.demod.factorio.prototype.ItemPrototype;
 import com.demod.fbsr.BSUtils;
 import com.demod.fbsr.Direction;
@@ -26,6 +28,7 @@ import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.bs.BSInfinitySettings;
 import com.demod.fbsr.entity.InfinityContainerRendering.BSInfinityContainerEntity;
+import com.demod.fbsr.legacy.LegacyBlueprintEntity;
 
 public class InfinityContainerRendering extends ContainerRendering<BSInfinityContainerEntity> {
 	public static class BSInfinityContainerEntity extends BSEntity {
@@ -35,6 +38,24 @@ public class InfinityContainerRendering extends ContainerRendering<BSInfinityCon
 			super(json);
 
 			infinitySettings = BSUtils.opt(json, "infinity_settings", BSInfinitySettings::new);
+		}
+
+		public BSInfinityContainerEntity(LegacyBlueprintEntity legacy) {
+			super(legacy);
+
+			if (legacy.json().has("infinity_settings")
+					&& legacy.json().getJSONObject("infinity_settings").has("filters")) {
+				List<String> items = new ArrayList<>();
+				Utils.<JSONObject>forEach(legacy.json().getJSONObject("infinity_settings").getJSONArray("filters"),
+						j -> {
+							if (j.getInt("count") > 0)
+								items.add(j.getString("name"));
+						});
+
+				infinitySettings = Optional.of(new BSInfinitySettings(items));
+			} else {
+				infinitySettings = Optional.empty();
+			}
 		}
 	}
 

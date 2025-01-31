@@ -24,6 +24,7 @@ import com.demod.fbsr.fp.FPAnimation;
 import com.demod.fbsr.fp.FPBoundingBox;
 import com.demod.fbsr.fp.FPRotatedAnimation;
 import com.demod.fbsr.fp.FPVector;
+import com.demod.fbsr.legacy.LegacyBlueprintEntity;
 
 public abstract class RailSignalBaseRendering extends EntityRendererFactory<BSRailSignalBaseEntity> {
 
@@ -34,6 +35,11 @@ public abstract class RailSignalBaseRendering extends EntityRendererFactory<BSRa
 			super(json);
 
 			railLayer = BSUtils.optString(json, "rail_layer");
+		}
+
+		public BSRailSignalBaseEntity(LegacyBlueprintEntity legacy) {
+			super(legacy);
+			// TODO Auto-generated constructor stub
 		}
 	}
 

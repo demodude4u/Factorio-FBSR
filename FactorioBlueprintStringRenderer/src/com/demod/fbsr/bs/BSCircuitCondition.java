@@ -23,4 +23,13 @@ public class BSCircuitCondition {
 		firstSignalNetworks = BSUtils.opt(json, "first_signal_networks", BSNetworkPorts::new);
 		secondSignalNetworks = BSUtils.opt(json, "second_signal_networks", BSNetworkPorts::new);
 	}
+
+	public BSCircuitCondition(String legacyComparatorString) {
+		firstSignal = Optional.empty();
+		secondSignal = Optional.empty();
+		constant = OptionalInt.empty();
+		comparator = legacyComparatorString;
+		firstSignalNetworks = Optional.empty();
+		secondSignalNetworks = Optional.empty();
+	}
 }

@@ -16,6 +16,7 @@ import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.bs.BSEntityRequestFilters;
 import com.demod.fbsr.entity.LogisticContainerRendering.BSLogisticContainerEntity;
+import com.demod.fbsr.legacy.LegacyBlueprintEntity;
 
 public class LogisticContainerRendering extends ContainerRendering<BSLogisticContainerEntity> {
 
@@ -26,6 +27,11 @@ public class LogisticContainerRendering extends ContainerRendering<BSLogisticCon
 			super(json);
 
 			requestFilters = BSUtils.opt(json, "request_filters", BSEntityRequestFilters::new);
+		}
+
+		public BSLogisticContainerEntity(LegacyBlueprintEntity legacy) {
+			super(legacy);
+			// TODO Auto-generated constructor stub
 		}
 	}
 

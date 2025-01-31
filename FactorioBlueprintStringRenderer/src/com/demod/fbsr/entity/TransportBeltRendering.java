@@ -24,6 +24,7 @@ import com.demod.fbsr.bs.BSControlBehavior;
 import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.entity.TransportBeltRendering.BSTransportBeltEntity;
 import com.demod.fbsr.fp.FPAnimationVariations;
+import com.demod.fbsr.legacy.LegacyBlueprintEntity;
 
 public class TransportBeltRendering extends TransportBeltConnectableRendering<BSTransportBeltEntity> {
 
@@ -34,6 +35,11 @@ public class TransportBeltRendering extends TransportBeltConnectableRendering<BS
 			super(json);
 
 			controlBehavior = BSUtils.opt(json, "control_behavior", BSControlBehavior::new);
+		}
+
+		public BSTransportBeltEntity(LegacyBlueprintEntity legacy) {
+			super(legacy);
+			// TODO Auto-generated constructor stub
 		}
 	}
 

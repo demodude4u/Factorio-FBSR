@@ -20,6 +20,7 @@ import com.demod.fbsr.WorldMap.BeltBend;
 import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.entity.LinkedBeltRendering.BSLinkedBeltEntity;
 import com.demod.fbsr.fp.FPSprite4Way;
+import com.demod.fbsr.legacy.LegacyBlueprintEntity;
 
 public class LinkedBeltRendering extends TransportBeltConnectableRendering<BSLinkedBeltEntity> {
 
@@ -31,6 +32,12 @@ public class LinkedBeltRendering extends TransportBeltConnectableRendering<BSLin
 
 			type = BSUtils.optString(json, "type");
 		}
+
+		public BSLinkedBeltEntity(LegacyBlueprintEntity legacy) {
+			super(legacy);
+			// TODO Auto-generated constructor stub
+		}
+
 	}
 
 	private FPSprite4Way protoStructureDirectionIn;

@@ -9,6 +9,7 @@ import org.json.JSONObject;
 import com.demod.fbsr.BSUtils;
 import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.entity.SelectorCombinatorRendering.BSSelectorCombinatorEntity;
+import com.demod.fbsr.legacy.LegacyBlueprintEntity;
 
 public class SelectorCombinatorRendering extends CombinatorRendering<BSSelectorCombinatorEntity> {
 
@@ -33,6 +34,11 @@ public class SelectorCombinatorRendering extends CombinatorRendering<BSSelectorC
 				selectMax = Optional.empty();
 				indexConstant = OptionalInt.empty();
 			}
+		}
+
+		public BSSelectorCombinatorEntity(LegacyBlueprintEntity legacy) {
+			super(legacy);
+			// TODO Auto-generated constructor stub
 		}
 	}
 

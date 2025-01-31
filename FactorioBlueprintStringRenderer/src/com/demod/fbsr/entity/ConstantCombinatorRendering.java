@@ -14,6 +14,7 @@ import com.demod.fbsr.WirePoints.WireColor;
 import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.entity.ConstantCombinatorRendering.BSConstantCombinatorEntity;
 import com.demod.fbsr.fp.FPWireConnectionPoint;
+import com.demod.fbsr.legacy.LegacyBlueprintEntity;
 
 public class ConstantCombinatorRendering extends SimpleEntityRendering<BSConstantCombinatorEntity> {
 
@@ -32,6 +33,12 @@ public class ConstantCombinatorRendering extends SimpleEntityRendering<BSConstan
 //			} else {
 
 //			}
+		}
+
+		public BSConstantCombinatorEntity(LegacyBlueprintEntity legacy) {
+			super(legacy);
+
+			playerDescription = Optional.empty();
 		}
 	}
 

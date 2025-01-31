@@ -29,7 +29,6 @@ import org.luaj.vm2.LuaValue;
 
 import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
-import com.demod.factorio.Utils;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.factorio.prototype.RecipePrototype;
 import com.demod.fbsr.FBSR.EntityRenderingTuple;
@@ -113,6 +112,7 @@ import com.demod.fbsr.entity.TransportBeltRendering;
 import com.demod.fbsr.entity.UndergroundBeltRendering;
 import com.demod.fbsr.entity.WallRendering;
 import com.demod.fbsr.fp.FPBoundingBox;
+import com.demod.fbsr.legacy.LegacyBlueprintEntity;
 import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.Multiset;
 
@@ -483,17 +483,6 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 		return Optional.ofNullable(wirePointsById.get(connectionId)).map(wp -> wp.getPoint(position, orientation));
 	}
 
-	protected void debugPrintContext(BSEntity entity, EntityPrototype prototype) {
-		System.out.println("=================================================================");
-		System.out.println("=========================== PROTOTYPE ===========================");
-		System.out.println("=================================================================");
-		Utils.debugPrintLua(prototype.lua());
-		System.out.println("=================================================================");
-		System.out.println("============================ ENTITY =============================");
-		System.out.println("=================================================================");
-		Utils.debugPrintJson(entity.getJson());
-	}
-
 	public void defineWirePoints(BiConsumer<Integer, WirePoints> consumer, LuaValue lua) {
 
 	}
@@ -551,6 +540,12 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 		initEntityClass();
 		Constructor<E> constructor = entityClass.getConstructor(JSONObject.class);
 		return constructor.newInstance(json);
+	}
+
+	public E parseEntity(LegacyBlueprintEntity legacy) throws Exception {
+		initEntityClass();
+		Constructor<E> constructor = entityClass.getConstructor(LegacyBlueprintEntity.class);
+		return constructor.newInstance(legacy);
 	}
 
 	public void populateLogistics(WorldMap map, DataTable dataTable, E entity) {

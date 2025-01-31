@@ -17,4 +17,10 @@ public class BSSignalID {
 		name = json.getString("name");
 		quality = BSUtils.optQuality(json, "quality");
 	}
+
+	public BSSignalID(String legacyId) {
+		type = "item";
+		name = legacyId;
+		quality = Optional.empty();
+	}
 }

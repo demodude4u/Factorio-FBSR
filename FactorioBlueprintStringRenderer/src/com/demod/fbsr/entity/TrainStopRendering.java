@@ -23,6 +23,7 @@ import com.demod.fbsr.bs.BSColor;
 import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.entity.TrainStopRendering.BSTrainStopEntity;
 import com.demod.fbsr.fp.FPAnimation4Way;
+import com.demod.fbsr.legacy.LegacyBlueprintEntity;
 
 public class TrainStopRendering extends SimpleEntityRendering<BSTrainStopEntity> {
 
@@ -35,6 +36,11 @@ public class TrainStopRendering extends SimpleEntityRendering<BSTrainStopEntity>
 
 			color = BSUtils.opt(json, "color", BSColor::new);
 			station = BSUtils.optString(json, "station");
+		}
+
+		public BSTrainStopEntity(LegacyBlueprintEntity legacy) {
+			super(legacy);
+			// TODO Auto-generated constructor stub
 		}
 	}
 

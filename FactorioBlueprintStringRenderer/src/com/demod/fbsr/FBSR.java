@@ -51,6 +51,7 @@ import com.demod.fbsr.WorldMap.RailEdge;
 import com.demod.fbsr.WorldMap.RailNode;
 import com.demod.fbsr.bs.BSBlueprint;
 import com.demod.fbsr.bs.BSEntity;
+import com.demod.fbsr.bs.BSMetaEntity;
 import com.demod.fbsr.bs.BSPosition;
 import com.demod.fbsr.bs.BSTile;
 import com.demod.fbsr.bs.BSWire;
@@ -510,16 +511,22 @@ public class FBSR {
 		List<TileRenderingTuple> tileRenderingTuples = new ArrayList<TileRenderingTuple>();
 		Map<Integer, EntityRenderingTuple> entityByNumber = new HashMap<>();
 
-		for (BSEntity entity : blueprint.entities) {
-			EntityRendererFactory<BSEntity> factory = EntityRendererFactory.forName(entity.name);
+		for (BSMetaEntity metaEntity : blueprint.entities) {
+			EntityRendererFactory<BSEntity> factory = EntityRendererFactory.forName(metaEntity.name);
+			BSEntity entity;
 			try {
-				entity = factory.parseEntity(entity.getJson());
+				if (metaEntity.isLegacy()) {
+					entity = factory.parseEntity(metaEntity.getLegacy());
+				} else {
+					entity = factory.parseEntity(metaEntity.getJson());
+				}
 			} catch (Exception e) {
-				entity.setParseException(Optional.of(e));
+				metaEntity.setParseException(Optional.of(e));
+				entity = metaEntity;
 			}
-			if (entity.getParseException().isPresent()) {
+			if (metaEntity.getParseException().isPresent()) {
 				factory = new ErrorRendering(factory);
-				reporting.addException(entity.getParseException().get(), entity.name + " " + entity.entityNumber);
+				reporting.addException(metaEntity.getParseException().get(), entity.name + " " + entity.entityNumber);
 			}
 			EntityRenderingTuple tuple = new EntityRenderingTuple(entity, factory);
 			entityRenderingTuples.add(tuple);

@@ -21,4 +21,12 @@ public class BSInfinityFilter {
 		index = json.getInt("index");
 		quality = BSUtils.optQuality(json, "quality");
 	}
+
+	public BSInfinityFilter(String legacyName) {
+		mode = null;
+		name = legacyName;
+		count = 1;
+		index = -1;
+		quality = Optional.empty();
+	}
 }
