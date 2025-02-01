@@ -4,6 +4,8 @@ import java.awt.geom.Rectangle2D;
 
 import org.luaj.vm2.LuaValue;
 
+import com.demod.fbsr.Direction;
+
 public class FPBoundingBox {
 	public final FPVector leftTop;
 	public final FPVector rightBottom;
@@ -28,6 +30,11 @@ public class FPBoundingBox {
 
 	public Rectangle2D.Double createRect() {
 		return new Rectangle2D.Double(leftTop.x, leftTop.y, rightBottom.x - leftTop.x, rightBottom.y - leftTop.y);
+	}
+
+	public FPBoundingBox rotate(Direction direction) {
+		Rectangle2D rotated = direction.rotateBounds(createRect());
+		return new FPBoundingBox(rotated.getMinX(), rotated.getMinY(), rotated.getMaxX(), rotated.getMaxY());
 	}
 
 	public FPBoundingBox shift(FPVector v) {

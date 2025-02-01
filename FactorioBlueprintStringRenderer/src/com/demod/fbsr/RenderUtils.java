@@ -313,7 +313,7 @@ public final class RenderUtils {
 
 	public static EntityRenderer spriteRenderer(Layer layer, List<Sprite> sprites, BSEntity entity,
 			FPBoundingBox bounds) {
-		return spriteRenderer(layer, sprites, entity.position.createPoint(), bounds);
+		return spriteRenderer(layer, sprites, entity.position.createPoint(), bounds.rotate(entity.direction));
 	}
 
 	public static EntityRenderer spriteRenderer(Layer layer, List<Sprite> sprites, Point2D.Double pos,
