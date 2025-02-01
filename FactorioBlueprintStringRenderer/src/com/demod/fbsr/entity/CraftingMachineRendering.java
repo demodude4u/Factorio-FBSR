@@ -32,22 +32,26 @@ public abstract class CraftingMachineRendering extends SimpleEntityRendering<BSC
 
 	public static class BSCraftingMachineEntity extends BSEntity {
 		public final Optional<String> recipe;
+		public final boolean mirror;
 
 		public BSCraftingMachineEntity(JSONObject json) {
 			super(json);
 
 			recipe = BSUtils.optString(json, "recipe");
+			mirror = json.optBoolean("mirror");
 		}
 
 		public BSCraftingMachineEntity(LegacyBlueprintEntity legacy) {
 			super(legacy);
 
 			recipe = BSUtils.optString(legacy.json(), "recipe");
+			mirror = false;
 		}
 
 	}
 
 	private FPWorkingVisualisations protoGraphicsSet;
+	private Optional<FPWorkingVisualisations> protoGraphicsSetFlipped;
 	private List<FPFluidBox> protoConditionalFluidBoxes;
 
 	@Override
@@ -55,8 +59,13 @@ public abstract class CraftingMachineRendering extends SimpleEntityRendering<BSC
 			BSCraftingMachineEntity entity) {
 		super.createRenderers(register, map, dataTable, entity);
 
-		register.accept(RenderUtils.spriteRenderer(protoGraphicsSet.createSprites(entity.direction, 0), entity,
-				protoSelectionBox));
+		if (entity.mirror && protoGraphicsSetFlipped.isPresent()) {
+			register.accept(RenderUtils.spriteRenderer(protoGraphicsSetFlipped.get().createSprites(entity.direction, 0),
+					entity, protoSelectionBox));
+		} else {
+			register.accept(RenderUtils.spriteRenderer(protoGraphicsSet.createSprites(entity.direction, 0), entity,
+					protoSelectionBox));
+		}
 
 		Optional<String> recipe = entity.recipe;
 		boolean hasFluidInput = false;
@@ -97,6 +106,9 @@ public abstract class CraftingMachineRendering extends SimpleEntityRendering<BSC
 					Direction facing = conn.direction.get().rotate(dir);
 					Point2D.Double pos = dir.rotatePoint(conn.position.get().createPoint());
 					pos = facing.offset(pos, 1.0);
+					if (entity.mirror) {
+						pos.x = -pos.x;
+					}
 
 					if (fluidBox.pipePicture.isPresent()) {
 						List<Sprite> sprites = fluidBox.pipePicture.get().createSprites(facing);
@@ -173,6 +185,8 @@ public abstract class CraftingMachineRendering extends SimpleEntityRendering<BSC
 		super.initFromPrototype(dataTable, prototype);
 
 		protoGraphicsSet = new FPWorkingVisualisations(prototype.lua().get("graphics_set"));
+		protoGraphicsSetFlipped = FPUtils.opt(prototype.lua().get("graphics_set_flipped"),
+				FPWorkingVisualisations::new);
 	}
 
 	@Override
