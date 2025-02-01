@@ -499,7 +499,7 @@ public class FBSR {
 		BSBlueprint blueprint = request.getBlueprint();
 		CommandReporting reporting = request.getReporting();
 
-		System.out.println("Rendering " + blueprint.label.orElse("(No Name)"));
+		System.out.println("Rendering " + blueprint.label.orElse("Untitled Blueprint") + " " + blueprint.version);
 		long startMillis = System.currentTimeMillis();
 
 		DataTable table = FactorioData.getTable();

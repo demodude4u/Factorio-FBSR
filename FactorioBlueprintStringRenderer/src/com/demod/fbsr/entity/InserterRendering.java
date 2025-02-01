@@ -19,6 +19,7 @@ import org.luaj.vm2.LuaValue;
 
 import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
+import com.demod.factorio.Utils;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.factorio.prototype.ItemPrototype;
 import com.demod.fbsr.BSUtils;
@@ -60,6 +61,17 @@ public class InserterRendering extends SimpleEntityRendering<BSInserterEntity> {
 		public BSInserterEntity(LegacyBlueprintEntity legacy) {
 			super(legacy);
 
+			pickupPosition = BSUtils.opt(legacy.json(), "pickup_position", j -> {
+				Point2D.Double pos = Utils.parsePoint2D(j);
+				return new BSPosition(pos.x, pos.y);
+			});
+			dropPosition = BSUtils.opt(legacy.json(), "drop_position", j -> {
+				Point2D.Double pos = Utils.parsePoint2D(j);
+				return new BSPosition(pos.x, pos.y);
+			});
+
+			filters = BSUtils.list(legacy.json(), "filters", j -> new BSFilter(j.getString("name")));
+			useFilters = filters.size() > 0;
 		}
 	}
 

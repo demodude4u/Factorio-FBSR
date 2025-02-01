@@ -40,7 +40,9 @@ public class TrainStopRendering extends SimpleEntityRendering<BSTrainStopEntity>
 
 		public BSTrainStopEntity(LegacyBlueprintEntity legacy) {
 			super(legacy);
-			// TODO Auto-generated constructor stub
+
+			color = BSUtils.opt(legacy.json(), "color", BSColor::new);
+			station = BSUtils.optString(legacy.json(), "station");
 		}
 	}
 

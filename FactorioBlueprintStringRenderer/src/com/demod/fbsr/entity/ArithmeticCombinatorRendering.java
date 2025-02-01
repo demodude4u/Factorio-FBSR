@@ -39,7 +39,7 @@ public class ArithmeticCombinatorRendering extends CombinatorRendering<BSArithme
 			playerDescription = Optional.empty();
 
 			String operationString = legacy.json().getJSONObject("control_behavior")
-					.getJSONObject("arithmetic_conditions").getString("operational");
+					.getJSONObject("arithmetic_conditions").getString("operation");
 			arithmeticConditions = Optional.of(new BSArithmeticConditions(operationString));
 		}
 	}

@@ -2,6 +2,7 @@ package com.demod.fbsr.bs;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.json.JSONObject;
 
@@ -19,5 +20,12 @@ public class BSSectionFilters {
 		group = BSUtils.optString(json, "group");
 		// TODO check if default is true
 		active = json.optBoolean("active", true);
+	}
+
+	public BSSectionFilters(List<String> legacyOutputs) {
+		index = 0;
+		filters = legacyOutputs.stream().map(s -> new BSFilter(s)).collect(Collectors.toList());
+		group = Optional.empty();
+		active = true;
 	}
 }

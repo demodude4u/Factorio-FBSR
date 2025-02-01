@@ -48,7 +48,9 @@ public abstract class LoaderRendering extends TransportBeltConnectableRendering<
 
 		public BSLoaderEntity(LegacyBlueprintEntity legacy) {
 			super(legacy);
-			// TODO Auto-generated constructor stub
+
+			type = BSUtils.optString(legacy.json(), "type");
+			filters = BSUtils.list(legacy.json(), "filters", j -> new BSFilter(j.getString("name")));
 		}
 
 	}

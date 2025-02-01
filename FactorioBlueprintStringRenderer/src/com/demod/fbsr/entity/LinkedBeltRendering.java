@@ -35,7 +35,8 @@ public class LinkedBeltRendering extends TransportBeltConnectableRendering<BSLin
 
 		public BSLinkedBeltEntity(LegacyBlueprintEntity legacy) {
 			super(legacy);
-			// TODO Auto-generated constructor stub
+
+			type = BSUtils.optString(legacy.json(), "type");
 		}
 
 	}

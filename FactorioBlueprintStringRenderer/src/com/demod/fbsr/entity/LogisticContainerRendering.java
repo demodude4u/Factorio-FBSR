@@ -2,6 +2,7 @@ package com.demod.fbsr.entity;
 
 import java.awt.geom.Point2D;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -31,7 +32,13 @@ public class LogisticContainerRendering extends ContainerRendering<BSLogisticCon
 
 		public BSLogisticContainerEntity(LegacyBlueprintEntity legacy) {
 			super(legacy);
-			// TODO Auto-generated constructor stub
+
+			List<String> outputs = BSUtils.list(legacy.json(), "request_filters", j -> j.getString("name"));
+			if (outputs.isEmpty()) {
+				requestFilters = Optional.empty();
+			} else {
+				requestFilters = Optional.of(new BSEntityRequestFilters(outputs));
+			}
 		}
 	}
 

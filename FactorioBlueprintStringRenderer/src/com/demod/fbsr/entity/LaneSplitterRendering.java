@@ -50,7 +50,11 @@ public class LaneSplitterRendering extends TransportBeltConnectableRendering<BSS
 
 		public BSSplitterEntity(LegacyBlueprintEntity legacy) {
 			super(legacy);
-			// TODO Auto-generated constructor stub
+
+			inputPriority = BSUtils.optString(legacy.json(), "input_priority");
+			outputPriority = BSUtils.optString(legacy.json(), "output_priority");
+
+			filter = BSUtils.optString(legacy.json(), "filter").map(s -> new BSFilter(s));
 		}
 	}
 

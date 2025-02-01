@@ -26,4 +26,14 @@ public class BSFilter {
 		count = BSUtils.optInt(json, "count");
 		maxCount = BSUtils.optInt(json, "max_count");
 	}
+
+	public BSFilter(String legacyName) {
+		index = 1;
+		name = legacyName;
+		type = Optional.empty();
+		quality = Optional.empty();
+		comparator = Optional.empty();
+		count = OptionalInt.empty();
+		maxCount = OptionalInt.empty();
+	}
 }

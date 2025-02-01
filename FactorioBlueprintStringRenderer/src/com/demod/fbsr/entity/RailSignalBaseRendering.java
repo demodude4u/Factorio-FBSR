@@ -39,7 +39,8 @@ public abstract class RailSignalBaseRendering extends EntityRendererFactory<BSRa
 
 		public BSRailSignalBaseEntity(LegacyBlueprintEntity legacy) {
 			super(legacy);
-			// TODO Auto-generated constructor stub
+
+			railLayer = Optional.empty();
 		}
 	}
 

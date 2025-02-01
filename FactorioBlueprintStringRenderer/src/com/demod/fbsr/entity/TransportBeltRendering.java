@@ -39,7 +39,10 @@ public class TransportBeltRendering extends TransportBeltConnectableRendering<BS
 
 		public BSTransportBeltEntity(LegacyBlueprintEntity legacy) {
 			super(legacy);
-			// TODO Auto-generated constructor stub
+
+			// TODO need to figure out what is important here
+			// constructing with empty json object on purpose
+			controlBehavior = BSUtils.opt(legacy.json(), "connections", j -> new BSControlBehavior(new JSONObject()));
 		}
 	}
 

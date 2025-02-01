@@ -36,7 +36,8 @@ public class UndergroundBeltRendering extends TransportBeltConnectableRendering<
 
 		public BSUndergroundBeltEntity(LegacyBlueprintEntity legacy) {
 			super(legacy);
-			// TODO Auto-generated constructor stub
+
+			type = BSUtils.optString(legacy.json(), "type");
 		}
 	}
 

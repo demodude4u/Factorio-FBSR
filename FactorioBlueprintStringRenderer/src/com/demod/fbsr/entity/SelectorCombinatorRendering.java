@@ -38,7 +38,12 @@ public class SelectorCombinatorRendering extends CombinatorRendering<BSSelectorC
 
 		public BSSelectorCombinatorEntity(LegacyBlueprintEntity legacy) {
 			super(legacy);
-			// TODO Auto-generated constructor stub
+
+			// This entity does not exist in legacy
+			playerDescription = Optional.empty();
+			operation = Optional.empty();
+			selectMax = Optional.empty();
+			indexConstant = OptionalInt.empty();
 		}
 	}
 
