@@ -75,6 +75,7 @@ import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.interaction.command.MessageContextInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionEvent;
+import net.dv8tion.jda.api.exceptions.ErrorResponseException;
 import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
@@ -82,6 +83,7 @@ import net.dv8tion.jda.api.interactions.commands.context.ContextInteraction.Cont
 import net.dv8tion.jda.api.interactions.components.ItemComponent;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu;
+import net.dv8tion.jda.api.requests.ErrorResponse;
 import net.dv8tion.jda.api.requests.restaction.MessageCreateAction;
 import net.dv8tion.jda.api.utils.ChunkingFilter;
 import net.dv8tion.jda.api.utils.FileUpload;
@@ -1065,10 +1067,16 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				hook.deleteOriginal().queue();
 			}
 
-			PrivateChannel privateChannel = event.getUser().openPrivateChannel().complete();
-			Message replyMessage = privateChannel
-					.sendMessage(event.getMessage().getJumpUrl() + "\n====> " + replyContent).complete();
-			reporting.addReply(replyMessage);
+			try {
+				PrivateChannel privateChannel = event.getUser().openPrivateChannel().complete();
+				Message replyMessage = privateChannel
+						.sendMessage(event.getMessage().getJumpUrl() + "\n====> " + replyContent).complete();
+				reporting.addReply(replyMessage);
+			} catch (ErrorResponseException e) {
+				if (e.getErrorResponse() != ErrorResponse.CANNOT_SEND_TO_USER) {
+					throw e;
+				}
+			}
 		}
 	}
 
@@ -1136,10 +1144,16 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				hook.deleteOriginal().queue();
 			}
 
-			PrivateChannel privateChannel = event.getUser().openPrivateChannel().complete();
-			Message replyMessage = privateChannel
-					.sendMessage(event.getMessage().getJumpUrl() + "\n====> " + replyContent).complete();
-			reporting.addReply(replyMessage);
+			try {
+				PrivateChannel privateChannel = event.getUser().openPrivateChannel().complete();
+				Message replyMessage = privateChannel
+						.sendMessage(event.getMessage().getJumpUrl() + "\n====> " + replyContent).complete();
+				reporting.addReply(replyMessage);
+			} catch (ErrorResponseException e) {
+				if (e.getErrorResponse() != ErrorResponse.CANNOT_SEND_TO_USER) {
+					throw e;
+				}
+			}
 		}
 	}
 
