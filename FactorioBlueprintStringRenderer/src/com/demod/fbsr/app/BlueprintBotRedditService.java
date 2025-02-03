@@ -155,11 +155,8 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 				try {
 					RenderRequest request = new RenderRequest(blueprint, reporting);
 					RenderResult result = FBSR.renderBlueprint(request);
-					Optional<BlueprintBotDiscordService> discordService = ServiceFinder
-							.findService(BlueprintBotDiscordService.class);
-					// TODO links expire, need a new approach
-					imageLinks.add(new SimpleEntry<>(blueprint.label, discordService.get().useDiscordForFileHosting(
-							WebUtils.formatBlueprintFilename(blueprint.label, "png"), result.image).toString()));
+					imageLinks.add(new SimpleEntry<>(blueprint.label,
+							WebUtils.uploadToImgBB(result.image, blueprint.label.orElse("Untitled Blueprint"))));
 					renderTimes.add(result.renderTime);
 				} catch (Exception e) {
 					reporting.addException(e);

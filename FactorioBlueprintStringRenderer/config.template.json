@@ -17,7 +17,8 @@
         "summon_keyword": "!blueprint",
         "refresh_seconds": 20,
         "age_limit_hours": 24,
-        "process_messages": true
+        "process_messages": true,
+		"imgbb-api-key": ""
     },
     "irc": {
         "server": "",
