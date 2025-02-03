@@ -24,22 +24,9 @@ import org.json.JSONObject;
 import com.demod.factorio.Config;
 import com.demod.factorio.Utils;
 
-import net.dv8tion.jda.api.EmbedBuilder;
-
 public final class WebUtils {
 
 	private static Optional<String> IMGBB_API_KEY = Optional.empty();
-
-	public static void addPossiblyLargeEmbedField(EmbedBuilder builder, String name, String value, boolean inline)
-			throws IOException {
-		// TODO need a new way to handle this
-//		if (value.length() <= MessageEmbed.VALUE_MAX_LENGTH) {
-		builder.addField(name, value, inline);
-//		} else {
-//			builder.addField(name + " Link", uploadToHostingService(name + ".txt", value.getBytes()).toString(),
-//					inline);
-//		}
-	}
 
 	public static String formatBlueprintFilename(Optional<String> label, String extension) {
 		if (label.isPresent()) {
@@ -116,26 +103,6 @@ public final class WebUtils {
 		return Utils.readJsonFromStream(new URL(url).openStream());
 	}
 
-	// TODO need a new hosting system that does not deliver expired URLs
-
-//	public static String uploadToHostingService(String fileName, BufferedImage image) throws IOException {
-//		return uploadToHostingService(fileName, generateDiscordFriendlyPNGImage(image));
-//	}
-//
-//	public static String uploadToHostingService(String fileName, byte[] fileData) throws IOException {
-//		Optional<BlueprintBotDiscordService> discordService = ServiceFinder
-//				.findService(BlueprintBotDiscordService.class);
-//		if (discordService.isPresent()) {
-//			try {
-//				String url = discordService.get().useDiscordForFileHosting(fileName, fileData).get().getAttachments().get(0).getUrl().toString();
-//				return url;
-//			} catch (Exception e2) {
-//				throw new IOException("File hosting failed!", e2);
-//			}
-//		}
-//		throw new IOException("File hosting failed! (Discord not available)");
-//	}
-
 	public static String uploadToImgBB(BufferedImage image, String name) throws IOException {
 		// 1. Convert BufferedImage to base64
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -180,7 +147,7 @@ public final class WebUtils {
 			}
 		}
 
-		throw new IOException("Failed to parse ImgBB response. Data or display_url is missing.");
+		throw new IOException("Failed to parse ImgBB response. Data or url is missing.");
 	}
 
 	private WebUtils() {
