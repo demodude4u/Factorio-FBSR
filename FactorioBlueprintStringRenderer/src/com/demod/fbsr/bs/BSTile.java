@@ -4,6 +4,7 @@ import java.awt.geom.Point2D;
 
 import org.json.JSONObject;
 
+import com.demod.fbsr.BSUtils;
 import com.demod.fbsr.legacy.LegacyBlueprintTile;
 
 public class BSTile {
@@ -11,7 +12,7 @@ public class BSTile {
 	public final String name;
 
 	public BSTile(JSONObject json) {
-		position = new BSPosition(json.getJSONObject("position"));
+		position = BSUtils.position(json, "position");
 		name = json.getString("name");
 	}
 

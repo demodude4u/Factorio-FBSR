@@ -55,7 +55,7 @@ public class BSEntity {
 	public BSEntity(JSONObject json) {
 		entityNumber = json.getInt("entity_number");
 		name = json.getString("name");
-		position = new BSPosition(json.getJSONObject("position"));
+		position = BSUtils.position(json, "position");
 		direction = BSUtils.direction(json, "direction");
 		directionRaw = json.optInt("direction");
 		orientation = BSUtils.optDouble(json, "orientation");

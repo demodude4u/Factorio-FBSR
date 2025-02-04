@@ -53,8 +53,8 @@ public class InserterRendering extends SimpleEntityRendering<BSInserterEntity> {
 			super(json);
 
 			useFilters = json.optBoolean("use_filters");// only sometimes checked
-			pickupPosition = BSUtils.opt(json, "pickup_position", BSPosition::new);
-			dropPosition = BSUtils.opt(json, "drop_position", BSPosition::new);
+			pickupPosition = BSUtils.optPosition(json, "pickup_position");
+			dropPosition = BSUtils.optPosition(json, "drop_position");
 			filters = BSUtils.list(json, "filters", BSFilter::new);
 		}
 

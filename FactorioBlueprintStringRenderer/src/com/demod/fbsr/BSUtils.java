@@ -10,6 +10,7 @@ import java.util.function.Function;
 import org.json.JSONObject;
 
 import com.demod.factorio.Utils;
+import com.demod.fbsr.bs.BSPosition;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 
@@ -83,6 +84,13 @@ public final class BSUtils {
 		return Optional.of(builder.build());
 	}
 
+	public static Optional<BSPosition> optPosition(JSONObject json, String key) {
+		if (!json.has(key)) {
+			return Optional.empty();
+		}
+		return Optional.of(BSPosition.parse(json.get(key)));
+	}
+
 	public static Optional<ItemQuality> optQuality(JSONObject json, String key) {
 		return BSUtils.optKeyed(json, key, (j, k) -> ItemQuality.valueOf(j.getString(k).toUpperCase()));
 	}
@@ -92,6 +100,10 @@ public final class BSUtils {
 			return Optional.empty();
 		}
 		return Optional.of(json.getString(key));
+	}
+
+	public static BSPosition position(JSONObject json, String key) {
+		return BSPosition.parse(json.get(key));
 	}
 
 	public static ItemQuality quality(JSONObject json, String key) {
