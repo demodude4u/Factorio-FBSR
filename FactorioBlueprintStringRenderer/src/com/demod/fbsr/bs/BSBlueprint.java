@@ -55,7 +55,7 @@ public class BSBlueprint {
 			tiles = BSUtils.list(json, "tiles", BSTile::new);
 			schedules = BSUtils.list(json, "schedules", BSSchedule::new);
 			parameters = BSUtils.list(json, "parameters", BSParameter::new);
-			snapToGrid = BSUtils.opt(json, "snap_to_grid", BSPosition::new);
+			snapToGrid = BSUtils.optPosition(json, "snap_to_grid");
 			absoluteSnapping = json.optBoolean("absolute_snapping");
 
 			if (json.has("wires")) {
