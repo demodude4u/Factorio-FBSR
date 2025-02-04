@@ -5,28 +5,18 @@ import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 
 public abstract class Renderer {
-	public static enum Layer {
-		TILE1, TILE2, TILE3, //
-		RAIL_STONE_BACKGROUND, RAIL_STONE, LOGISTICS_RAIL_IO, RAIL_TIES, RAIL_BACKPLATES, RAIL_METALS, //
-		SHADOW_BUFFER, //
-		ENTITY, LOGISTICS_MOVE, ENTITY2, ENTITY3, //
-		OVERLAY, OVERLAY2, OVERLAY3, OVERLAY4, //
-		LOGISTICS_WARP, //
-		WIRE, //
-		DEBUG, DEBUG_RA1, DEBUG_RA2, DEBUG_LA1, DEBUG_LA2, DEBUG_P //
-		;
-	}
-
 	protected final Rectangle2D.Double bounds;
 	protected final Layer layer;
+	protected final boolean ignoreBoundsCalculation;
 
-	public Renderer(Layer layer, Point2D.Double position) {
-		this(layer, new Rectangle2D.Double(position.x, position.y, 0, 0));
+	public Renderer(Layer layer, Point2D.Double position, boolean ignoreBoundsCalculation) {
+		this(layer, new Rectangle2D.Double(position.x, position.y, 0, 0), ignoreBoundsCalculation);
 	}
 
-	public Renderer(Layer layer, Rectangle2D.Double bounds) {
+	public Renderer(Layer layer, Rectangle2D.Double bounds, boolean ignoreBoundsCalculation) {
 		this.layer = layer;
 		this.bounds = bounds;
+		this.ignoreBoundsCalculation = ignoreBoundsCalculation;
 	}
 
 	public Rectangle2D.Double getBounds() {
@@ -35,6 +25,10 @@ public abstract class Renderer {
 
 	public Layer getLayer() {
 		return layer;
+	}
+
+	public boolean ignoreBoundsCalculation() {
+		return ignoreBoundsCalculation;
 	}
 
 	public abstract void render(Graphics2D g) throws Exception;

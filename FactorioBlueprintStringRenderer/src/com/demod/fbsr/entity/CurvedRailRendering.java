@@ -1,40 +1,15 @@
 package com.demod.fbsr.entity;
 
 import java.awt.geom.Point2D;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map.Entry;
-import java.util.function.Consumer;
-
-import org.luaj.vm2.LuaValue;
 
 import com.demod.factorio.DataTable;
-import com.demod.factorio.prototype.EntityPrototype;
-import com.demod.fbsr.BlueprintEntity;
 import com.demod.fbsr.Direction;
-import com.demod.fbsr.EntityRendererFactory;
-import com.demod.fbsr.RenderUtils;
-import com.demod.fbsr.Renderer;
-import com.demod.fbsr.Renderer.Layer;
-import com.demod.fbsr.SpriteDef;
 import com.demod.fbsr.WorldMap;
+import com.demod.fbsr.bs.BSEntity;
 
-public class CurvedRailRendering extends EntityRendererFactory {
-	private static class LayeredSpriteDef {
-		Layer layer;
-		SpriteDef sprite;
-	}
+public class CurvedRailRendering extends RailRendering {
 
-	private static final String[] railNames = { //
-			"curved_rail_vertical_left_bottom", //
-			"curved_rail_vertical_right_bottom", //
-			"curved_rail_horizontal_left_top", //
-			"curved_rail_horizontal_left_bottom", //
-			"curved_rail_vertical_right_top", //
-			"curved_rail_vertical_left_top", //
-			"curved_rail_horizontal_right_bottom", //
-			"curved_rail_horizontal_right_top", //
-	};
+	// TODO make sure the path ends support transition to half diagonals
 
 	private static final int[][][] pathEnds = //
 			new int[/* dir */][/* points */][/* x,y,dir */] { //
@@ -48,41 +23,18 @@ public class CurvedRailRendering extends EntityRendererFactory {
 					{ { 4, 1, 6 }, { -3, -2, 3 } }, // NW
 			};
 
-	private List<List<LayeredSpriteDef>> protoDirRailLayers;
+	public CurvedRailRendering() {
+		this(false);
+	}
 
-	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
-			BlueprintEntity entity) {
-
-		List<LayeredSpriteDef> railLayers = protoDirRailLayers.get(entity.getDirection().ordinal());
-		for (LayeredSpriteDef lsd : railLayers) {
-			register.accept(RenderUtils.spriteDefRenderer(lsd.layer, lsd.sprite, entity, protoSelectionBox));
-		}
+	public CurvedRailRendering(boolean elevated) {
+		super(elevated);
 	}
 
 	@Override
-	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
-		super.initFromPrototype(dataTable, prototype);
-
-		protoDirRailLayers = new ArrayList<>();
-		for (int i = 0; i < Direction.values().length; i++) {
-			String railName = railNames[i];
-			LuaValue pictureRailLua = prototype.lua().get("pictures").get(railName);
-			List<LayeredSpriteDef> sprites = new ArrayList<>();
-			for (Entry<String, Layer> entry : StraightRailRendering.railLayers.entrySet()) {
-				LayeredSpriteDef lsd = new LayeredSpriteDef();
-				lsd.layer = entry.getValue();
-				lsd.sprite = RenderUtils.getSpriteFromAnimation(pictureRailLua.get(entry.getKey())).get();
-				sprites.add(lsd);
-			}
-			protoDirRailLayers.add(sprites);
-		}
-	}
-
-	@Override
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity) {
-		Point2D.Double pos = entity.getPosition();
-		Direction dir = entity.getDirection();
+	public void populateWorldMap(WorldMap map, DataTable dataTable, BSEntity entity) {
+		Point2D.Double pos = entity.position.createPoint();
+		Direction dir = entity.direction;
 
 		int[][] points = pathEnds[dir.ordinal()];
 		Point2D.Double p1 = new Point2D.Double(pos.x + points[0][0], pos.y + points[0][1]);

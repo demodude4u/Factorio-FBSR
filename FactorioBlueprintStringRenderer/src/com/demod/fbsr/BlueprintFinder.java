@@ -24,6 +24,7 @@ import org.json.JSONObject;
 
 import com.demod.dcba.CommandReporting;
 import com.demod.factorio.Utils;
+import com.demod.fbsr.bs.BSBlueprintString;
 import com.google.common.util.concurrent.Uninterruptibles;
 
 public final class BlueprintFinder {
@@ -191,11 +192,11 @@ public final class BlueprintFinder {
 		providers.add(provider);
 	}
 
-	public static List<BlueprintStringData> search(String content, CommandReporting reporting) {
-		List<BlueprintStringData> results = new ArrayList<>();
+	public static List<BSBlueprintString> search(String content, CommandReporting reporting) {
+		List<BSBlueprintString> results = new ArrayList<>();
 		for (String blueprintString : searchRaw(content, reporting)) {
 			try {
-				results.add(new BlueprintStringData(blueprintString));
+				results.add(BSBlueprintString.decode(blueprintString));
 			} catch (IllegalArgumentException | IOException e) {
 				reporting.addException(e);
 			}

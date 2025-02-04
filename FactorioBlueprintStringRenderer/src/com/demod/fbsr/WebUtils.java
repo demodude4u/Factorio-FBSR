@@ -1,77 +1,45 @@
 package com.demod.fbsr;
 
 import java.awt.image.BufferedImage;
+import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.Optional;
 
 import javax.imageio.ImageIO;
 
-import org.apache.commons.codec.binary.Hex;
-import org.dizitart.no2.Document;
-import org.dizitart.no2.IndexOptions;
-import org.dizitart.no2.IndexType;
-import org.dizitart.no2.Nitrite;
-import org.dizitart.no2.NitriteCollection;
-import org.dizitart.no2.filters.Filters;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import com.demod.factorio.Config;
 import com.demod.factorio.Utils;
-import com.demod.fbsr.app.BlueprintBotDiscordService;
-import com.demod.fbsr.app.ServiceFinder;
-
-import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.MessageEmbed;
 
 public final class WebUtils {
-	private static Nitrite db = initializeDatabase();
-	private static NitriteCollection dbUploads = db.getCollection("uploads");
 
-	public static void addPossiblyLargeEmbedField(EmbedBuilder builder, String name, String value, boolean inline)
-			throws IOException {
-		if (value.length() <= MessageEmbed.VALUE_MAX_LENGTH) {
-			builder.addField(name, value, inline);
+	private static Optional<String> IMGBB_API_KEY = Optional.empty();
+
+	public static String formatBlueprintFilename(Optional<String> label, String extension) {
+		if (label.isPresent()) {
+			String filename = "blueprint-"
+					+ label.get().replaceAll("[^a-zA-Z0-9\\-\\s]", "").replaceAll("\\s+", "-").toLowerCase();
+			if (filename.length() > 50) {
+				filename = filename.substring(0, 50);
+			}
+			filename += "." + extension;
+			return filename;
 		} else {
-			builder.addField(name + " Link", uploadToHostingService(name + ".txt", value.getBytes()).toString(),
-					inline);
+			return "blueprint." + extension;
 		}
-	}
-
-	private static void addToUploadedDatabase(String fileHash, String url) {
-		dbUploads.insert(Document.createDocument("hash", fileHash).put("url", url));
-	}
-
-	private static Optional<String> checkIfUploadedAlready(String fileHash) {
-		return Optional.ofNullable(dbUploads.find(Filters.eq("hash", fileHash)).firstOrDefault())
-				.flatMap(d -> Optional.ofNullable(d.get("url").toString()));
-	}
-
-	private static byte[] generateDiscordFriendlyPNGImage(BufferedImage image) {
-		byte[] imageData = WebUtils.getImageData(image);
-
-		while (imageData.length > Message.MAX_FILE_SIZE) {
-			image = RenderUtils.scaleImage(image, image.getWidth() / 2, image.getHeight() / 2);
-			imageData = WebUtils.getImageData(image);
-		}
-
-		return imageData;
-	}
-
-	private static String generateFileHash(byte[] fileData) {
-		try {
-			return Hex.encodeHexString(MessageDigest.getInstance("MD5").digest(fileData));
-		} catch (NoSuchAlgorithmException e) {
-			throw new InternalError(e);
-		}
-
 	}
 
 	public static byte[] getImageData(BufferedImage image) {
@@ -84,20 +52,17 @@ public final class WebUtils {
 		}
 	}
 
-	private static Nitrite initializeDatabase() {
-		try {
-			Nitrite db = Nitrite.builder().compressed().filePath("database.db").openOrCreate();
-
-			NitriteCollection dbUploads = db.getCollection("uploads");
-			if (!dbUploads.hasIndex("hash")) {
-				dbUploads.createIndex("hash", IndexOptions.indexOptions(IndexType.Unique));
-			}
-
-			return db;
-		} catch (Exception e) {
-			e.printStackTrace();
-			throw e;
+	private static synchronized String getImgBBAPIKey() {
+		if (IMGBB_API_KEY.isPresent()) {
+			return IMGBB_API_KEY.get();
 		}
+
+		JSONObject configJson = Config.get().getJSONObject("reddit");
+		if (!configJson.has("imgbb-api-key")) {
+			throw new IllegalStateException("Missing ImgBB API Key!");
+		}
+		IMGBB_API_KEY = Optional.of(configJson.getString("imgbb-api-key"));
+		return IMGBB_API_KEY.get();
 	}
 
 	public static InputStream limitMaxBytes(InputStream delegate, int maxBytes) {
@@ -138,31 +103,51 @@ public final class WebUtils {
 		return Utils.readJsonFromStream(new URL(url).openStream());
 	}
 
-	public static String uploadToHostingService(String fileName, BufferedImage image) throws IOException {
-		return uploadToHostingService(fileName, generateDiscordFriendlyPNGImage(image));
-	}
+	public static String uploadToImgBB(BufferedImage image, String name) throws IOException {
+		// 1. Convert BufferedImage to base64
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		ImageIO.write(image, "png", baos);
+		String base64Image = Base64.getEncoder().encodeToString(baos.toByteArray());
 
-	public static String uploadToHostingService(String fileName, byte[] fileData) throws IOException {
-		String fileHash = generateFileHash(fileData);
+		String endpoint = "https://api.imgbb.com/1/upload?key=" + getImgBBAPIKey();
+		String postData = "image=" + URLEncoder.encode(base64Image, StandardCharsets.UTF_8) + "&name="
+				+ URLEncoder.encode(name, StandardCharsets.UTF_8);
 
-		Optional<String> alreadyUploaded = checkIfUploadedAlready(fileHash);
+		URL url = new URL(endpoint);
+		HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+		conn.setRequestMethod("POST");
+		conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+		conn.setDoOutput(true);
 
-		if (alreadyUploaded.isPresent()) {
-			return alreadyUploaded.get();
+		try (DataOutputStream dos = new DataOutputStream(conn.getOutputStream())) {
+			dos.writeBytes(postData);
+			dos.flush();
 		}
 
-		Optional<BlueprintBotDiscordService> discordService = ServiceFinder
-				.findService(BlueprintBotDiscordService.class);
-		if (discordService.isPresent()) {
-			try {
-				String url = discordService.get().useDiscordForFileHosting(fileName, fileData).toString();
-				addToUploadedDatabase(fileHash, url);
-				return url;
-			} catch (Exception e2) {
-				throw new IOException("File hosting failed!", e2);
+		int responseCode = conn.getResponseCode();
+		if (responseCode != HttpURLConnection.HTTP_OK) {
+			throw new IOException("ImgBB upload failed with HTTP code: " + responseCode);
+		}
+
+		StringBuilder responseBuilder = new StringBuilder();
+		try (BufferedReader br = new BufferedReader(
+				new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
+			String line;
+			while ((line = br.readLine()) != null) {
+				responseBuilder.append(line);
 			}
 		}
-		throw new IOException("File hosting failed! (Discord not available)");
+		conn.disconnect();
+
+		JSONObject json = new JSONObject(responseBuilder.toString());
+		if (!json.isNull("data")) {
+			JSONObject dataObject = json.getJSONObject("data");
+			if (!dataObject.isNull("url")) {
+				return dataObject.getString("url");
+			}
+		}
+
+		throw new IOException("Failed to parse ImgBB response. Data or url is missing.");
 	}
 
 	private WebUtils() {

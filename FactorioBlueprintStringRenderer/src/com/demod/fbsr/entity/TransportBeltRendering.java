@@ -1,6 +1,9 @@
 package com.demod.fbsr.entity;
 
 import java.awt.geom.Point2D;
+import java.awt.geom.Point2D.Double;
+import java.util.List;
+import java.util.Optional;
 import java.util.function.Consumer;
 
 import org.json.JSONObject;
@@ -8,94 +11,100 @@ import org.luaj.vm2.LuaValue;
 
 import com.demod.factorio.DataTable;
 import com.demod.factorio.prototype.EntityPrototype;
-import com.demod.fbsr.BlueprintEntity;
+import com.demod.fbsr.BSUtils;
 import com.demod.fbsr.Direction;
-import com.demod.fbsr.EntityRendererFactory;
+import com.demod.fbsr.Layer;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
 import com.demod.fbsr.Sprite;
-import com.demod.fbsr.SpriteDef;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.WorldMap.BeltBend;
+import com.demod.fbsr.WorldMap.BeltCell;
+import com.demod.fbsr.bs.BSControlBehavior;
+import com.demod.fbsr.bs.BSEntity;
+import com.demod.fbsr.entity.TransportBeltRendering.BSTransportBeltEntity;
+import com.demod.fbsr.fp.FPAnimationVariations;
+import com.demod.fbsr.legacy.LegacyBlueprintEntity;
 
-public class TransportBeltRendering extends EntityRendererFactory {
+public class TransportBeltRendering extends TransportBeltConnectableRendering<BSTransportBeltEntity> {
 
-	public static final String[][] transportBeltIndexName = //
-			new String[/* Cardinal */][/* Bend */] { //
-					{ "west_to_north_index", "north_index", "east_to_north_index" }, // North
-					{ "north_to_east_index", "east_index", "south_to_east_index" }, // East
-					{ "east_to_south_index", "south_index", "west_to_south_index" }, // South
-					{ "south_to_west_index", "west_index", "north_to_west_index" }, // West
-			};
+	public static class BSTransportBeltEntity extends BSEntity {
+		public final Optional<BSControlBehavior> controlBehavior;
 
-	public static final int[][] transportBeltIndexDefaults = //
-			new int[/* Cardinal */][/* Bend */] { //
-					{ 6, 2, 4 }, // North
-					{ 5, 0, 8 }, // East
-					{ 9, 3, 11 }, // South
-					{ 10, 1, 7 }, // West
-			};
+		public BSTransportBeltEntity(JSONObject json) {
+			super(json);
 
-	// XXX I'm not using horizontal or vertical frames
-	public static final int[][] transportBeltConnectorFrameMappingIndex = //
-			new int[/* Cardinal */][/* Bend */] { //
-					{ 6, 0, 5 }, // North
-					{ 5, 0, 3 }, // East
-					{ 3, 0, 4 }, // South
-					{ 4, 0, 6 }, // West
-			};
-
-	public static SpriteDef[/* cardinal */][/* bend */] getBeltSprites(EntityPrototype prototype) {
-
-		LuaValue anim = prototype.lua().get("belt_animation_set");
-
-		SpriteDef[][] ret = new SpriteDef[4][BeltBend.values().length];
-
-		for (int cardinal = 0; cardinal < 4; cardinal++) {
-			for (int b = 0; b < BeltBend.values().length; b++) {
-				SpriteDef sprite = RenderUtils.getSpriteFromAnimation(anim.get("animation_set")).get();
-				int spriteIndex;
-				if (!anim.get(transportBeltIndexName[cardinal][b]).isnil()) {
-					spriteIndex = anim.get(transportBeltIndexName[cardinal][b]).toint() - 1;
-				} else {
-					spriteIndex = transportBeltIndexDefaults[cardinal][b];
-				}
-				// XXX Immutability violation
-				sprite.getSource().y = sprite.getSource().height * (spriteIndex);
-				ret[cardinal][b] = sprite;
-			}
+			controlBehavior = BSUtils.opt(json, "control_behavior", BSControlBehavior::new);
 		}
 
-		return ret;
+		public BSTransportBeltEntity(LegacyBlueprintEntity legacy) {
+			super(legacy);
+
+			// TODO need to figure out what is important here
+			// constructing with empty json object on purpose
+			controlBehavior = BSUtils.opt(legacy.json(), "connections", j -> new BSControlBehavior(new JSONObject()));
+		}
 	}
 
-	private SpriteDef[][] protoBeltSprites;
+	private FPAnimationVariations protoConnectorFrameMain;
+	private FPAnimationVariations protoConnectorFrameShadow;
 
-	private SpriteDef protoConnectorShadow;
-
-	private SpriteDef protoConnectorSprite;
+	// TODO circuit connectors
 
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
-			BlueprintEntity entity) {
-		BeltBend bend = map.getBeltBend(entity.getPosition()).get();
+			BSTransportBeltEntity entity) {
+		Double pos = entity.position.createPoint();
+		BeltBend bend = map.getBeltBend(pos).get();
+		int frame = getAlternatingFrame(pos, 0);
 
-		SpriteDef sprite = protoBeltSprites[entity.getDirection().cardinal()][bend.ordinal()];
+		List<Sprite> beltSprites = createBeltSprites(entity.direction.cardinal(), bend.ordinal(), frame);
+		register.accept(RenderUtils.spriteRenderer(Layer.TRANSPORT_BELT, beltSprites, entity, protoSelectionBox));
 
-		register.accept(RenderUtils.spriteDefRenderer(sprite, entity, protoSelectionBox));
+		Point2D.Double forwardPos = entity.direction.offset(pos);
+		boolean ending = true;
+		Optional<BeltCell> optForwardBelt = map.getBelt(forwardPos);
+		if (optForwardBelt.isPresent()) {
+			Direction forwardBeltDir = optForwardBelt.get().getFacing();
+			BeltBend forwardBeltBend = map.getBeltBend(forwardPos, optForwardBelt.get());
+			Direction forwardBeltBackDir = forwardBeltBend.reverse(forwardBeltDir);
+			if (entity.direction == forwardBeltDir.back() || entity.direction == forwardBeltBackDir.back()) {
+				ending = false;
+			}
+		}
+		if (ending) {
+			List<Sprite> endingSprites = createBeltEndingSprites(entity.direction.cardinal(), frame);
+			RenderUtils.shiftSprites(endingSprites, entity.direction.offset());
+			register.accept(
+					RenderUtils.spriteRenderer(Layer.TRANSPORT_BELT_ENDINGS, endingSprites, entity, protoSelectionBox));
+		}
 
-		JSONObject connectionsJson = entity.json().optJSONObject("connections");
-		if (connectionsJson != null && connectionsJson.length() > 0) {
-			int connectorFrameMappingIndex = transportBeltConnectorFrameMappingIndex[entity.getDirection()
-					.cardinal()][bend.ordinal()];
+		Direction backDir = bend.reverse(entity.direction);
+		Point2D.Double backPos = backDir.offset(pos);
+		boolean starting = true;
+		Optional<BeltCell> optBackBelt = map.getBelt(backPos);
+		if (optBackBelt.isPresent()) {
+			Direction backBeltDir = optBackBelt.get().getFacing();
+			BeltBend backBeltBend = map.getBeltBend(backPos, optBackBelt.get());
+			Direction backBeltBackDir = backBeltBend.reverse(backBeltDir);
+			if (backDir == backBeltDir.back() || backDir == backBeltBackDir.back()) {
+				starting = false;
+			}
+		}
+		if (starting) {
+			List<Sprite> startingSprites = createBeltStartingSprites(backDir.cardinal(), frame);
+			RenderUtils.shiftSprites(startingSprites, backDir.offset());
+			register.accept(RenderUtils.spriteRenderer(Layer.TRANSPORT_BELT_ENDINGS, startingSprites, entity,
+					protoSelectionBox));
+		}
 
-			Sprite connectorShadow = protoConnectorShadow.createSprite();
-			connectorShadow.source.y += connectorShadow.source.height * connectorFrameMappingIndex;
-			Sprite connectorSprite = protoConnectorSprite.createSprite();
-			connectorSprite.source.y += connectorSprite.source.height * connectorFrameMappingIndex;
-
-			register.accept(RenderUtils.spriteRenderer(connectorShadow, entity, protoSelectionBox));
-			register.accept(RenderUtils.spriteRenderer(connectorSprite, entity, protoSelectionBox));
+		// TODO switch this over to the wire connector logic
+		if (entity.controlBehavior.isPresent()) {
+			int index = transportBeltConnectorFrameMappingIndex[entity.direction.cardinal()][bend.ordinal()];
+			register.accept(RenderUtils.spriteRenderer(protoConnectorFrameShadow.createSprites(index, 0), entity,
+					protoSelectionBox));
+			register.accept(RenderUtils.spriteRenderer(protoConnectorFrameMain.createSprites(index, 0), entity,
+					protoSelectionBox));
 		}
 	}
 
@@ -103,19 +112,15 @@ public class TransportBeltRendering extends EntityRendererFactory {
 	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
 		super.initFromPrototype(dataTable, prototype);
 
-		protoBeltSprites = getBeltSprites(prototype);
-
-		LuaValue connectorFrameSpritesLua = prototype.lua().get("connector_frame_sprites");
-		protoConnectorShadow = RenderUtils
-				.getSpriteFromAnimation(connectorFrameSpritesLua.get("frame_shadow").get("sheet")).get();
-		protoConnectorSprite = RenderUtils
-				.getSpriteFromAnimation(connectorFrameSpritesLua.get("frame_main").get("sheet")).get();
+		LuaValue connectorLua = prototype.lua().get("connector_frame_sprites");
+		protoConnectorFrameMain = new FPAnimationVariations(connectorLua.get("frame_main"));
+		protoConnectorFrameShadow = new FPAnimationVariations(connectorLua.get("frame_shadow"));
 	}
 
 	@Override
-	public void populateLogistics(WorldMap map, DataTable dataTable, BlueprintEntity entity) {
-		Direction dir = entity.getDirection();
-		Point2D.Double pos = entity.getPosition();
+	public void populateLogistics(WorldMap map, DataTable dataTable, BSTransportBeltEntity entity) {
+		Direction dir = entity.direction;
+		Point2D.Double pos = entity.position.createPoint();
 
 		setLogisticMove(map, pos, dir.frontLeft(), dir);
 		setLogisticMove(map, pos, dir.frontRight(), dir);
@@ -138,8 +143,8 @@ public class TransportBeltRendering extends EntityRendererFactory {
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity) {
-		map.setBelt(entity.getPosition(), entity.getDirection(), true, true);
+	public void populateWorldMap(WorldMap map, DataTable dataTable, BSTransportBeltEntity entity) {
+		map.setBelt(entity.position.createPoint(), entity.direction, true, true);
 	}
 
 }

@@ -1,6 +1,12 @@
 package com.demod.fbsr.entity;
 
-import com.demod.fbsr.EntityRendererFactory;
+import org.luaj.vm2.LuaValue;
 
-public class LabRendering extends EntityRendererFactory {
+import com.demod.fbsr.bs.BSEntity;
+
+public class LabRendering extends SimpleEntityRendering<BSEntity> {
+	@Override
+	public void defineEntity(Bindings bind, LuaValue lua) {
+		bind.animation(lua.get("off_animation"));
+	}
 }

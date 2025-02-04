@@ -1,32 +1,16 @@
 package com.demod.fbsr.entity;
 
-import java.util.List;
-import java.util.function.Consumer;
+import org.luaj.vm2.LuaValue;
 
-import com.demod.factorio.DataTable;
-import com.demod.factorio.prototype.EntityPrototype;
-import com.demod.fbsr.BlueprintEntity;
-import com.demod.fbsr.EntityRendererFactory;
-import com.demod.fbsr.RenderUtils;
-import com.demod.fbsr.Renderer;
-import com.demod.fbsr.SpriteDef;
-import com.demod.fbsr.WorldMap;
+import com.demod.fbsr.bs.BSEntity;
 
-public class LampRendering extends EntityRendererFactory {
+public class LampRendering extends SimpleEntityRendering<BSEntity> {
 
-	private List<SpriteDef> protoSprites;
+	// TODO check if I can get the color and show the lit colored state
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
-			BlueprintEntity entity) {
-		register.accept(RenderUtils.spriteDefRenderer(protoSprites, entity, protoSelectionBox));
+	public void defineEntity(Bindings bind, LuaValue lua) {
+		bind.sprite(lua.get("picture_off"));
+		bind.circuitConnector(lua.get("circuit_connector"));
 	}
-
-	@Override
-	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
-		super.initFromPrototype(dataTable, prototype);
-
-		protoSprites = RenderUtils.getSpritesFromAnimation(prototype.lua().get("picture_off"));
-	}
-
 }

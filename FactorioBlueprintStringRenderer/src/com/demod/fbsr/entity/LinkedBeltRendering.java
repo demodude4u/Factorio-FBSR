@@ -1,49 +1,70 @@
 package com.demod.fbsr.entity;
 
+import java.util.List;
+import java.util.Optional;
 import java.util.function.Consumer;
+
+import org.json.JSONObject;
+import org.luaj.vm2.LuaValue;
 
 import com.demod.factorio.DataTable;
 import com.demod.factorio.prototype.EntityPrototype;
-import com.demod.fbsr.BlueprintEntity;
+import com.demod.fbsr.BSUtils;
 import com.demod.fbsr.Direction;
-import com.demod.fbsr.EntityRendererFactory;
+import com.demod.fbsr.Layer;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
-import com.demod.fbsr.Renderer.Layer;
 import com.demod.fbsr.Sprite;
-import com.demod.fbsr.SpriteDef;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.WorldMap.BeltBend;
+import com.demod.fbsr.bs.BSEntity;
+import com.demod.fbsr.entity.LinkedBeltRendering.BSLinkedBeltEntity;
+import com.demod.fbsr.fp.FPSprite4Way;
+import com.demod.fbsr.legacy.LegacyBlueprintEntity;
 
-public class LinkedBeltRendering extends EntityRendererFactory {
+public class LinkedBeltRendering extends TransportBeltConnectableRendering<BSLinkedBeltEntity> {
 
-	private SpriteDef[][] protoBeltSprites;
-	private SpriteDef protoInputSprite;
-	private SpriteDef protoOutputSprite;
+	public static class BSLinkedBeltEntity extends BSEntity {
+		public final Optional<String> type;
+
+		public BSLinkedBeltEntity(JSONObject json) {
+			super(json);
+
+			type = BSUtils.optString(json, "type");
+		}
+
+		public BSLinkedBeltEntity(LegacyBlueprintEntity legacy) {
+			super(legacy);
+
+			type = BSUtils.optString(legacy.json(), "type");
+		}
+
+	}
+
+	private FPSprite4Way protoStructureDirectionIn;
+	private FPSprite4Way protoStructureDirectionOut;
 
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
-			BlueprintEntity entity) {
-		boolean input = entity.json().getString("type").equals("input");
-		Direction structDir = input ? entity.getDirection() : entity.getDirection().back();
+			BSLinkedBeltEntity entity) {
+		List<Sprite> beltSprites = createBeltSprites(entity.direction.cardinal(), BeltBend.NONE.ordinal(),
+				getAlternatingFrame(entity.position.createPoint(), 0));
+		register.accept(RenderUtils.spriteRenderer(Layer.TRANSPORT_BELT, beltSprites, entity, protoSelectionBox));
 
-		SpriteDef beltSprite = protoBeltSprites[entity.getDirection().cardinal()][BeltBend.NONE.ordinal()];
-
-		Sprite sprite = (input ? protoInputSprite : protoOutputSprite).createSprite();
-		sprite.source.x += sprite.source.width * (structDir.cardinal());
-
-		register.accept(RenderUtils.spriteDefRenderer(Layer.ENTITY, beltSprite, entity, protoSelectionBox));
-		register.accept(RenderUtils.spriteRenderer(Layer.ENTITY2, sprite, entity, protoSelectionBox));
+		boolean input = entity.type.get().equals("input");
+		Direction structDir = input ? entity.direction : entity.direction.back();
+		List<Sprite> structureSprites = (input ? protoStructureDirectionIn : protoStructureDirectionOut)
+				.createSprites(structDir);
+		register.accept(
+				RenderUtils.spriteRenderer(Layer.HIGHER_OBJECT_UNDER, structureSprites, entity, protoSelectionBox));
 	}
 
 	@Override
 	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
 		super.initFromPrototype(dataTable, prototype);
 
-		protoBeltSprites = TransportBeltRendering.getBeltSprites(prototype);
-		protoInputSprite = RenderUtils
-				.getSpriteFromAnimation(prototype.lua().get("structure").get("direction_in").get("sheet")).get();
-		protoOutputSprite = RenderUtils
-				.getSpriteFromAnimation(prototype.lua().get("structure").get("direction_out").get("sheet")).get();
+		LuaValue luaStructure = prototype.lua().get("structure");
+		protoStructureDirectionIn = new FPSprite4Way(luaStructure.get("direction_in"));
+		protoStructureDirectionOut = new FPSprite4Way(luaStructure.get("direction_out"));
 	}
 }

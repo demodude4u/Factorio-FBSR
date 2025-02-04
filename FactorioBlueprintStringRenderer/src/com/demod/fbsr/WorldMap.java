@@ -5,15 +5,15 @@ import java.awt.geom.Point2D.Double;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 
+import com.demod.fbsr.bs.BSEntity;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -24,8 +24,51 @@ import com.google.common.collect.Table.Cell;
 
 public class WorldMap {
 
+	public static class BeaconSource {
+		private final int row;
+		private final int col;
+		private final BSEntity beacon;
+		private final double distributionEffectivity;
+
+		public BeaconSource(int row, int col, BSEntity beacon, double distributionEffectivity) {
+			this.row = row;
+			this.col = col;
+			this.beacon = beacon;
+			this.distributionEffectivity = distributionEffectivity;
+		}
+
+		public BSEntity getBeacon() {
+			return beacon;
+		}
+
+		public int getCol() {
+			return col;
+		}
+
+		public double getDistributionEffectivity() {
+			return distributionEffectivity;
+		}
+
+		public int getRow() {
+			return row;
+		}
+	}
+
 	public static enum BeltBend {
-		FROM_LEFT, NONE, FROM_RIGHT;
+		FROM_LEFT(d -> d.left()), //
+		NONE(d -> d.back()), //
+		FROM_RIGHT(d -> d.right()),//
+		;
+
+		private final Function<Direction, Direction> rotation;
+
+		private BeltBend(Function<Direction, Direction> rotation) {
+			this.rotation = rotation;
+		}
+
+		public Direction reverse(Direction dir) {
+			return rotation.apply(dir);
+		}
 	}
 
 	public static class BeltCell {
@@ -229,25 +272,24 @@ public class WorldMap {
 	private final Table<Integer, Integer, Object> walls = HashBasedTable.create();
 	private final Table<Integer, Integer, Boolean> gates = HashBasedTable.create();
 	private final Table<Integer, Integer, Entry<String, Direction>> undergroundBeltEndings = HashBasedTable.create();
-	private final Table<Integer, Integer, List<BlueprintEntity>> beaconed = HashBasedTable.create();
+	private final Table<Integer, Integer, List<BeaconSource>> beaconed = HashBasedTable.create();
+	private final Table<Integer, Integer, BSEntity> cargoBayConnectables = HashBasedTable.create();
 
 	// Row: X*2
 	// Column: Y*2
 	private final Table<Integer, Integer, LogisticGridCell> logisticGrid = HashBasedTable.create();
 	private final Table<Integer, Integer, RailNode> railNodes = HashBasedTable.create();
 
-	// Key: "eid1|cid1|eid2|cid2|color"
-	private final Map<String, Entry<Point2D.Double, Point2D.Double>> wires = new LinkedHashMap<>();
-
 	private final List<Entry<RailEdge, RailEdge>> railEdges = new ArrayList<>();
 
-	private boolean newFormatDetected = false;
+	private boolean altMode = false;
+	private boolean spacePlatform = false;
 
 	private int flag(Direction facing) {
 		return 1 << facing.cardinal();
 	}
 
-	public Optional<List<BlueprintEntity>> getBeaconed(Point2D.Double pos) {
+	public Optional<List<BeaconSource>> getBeaconed(Point2D.Double pos) {
 		int kr = (int) Math.floor(pos.x);
 		int kc = (int) Math.floor(pos.y);
 		return Optional.ofNullable(beaconed.get(kr, kc));
@@ -339,21 +381,19 @@ public class WorldMap {
 		return railNodes;
 	}
 
-	public Entry<Point2D.Double, Point2D.Double> getWire(String key) {
-		return wires.get(key);
-	}
-
-	public Map<String, Entry<Point2D.Double, Point2D.Double>> getWires() {
-		return wires;
-	}
-
-	public boolean hasWire(String key) {
-		return wires.containsKey(key);
+	public boolean isAltMode() {
+		return altMode;
 	}
 
 	public boolean isBeltFacingMeFrom(Point2D.Double pos, Direction dir) {
 		return getBelt(dir.offset(pos)).filter(b -> b.bendOthers).map(b -> b.facing)
 				.map(d -> pos.distance(d.offset(dir.offset(pos))) < 0.1).orElse(false);
+	}
+
+	public boolean isCargoBayConnectable(Point2D.Double pos) {
+		int kr = (int) Math.floor(pos.x);
+		int kc = (int) Math.floor(pos.y);
+		return cargoBayConnectables.contains(kr, kc);
 	}
 
 	public boolean isHeatPipe(Point2D.Double pos, Direction facing) {
@@ -375,14 +415,14 @@ public class WorldMap {
 				.filter(p -> p.getKey().equals(name) && p.getValue().ordinal() == dir.ordinal()).isPresent();
 	}
 
-	public boolean isNewFormatDetected() {
-		return newFormatDetected;
-	}
-
 	public boolean isPipe(Point2D.Double pos, Direction facing) {
 		int kr = (int) Math.floor(pos.x);
 		int kc = (int) Math.floor(pos.y);
 		return pipes.contains(kr, kc) && (pipes.get(kr, kc) & flag(facing)) > 0;
+	}
+
+	public boolean isSpacePlatform() {
+		return spacePlatform;
 	}
 
 	public boolean isVerticalGate(Point2D.Double pos) {
@@ -397,20 +437,30 @@ public class WorldMap {
 		return walls.contains(kr, kc);
 	}
 
-	public void setBeaconed(Point2D.Double pos, BlueprintEntity beacon) {
+	public void setAltMode(boolean altMode) {
+		this.altMode = altMode;
+	}
+
+	public void setBeaconed(Point2D.Double pos, BSEntity beacon, double distributionEffectivity) {
 		int kr = (int) Math.floor(pos.x);
 		int kc = (int) Math.floor(pos.y);
-		List<BlueprintEntity> list = beaconed.get(kr, kc);
+		List<BeaconSource> list = beaconed.get(kr, kc);
 		if (list == null) {
 			beaconed.put(kr, kc, list = new LinkedList<>());
 		}
-		list.add(beacon);
+		list.add(new BeaconSource(kr, kc, beacon, distributionEffectivity));
 	}
 
 	public void setBelt(Point2D.Double pos, Direction facing, boolean bendable, boolean bendOthers) {
 		int kr = (int) Math.floor(pos.x);
 		int kc = (int) Math.floor(pos.y);
 		belts.put(kr, kc, new BeltCell(facing, bendable, bendOthers));
+	}
+
+	public void setCargoBayConnectable(Point2D.Double pos, BSEntity entity) {
+		int kr = (int) Math.floor(pos.x);
+		int kc = (int) Math.floor(pos.y);
+		cargoBayConnectables.put(kr, kc, entity);
 	}
 
 	public void setHeatPipe(Point2D.Double pos, Direction... facings) {
@@ -431,10 +481,6 @@ public class WorldMap {
 		int kr = (int) Math.floor(pos.x);
 		int kc = (int) Math.floor(pos.y);
 		gates.put(kr, kc, false);
-	}
-
-	public void setNewFormatDetected(boolean newFormatDetected) {
-		this.newFormatDetected = newFormatDetected;
 	}
 
 	public void setPipe(Point2D.Double pos, Direction... facings) {
@@ -463,6 +509,10 @@ public class WorldMap {
 		railEdges.add(new SimpleEntry<>(edge1, edge2));
 	}
 
+	public void setSpacePlatform(boolean spacePlatform) {
+		this.spacePlatform = spacePlatform;
+	}
+
 	public void setUndergroundBeltEnding(String name, Point2D.Double pos, Direction dir) {
 		int kr = (int) Math.floor(pos.x);
 		int kc = (int) Math.floor(pos.y);
@@ -479,9 +529,5 @@ public class WorldMap {
 		int kr = (int) Math.floor(pos.x);
 		int kc = (int) Math.floor(pos.y);
 		walls.put(kr, kc, pos);
-	}
-
-	public void setWire(String key, Entry<Point2D.Double, Point2D.Double> pair) {
-		wires.put(key, pair);
 	}
 }

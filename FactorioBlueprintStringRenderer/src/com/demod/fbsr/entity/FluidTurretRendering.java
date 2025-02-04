@@ -1,42 +1,12 @@
 package com.demod.fbsr.entity;
 
-import java.util.function.Consumer;
+import org.luaj.vm2.LuaValue;
 
-import com.demod.factorio.DataTable;
-import com.demod.factorio.prototype.EntityPrototype;
-import com.demod.fbsr.BlueprintEntity;
-import com.demod.fbsr.Direction;
-import com.demod.fbsr.EntityRendererFactory;
-import com.demod.fbsr.RenderUtils;
-import com.demod.fbsr.RenderUtils.SpriteDirDefList;
-import com.demod.fbsr.Renderer;
-import com.demod.fbsr.WorldMap;
-
-public class FluidTurretRendering extends EntityRendererFactory {
-
-	private SpriteDirDefList protoBaseSprites;
-	private SpriteDirDefList protoTurretSprites;
-
+public class FluidTurretRendering extends TurretRendering {
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
-			BlueprintEntity entity) {
+	public void defineEntity(Bindings bind, LuaValue lua) {
+		super.defineEntity(bind, lua);
 
-		register.accept(RenderUtils.spriteDirDefRenderer(protoBaseSprites, entity, protoSelectionBox));
-		register.accept(RenderUtils.spriteDirDefRenderer(protoTurretSprites, entity, protoSelectionBox));
-	}
-
-	@Override
-	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
-		super.initFromPrototype(dataTable, prototype);
-
-		protoBaseSprites = RenderUtils.getDirSpritesFromAnimation(prototype.lua().get("base_picture"));
-		protoTurretSprites = RenderUtils.getDirSpritesFromAnimation(prototype.lua().get("folded_animation"));
-	}
-
-	@Override
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity) {
-		Direction dir = entity.getDirection();
-		map.setPipe(dir.right().offset(dir.back().offset(entity.getPosition()), 0.5), dir.right());
-		map.setPipe(dir.left().offset(dir.back().offset(entity.getPosition()), 0.5), dir.left());
+		bind.fluidBox(lua.get("fluid_box"));
 	}
 }

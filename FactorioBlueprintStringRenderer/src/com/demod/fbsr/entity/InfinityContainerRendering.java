@@ -6,11 +6,11 @@ import java.awt.Rectangle;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import org.json.JSONObject;
 
@@ -18,28 +18,57 @@ import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
 import com.demod.factorio.Utils;
 import com.demod.factorio.prototype.ItemPrototype;
-import com.demod.fbsr.BlueprintEntity;
+import com.demod.fbsr.BSUtils;
 import com.demod.fbsr.Direction;
-import com.demod.fbsr.EntityRendererFactory;
+import com.demod.fbsr.Layer;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
-import com.demod.fbsr.Renderer.Layer;
 import com.demod.fbsr.Sprite;
 import com.demod.fbsr.WorldMap;
+import com.demod.fbsr.bs.BSEntity;
+import com.demod.fbsr.bs.BSInfinitySettings;
+import com.demod.fbsr.entity.InfinityContainerRendering.BSInfinityContainerEntity;
+import com.demod.fbsr.legacy.LegacyBlueprintEntity;
 
-public class InfinityContainerRendering extends EntityRendererFactory {
+public class InfinityContainerRendering extends ContainerRendering<BSInfinityContainerEntity> {
+	public static class BSInfinityContainerEntity extends BSEntity {
+		public final Optional<BSInfinitySettings> infinitySettings;
+
+		public BSInfinityContainerEntity(JSONObject json) {
+			super(json);
+
+			infinitySettings = BSUtils.opt(json, "infinity_settings", BSInfinitySettings::new);
+		}
+
+		public BSInfinityContainerEntity(LegacyBlueprintEntity legacy) {
+			super(legacy);
+
+			if (legacy.json().has("infinity_settings")
+					&& legacy.json().getJSONObject("infinity_settings").has("filters")) {
+				List<String> items = new ArrayList<>();
+				Utils.<JSONObject>forEach(legacy.json().getJSONObject("infinity_settings").getJSONArray("filters"),
+						j -> {
+							if (j.getInt("count") > 0)
+								items.add(j.getString("name"));
+						});
+
+				infinitySettings = Optional.of(new BSInfinitySettings(items));
+			} else {
+				infinitySettings = Optional.empty();
+			}
+		}
+	}
+
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
-			BlueprintEntity entity) {
+			BSInfinityContainerEntity entity) {
 		super.createRenderers(register, map, dataTable, entity);
 
-		if (entity.json().has("infinity_settings") && entity.json().getJSONObject("infinity_settings").has("filters")) {
-			List<String> items = new ArrayList<>();
-			Utils.<JSONObject>forEach(entity.json().getJSONObject("infinity_settings").getJSONArray("filters"), j -> {
-				if (j.getInt("count") > 0)
-					items.add(j.getString("name"));
-			});
+		if (entity.infinitySettings.isPresent() && map.isAltMode()) {
+			List<String> items = entity.infinitySettings.get().filters.stream().filter(bs -> bs.count > 0)
+					.map(bs -> bs.name).collect(Collectors.toList());
 
+			// TODO show double/quad icons if more than one
 			if (!items.isEmpty()) {
 				String itemName = items.get(0);
 				Optional<ItemPrototype> optItem = dataTable.getItem(itemName);
@@ -50,7 +79,7 @@ public class InfinityContainerRendering extends EntityRendererFactory {
 					spriteIcon.bounds = new Rectangle2D.Double(-0.3, -0.3, 0.6, 0.6);
 
 					Renderer delegate = RenderUtils.spriteRenderer(spriteIcon, entity, protoSelectionBox);
-					register.accept(new Renderer(Layer.OVERLAY4, delegate.getBounds()) {
+					register.accept(new Renderer(Layer.ENTITY_INFO_ICON, delegate.getBounds(), true) {
 						@Override
 						public void render(Graphics2D g) throws Exception {
 							g.setColor(new Color(0, 0, 0, 128));
@@ -64,16 +93,13 @@ public class InfinityContainerRendering extends EntityRendererFactory {
 	}
 
 	@Override
-	public void populateLogistics(WorldMap map, DataTable dataTable, BlueprintEntity entity) {
-		Point2D.Double pos = entity.getPosition();
+	public void populateLogistics(WorldMap map, DataTable dataTable, BSInfinityContainerEntity entity) {
+		Point2D.Double pos = entity.position.createPoint();
 
-		if (entity.json().has("infinity_settings") && entity.json().getJSONObject("infinity_settings").has("filters")) {
+		if (entity.infinitySettings.isPresent()) {
 
-			Set<String> outputs = new LinkedHashSet<>();
-			Utils.<JSONObject>forEach(entity.json().getJSONObject("infinity_settings").getJSONArray("filters"), j -> {
-				if (j.getInt("count") > 0)
-					outputs.add(j.getString("name"));
-			});
+			Set<String> outputs = entity.infinitySettings.get().filters.stream().filter(bs -> bs.count > 0)
+					.map(bs -> bs.name).collect(Collectors.toSet());
 
 			map.getOrCreateLogisticGridCell(Direction.NORTHEAST.offset(pos, 0.25)).setOutputs(Optional.of(outputs));
 			map.getOrCreateLogisticGridCell(Direction.NORTHWEST.offset(pos, 0.25)).setOutputs(Optional.of(outputs));

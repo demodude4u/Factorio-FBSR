@@ -11,39 +11,28 @@ import java.awt.geom.Path2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
+import java.lang.reflect.Field;
 import java.text.DecimalFormat;
-import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import org.json.JSONArray;
 import org.json.JSONObject;
-import org.luaj.vm2.LuaValue;
 
 import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
 import com.demod.factorio.Utils;
 import com.demod.factorio.prototype.ItemPrototype;
-import com.demod.fbsr.Renderer.Layer;
+import com.demod.fbsr.bs.BSEntity;
+import com.demod.fbsr.bs.BSItemStack;
+import com.demod.fbsr.fp.FPBoundingBox;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.Multiset;
 
 public final class RenderUtils {
-	public static class SpriteDirDefList {
-		@SuppressWarnings("unchecked")
-		private final List<SpriteDef>[] dirSprites = new List[Direction.values().length];
-
-		public List<SpriteDef> get(Direction direction) {
-			return dirSprites[direction.ordinal()];
-		}
-
-		public void set(Direction direction, List<SpriteDef> sprites) {
-			dirSprites[direction.ordinal()] = sprites;
-		}
-	}
 
 	public static final BufferedImage EMPTY_IMAGE = new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
 
@@ -53,19 +42,37 @@ public final class RenderUtils {
 
 	private static final DecimalFormat DECIMAL_FORMAT_2_PLACES = new DecimalFormat("#,##0.##");
 
-	public static List<Sprite> createSprites(List<List<SpriteDef>> sprites, Direction dir) {
-		return createSprites(sprites.get(dir.ordinal()));
+	public static Sprite createSprite(String filename, boolean shadow, String blendMode, Color tint, int srcX, int srcY,
+			int srcWidth, int srcHeight, double dstX, double dstY, double dstScale) {
+
+		Sprite ret = new Sprite();
+		ret.image = FactorioData.getModImage(filename);
+		ret.shadow = shadow;
+
+		if (!blendMode.equals("normal")) { // FIXME blending will take effort
+			ret.image = RenderUtils.EMPTY_IMAGE;
+		}
+
+		// FIXME
+		if (!tint.equals(Color.white)) {
+			ret.image = Utils.tintImage(ret.image, tint);
+		}
+
+		double scaledWidth = dstScale * srcWidth / FBSR.TILE_SIZE;
+		double scaledHeight = dstScale * srcHeight / FBSR.TILE_SIZE;
+		ret.source = new Rectangle(srcX, srcY, srcWidth, srcHeight);
+		ret.bounds = new Rectangle2D.Double(dstX - scaledWidth / 2.0, dstY - scaledHeight / 2.0, scaledWidth,
+				scaledHeight);
+
+		return ret;
 	}
 
-	public static List<Sprite> createSprites(List<SpriteDef> sprites) {
-		return sprites.stream().map(SpriteDef::createSprite).collect(Collectors.toList());
-	}
-
-	public static Renderer createWireRenderer(Point2D.Double p1, Point2D.Double p2, Color color) {
+	public static Renderer createWireRenderer(Point2D.Double p1, Point2D.Double p2, Color color, Point2D.Double shadow1,
+			Point2D.Double shadow2) {
 		Rectangle2D.Double bounds = new Rectangle2D.Double();
 		bounds.setFrameFromDiagonal(p1, p2);
 
-		return new Renderer(Layer.WIRE, bounds) {
+		return new EntityRenderer(Layer.WIRE, bounds, true) {
 			final double drop = 0.6;
 
 			@Override
@@ -78,6 +85,22 @@ public final class RenderUtils {
 				path.moveTo(p1.x, p1.y);
 				Point2D.Double mid = new Point2D.Double((p1.x + p2.x) / 2, (p1.y + p2.y) / 2 + drop);
 				path.curveTo(mid.x, mid.y, mid.x, mid.y, p2.x, p2.y);
+				g.draw(path);
+
+				g.setStroke(ps);
+			}
+
+			@Override
+			public void renderShadows(Graphics2D g) throws Exception {
+				Stroke ps = g.getStroke();
+				g.setStroke(new BasicStroke(1f / 48f));
+				g.setColor(Color.black);
+
+				Path2D.Double path = new Path2D.Double();
+				path.moveTo(shadow1.x, shadow1.y);
+				Point2D.Double mid = new Point2D.Double((shadow1.x + shadow2.x) / 2 - drop,
+						(shadow1.y + shadow2.y) / 2);
+				path.curveTo(mid.x, mid.y, mid.x, mid.y, shadow2.x, shadow2.y);
 				g.draw(path);
 
 				g.setStroke(ps);
@@ -96,7 +119,7 @@ public final class RenderUtils {
 
 	public static Renderer drawRotatedString(Layer layer, Point2D.Double position, double angle, Color color,
 			String string) {
-		return new Renderer(layer, position) {
+		return new Renderer(layer, position, true) {
 			@Override
 			public void render(Graphics2D g) {
 				AffineTransform pat = g.getTransform();
@@ -123,7 +146,7 @@ public final class RenderUtils {
 	}
 
 	public static Renderer drawString(Layer layer, Point2D.Double position, Color color, String string) {
-		return new Renderer(layer, position) {
+		return new Renderer(layer, position, true) {
 			@Override
 			public void render(Graphics2D g) {
 				g.setFont(new Font("Monospaced", Font.BOLD, 1).deriveFont(0.4f));
@@ -149,6 +172,18 @@ public final class RenderUtils {
 		return DECIMAL_FORMAT_2_PLACES.format(value);
 	}
 
+	public static String fmtItemQuantity(double amount) {
+		String amountStr;
+		if (amount < 10000) {
+			amountStr = fmtDouble(Math.ceil(amount));
+		} else if (amount < 1000000) {
+			amountStr = fmtDouble(Math.ceil(amount / 1000)) + "k";
+		} else {
+			amountStr = fmtDouble(Math.ceil(amount / 1000000)) + "M";
+		}
+		return amountStr;
+	}
+
 	public static Color getAverageColor(BufferedImage image) {
 		int[] pixels = image.getRGB(0, 0, image.getWidth(), image.getHeight(), null, 0, image.getWidth());
 		float sumR = 0, sumG = 0, sumB = 0, sumA = 0;
@@ -163,144 +198,19 @@ public final class RenderUtils {
 		return new Color(sumR / sumA, sumG / sumA, sumB / sumA);
 	}
 
-	public static SpriteDirDefList getDirSpritesFromAnimation(LuaValue lua) {
-		SpriteDirDefList ret = new SpriteDirDefList();
-		for (Direction direction : Direction.values()) {
-			ret.set(direction, getSpritesFromAnimation(lua, direction));
-		}
-		return ret;
-	}
-
-	public static Optional<Multiset<String>> getModules(BlueprintEntity entity, DataTable table) {
-		// TODO new format
-		if (entity.isJsonNewFormat() || !entity.json().has("items")) {
-			return Optional.empty();
-		}
+	public static Multiset<String> getModules(BSEntity entity, DataTable table) {
 
 		Multiset<String> modules = LinkedHashMultiset.create();
 
-		Object itemsJson = entity.json().get("items");
-		if (itemsJson instanceof JSONObject) {
-			Utils.forEach(entity.json().getJSONObject("items"), (String itemName, Integer count) -> {
-				modules.add(itemName, count);
-			});
-		} else if (itemsJson instanceof JSONArray) {
-			Utils.<JSONObject>forEach(entity.json().getJSONArray("items"), j -> {
-				modules.add(j.getString("item"), j.getInt("count"));
-			});
-		}
-
-		modules.entrySet().removeIf(e -> {
-			Optional<ItemPrototype> item = table.getItem(e.getElement());
-			return !item.isPresent() || !item.get().getType().equals("module");
-		});
-
-		return Optional.of(modules);
-	}
-
-	public static Optional<SpriteDef> getSpriteFromAnimation(LuaValue lua) {
-		return getSpriteFromAnimation(lua, 0);
-	}
-
-	/***
-	 * @param fileNameSelector The 1-based index of the desired image path in the
-	 *                         "filenames" array. Used only if "filenames" property
-	 *                         exists.
-	 */
-	public static Optional<SpriteDef> getSpriteFromAnimation(LuaValue lua, int fileNameSelector) {
-		LuaValue sheetLua = lua.get("sheet");
-		if (!sheetLua.isnil()) {
-			lua = sheetLua;
-		}
-
-		LuaValue hrVersion = lua.get("hr_version");
-		if (!hrVersion.isnil()) {
-			lua = hrVersion;
-		}
-
-		Sprite ret = new Sprite();
-		String imagePath;
-		if (!lua.get("filenames").isnil()) {
-			// if (fileNameSelector == 0)
-			// System.err.println("Using 'filenames' but file name selector is not set!");
-			// if the above happens, it will automatically throw with the below line
-			imagePath = lua.get("filenames").get(fileNameSelector).tojstring();
-		} else {
-			imagePath = lua.get("filename").tojstring();
-		}
-		if (imagePath.equals("nil")) {
-			return Optional.empty();
-		}
-		ret.image = FactorioData.getModImage(imagePath);
-
-		boolean drawAsShadow = lua.get("draw_as_shadow").optboolean(false);
-		ret.shadow = drawAsShadow;
-
-		String blendMode = lua.get("blend_mode").optjstring("normal");
-		if (!blendMode.equals("normal")) { // FIXME blending will take effort
-			ret.image = EMPTY_IMAGE;
-		}
-		LuaValue tint = lua.get("tint");
-		if (!tint.isnil()) {
-			ret.image = Utils.tintImage(ret.image, Utils.parseColor(tint));
-		}
-		double scale = lua.get("scale").optdouble(1.0);
-		int srcX = lua.get("x").optint(0);
-		int srcY = lua.get("y").optint(0);
-		int srcWidth = lua.get("width").checkint();
-		double width = scale * srcWidth / FBSR.tileSize;
-		int srcHeight = lua.get("height").checkint();
-		double height = scale * srcHeight / FBSR.tileSize;
-		Point2D.Double shift = Utils.parsePoint2D(lua.get("shift"));
-		ret.source = new Rectangle(srcX, srcY, srcWidth, srcHeight);
-		ret.bounds = new Rectangle2D.Double(shift.x - width / 2.0, shift.y - height / 2.0, width, height);
-		return Optional.of(new SpriteDef(ret));
-	}
-
-	public static List<SpriteDef> getSpritesFromAnimation(LuaValue lua) {
-		return getSpritesFromAnimation(lua, 0);
-	}
-
-	public static List<SpriteDef> getSpritesFromAnimation(LuaValue lua, Direction direction) {
-		LuaValue dirLua = lua.get(direction.name().toLowerCase());
-		if (!dirLua.isnil()) {
-			return getSpritesFromAnimation(dirLua, 0);
-		} else {
-			return getSpritesFromAnimation(lua, 0);
-		}
-	}
-
-	/***
-	 * @param fileNameSelector The 1-based index of the desired image path in the
-	 *                         "filenames" array. Used only if "filenames" property
-	 *                         exists.
-	 */
-	public static List<SpriteDef> getSpritesFromAnimation(LuaValue lua, int fileNameSelector) {
-		List<SpriteDef> sprites = new ArrayList<>();
-		LuaValue layersLua = lua.get("layers");
-		if (layersLua.isnil()) {
-			layersLua = lua.get("sheets");
-		}
-		if (!layersLua.isnil()) {
-			Utils.forEach(layersLua.checktable(), (i, l) -> {
-				Optional<SpriteDef> spriteOpt = getSpriteFromAnimation(l, fileNameSelector);
-				if (spriteOpt.isPresent()) {
-					SpriteDef sprite = spriteOpt.get().withOrder(i.toint());
-					sprites.add(sprite);
-				}
-			});
-		} else {
-			getSpriteFromAnimation(lua, fileNameSelector).ifPresent(sprites::add);
-		}
-
-		sprites.sort((s1, s2) -> {
-			if (s1.isShadow() != s2.isShadow()) {
-				return Boolean.compare(s2.isShadow(), s1.isShadow());
+		for (BSItemStack itemStack : entity.items) {
+			String itemName = itemStack.id.name;
+			Optional<ItemPrototype> item = table.getItem(itemName);
+			if (item.isPresent() && item.get().getType().equals("module")) {
+				modules.add(itemName, itemStack.itemsInInventory.size());
 			}
-			return Integer.compare(s2.getOrder(), s1.getOrder());
-		});
+		}
 
-		return sprites;
+		return modules;
 	}
 
 	public static void halveAlpha(BufferedImage image) {
@@ -322,6 +232,70 @@ public final class RenderUtils {
 				(float) json.getDouble("a"));
 	}
 
+	public static <T> T pickDirectional(List<T> list, BSEntity entity) {
+		switch (list.size()) {
+		case 1:
+			return list.get(0);
+		case 4:
+			return list.get(entity.direction.cardinal());
+		case 8:
+			return list.get(entity.direction.ordinal());
+		case 16:
+			return list.get(entity.directionRaw);
+		}
+		return null;// XXX should I do something?
+	}
+
+	// Useful for BS and FP objects
+	public static void printObjectTree(Object obj) {
+		printObjectTree(obj, "");
+	}
+
+	private static void printObjectTree(Object obj, String prefix) {
+		if (obj == null) {
+			System.out.println(prefix + "null");
+			return;
+		}
+		Class<?> clazz = obj.getClass();
+
+		if (obj instanceof Collection) {
+			System.out.println(prefix + "(Collection):");
+			for (Object item : (Collection<?>) obj)
+				printObjectTree(item, prefix + "|  ");
+		} else if (obj instanceof Optional) {
+			Optional<?> optional = (Optional<?>) obj;
+			if (optional.isPresent()) {
+				System.out.println(prefix + "(Optional Present):");
+				printObjectTree(optional.get(), prefix + "|  ");
+			} else {
+				System.out.println(prefix + "(Optional Empty)");
+			}
+		} else if (clazz.isPrimitive() || obj instanceof String || obj instanceof Number || obj instanceof Boolean) {
+			System.out.println(prefix + obj.toString());
+		} else {
+			System.out.println(prefix + clazz.getName() + ":");
+			for (Field field : clazz.getDeclaredFields()) {
+				if (java.lang.reflect.Modifier.isPublic(field.getModifiers())
+						&& java.lang.reflect.Modifier.isFinal(field.getModifiers())) {
+					try {
+						field.setAccessible(true);
+						Object fieldValue = field.get(obj);
+						if (fieldValue == null || fieldValue instanceof String || fieldValue instanceof Number
+								|| fieldValue instanceof Boolean || fieldValue.getClass().isPrimitive()) {
+							System.out.println(prefix + "|  " + field.getName() + ": " + fieldValue);
+						} else {
+							System.out.println(
+									prefix + "|  " + field.getName() + ": (" + fieldValue.getClass().getName() + ")");
+							printObjectTree(fieldValue, prefix + "|  ");
+						}
+					} catch (IllegalAccessException e) {
+						System.out.println(prefix + "|  " + field.getName() + ": [Error accessing field]");
+					}
+				}
+			}
+		}
+	}
+
 	public static BufferedImage scaleImage(BufferedImage image, int width, int height) {
 		BufferedImage ret = new BufferedImage(width, height, image.getType());
 		Graphics2D g = ret.createGraphics();
@@ -337,41 +311,13 @@ public final class RenderUtils {
 		}
 	}
 
-	public static EntityRenderer spriteDefRenderer(Layer layer, List<SpriteDef> sprites, BlueprintEntity entity,
-			RectDef bounds) {
-		return spriteRenderer(layer, createSprites(sprites), entity, bounds);
+	public static EntityRenderer spriteRenderer(Layer layer, List<Sprite> sprites, BSEntity entity,
+			FPBoundingBox bounds) {
+		return spriteRenderer(layer, sprites, entity.position.createPoint(), bounds.rotate(entity.direction));
 	}
 
-	public static EntityRenderer spriteDefRenderer(Layer layer, SpriteDef sprite, BlueprintEntity entity,
-			RectDef bounds) {
-		return spriteRenderer(layer, sprite.createSprite(), entity, bounds);
-	}
-
-	public static Renderer spriteDefRenderer(Layer layer, SpriteDef sprite, BlueprintTile tile) {
-		return spriteRenderer(layer, sprite.createSprite(), tile);
-	}
-
-	public static EntityRenderer spriteDefRenderer(List<SpriteDef> sprites, BlueprintEntity entity, RectDef bounds) {
-		return spriteRenderer(createSprites(sprites), entity, bounds);
-	}
-
-	public static EntityRenderer spriteDefRenderer(SpriteDef sprite, BlueprintEntity entity, RectDef bounds) {
-		return spriteRenderer(sprite.createSprite(), entity, bounds);
-	}
-
-	public static EntityRenderer spriteDirDefRenderer(Layer layer, SpriteDirDefList sprites, BlueprintEntity entity,
-			RectDef bounds) {
-		return spriteRenderer(layer, createSprites(sprites.get(entity.getDirection())), entity, bounds);
-	}
-
-	public static EntityRenderer spriteDirDefRenderer(SpriteDirDefList sprites, BlueprintEntity entity,
-			RectDef bounds) {
-		return spriteRenderer(createSprites(sprites.get(entity.getDirection())), entity, bounds);
-	}
-
-	public static EntityRenderer spriteRenderer(Layer layer, List<Sprite> sprites, BlueprintEntity entity,
-			RectDef bounds) {
-		Point2D.Double pos = entity.getPosition();
+	public static EntityRenderer spriteRenderer(Layer layer, List<Sprite> sprites, Point2D.Double pos,
+			FPBoundingBox bounds) {
 		RenderUtils.shiftSprites(sprites, pos);
 
 		Map<Boolean, List<Sprite>> groupedSprites = sprites.stream()
@@ -381,16 +327,13 @@ public final class RenderUtils {
 		groundBounds.x += pos.x;
 		groundBounds.y += pos.y;
 
-		return new EntityRenderer(layer, groundBounds) {
+		return new EntityRenderer(layer, groundBounds, false) {
 			@SuppressWarnings("unused")
 			private void debugShowBounds(Rectangle2D.Double groundBounds, Graphics2D g) {
 				long x = Math.round(groundBounds.getCenterX() * 2);
 				long y = Math.round(groundBounds.getCenterY() * 2);
 				long w = Math.round(groundBounds.width * 2);
 				long h = Math.round(groundBounds.height * 2);
-
-				// System.out.println("x=" + x + " y=" + y + " w=" + w + "
-				// h=" + h);
 
 				g.setColor(new Color(255, 255, 255, 64));
 				g.draw(groundBounds);
@@ -422,16 +365,16 @@ public final class RenderUtils {
 		};
 	}
 
-	public static EntityRenderer spriteRenderer(Layer layer, Sprite sprite, BlueprintEntity entity, RectDef bounds) {
+	public static EntityRenderer spriteRenderer(Layer layer, Sprite sprite, BSEntity entity, FPBoundingBox bounds) {
 		return spriteRenderer(layer, ImmutableList.of(sprite), entity, bounds);
 	}
 
-	public static Renderer spriteRenderer(Layer layer, Sprite sprite, BlueprintTile tile) {
-		Point2D.Double pos = tile.getPosition();
-		sprite.bounds.x += pos.x;
-		sprite.bounds.y += pos.y;
+	public static EntityRenderer spriteRenderer(Layer layer, Sprite sprite, Point2D.Double pos, FPBoundingBox bounds) {
+		return spriteRenderer(layer, ImmutableList.of(sprite), pos, bounds);
+	}
 
-		return new Renderer(layer, new Rectangle2D.Double(pos.x - 0.5, pos.y - 0.5, 1.0, 1.0)) {
+	public static Renderer spriteRenderer(Layer layer, Sprite sprite, Rectangle2D.Double bounds) {
+		return new Renderer(layer, bounds, false) {
 			@SuppressWarnings("unused")
 			private void debugShowBounds(Rectangle2D.Double groundBounds, Graphics2D g) {
 				long x = Math.round(groundBounds.getCenterX() * 2);
@@ -463,12 +406,12 @@ public final class RenderUtils {
 		};
 	}
 
-	public static EntityRenderer spriteRenderer(List<Sprite> sprites, BlueprintEntity entity, RectDef bounds) {
-		return spriteRenderer(Layer.ENTITY, sprites, entity, bounds);
+	public static EntityRenderer spriteRenderer(List<Sprite> sprites, BSEntity entity, FPBoundingBox bounds) {
+		return spriteRenderer(Layer.OBJECT, sprites, entity, bounds);
 	}
 
-	public static EntityRenderer spriteRenderer(Sprite sprite, BlueprintEntity entity, RectDef bounds) {
-		return spriteRenderer(Layer.ENTITY, sprite, entity, bounds);
+	public static EntityRenderer spriteRenderer(Sprite sprite, BSEntity entity, FPBoundingBox bounds) {
+		return spriteRenderer(Layer.OBJECT, sprite, entity, bounds);
 	}
 
 	public static Color withAlpha(Color color, int alpha) {

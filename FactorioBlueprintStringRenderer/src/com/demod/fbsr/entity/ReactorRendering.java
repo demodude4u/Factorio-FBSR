@@ -1,40 +1,29 @@
 package com.demod.fbsr.entity;
 
-import java.util.function.Consumer;
+import org.luaj.vm2.LuaValue;
 
 import com.demod.factorio.DataTable;
-import com.demod.factorio.prototype.EntityPrototype;
-import com.demod.fbsr.BlueprintEntity;
 import com.demod.fbsr.Direction;
-import com.demod.fbsr.EntityRendererFactory;
-import com.demod.fbsr.RenderUtils;
-import com.demod.fbsr.RenderUtils.SpriteDirDefList;
-import com.demod.fbsr.Renderer;
 import com.demod.fbsr.WorldMap;
+import com.demod.fbsr.bs.BSEntity;
 
-public class ReactorRendering extends EntityRendererFactory {
-
-	private SpriteDirDefList protoDirSprites2;
-
+public class ReactorRendering extends SimpleEntityRendering<BSEntity> {
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
-			BlueprintEntity entity) {
-		register.accept(RenderUtils.spriteDirDefRenderer(protoDirSprites, entity, protoSelectionBox));
-		register.accept(RenderUtils.spriteDirDefRenderer(protoDirSprites2, entity, protoSelectionBox));
+	public void defineEntity(Bindings bind, LuaValue lua) {
+		LuaValue luaLowerLayerPicture = lua.get("lower_layer_picture");
+		if (!luaLowerLayerPicture.isnil()) {
+			bind.sprite(luaLowerLayerPicture);
+		}
+		bind.sprite(lua.get("picture"));
+		bind.circuitConnector(lua.get("circuit_connector"));
 	}
 
 	@Override
-	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
-		super.initFromPrototype(dataTable, prototype);
+	public void populateWorldMap(WorldMap map, DataTable dataTable, BSEntity entity) {
+		super.populateWorldMap(map, dataTable, entity);
 
-		protoDirSprites = RenderUtils.getDirSpritesFromAnimation(prototype.lua().get("picture"));
-		protoDirSprites2 = RenderUtils.getDirSpritesFromAnimation(prototype.lua().get("lower_layer_picture"));
-	}
-
-	@Override
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity) {
 		for (Direction dir : Direction.values()) {
-			map.setHeatPipe(dir.offset(entity.getPosition(), 2));
+			map.setHeatPipe(dir.offset(entity.position.createPoint(), 2));
 		}
 	}
 }

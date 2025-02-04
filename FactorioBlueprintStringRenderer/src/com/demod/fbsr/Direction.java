@@ -5,38 +5,42 @@ import java.awt.geom.Point2D;
 import java.awt.geom.Point2D.Double;
 import java.awt.geom.Rectangle2D;
 
-import org.json.JSONObject;
-
 public enum Direction {
-	NORTH(0, -1), //
-	NORTHEAST(1, -1), //
-	EAST(1, 0), //
-	SOUTHEAST(1, 1), //
-	SOUTH(0, 1), //
-	SOUTHWEST(-1, 1), //
-	WEST(-1, 0), //
-	NORTHWEST(-1, -1);
+	NORTH("N", 0, -1), //
+	NORTHEAST("NE", 1, -1), //
+	EAST("E", 1, 0), //
+	SOUTHEAST("SE", 1, 1), //
+	SOUTH("S", 0, 1), //
+	SOUTHWEST("SW", -1, 1), //
+	WEST("W", -1, 0), //
+	NORTHWEST("NW", -1, -1);
 
 	public static Direction fromCardinal(int cardinal) {
 		return values()[cardinal * 2];
 	}
 
-	public static Direction fromEntityJSON(JSONObject entityJson, MapVersion version) {
-		int dir = entityJson.optInt("direction", 0);
-		if (version.greaterOrEquals(Blueprint.VERSION_NEW_FORMAT)) {
-			// TODO need to support the new direction angles
-			return Direction.values()[dir / 2];
-		} else {
-			return Direction.values()[dir];
+	public static Direction fromSymbol(String symbol) {
+		for (Direction direction : values()) {
+			if (direction.symbol.equals(symbol)) {
+				return direction;
+			}
 		}
+		throw new IllegalArgumentException("Unknown symbol \"" + symbol + "\"");
 	}
 
+	private final String symbol;
 	private final int dx;
+
 	private final int dy;
 
-	private Direction(int dx, int dy) {
+	private Direction(String symbol, int dx, int dy) {
+		this.symbol = symbol;
 		this.dx = dx;
 		this.dy = dy;
+	}
+
+	public int adjCode() {
+		return 1 << ordinal();
 	}
 
 	public Direction back() {
@@ -71,12 +75,32 @@ public enum Direction {
 		return dy;
 	}
 
+	public double getOrientation() {
+		return ordinal() / 8.0;
+	}
+
 	public boolean isCardinal() {
 		return (ordinal() % 2) == 0;
 	}
 
+	public boolean isHorizontal() {
+		return this == EAST || this == WEST;
+	}
+
+	public boolean isVertical() {
+		return this == NORTH || this == SOUTH;
+	}
+
 	public Direction left() {
 		return rotate(-2);
+	}
+
+	public Point2D.Double offset() {
+		return new Point2D.Double(dx, dy);
+	}
+
+	public Double offset(double distance) {
+		return new Point2D.Double(distance * dx, distance * dy);
 	}
 
 	public Point2D.Double offset(Point2D.Double pos) {
@@ -112,5 +136,13 @@ public enum Direction {
 		AffineTransform at = new AffineTransform();
 		at.rotate(Math.PI * 2.0 * ordinal() / 8.0);
 		return at.createTransformedShape(bounds).getBounds2D();
+	}
+
+	public Point2D.Double rotatePoint(Point2D.Double point) {
+		AffineTransform at = new AffineTransform();
+		at.rotate(Math.PI * 2.0 * ordinal() / 8.0);
+		Point2D.Double ret = new Point2D.Double();
+		at.deltaTransform(point, ret);
+		return ret;
 	}
 }

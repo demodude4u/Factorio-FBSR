@@ -1,32 +1,13 @@
 package com.demod.fbsr.entity;
 
-import java.util.List;
-import java.util.function.Consumer;
+import org.luaj.vm2.LuaValue;
 
-import com.demod.factorio.DataTable;
-import com.demod.factorio.prototype.EntityPrototype;
-import com.demod.fbsr.BlueprintEntity;
-import com.demod.fbsr.EntityRendererFactory;
-import com.demod.fbsr.RenderUtils;
-import com.demod.fbsr.Renderer;
-import com.demod.fbsr.SpriteDef;
-import com.demod.fbsr.WorldMap;
+import com.demod.fbsr.bs.BSEntity;
 
-public class RadarRendering extends EntityRendererFactory {
-
-	private List<SpriteDef> protoSprites;
-
+public class RadarRendering extends SimpleEntityRendering<BSEntity> {
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
-			BlueprintEntity entity) {
-
-		register.accept(RenderUtils.spriteDefRenderer(protoSprites, entity, protoSelectionBox));
-	}
-
-	@Override
-	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
-		super.initFromPrototype(dataTable, prototype);
-
-		protoSprites = RenderUtils.getSpritesFromAnimation(prototype.lua().get("pictures"));
+	public void defineEntity(Bindings bind, LuaValue lua) {
+		bind.rotatedSprite(lua.get("pictures"));
+		bind.circuitConnector(lua.get("circuit_connector"));
 	}
 }

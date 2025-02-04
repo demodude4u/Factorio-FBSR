@@ -11,17 +11,29 @@ public class MapVersion {
 	}
 
 	private final long version;
+	private final int main;
+	private final int major;
+	private final int minor;
+	private final int dev;
 
 	public MapVersion() {
-		this.version = 0;
+		this(0);
 	}
 
 	public MapVersion(int main, int major, int minor, int dev) {
+		this.main = main;
+		this.major = major;
+		this.minor = minor;
+		this.dev = dev;
 		this.version = (dev) | ((long) (minor) << 16) | ((long) (major) << 32) | ((long) (main) << 48);
 	}
 
 	public MapVersion(long serialized) {
 		this.version = serialized;
+		main = (int) ((version >> 48) & UINT16_MASK);
+		major = (int) ((version >> 32) & UINT16_MASK);
+		minor = (int) ((version >> 16) & UINT16_MASK);
+		dev = (int) (version & UINT16_MASK);
 	}
 
 	@Override
@@ -33,21 +45,36 @@ public class MapVersion {
 		return false;
 	}
 
+	public int getDev() {
+		return dev;
+	}
+
+	public int getMain() {
+		return main;
+	}
+
+	public int getMajor() {
+		return major;
+	}
+
+	public int getMinor() {
+		return minor;
+	}
+
 	public long getSerialized() {
-		return this.version;
+		return version;
 	}
 
 	public boolean greaterOrEquals(MapVersion other) {
-		return this.version >= other.version;
+		return version >= other.version;
 	}
 
-	public boolean isEmpty() {
-		return this.version == 0;
+	public boolean isInvalid() {
+		return version == 0;
 	}
 
 	@Override
 	public String toString() {
-		return "MapVersion: main: " + ((version >> 48) & UINT16_MASK) + " major: " + ((version >> 32) & UINT16_MASK)
-				+ " minor: " + ((version >> 16) & UINT16_MASK) + " dev: " + (version & UINT16_MASK);
+		return "(" + main + "." + major + "." + minor + ")";
 	}
 }

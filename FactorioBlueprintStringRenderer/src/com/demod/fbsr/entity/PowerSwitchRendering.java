@@ -1,32 +1,30 @@
 package com.demod.fbsr.entity;
 
-import java.util.List;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 
-import com.demod.factorio.DataTable;
-import com.demod.factorio.prototype.EntityPrototype;
-import com.demod.fbsr.BlueprintEntity;
-import com.demod.fbsr.EntityRendererFactory;
-import com.demod.fbsr.RenderUtils;
-import com.demod.fbsr.Renderer;
-import com.demod.fbsr.SpriteDef;
-import com.demod.fbsr.WorldMap;
+import org.luaj.vm2.LuaValue;
 
-public class PowerSwitchRendering extends EntityRendererFactory {
+import com.demod.fbsr.WirePoints;
+import com.demod.fbsr.WirePoints.WireColor;
+import com.demod.fbsr.bs.BSEntity;
+import com.demod.fbsr.fp.FPWireConnectionPoint;
+import com.google.common.collect.ImmutableList;
 
-	private List<SpriteDef> protoSprites;
-
+public class PowerSwitchRendering extends SimpleEntityRendering<BSEntity> {
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
-			BlueprintEntity entity) {
-
-		register.accept(RenderUtils.spriteDefRenderer(protoSprites, entity, protoSelectionBox));
+	public void defineEntity(Bindings bind, LuaValue lua) {
+		bind.animation(lua.get("power_on_animation"));
 	}
 
 	@Override
-	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
-		super.initFromPrototype(dataTable, prototype);
+	public void defineWirePoints(BiConsumer<Integer, WirePoints> consumer, LuaValue lua) {
+		FPWireConnectionPoint circuitPoint = new FPWireConnectionPoint(lua.get("circuit_wire_connection_point"));
+		FPWireConnectionPoint leftPoint = new FPWireConnectionPoint(lua.get("left_wire_connection_point"));
+		FPWireConnectionPoint rightPoint = new FPWireConnectionPoint(lua.get("right_wire_connection_point"));
 
-		protoSprites = RenderUtils.getSpritesFromAnimation(prototype.lua().get("power_on_animation"));
+		consumer.accept(1, WirePoints.fromWireConnectionPoints(ImmutableList.of(circuitPoint), WireColor.RED, true));
+		consumer.accept(2, WirePoints.fromWireConnectionPoints(ImmutableList.of(circuitPoint), WireColor.GREEN, true));
+		consumer.accept(5, WirePoints.fromWireConnectionPoints(ImmutableList.of(leftPoint), WireColor.COPPER, true));
+		consumer.accept(6, WirePoints.fromWireConnectionPoints(ImmutableList.of(rightPoint), WireColor.COPPER, true));
 	}
 }

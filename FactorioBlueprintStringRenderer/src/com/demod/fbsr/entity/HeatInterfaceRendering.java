@@ -1,13 +1,22 @@
 package com.demod.fbsr.entity;
 
-import com.demod.factorio.DataTable;
-import com.demod.fbsr.BlueprintEntity;
-import com.demod.fbsr.EntityRendererFactory;
-import com.demod.fbsr.WorldMap;
+import org.luaj.vm2.LuaValue;
 
-public class HeatInterfaceRendering extends EntityRendererFactory {
+import com.demod.factorio.DataTable;
+import com.demod.fbsr.WorldMap;
+import com.demod.fbsr.bs.BSEntity;
+
+public class HeatInterfaceRendering extends SimpleEntityRendering<BSEntity> {
+
 	@Override
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity) {
-		map.setHeatPipe(entity.getPosition());
+	public void defineEntity(Bindings bind, LuaValue lua) {
+		bind.sprite(lua.get("picture"));
+	}
+
+	@Override
+	public void populateWorldMap(WorldMap map, DataTable dataTable, BSEntity entity) {
+		super.populateWorldMap(map, dataTable, entity);
+
+		map.setHeatPipe(entity.position.createPoint());
 	}
 }

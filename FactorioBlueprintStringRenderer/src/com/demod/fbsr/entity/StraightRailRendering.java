@@ -1,36 +1,13 @@
 package com.demod.fbsr.entity;
 
 import java.awt.geom.Point2D;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.Map.Entry;
-import java.util.function.Consumer;
-
-import org.luaj.vm2.LuaValue;
 
 import com.demod.factorio.DataTable;
-import com.demod.factorio.prototype.EntityPrototype;
-import com.demod.fbsr.BlueprintEntity;
 import com.demod.fbsr.Direction;
-import com.demod.fbsr.EntityRendererFactory;
-import com.demod.fbsr.RenderUtils;
-import com.demod.fbsr.Renderer;
-import com.demod.fbsr.Renderer.Layer;
-import com.demod.fbsr.SpriteDef;
 import com.demod.fbsr.WorldMap;
+import com.demod.fbsr.bs.BSEntity;
 
-public class StraightRailRendering extends EntityRendererFactory {
-
-	private static final String[] railNames = { //
-			"straight_rail_vertical", // N
-			"straight_rail_diagonal_right_top", // NE
-			"straight_rail_horizontal", // E
-			"straight_rail_diagonal_right_bottom", // SE
-			"straight_rail_vertical", // S
-			"straight_rail_diagonal_left_bottom", // SW
-			"straight_rail_horizontal", // W
-			"straight_rail_diagonal_left_top", // NW
-	};
+public class StraightRailRendering extends RailRendering {
 
 	private static final int[][][] pathEnds = //
 			new int[/* dir */][/* points */][/* x,y,dir */] { //
@@ -44,48 +21,18 @@ public class StraightRailRendering extends EntityRendererFactory {
 					{ { -1, 0, 1 }, { 0, -1, 5 } }, // NW
 			};
 
-	public static final LinkedHashMap<String, Layer> railLayers = new LinkedHashMap<>();
-
-	static {
-		railLayers.put("stone_path_background", Layer.RAIL_STONE_BACKGROUND);
-		railLayers.put("stone_path", Layer.RAIL_STONE);
-		railLayers.put("ties", Layer.RAIL_TIES);
-		railLayers.put("backplates", Layer.RAIL_BACKPLATES);
-		railLayers.put("metals", Layer.RAIL_METALS);
+	public StraightRailRendering() {
+		this(false);
 	}
-	private ArrayList<LinkedHashMap<Layer, SpriteDef>> protoDirRailLayers;
 
-	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
-			BlueprintEntity entity) {
-
-		LinkedHashMap<Layer, SpriteDef> railLayers = protoDirRailLayers.get(entity.getDirection().ordinal());
-		for (Entry<Layer, SpriteDef> entry : railLayers.entrySet()) {
-			register.accept(RenderUtils.spriteDefRenderer(entry.getKey(), entry.getValue(), entity, protoSelectionBox));
-		}
+	public StraightRailRendering(boolean elevated) {
+		super(elevated);
 	}
 
 	@Override
-	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
-		super.initFromPrototype(dataTable, prototype);
-
-		protoDirRailLayers = new ArrayList<>();
-		for (int i = 0; i < Direction.values().length; i++) {
-			String railName = railNames[i];
-			LuaValue pictureRailLua = prototype.lua().get("pictures").get(railName);
-			LinkedHashMap<Layer, SpriteDef> layers = new LinkedHashMap<>();
-			for (Entry<String, Layer> entry : StraightRailRendering.railLayers.entrySet()) {
-				layers.put(entry.getValue(),
-						RenderUtils.getSpriteFromAnimation(pictureRailLua.get(entry.getKey())).get());
-			}
-			protoDirRailLayers.add(layers);
-		}
-	}
-
-	@Override
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity) {
-		Point2D.Double pos = entity.getPosition();
-		Direction dir = entity.getDirection();
+	public void populateWorldMap(WorldMap map, DataTable dataTable, BSEntity entity) {
+		Point2D.Double pos = entity.position.createPoint();
+		Direction dir = entity.direction;
 
 		int[][] points = pathEnds[dir.ordinal()];
 		Point2D.Double p1 = new Point2D.Double(pos.x + points[0][0], pos.y + points[0][1]);

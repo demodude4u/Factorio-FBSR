@@ -8,28 +8,54 @@ import java.awt.geom.Path2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Point2D.Double;
 import java.awt.geom.Rectangle2D;
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 
-import org.luaj.vm2.LuaValue;
+import org.json.JSONObject;
 
 import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.factorio.prototype.ItemPrototype;
-import com.demod.fbsr.BlueprintEntity;
+import com.demod.fbsr.BSUtils;
 import com.demod.fbsr.Direction;
-import com.demod.fbsr.EntityRendererFactory;
+import com.demod.fbsr.FPUtils;
+import com.demod.fbsr.Layer;
 import com.demod.fbsr.RenderUtils;
-import com.demod.fbsr.RenderUtils.SpriteDirDefList;
 import com.demod.fbsr.Renderer;
-import com.demod.fbsr.Renderer.Layer;
 import com.demod.fbsr.Sprite;
-import com.demod.fbsr.SpriteDef;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.WorldMap.BeltBend;
+import com.demod.fbsr.bs.BSEntity;
+import com.demod.fbsr.bs.BSFilter;
+import com.demod.fbsr.entity.SplitterRendering.BSSplitterEntity;
+import com.demod.fbsr.fp.FPAnimation4Way;
+import com.demod.fbsr.legacy.LegacyBlueprintEntity;
 
-public class SplitterRendering extends EntityRendererFactory {
+public class SplitterRendering extends TransportBeltConnectableRendering<BSSplitterEntity> {
+
+	public static class BSSplitterEntity extends BSEntity {
+		public final Optional<String> inputPriority;
+		public final Optional<String> outputPriority;
+		public final Optional<BSFilter> filter;
+
+		public BSSplitterEntity(JSONObject json) {
+			super(json);
+
+			inputPriority = BSUtils.optString(json, "input_priority");
+			outputPriority = BSUtils.optString(json, "output_priority");
+			filter = BSUtils.opt(json, "filter", BSFilter::new);
+		}
+
+		public BSSplitterEntity(LegacyBlueprintEntity legacy) {
+			super(legacy);
+
+			inputPriority = BSUtils.optString(legacy.json(), "input_priority");
+			outputPriority = BSUtils.optString(legacy.json(), "output_priority");
+			filter = BSUtils.optString(legacy.json(), "filter").map(s -> new BSFilter(s));
+		}
+	}
 
 	private static final Path2D.Double markerShape = new Path2D.Double();
 	static {
@@ -39,42 +65,45 @@ public class SplitterRendering extends EntityRendererFactory {
 		markerShape.closePath();
 	}
 
-	private SpriteDef[][] protoBeltSprites;
-	private SpriteDirDefList protoPatch;
+	private FPAnimation4Way protoStructure;
+	private Optional<FPAnimation4Way> protoStructurePatch;
 
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
-			BlueprintEntity entity) {
-		Direction dir = entity.getDirection();
+			BSSplitterEntity entity) {
+		Direction dir = entity.direction;
 
-		Sprite belt1Sprite = protoBeltSprites[dir.cardinal()][BeltBend.NONE.ordinal()].createSprite();
-		Sprite belt2Sprite = new Sprite(belt1Sprite);
+		Point2D.Double belt1Shift = dir.left().offset(new Point2D.Double(), 0.5);
+		Point2D.Double belt2Shift = dir.right().offset(new Point2D.Double(), 0.5);
 
-		Point2D.Double beltShift = dir.left().offset(new Point2D.Double(), 0.5);
+		List<Sprite> belt1Sprites = createBeltSprites(dir.cardinal(), BeltBend.NONE.ordinal(),
+				getAlternatingFrame(entity.position.createPoint(belt1Shift), 0));
+		List<Sprite> belt2Sprites = createBeltSprites(dir.cardinal(), BeltBend.NONE.ordinal(),
+				getAlternatingFrame(entity.position.createPoint(belt2Shift), 0));
 
-		belt1Sprite.bounds.x += beltShift.x;
-		belt1Sprite.bounds.y += beltShift.y;
-		belt2Sprite.bounds.x -= beltShift.x;
-		belt2Sprite.bounds.y -= beltShift.y;
+		RenderUtils.shiftSprites(belt1Sprites, belt1Shift);
+		RenderUtils.shiftSprites(belt2Sprites, belt2Shift);
 
-		register.accept(RenderUtils.spriteRenderer(Layer.ENTITY, belt1Sprite, entity, protoSelectionBox));
-		register.accept(RenderUtils.spriteRenderer(Layer.ENTITY, belt2Sprite, entity, protoSelectionBox));
+		register.accept(RenderUtils.spriteRenderer(Layer.TRANSPORT_BELT, belt1Sprites, entity, protoSelectionBox));
+		register.accept(RenderUtils.spriteRenderer(Layer.TRANSPORT_BELT, belt2Sprites, entity, protoSelectionBox));
 
-		if ((protoPatch != null) && (dir == Direction.WEST || dir == Direction.EAST)) {
-			register.accept(RenderUtils.spriteDirDefRenderer(Layer.ENTITY2, protoPatch, entity, protoSelectionBox));
+		if (protoStructurePatch.isPresent() && (dir == Direction.WEST || dir == Direction.EAST)) {
+			register.accept(RenderUtils.spriteRenderer(Layer.HIGHER_OBJECT_UNDER,
+					protoStructurePatch.get().createSprites(entity.direction, 0), entity, protoSelectionBox));
 		}
 
-		register.accept(RenderUtils.spriteDirDefRenderer(Layer.ENTITY2, protoDirSprites, entity, protoSelectionBox));
+		register.accept(RenderUtils.spriteRenderer(Layer.HIGHER_OBJECT_UNDER,
+				protoStructure.createSprites(entity.direction, 0), entity, protoSelectionBox));
 
-		Double pos = entity.getPosition();
+		Point2D.Double pos = entity.position.createPoint();
 		Point2D.Double leftPos = dir.left().offset(pos, 0.5);
 		Point2D.Double rightPos = dir.right().offset(pos, 0.5);
 
-		if (entity.json().has("input_priority")) {
-			boolean right = entity.json().getString("input_priority").equals("right");
+		if (entity.inputPriority.isPresent() && map.isAltMode()) {
+			boolean right = entity.inputPriority.get().equals("right");
 			Point2D.Double inputPos = dir.offset(right ? rightPos : leftPos, 0);
 
-			register.accept(new Renderer(Layer.OVERLAY3, inputPos) {
+			register.accept(new Renderer(Layer.ENTITY_INFO_ICON_ABOVE, inputPos, true) {
 				@Override
 				public void render(Graphics2D g) {
 					AffineTransform pat = g.getTransform();
@@ -101,14 +130,13 @@ public class SplitterRendering extends EntityRendererFactory {
 			});
 		}
 
-		if (entity.json().has("output_priority")) {
-			boolean right = entity.json().getString("output_priority").equals("right");
+		if (entity.outputPriority.isPresent() && map.isAltMode()) {
+			boolean right = entity.outputPriority.get().equals("right");
 			Point2D.Double outputPos = dir.offset(right ? rightPos : leftPos, 0.6);
 
-			// TODO new format filter
-			if (!entity.isJsonNewFormat() && entity.json().has("filter")) {
+			if (entity.filter.isPresent()) {
 				Point2D.Double iconPos = right ? rightPos : leftPos;
-				String itemName = entity.json().getString("filter");
+				String itemName = entity.filter.get().name;
 				Sprite spriteIcon = new Sprite();
 				Optional<ItemPrototype> optItem = dataTable.getItem(itemName);
 				if (optItem.isPresent()) {
@@ -118,7 +146,7 @@ public class SplitterRendering extends EntityRendererFactory {
 
 					Renderer delegate = RenderUtils.spriteRenderer(spriteIcon, entity, protoSelectionBox);
 					spriteIcon.bounds = new Rectangle2D.Double(iconPos.x - 0.3, iconPos.y - 0.3, 0.6, 0.6);
-					register.accept(new Renderer(Layer.OVERLAY2, delegate.getBounds()) {
+					register.accept(new Renderer(Layer.ENTITY_INFO_ICON, delegate.getBounds(), true) {
 						@Override
 						public void render(Graphics2D g) throws Exception {
 							g.setColor(new Color(0, 0, 0, 128));
@@ -128,7 +156,7 @@ public class SplitterRendering extends EntityRendererFactory {
 					});
 				}
 			} else {
-				register.accept(new Renderer(Layer.OVERLAY3, outputPos) {
+				register.accept(new Renderer(Layer.ENTITY_INFO_ICON_ABOVE, outputPos, true) {
 					@Override
 					public void render(Graphics2D g) {
 						AffineTransform pat = g.getTransform();
@@ -161,23 +189,14 @@ public class SplitterRendering extends EntityRendererFactory {
 	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
 		super.initFromPrototype(dataTable, prototype);
 
-		protoBeltSprites = TransportBeltRendering.getBeltSprites(prototype);
-
-		LuaValue structurePatch = prototype.lua().get("structure_patch");
-		if (!structurePatch.isnil()) {
-			protoPatch = RenderUtils.getDirSpritesFromAnimation(structurePatch);
-		} else {
-			protoPatch = null;
-		}
-
-		protoDirSprites = RenderUtils.getDirSpritesFromAnimation(prototype.lua().get("structure"));
-
+		protoStructurePatch = FPUtils.opt(prototype.lua().get("structure_patch"), FPAnimation4Way::new);
+		protoStructure = new FPAnimation4Way(prototype.lua().get("structure"));
 	}
 
 	@Override
-	public void populateLogistics(WorldMap map, DataTable dataTable, BlueprintEntity entity) {
-		Direction dir = entity.getDirection();
-		Double pos = entity.getPosition();
+	public void populateLogistics(WorldMap map, DataTable dataTable, BSSplitterEntity entity) {
+		Direction dir = entity.direction;
+		Double pos = entity.position.createPoint();
 		Point2D.Double leftPos = dir.left().offset(pos, 0.5);
 		Point2D.Double rightPos = dir.right().offset(pos, 0.5);
 
@@ -186,12 +205,11 @@ public class SplitterRendering extends EntityRendererFactory {
 		setLogisticMoveAndAcceptFilter(map, rightPos, dir.frontLeft(), dir, dir);
 		setLogisticMoveAndAcceptFilter(map, rightPos, dir.frontRight(), dir, dir);
 
-		// TODO new format filter
-		if (!entity.isJsonNewFormat() && entity.json().has("output_priority") && entity.json().has("filter")) {
-			boolean right = entity.json().getString("output_priority").equals("right");
+		if (entity.outputPriority.isPresent() && entity.filter.isPresent()) {
+			boolean right = entity.outputPriority.get().equals("right");
 			Point2D.Double outPos = right ? rightPos : leftPos;
 			Point2D.Double notOutPos = !right ? rightPos : leftPos;
-			String itemName = entity.json().getString("filter");
+			String itemName = entity.filter.get().name;
 
 			map.getOrCreateLogisticGridCell(dir.frontLeft().offset(outPos, 0.25)).addOutput(itemName);
 			map.getOrCreateLogisticGridCell(dir.frontRight().offset(outPos, 0.25)).addOutput(itemName);
@@ -222,10 +240,11 @@ public class SplitterRendering extends EntityRendererFactory {
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BlueprintEntity entity) {
-		Direction direction = entity.getDirection();
-		Point2D.Double belt1Pos = direction.left().offset(entity.getPosition(), 0.5);
-		Point2D.Double belt2Pos = direction.right().offset(entity.getPosition(), 0.5);
+	public void populateWorldMap(WorldMap map, DataTable dataTable, BSSplitterEntity entity) {
+		Direction direction = entity.direction;
+		Point2D.Double pos = entity.position.createPoint();
+		Point2D.Double belt1Pos = direction.left().offset(pos, 0.5);
+		Point2D.Double belt2Pos = direction.right().offset(pos, 0.5);
 		map.setBelt(belt1Pos, direction, false, true);
 		map.setBelt(belt2Pos, direction, false, true);
 	}
