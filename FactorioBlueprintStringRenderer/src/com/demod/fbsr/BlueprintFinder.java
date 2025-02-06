@@ -20,14 +20,28 @@ import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import com.demod.dcba.CommandReporting;
 import com.demod.factorio.Utils;
 import com.demod.fbsr.bs.BSBlueprintString;
+import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.Uninterruptibles;
 
 public final class BlueprintFinder {
+
+	public static class FindBlueprintResult {
+		public final boolean encoded;
+		public final Optional<String> encodedData;
+		public final Optional<JSONObject> decodedData;
+
+		public FindBlueprintResult(Optional<String> encodedData, Optional<JSONObject> decodedData) {
+			this.encoded = encodedData.isPresent();
+			this.encodedData = encodedData;
+			this.decodedData = decodedData;
+		}
+	}
 
 	public interface Provider {
 		public interface InputStreamFactory {
@@ -77,7 +91,7 @@ public final class BlueprintFinder {
 			JSONObject response = WebUtils.readJsonFromURL("https://api.github.com/gists/" + m.group("id"));
 			JSONObject filesJson = response.getJSONObject("files");
 			Utils.<JSONObject>forEach(filesJson, (k, v) -> {
-				if (v.getString("type").startsWith("text/plain")) {
+				if (CONTENT_TYPES.stream().anyMatch(s -> v.getString("type").startsWith(s))) {
 					l.handleURL(v.getString("raw_url"));
 				}
 			});
@@ -97,14 +111,14 @@ public final class BlueprintFinder {
 			URL url = new URL(m.group("url"));
 			URLConnection connection = WebUtils.openConnectionWithFakeUserAgent(url);
 			Optional<String> contentType = Optional.ofNullable(connection.getContentType());
-			if (contentType.isPresent() && contentType.get().startsWith("text/plain")) {
+			if (contentType.isPresent() && CONTENT_TYPES.stream().anyMatch(s -> contentType.get().startsWith(s))) {
 				l.handleConnection(connection);
 			}
 		}), //
 
 		;
 
-		private Pattern pattern;
+		private final Pattern pattern;
 		private final Mapper mapper;
 
 		private Providers(String regex, Function<Matcher, String> simpleMapper) {
@@ -127,6 +141,8 @@ public final class BlueprintFinder {
 		}
 	}
 
+	public static List<String> CONTENT_TYPES = ImmutableList.of("text/plain", "application/json");
+
 	private static final List<Provider> providers = new ArrayList<>();
 
 	static {
@@ -135,12 +151,26 @@ public final class BlueprintFinder {
 
 	private static final Pattern blueprintPattern = Pattern.compile("([0-9][A-Za-z0-9+\\/=\\r\\n]{90,})");
 
-	private static void findBlueprints(InputStream in, CommandReporting reporting, Set<String> results) {
-		try (Scanner scanner = new Scanner(in)) {
+	private static void findBlueprints(InputStream in, CommandReporting reporting, Set<FindBlueprintResult> results)
+			throws IOException {
+		String content = new String(in.readNBytes(20000000));
+
+		try {
+			int first = content.indexOf('{');
+			int last = content.lastIndexOf('}');
+			if (first != -1 && last != -1) {
+				JSONObject json = new JSONObject(content.substring(first, last + 1));
+				results.add(new FindBlueprintResult(Optional.empty(), Optional.of(json)));
+				return;
+			}
+		} catch (JSONException e) {
+		}
+
+		try (Scanner scanner = new Scanner(content)) {
 			String blueprintString;
-			while ((blueprintString = scanner.findWithinHorizon(blueprintPattern, 4000000)) != null) {
+			while ((blueprintString = scanner.findWithinHorizon(blueprintPattern, 0)) != null) {
 				try {
-					results.add(blueprintString);
+					results.add(new FindBlueprintResult(Optional.of(blueprintString), Optional.empty()));
 				} catch (Exception e) {
 					reporting.addException(e);
 				}
@@ -148,7 +178,7 @@ public final class BlueprintFinder {
 		}
 	}
 
-	private static void findProviders(String content, CommandReporting reporting, Set<String> results) {
+	private static void findProviders(String content, CommandReporting reporting, Set<FindBlueprintResult> results) {
 		HashSet<String> uniqueCheck = new HashSet<>();
 		for (Provider provider : providers) {
 			Matcher matcher = provider.getPattern().matcher(content);
@@ -194,9 +224,13 @@ public final class BlueprintFinder {
 
 	public static List<BSBlueprintString> search(String content, CommandReporting reporting) {
 		List<BSBlueprintString> results = new ArrayList<>();
-		for (String blueprintString : searchRaw(content, reporting)) {
+		for (FindBlueprintResult result : searchRaw(content, reporting)) {
 			try {
-				results.add(BSBlueprintString.decode(blueprintString));
+				if (result.encoded) {
+					results.add(BSBlueprintString.decode(result.encodedData.get()));
+				} else {
+					results.add(new BSBlueprintString(result.decodedData.get(), result.decodedData.get().toString(2)));
+				}
 			} catch (IllegalArgumentException | IOException e) {
 				reporting.addException(e);
 			}
@@ -204,9 +238,13 @@ public final class BlueprintFinder {
 		return results;
 	}
 
-	public static List<String> searchRaw(String content, CommandReporting reporting) {
-		Set<String> results = new LinkedHashSet<>();
-		findBlueprints(new ByteArrayInputStream(content.getBytes()), reporting, results);
+	public static List<FindBlueprintResult> searchRaw(String content, CommandReporting reporting) {
+		Set<FindBlueprintResult> results = new LinkedHashSet<>();
+		try {
+			findBlueprints(new ByteArrayInputStream(content.getBytes()), reporting, results);
+		} catch (IOException e) {
+			reporting.addException(e);
+		}
 		findProviders(content, reporting, results);
 		return new ArrayList<>(results);
 	}

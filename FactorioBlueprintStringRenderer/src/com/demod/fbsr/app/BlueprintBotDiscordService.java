@@ -21,8 +21,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipOutputStream;
 
 import javax.imageio.ImageIO;
 
@@ -44,6 +42,7 @@ import com.demod.factorio.FactorioData;
 import com.demod.factorio.Utils;
 import com.demod.factorio.prototype.DataPrototype;
 import com.demod.fbsr.BlueprintFinder;
+import com.demod.fbsr.BlueprintFinder.FindBlueprintResult;
 import com.demod.fbsr.FBSR;
 import com.demod.fbsr.RenderRequest;
 import com.demod.fbsr.RenderResult;
@@ -688,30 +687,27 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			content += " " + attachment.get().getUrl();
 		}
 
-		List<String> results = BlueprintFinder.searchRaw(content, event.getReporting());
-		if (!results.isEmpty()) {
-			byte[] bytes = BSBlueprintString.decodeRaw(results.get(0)).toString(2).getBytes();
-			if (results.size() == 1) {
-				event.replyFile(bytes, "blueprint.json");
-			} else {
-				try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
-						ZipOutputStream zos = new ZipOutputStream(baos)) {
-					for (int i = 0; i < results.size(); i++) {
-						try {
-							String blueprintString = results.get(i);
-							zos.putNextEntry(new ZipEntry("blueprint " + (i + 1) + ".json"));
-							zos.write(BSBlueprintString.decodeRaw(blueprintString).toString(2).getBytes());
-						} catch (Exception e) {
-							event.getReporting().addException(e);
-						}
-					}
-					zos.close();
-					byte[] zipData = baos.toByteArray();
-					event.replyFile(zipData, "blueprint JSON files.zip");
-				}
+		List<FindBlueprintResult> results = BlueprintFinder.searchRaw(content, event.getReporting());
+
+		if (results.isEmpty()) {
+			event.replyIfNoException("No blueprint string found!");
+
+		} else if (results.size() > 1) {
+			event.replyIfNoException("More than one blueprint string was found, please only specify one.");
+
+		} else if (!results.get(0).encoded) {
+			event.replyIfNoException("Blueprint is already in json format!");
+
+		} else if (results.get(0).encoded) {
+			JSONObject json = BSBlueprintString.decodeRaw(results.get(0).encodedData.get());
+			Optional<String> label;
+			try {
+				label = new BSBlueprintString(json).findFirstLabel();
+			} catch (Exception e) {
+				label = Optional.empty();
 			}
-		} else {
-			event.replyIfNoException("No blueprint found!");
+			byte[] bytes = json.toString(2).getBytes();
+			event.replyFile(bytes, WebUtils.formatBlueprintFilename(label, ".json"));
 		}
 	}
 
