@@ -2,7 +2,7 @@ package com.demod.fbsr.fp;
 
 import java.awt.geom.Point2D;
 
-import org.luaj.vm2.LuaValue;
+import com.demod.factorio.fakelua.LuaValue;
 
 public class FPVector {
 

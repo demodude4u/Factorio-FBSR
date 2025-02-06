@@ -2,7 +2,7 @@ package com.demod.fbsr.fp;
 
 import java.util.OptionalInt;
 
-import org.luaj.vm2.LuaValue;
+import com.demod.factorio.fakelua.LuaValue;
 
 public class FPStripe {
 

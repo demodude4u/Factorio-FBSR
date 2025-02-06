@@ -1,14 +1,13 @@
 package com.demod.fbsr.entity;
 
-import org.luaj.vm2.LuaValue;
-
 import com.demod.factorio.DataTable;
+import com.demod.factorio.fakelua.LuaTable;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.bs.BSEntity;
 
 public class PipeToGroundRendering extends SimpleEntityRendering<BSEntity> {
 	@Override
-	public void defineEntity(Bindings bind, LuaValue lua) {
+	public void defineEntity(Bindings bind, LuaTable lua) {
 		bind.sprite4Way(lua.get("pictures"));
 	}
 

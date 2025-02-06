@@ -1,7 +1,6 @@
 package com.demod.fbsr.fp;
 
-import org.luaj.vm2.LuaValue;
-
+import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Sprite;
 

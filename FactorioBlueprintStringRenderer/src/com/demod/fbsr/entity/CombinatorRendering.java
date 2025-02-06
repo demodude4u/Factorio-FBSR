@@ -8,9 +8,8 @@ import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-import org.luaj.vm2.LuaValue;
-
 import com.demod.factorio.DataTable;
+import com.demod.factorio.fakelua.LuaTable;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.RenderUtils;
@@ -39,14 +38,14 @@ public abstract class CombinatorRendering<E extends BSEntity> extends SimpleEnti
 	}
 
 	@Override
-	public void defineEntity(Bindings bind, LuaValue lua) {
+	public void defineEntity(Bindings bind, LuaTable lua) {
 		bind.sprite4Way(lua.get("sprites"));
 	}
 
 	public abstract void defineOperations(Map<String, String> operations);
 
 	@Override
-	public void defineWirePoints(BiConsumer<Integer, WirePoints> consumer, LuaValue lua) {
+	public void defineWirePoints(BiConsumer<Integer, WirePoints> consumer, LuaTable lua) {
 		List<FPWireConnectionPoint> protoInputConnectionPoints = FPUtils.list(lua.get("input_connection_points"),
 				FPWireConnectionPoint::new);
 		List<FPWireConnectionPoint> protoOutputConnectionPoints = FPUtils.list(lua.get("output_connection_points"),

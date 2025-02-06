@@ -27,10 +27,9 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import org.luaj.vm2.LuaValue;
-
 import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
+import com.demod.factorio.fakelua.LuaValue;
 import com.demod.factorio.prototype.TilePrototype;
 import com.demod.fbsr.FBSR.TileRenderingTuple;
 import com.demod.fbsr.bs.BSPosition;

@@ -7,9 +7,8 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.function.Consumer;
 
-import org.luaj.vm2.LuaValue;
-
 import com.demod.factorio.FactorioData;
+import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Sprite;

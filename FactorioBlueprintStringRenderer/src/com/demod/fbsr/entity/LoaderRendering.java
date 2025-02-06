@@ -13,10 +13,10 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import org.json.JSONObject;
-import org.luaj.vm2.LuaValue;
 
 import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
+import com.demod.factorio.fakelua.LuaValue;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.factorio.prototype.ItemPrototype;
 import com.demod.fbsr.BSUtils;

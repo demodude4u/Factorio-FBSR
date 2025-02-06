@@ -8,9 +8,9 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.json.JSONObject;
-import org.luaj.vm2.LuaValue;
 
 import com.demod.factorio.DataTable;
+import com.demod.factorio.fakelua.LuaTable;
 import com.demod.fbsr.BSUtils;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.WorldMap;
@@ -43,7 +43,7 @@ public class LogisticContainerRendering extends ContainerRendering<BSLogisticCon
 	}
 
 	@Override
-	public void defineEntity(Bindings bind, LuaValue lua) {
+	public void defineEntity(Bindings bind, LuaTable lua) {
 		super.defineEntity(bind, lua);
 
 		bind.animation(lua.get("animation"));

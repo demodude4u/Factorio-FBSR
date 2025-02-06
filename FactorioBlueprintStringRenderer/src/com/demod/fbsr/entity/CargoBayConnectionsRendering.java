@@ -10,10 +10,9 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import org.luaj.vm2.LuaValue;
-
 import com.demod.factorio.DataTable;
 import com.demod.factorio.Utils;
+import com.demod.factorio.fakelua.LuaValue;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.FPUtils;
@@ -140,7 +139,7 @@ public abstract class CargoBayConnectionsRendering extends SimpleEntityRendering
 
 		LuaValue luaGigaHatchDefinitions = lua.get("giga_hatch_definitions");
 		if (!luaGigaHatchDefinitions.isnil()) {
-			Utils.forEach(luaGigaHatchDefinitions, l -> {
+			Utils.forEach(luaGigaHatchDefinitions.checktable(), l -> {
 				LuaValue luaHatchGraphicsBack = l.get("hatch_graphics_back");
 				if (!luaHatchGraphicsBack.isnil()) {
 					Layer layer = FPUtils.optLayer(l.get("hatch_render_layer_back")).orElse(Layer.HIGHER_OBJECT_UNDER);
@@ -157,7 +156,7 @@ public abstract class CargoBayConnectionsRendering extends SimpleEntityRendering
 
 	protected void bindHatchDefinitions(Bindings bind, LuaValue lua) {
 		if (!lua.isnil()) {
-			Utils.forEach(lua, l -> {
+			Utils.forEach(lua.checktable(), l -> {
 				LuaValue luaHatchGraphics = l.get("hatch_graphics");
 				if (!luaHatchGraphics.isnil()) {
 					Layer layer = FPUtils.optLayer(l.get("hatch_render_layer")).orElse(Layer.CARGO_HATCH);

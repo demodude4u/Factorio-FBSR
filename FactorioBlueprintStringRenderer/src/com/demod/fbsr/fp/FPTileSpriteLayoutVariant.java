@@ -1,6 +1,6 @@
 package com.demod.fbsr.fp;
 
-import org.luaj.vm2.LuaValue;
+import com.demod.factorio.fakelua.LuaValue;
 
 public class FPTileSpriteLayoutVariant {
 	public final String spritesheet;

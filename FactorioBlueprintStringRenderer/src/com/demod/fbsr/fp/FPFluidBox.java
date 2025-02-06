@@ -3,8 +3,7 @@ package com.demod.fbsr.fp;
 import java.util.List;
 import java.util.Optional;
 
-import org.luaj.vm2.LuaValue;
-
+import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.FPUtils;
 
 public class FPFluidBox {

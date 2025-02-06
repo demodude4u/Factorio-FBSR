@@ -6,9 +6,9 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-import org.luaj.vm2.LuaValue;
-
 import com.demod.factorio.DataTable;
+import com.demod.factorio.fakelua.LuaTable;
+import com.demod.factorio.fakelua.LuaValue;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.RenderUtils;
@@ -70,7 +70,7 @@ public class WallRendering extends SimpleEntityRendering<BSEntity> {
 	}
 
 	@Override
-	public void defineEntity(Bindings bind, LuaValue lua) {
+	public void defineEntity(Bindings bind, LuaTable lua) {
 		bind.circuitConnector(lua.get("circuit_connector"));
 	}
 

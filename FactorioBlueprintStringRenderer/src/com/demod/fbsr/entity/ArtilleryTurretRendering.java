@@ -1,12 +1,11 @@
 package com.demod.fbsr.entity;
 
-import org.luaj.vm2.LuaValue;
-
+import com.demod.factorio.fakelua.LuaTable;
 import com.demod.fbsr.bs.BSEntity;
 
 public class ArtilleryTurretRendering extends SimpleEntityRendering<BSEntity> {
 	@Override
-	public void defineEntity(Bindings bind, LuaValue lua) {
+	public void defineEntity(Bindings bind, LuaTable lua) {
 		bind.animation4Way(lua.get("base_picture"));
 		bind.rotatedSprite(lua.get("cannon_barrel_pictures"));
 		bind.rotatedSprite(lua.get("cannon_base_pictures"));

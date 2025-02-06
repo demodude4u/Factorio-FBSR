@@ -1,13 +1,13 @@
 package com.demod.fbsr.entity;
 
-import org.luaj.vm2.LuaValue;
-
+import com.demod.factorio.fakelua.LuaTable;
+import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.bs.BSEntity;
 
 public class FusionReactorRendering extends SimpleEntityRendering<BSEntity> {
 
 	@Override
-	public void defineEntity(Bindings bind, LuaValue lua) {
+	public void defineEntity(Bindings bind, LuaTable lua) {
 		LuaValue luaGraphicsSet = lua.get("graphics_set");
 		bind.sprite4Way(luaGraphicsSet.get("structure"));
 

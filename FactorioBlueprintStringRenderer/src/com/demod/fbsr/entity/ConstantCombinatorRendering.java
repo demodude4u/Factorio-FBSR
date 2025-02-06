@@ -5,8 +5,8 @@ import java.util.Optional;
 import java.util.function.BiConsumer;
 
 import org.json.JSONObject;
-import org.luaj.vm2.LuaValue;
 
+import com.demod.factorio.fakelua.LuaTable;
 import com.demod.fbsr.BSUtils;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.WirePoints;
@@ -43,12 +43,12 @@ public class ConstantCombinatorRendering extends SimpleEntityRendering<BSConstan
 	}
 
 	@Override
-	public void defineEntity(Bindings bind, LuaValue lua) {
+	public void defineEntity(Bindings bind, LuaTable lua) {
 		bind.sprite4Way(lua.get("sprites"));
 	}
 
 	@Override
-	public void defineWirePoints(BiConsumer<Integer, WirePoints> consumer, LuaValue lua) {
+	public void defineWirePoints(BiConsumer<Integer, WirePoints> consumer, LuaTable lua) {
 		List<FPWireConnectionPoint> protoConnectionPoints = FPUtils.list(lua.get("circuit_wire_connection_points"),
 				FPWireConnectionPoint::new);
 

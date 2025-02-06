@@ -1,12 +1,12 @@
 package com.demod.fbsr.entity;
 
-import org.luaj.vm2.LuaValue;
-
+import com.demod.factorio.fakelua.LuaTable;
+import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.bs.BSEntity;
 
 public class ElectricEnergyInterfaceRendering extends SimpleEntityRendering<BSEntity> {
 	@Override
-	public void defineEntity(Bindings bind, LuaValue lua) {
+	public void defineEntity(Bindings bind, LuaTable lua) {
 		LuaValue proto;
 		if (!(proto = lua.get("picture")).isnil()) {
 			bind.sprite(proto);

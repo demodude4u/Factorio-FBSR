@@ -1,9 +1,8 @@
 package com.demod.fbsr.entity;
 
-import org.luaj.vm2.LuaValue;
-import org.luaj.vm2.Varargs;
-
 import com.demod.factorio.Utils;
+import com.demod.factorio.fakelua.LuaTable;
+import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.bs.BSEntity;
 
 public abstract class TurretRendering extends SimpleEntityRendering<BSEntity> {
@@ -12,25 +11,33 @@ public abstract class TurretRendering extends SimpleEntityRendering<BSEntity> {
 		if (lua.isnil()) {
 			return true;
 		}
-		LuaValue k = LuaValue.NIL;
-		while (true) {
-			Varargs n = lua.next(k);
-			if ((k = n.arg1()).isnil())
-				break;
-			LuaValue v = n.arg(2);
-			if (v.tojstring().equals(flag)) {
-				return true;
+		// XXX
+		boolean[] found = { false };
+		Utils.forEach(lua.checktable(), l -> {
+			if (l.tojstring().equals(flag)) {
+				found[0] = true;
 			}
-		}
-		return false;
+		});
+		return found[0];
+//		LuaValue k = LuaValue.NIL;
+//		while (true) {
+//			Varargs n = lua.next(k);
+//			if ((k = n.arg1()).isnil())
+//				break;
+//			LuaValue v = n.arg(2);
+//			if (v.tojstring().equals(flag)) {
+//				return true;
+//			}
+//		}
+//		return false;
 	}
 
 	@Override
-	public void defineEntity(Bindings bind, LuaValue lua) {
+	public void defineEntity(Bindings bind, LuaTable lua) {
 		LuaValue luaBaseVis = lua.get("graphics_set").get("base_visualisation");
 		LuaValue luaBaseVisAnimation = luaBaseVis.get("animation");
 		if (luaBaseVisAnimation.isnil()) {
-			Utils.forEach(luaBaseVis, l -> {
+			Utils.forEach(luaBaseVis.checktable(), l -> {
 				// TODO verify states is correctly used
 				LuaValue luaStates = l.get("enabled_states");
 				if (checkState(luaStates, "folded")) {

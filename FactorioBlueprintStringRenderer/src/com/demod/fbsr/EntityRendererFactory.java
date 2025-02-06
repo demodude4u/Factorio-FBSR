@@ -25,10 +25,10 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import org.json.JSONObject;
-import org.luaj.vm2.LuaValue;
 
 import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
+import com.demod.factorio.fakelua.LuaTable;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.factorio.prototype.RecipePrototype;
 import com.demod.fbsr.FBSR.EntityRenderingTuple;
@@ -483,7 +483,7 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 		return Optional.ofNullable(wirePointsById.get(connectionId)).map(wp -> wp.getPoint(position, orientation));
 	}
 
-	public void defineWirePoints(BiConsumer<Integer, WirePoints> consumer, LuaValue lua) {
+	public void defineWirePoints(BiConsumer<Integer, WirePoints> consumer, LuaTable lua) {
 
 	}
 

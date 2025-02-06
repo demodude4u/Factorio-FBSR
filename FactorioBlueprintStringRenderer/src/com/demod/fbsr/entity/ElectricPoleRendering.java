@@ -7,9 +7,8 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-import org.luaj.vm2.LuaValue;
-
 import com.demod.factorio.DataTable;
+import com.demod.factorio.fakelua.LuaTable;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.FBSR.EntityRenderingTuple;
@@ -67,7 +66,7 @@ public class ElectricPoleRendering extends EntityRendererFactory<BSEntity> {
 	}
 
 	@Override
-	public void defineWirePoints(BiConsumer<Integer, WirePoints> consumer, LuaValue lua) {
+	public void defineWirePoints(BiConsumer<Integer, WirePoints> consumer, LuaTable lua) {
 		List<FPWireConnectionPoint> protoConnectionPoints = FPUtils.list(lua.get("connection_points"),
 				FPWireConnectionPoint::new);
 

@@ -5,9 +5,8 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.function.Function;
 
-import org.luaj.vm2.LuaValue;
-
 import com.demod.factorio.Utils;
+import com.demod.factorio.fakelua.LuaValue;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 
@@ -28,7 +27,7 @@ public final class FPUtils {
 			return ImmutableList.of();
 		}
 		Builder<T> builder = ImmutableList.builder();
-		Utils.forEach(lua, l -> builder.add(factory.apply(l)));
+		Utils.forEach(lua.checktable(), l -> builder.add(factory.apply(l)));
 		return builder.build();
 	}
 
@@ -73,7 +72,7 @@ public final class FPUtils {
 			return Optional.empty();
 		}
 		Builder<T> builder = ImmutableList.builder();
-		Utils.forEach(lua, l -> builder.add(factory.apply(l)));
+		Utils.forEach(lua.checktable(), l -> builder.add(factory.apply(l)));
 		return Optional.of(builder.build());
 	}
 
@@ -81,7 +80,7 @@ public final class FPUtils {
 		if (lua.isnil()) {
 			return Optional.empty();
 		}
-		return Optional.of(lua.toString());
+		return Optional.of(lua.tojstring());
 	}
 
 	public static double projectedOrientation(double orientation) {

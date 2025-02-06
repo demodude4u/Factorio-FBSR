@@ -9,9 +9,9 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-import org.luaj.vm2.LuaValue;
-
 import com.demod.factorio.DataTable;
+import com.demod.factorio.fakelua.LuaTable;
+import com.demod.factorio.fakelua.LuaValue;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.EntityRendererFactory;
@@ -451,10 +451,10 @@ public abstract class SimpleEntityRendering<E extends BSEntity> extends EntityRe
 		}
 	}
 
-	public abstract void defineEntity(Bindings bind, LuaValue lua);
+	public abstract void defineEntity(Bindings bind, LuaTable lua);
 
 	@Override
-	public void defineWirePoints(BiConsumer<Integer, WirePoints> consumer, LuaValue lua) {
+	public void defineWirePoints(BiConsumer<Integer, WirePoints> consumer, LuaTable lua) {
 		if (circuitConnectors.isPresent()) {
 			List<FPWireConnectionPoint> points = circuitConnectors.get().stream().map(cc -> cc.points)
 					.collect(Collectors.toList());

@@ -3,9 +3,9 @@ package com.demod.fbsr.entity;
 import java.util.List;
 import java.util.function.Consumer;
 
-import org.luaj.vm2.LuaValue;
-
 import com.demod.factorio.DataTable;
+import com.demod.factorio.fakelua.LuaTable;
+import com.demod.factorio.fakelua.LuaValue;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.RenderUtils;
@@ -43,7 +43,7 @@ public class FusionGeneratorRendering extends SimpleEntityRendering<BSEntity> {
 	}
 
 	@Override
-	public void defineEntity(Bindings bind, LuaValue lua) {
+	public void defineEntity(Bindings bind, LuaTable lua) {
 		bind.fluidBox(lua.get("input_fluid_box"));
 		bind.fluidBox(lua.get("output_fluid_box"));
 	}

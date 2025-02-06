@@ -7,10 +7,10 @@ import java.util.Optional;
 import java.util.function.Consumer;
 
 import org.json.JSONObject;
-import org.luaj.vm2.LuaValue;
 
 import com.demod.factorio.DataTable;
 import com.demod.factorio.Utils;
+import com.demod.factorio.fakelua.LuaTable;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.BSUtils;
 import com.demod.fbsr.Direction;
@@ -80,7 +80,7 @@ public class TrainStopRendering extends SimpleEntityRendering<BSTrainStopEntity>
 	}
 
 	@Override
-	public void defineEntity(Bindings bind, LuaValue lua) {
+	public void defineEntity(Bindings bind, LuaTable lua) {
 		bind.circuitConnector4Way(lua.get("circuit_connector"));
 	}
 

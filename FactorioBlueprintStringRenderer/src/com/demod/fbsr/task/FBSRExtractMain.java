@@ -1,7 +1,5 @@
 package com.demod.fbsr.task;
 
-import org.luaj.vm2.LuaTable;
-
 import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
 
@@ -12,8 +10,8 @@ public class FBSRExtractMain {
 		DataTable table = FactorioData.getTable();
 
 		System.out.println("Energy Sources with heat type:");
-		table.getEntities().values().stream().filter(
-				p -> p.lua().get("energy_source").opttable(new LuaTable()).get("type").optjstring("").equals("heat"))
+		table.getEntities().values().stream()
+				.filter(p -> p.lua().get("energy_source").totableObject().get("type").optjstring("").equals("heat"))
 				.forEach(p -> System.out.println("\t" + p.getName() + " (" + p.getType() + ")"));
 
 //		File folder = new File("export-sprites");

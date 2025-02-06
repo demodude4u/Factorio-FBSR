@@ -7,10 +7,11 @@ import java.util.Optional;
 import java.util.function.Consumer;
 
 import org.json.JSONObject;
-import org.luaj.vm2.LuaValue;
 
 import com.demod.factorio.DataTable;
 import com.demod.factorio.Utils;
+import com.demod.factorio.fakelua.LuaTable;
+import com.demod.factorio.fakelua.LuaValue;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.factorio.prototype.RecipePrototype;
 import com.demod.fbsr.BSUtils;
@@ -78,7 +79,7 @@ public abstract class CraftingMachineRendering extends SimpleEntityRendering<BSC
 				// XXX could be done better
 				List<LuaValue> inputs = new ArrayList<>();
 				List<LuaValue> outputs = new ArrayList<>();
-				Utils.forEach(protoRecipe.lua().get("ingredients"), (Consumer<LuaValue>) inputs::add);
+				Utils.forEach(protoRecipe.lua().get("ingredients").checktable(), (Consumer<LuaValue>) inputs::add);
 				LuaValue resultsLua = protoRecipe.lua().get("results");
 				if (resultsLua != LuaValue.NIL) {
 					outputs.add(resultsLua);
@@ -170,7 +171,7 @@ public abstract class CraftingMachineRendering extends SimpleEntityRendering<BSC
 	}
 
 	@Override
-	public void defineEntity(Bindings bind, LuaValue lua) {
+	public void defineEntity(Bindings bind, LuaTable lua) {
 		boolean fluidBoxesOffWhenNoFluidRecipe = lua.get("fluid_boxes_off_when_no_fluid_recipe").optboolean(false);
 		if (!fluidBoxesOffWhenNoFluidRecipe) {
 			bind.fluidBoxes(lua.get("fluid_boxes"));
@@ -214,7 +215,7 @@ public abstract class CraftingMachineRendering extends SimpleEntityRendering<BSC
 					RecipePrototype protoRecipe = optRecipe.get();
 
 					List<LuaValue> items = new ArrayList<>();
-					Utils.forEach(protoRecipe.lua().get("ingredients"), (Consumer<LuaValue>) items::add);
+					Utils.forEach(protoRecipe.lua().get("ingredients").checktable(), (Consumer<LuaValue>) items::add);
 					LuaValue resultsLua = protoRecipe.lua().get("results");
 					if (resultsLua != LuaValue.NIL) {
 						items.add(resultsLua);

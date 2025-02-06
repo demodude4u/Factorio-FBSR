@@ -27,7 +27,6 @@ import javax.imageio.ImageIO;
 import org.apache.commons.text.similarity.LevenshteinDistance;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.luaj.vm2.LuaValue;
 
 import com.demod.dcba.AutoCompleteHandler;
 import com.demod.dcba.CommandReporting;
@@ -40,6 +39,7 @@ import com.demod.factorio.Config;
 import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
 import com.demod.factorio.Utils;
+import com.demod.factorio.fakelua.LuaValue;
 import com.demod.factorio.prototype.DataPrototype;
 import com.demod.fbsr.BlueprintFinder;
 import com.demod.fbsr.BlueprintFinder.FindBlueprintResult;
@@ -284,7 +284,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				return;
 			}
 
-			sendLuaDumpFile(event, category, prototype.get().getName(), prototype.get().lua());
+			sendLuaDumpFile(event, category, prototype.get().getName(), prototype.get().lua().tovalue());
 		};
 	}
 

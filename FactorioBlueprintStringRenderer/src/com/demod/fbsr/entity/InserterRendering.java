@@ -15,11 +15,12 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import org.json.JSONObject;
-import org.luaj.vm2.LuaValue;
 
 import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
 import com.demod.factorio.Utils;
+import com.demod.factorio.fakelua.LuaTable;
+import com.demod.factorio.fakelua.LuaValue;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.factorio.prototype.ItemPrototype;
 import com.demod.fbsr.BSUtils;
@@ -266,7 +267,7 @@ public class InserterRendering extends SimpleEntityRendering<BSInserterEntity> {
 	}
 
 	@Override
-	public void defineEntity(Bindings bind, LuaValue lua) {
+	public void defineEntity(Bindings bind, LuaTable lua) {
 		bind.circuitConnector4Way(lua.get("circuit_connector"));
 	}
 
