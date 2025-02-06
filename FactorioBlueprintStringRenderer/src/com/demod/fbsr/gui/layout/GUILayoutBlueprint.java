@@ -342,7 +342,7 @@ public class GUILayoutBlueprint {
 			itemFontOffset = 3;
 		}
 
-		itemColumns = (itemCount + itemRowMax - 1) / itemRowMax;
+		itemColumns = Math.max(1, (itemCount + itemRowMax - 1) / itemRowMax);
 
 		double scale = 2;
 
