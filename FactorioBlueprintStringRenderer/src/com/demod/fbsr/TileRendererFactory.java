@@ -15,7 +15,6 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -26,6 +25,8 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+
+import org.json.JSONObject;
 
 import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
@@ -351,24 +352,6 @@ public class TileRendererFactory {
 	};
 
 	private static Map<String, TileRendererFactory> byName = new LinkedHashMap<>();
-
-	static {
-		byName.put("concrete", new TileRendererFactory());
-		byName.put("foundation", new TileRendererFactory());
-		byName.put("hazard-concrete-left", new TileRendererFactory());
-		byName.put("hazard-concrete-right", new TileRendererFactory());
-		byName.put("ice-platform", new TileRendererFactory());
-		byName.put("artificial-jellynut-soil", new TileRendererFactory());
-		byName.put("overgrowth-jellynut-soil", new TileRendererFactory());
-		byName.put("landfill", new TileRendererFactory());
-		byName.put("refined-concrete", new TileRendererFactory());
-		byName.put("refined-hazard-concrete-left", new TileRendererFactory());
-		byName.put("refined-hazard-concrete-right", new TileRendererFactory());
-		byName.put("space-platform-foundation", new TileRendererFactory(true));
-		byName.put("stone-path", new TileRendererFactory());
-		byName.put("artificial-yumako-soil", new TileRendererFactory());
-		byName.put("overgrowth-yumako-soil", new TileRendererFactory());
-	}
 	private static volatile boolean prototypesInitialized = false;
 
 	public static void createAllRenderers(Consumer<Renderer> register, List<TileRenderingTuple> tiles) {
@@ -495,15 +478,17 @@ public class TileRendererFactory {
 		return ((row * 73856093) ^ (col * 19349663) ^ (layer * 83492791) ^ (adjCode * 123456789));
 	}
 
-	public static synchronized void initPrototypes(DataTable table) {
+	public static synchronized void initPrototypes(DataTable table, JSONObject json) {
 		if (prototypesInitialized) {
 			return;
 		}
-		for (Entry<String, TileRendererFactory> entry : byName.entrySet()) {
-			System.out.println("Initializing Tile " + entry.getKey());
-			TilePrototype prototype = table.getTile(entry.getKey()).get();
-			entry.getValue().setPrototype(prototype);
-			entry.getValue().initFromPrototype(table, prototype);
+		for (String tileName : json.keySet().stream().sorted().collect(Collectors.toList())) {
+			System.out.println("Initializing Tile " + tileName);
+			TilePrototype prototype = table.getTile(tileName).get();
+			TileRendererFactory factory = new TileRendererFactory(json.getBoolean(tileName));
+			factory.setPrototype(prototype);
+			factory.initFromPrototype(table, prototype);
+			byName.put(tileName, factory);
 		}
 		prototypesInitialized = true;
 	}

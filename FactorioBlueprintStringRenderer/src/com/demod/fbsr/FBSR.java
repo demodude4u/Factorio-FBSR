@@ -18,6 +18,7 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -35,6 +36,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.json.JSONException;
+import org.json.JSONObject;
 
 import com.demod.dcba.CommandReporting;
 import com.demod.dcba.CommandReporting.Level;
@@ -262,7 +264,7 @@ public class FBSR {
 			ModInfo baseInfo;
 			try {
 				baseInfo = new ModInfo(Utils.readJsonFromStream(
-						new FileInputStream(new File(FactorioData.factorio, "data/base/info.json"))));
+						new FileInputStream(new File(FactorioData.folderFactorio, "data/base/info.json"))));
 				version = baseInfo.getVersion();
 			} catch (JSONException | IOException e) {
 				e.printStackTrace();
@@ -277,8 +279,10 @@ public class FBSR {
 			return;
 		}
 		DataTable table = FactorioData.getTable();
-		EntityRendererFactory.initPrototypes(table);
-		TileRendererFactory.initPrototypes(table);
+		JSONObject jsonModRendering = new JSONObject(
+				Files.readString(new File(FactorioData.folderMods, "mod-rendering.json").toPath()));
+		EntityRendererFactory.initPrototypes(table, jsonModRendering.getJSONObject("entities"));
+		TileRendererFactory.initPrototypes(table, jsonModRendering.getJSONObject("tiles"));
 		initialized = true;
 	}
 

@@ -2,6 +2,7 @@ package com.demod.fbsr.task;
 
 import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
+import com.demod.factorio.prototype.EntityPrototype;
 
 public class FBSRExtractMain {
 
@@ -9,10 +10,30 @@ public class FBSRExtractMain {
 	public static void main(String[] args) throws Exception {
 		DataTable table = FactorioData.getTable();
 
-		System.out.println("Energy Sources with heat type:");
-		table.getEntities().values().stream()
-				.filter(p -> p.lua().get("energy_source").totableObject().get("type").optjstring("").equals("heat"))
-				.forEach(p -> System.out.println("\t" + p.getName() + " (" + p.getType() + ")"));
+		String[] entities = { "cube-antimatter-reactor", "cube-annihilation-chamber", "cube-medium-container",
+				"cube-big-container", "cube-fluid-storage-1", "cube-fluid-storage-2", "cube-greenhouse", "cube-crusher",
+				"cube-forbidden-ziggurat", "cube-v4-transport-belt", "cube-deep-core-ultradrill", "cube-roboport",
+				"cube-v4-underground-belt", "cube-v4-splitter", "cube-extremely-long-inserter", "cube-lab",
+				"cube-recovery-bay", "cube-mystery-furnace", "cube-fuel-refinery", "cube-beacon",
+				"cube-stygian-energy-lab", "cube-energy-bulkframe", "cube-electric-mining-drill-mk2",
+				"cube-ultradense-furnace", "cube-particle-phase-aligner", "cube-fluid-burner",
+				"cube-experimental-teleporter", "cube-synthesizer", "cube-fabricator", "cube-quantum-decoder",
+				"cube-cyclotron", "cube-dimension-folding-engine", "aai-v2-loader", "aai-v3-loader", "aai-v4-loader", };
+		for (String entityName : entities) {
+			EntityPrototype proto = table.getEntity(entityName).get();
+			String type = proto.lua().get("type").tojstring();
+			StringBuilder sb = new StringBuilder();
+			for (String part : type.split("-")) {
+				sb.append(part.substring(0, 1).toUpperCase() + part.substring(1));
+			}
+			sb.append("Rendering");
+			System.out.println("\"" + entityName + "\": \"" + sb.toString() + "\",");
+		}
+
+//		System.out.println("Energy Sources with heat type:");
+//		table.getEntities().values().stream()
+//				.filter(p -> p.lua().get("energy_source").totableObject().get("type").optjstring("").equals("heat"))
+//				.forEach(p -> System.out.println("\t" + p.getName() + " (" + p.getType() + ")"));
 
 //		File folder = new File("export-sprites");
 //		folder.mkdirs();
