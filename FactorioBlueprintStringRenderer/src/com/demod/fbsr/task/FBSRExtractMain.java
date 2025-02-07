@@ -1,8 +1,18 @@
 package com.demod.fbsr.task;
 
+import java.awt.Color;
+import java.awt.Desktop;
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
+import java.io.File;
+
+import javax.imageio.ImageIO;
+
 import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
-import com.demod.factorio.prototype.EntityPrototype;
+import com.demod.factorio.Utils;
+import com.demod.factorio.fakelua.LuaValue;
+import com.demod.factorio.prototype.ItemPrototype;
 
 public class FBSRExtractMain {
 
@@ -10,25 +20,45 @@ public class FBSRExtractMain {
 	public static void main(String[] args) throws Exception {
 		DataTable table = FactorioData.getTable();
 
-		String[] entities = { "cube-antimatter-reactor", "cube-annihilation-chamber", "cube-medium-container",
-				"cube-big-container", "cube-fluid-storage-1", "cube-fluid-storage-2", "cube-greenhouse", "cube-crusher",
-				"cube-forbidden-ziggurat", "cube-v4-transport-belt", "cube-deep-core-ultradrill", "cube-roboport",
-				"cube-v4-underground-belt", "cube-v4-splitter", "cube-extremely-long-inserter", "cube-lab",
-				"cube-recovery-bay", "cube-mystery-furnace", "cube-fuel-refinery", "cube-beacon",
-				"cube-stygian-energy-lab", "cube-energy-bulkframe", "cube-electric-mining-drill-mk2",
-				"cube-ultradense-furnace", "cube-particle-phase-aligner", "cube-fluid-burner",
-				"cube-experimental-teleporter", "cube-synthesizer", "cube-fabricator", "cube-quantum-decoder",
-				"cube-cyclotron", "cube-dimension-folding-engine", "aai-v2-loader", "aai-v3-loader", "aai-v4-loader", };
-		for (String entityName : entities) {
-			EntityPrototype proto = table.getEntity(entityName).get();
-			String type = proto.lua().get("type").tojstring();
-			StringBuilder sb = new StringBuilder();
-			for (String part : type.split("-")) {
-				sb.append(part.substring(0, 1).toUpperCase() + part.substring(1));
-			}
-			sb.append("Rendering");
-			System.out.println("\"" + entityName + "\": \"" + sb.toString() + "\",");
-		}
+		ItemPrototype proto = table.getItem("aai-v3-loader").get();
+		LuaValue luaIcons = proto.lua().get("icons");
+		LuaValue luaIcon = luaIcons.get(2);
+		BufferedImage image = FactorioData.getModImage(luaIcon.get("icon").tojstring());
+		Color tint = Utils.parseColor(luaIcon.get("tint"));
+		BufferedImage imageTinted = Utils.tintImage(image, tint);
+		BufferedImage combinationImage = new BufferedImage(image.getWidth() * 3, image.getHeight(),
+				BufferedImage.TYPE_INT_ARGB);
+		Graphics2D g = combinationImage.createGraphics();
+		g.drawImage(image, 0, 0, null);
+		g.drawImage(imageTinted, image.getWidth(), 0, null);
+		g.setColor(tint);
+		g.fillRect(image.getWidth() * 2, 0, image.getWidth(), image.getHeight());
+		g.dispose();
+		File folderExport = new File("export-sprites");
+		folderExport.mkdirs();
+		File fileImage = new File(folderExport, "_debug-tint.png");
+		ImageIO.write(combinationImage, "PNG", fileImage);
+		Desktop.getDesktop().open(fileImage);
+
+//		String[] entities = { "cube-antimatter-reactor", "cube-annihilation-chamber", "cube-medium-container",
+//				"cube-big-container", "cube-fluid-storage-1", "cube-fluid-storage-2", "cube-greenhouse", "cube-crusher",
+//				"cube-forbidden-ziggurat", "cube-v4-transport-belt", "cube-deep-core-ultradrill", "cube-roboport",
+//				"cube-v4-underground-belt", "cube-v4-splitter", "cube-extremely-long-inserter", "cube-lab",
+//				"cube-recovery-bay", "cube-mystery-furnace", "cube-fuel-refinery", "cube-beacon",
+//				"cube-stygian-energy-lab", "cube-energy-bulkframe", "cube-electric-mining-drill-mk2",
+//				"cube-ultradense-furnace", "cube-particle-phase-aligner", "cube-fluid-burner",
+//				"cube-experimental-teleporter", "cube-synthesizer", "cube-fabricator", "cube-quantum-decoder",
+//				"cube-cyclotron", "cube-dimension-folding-engine", "aai-v2-loader", "aai-v3-loader", "aai-v4-loader", };
+//		for (String entityName : entities) {
+//			EntityPrototype proto = table.getEntity(entityName).get();
+//			String type = proto.lua().get("type").tojstring();
+//			StringBuilder sb = new StringBuilder();
+//			for (String part : type.split("-")) {
+//				sb.append(part.substring(0, 1).toUpperCase() + part.substring(1));
+//			}
+//			sb.append("Rendering");
+//			System.out.println("\"" + entityName + "\": \"" + sb.toString() + "\",");
+//		}
 
 //		System.out.println("Energy Sources with heat type:");
 //		table.getEntities().values().stream()
