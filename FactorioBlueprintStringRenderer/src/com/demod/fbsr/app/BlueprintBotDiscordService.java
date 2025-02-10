@@ -11,6 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -61,7 +62,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.AbstractIdleService;
 
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.Message.Attachment;
 import net.dv8tion.jda.api.entities.MessageEmbed;
@@ -1197,16 +1197,13 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				.withCredits("Contributors", "FactorioBlueprints")//
 				.withCredits("Contributors", "acid")//
 				.withCredits("Contributors", "Vilsol")//
-				.withCredits("Testers", "Team Steelaxe")//
-				.withInvite(new Permission[] { //
-						Permission.VIEW_CHANNEL, //
-						Permission.MESSAGE_SEND, //
-						Permission.MESSAGE_ATTACH_FILES, //
-						Permission.MESSAGE_EXT_EMOJI, //
-						Permission.MESSAGE_EMBED_LINKS, //
-						Permission.MESSAGE_HISTORY, //
-						Permission.MESSAGE_ADD_REACTION,//
-				})//
+				.withCredits("Special Thanks", "AntiElitz")//
+				.withCredits("Special Thanks", "Members of Team Steelaxe")//
+				.withVersion("Multiverse " + FBSR.getVersion())
+				.withCustomField("Mods Loaded",
+						FactorioManager.getDatas().stream().flatMap(d -> d.getModLoader().getMods().keySet().stream())
+								.distinct().sorted(Comparator.comparing(s -> s.toLowerCase()))
+								.collect(Collectors.joining(", ")))
 				.addSlashCommand("bp/string", "Renders an image of the blueprint string.",
 						event -> handleBlueprintCommand(event))//
 				.withParam(OptionType.STRING, "string", "Blueprint string.")//
