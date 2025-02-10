@@ -1,4 +1,4 @@
-package com.demod.fbsr.entity;
+package com.demod.fbsr.entity.textplates;
 
 import java.util.function.Consumer;
 
@@ -11,7 +11,7 @@ import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.bs.BSEntity;
-import com.demod.fbsr.entity.TextPlateRendering.BSTextPlateEntity;
+import com.demod.fbsr.entity.textplates.TextPlateRendering.BSTextPlateEntity;
 import com.demod.fbsr.fp.FPSpriteVariations;
 import com.demod.fbsr.legacy.LegacyBlueprintEntity;
 
