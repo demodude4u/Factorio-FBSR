@@ -86,6 +86,14 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 		}
 
 		@Override
+		public FactorioData getData() {
+			if (data == null) {
+				data = FactorioManager.lookupDataForModName("core");
+			}
+			return super.getData();
+		}
+
+		@Override
 		public void initFromPrototype() {
 		}
 
