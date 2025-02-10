@@ -27,6 +27,12 @@
 	</repositories>
 	<dependencies>
 		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-nop</artifactId>
+			<version>1.7.13</version>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
 			<groupId>com.google.guava</groupId>
 			<artifactId>guava</artifactId>
 			<version>20.0</version>
@@ -70,11 +76,6 @@
 			<groupId>org.rapidoid</groupId>
 			<artifactId>rapidoid-web</artifactId>
 			<version>5.3.5</version>
-		</dependency>
-		<dependency>
-			<groupId>org.slf4j</groupId>
-			<artifactId>slf4j-api</artifactId>
-			<version>1.7.25</version>
 		</dependency>
 		<dependency>
 			<groupId>com.squareup.okhttp3</groupId>
