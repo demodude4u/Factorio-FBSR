@@ -37,7 +37,6 @@ import java.util.stream.IntStream;
 import org.json.JSONException;
 
 import com.demod.dcba.CommandReporting;
-import com.demod.dcba.CommandReporting.Level;
 import com.demod.factorio.Config;
 import com.demod.factorio.DataTable;
 import com.demod.factorio.ModInfo;
@@ -908,14 +907,6 @@ public class FBSR {
 				g.drawString(strNum, x1, y1);
 				g.drawString(strNum, x2, y1);
 			}
-		}
-
-		Level level = reporting.getLevel();
-		if (level != Level.INFO) {
-			g.setTransform(worldXform);
-			g.setStroke(GRID_STROKE);
-			g.setColor(level.getColor().darker());
-			g.draw(worldBounds);
 		}
 
 		g.dispose();
