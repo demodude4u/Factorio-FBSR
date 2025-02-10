@@ -16,13 +16,13 @@ import java.util.OptionalInt;
 import java.util.stream.Collectors;
 
 import com.demod.dcba.CommandReporting;
-import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
 import com.demod.factorio.TotalRawCalculator;
 import com.demod.factorio.prototype.DataPrototype;
 import com.demod.factorio.prototype.ItemPrototype;
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.FBSR;
+import com.demod.fbsr.FactorioManager;
 import com.demod.fbsr.RenderRequest;
 import com.demod.fbsr.RenderResult;
 import com.demod.fbsr.RenderUtils;
@@ -48,8 +48,9 @@ public class GUILayoutBlueprint {
 	private static BufferedImage timeIcon;
 	static {
 		try {
-			timeIcon = new FPSprite(FactorioData.getTable().getRaw("utility-sprites", "default", "clock").get())
-					.createSprites().get(0).image;
+			FactorioData data = FactorioManager.lookupDataForModName("core");
+			timeIcon = new FPSprite(data.getDataTable().getRaw("utility-sprites", "default", "clock").get())
+					.createSprites(data).get(0).image;
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -124,8 +125,6 @@ public class GUILayoutBlueprint {
 
 		bounds = bounds.shrink(0, 24, 24, 12);
 
-		DataTable table = FactorioData.getTable();
-
 		GUIPanel backPanel = new GUIPanel(bounds, GUIStyle.FRAME_DARK_INNER, GUIStyle.FRAME_OUTER);
 		backPanel.render(g);
 
@@ -187,11 +186,12 @@ public class GUILayoutBlueprint {
 
 						GUIStyle.ITEM_SLOT.render(g, cellBounds);
 
-						Optional<ItemPrototype> protoItem = table.getItem(item);
+						Optional<ItemPrototype> protoItem = FactorioManager.lookupItemByName(item);
 
 						if (protoItem.isPresent()) {
-							GUIImage imgIcon = new GUIImage(cellBounds, FactorioData.getIcon(protoItem.get()),
-									itemIconScale, false);
+							GUIImage imgIcon = new GUIImage(cellBounds,
+									protoItem.get().getTable().getData().getIcon(protoItem.get()), itemIconScale,
+									false);
 							imgIcon.render(g);
 						} else {
 							g.setColor(EntityRendererFactory.getUnknownColor(item));
@@ -258,11 +258,12 @@ public class GUILayoutBlueprint {
 							image = Optional.of(timeIcon);
 							scale = itemIconScale * 2;
 						} else {
-							Optional<? extends DataPrototype> prototype = table.getItem(item);
+							Optional<? extends DataPrototype> prototype = FactorioManager.lookupItemByName(item);
 							if (!prototype.isPresent()) {
-								prototype = table.getFluid(item);
+								prototype = FactorioManager.lookupFluidByName(item);
 							}
-							image = prototype.map(FactorioData::getIcon);
+
+							image = prototype.map(p -> p.getTable().getData().getIcon(p));
 							scale = itemIconScale;
 						}
 

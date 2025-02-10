@@ -5,7 +5,7 @@ import java.awt.Font;
 import java.awt.FontFormatException;
 import java.io.IOException;
 
-import com.demod.factorio.FactorioData;
+import com.demod.fbsr.FactorioManager;
 import com.demod.fbsr.gui.feature.GUIPipeFeature;
 import com.demod.fbsr.gui.feature.GUISliceFeature;
 import com.demod.fbsr.gui.feature.GUIStaticFeature;
@@ -60,7 +60,8 @@ public final class GUIStyle {
 
 	public static Font createFont(String path) {
 		try {
-			return Font.createFont(Font.TRUETYPE_FONT, FactorioData.getModResource(path).get());
+			return Font.createFont(Font.TRUETYPE_FONT,
+					FactorioManager.lookupDataForModName("core").getModResource(path).get());
 		} catch (FontFormatException | IOException e) {
 			System.err.println("FAILED TO LOAD FONT: " + path);
 			e.printStackTrace();

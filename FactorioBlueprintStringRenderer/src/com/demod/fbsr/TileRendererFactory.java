@@ -14,13 +14,13 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Random;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -123,7 +123,8 @@ public class TileRendererFactory {
 		}
 	}
 
-	public static abstract class TileRenderProcess {
+	public abstract class TileRenderProcess {
+
 		// TODO
 		public abstract void tileCenter(Random rand, Consumer<Renderer> register, BSTile tile);
 
@@ -158,7 +159,7 @@ public class TileRendererFactory {
 
 			Sprite sprite = new Sprite();
 			sprite.bounds = new Rectangle2D.Double(tile.position.x, tile.position.y, main.size, main.size);
-			sprite.image = FactorioData.getModImage(main.picture);
+			sprite.image = data.getModImage(main.picture);
 			sprite.source = new Rectangle(0, 0, sourceSize, sourceSize);
 			sprite.source.x = frame * sprite.source.width;
 			register.accept(RenderUtils.spriteRenderer(Layer.DECALS, sprite, sprite.bounds));
@@ -189,7 +190,7 @@ public class TileRendererFactory {
 
 						Sprite sprite = new Sprite();
 						sprite.bounds = new Rectangle2D.Double(pos.x, pos.y, 1, variant.tileHeight);
-						sprite.image = FactorioData.getModImage(variant.spritesheet);
+						sprite.image = data.getModImage(variant.spritesheet);
 						sprite.source = new Rectangle(0, 0, sourceWidth, sourceHeight);
 						sprite.source.x = frame * sprite.source.width;
 						sprite.source.y = param.variant * sprite.source.height;
@@ -219,7 +220,7 @@ public class TileRendererFactory {
 
 						Sprite sprite = new Sprite();
 						sprite.bounds = new Rectangle2D.Double(pos.x, pos.y, 1, variant.tileHeight);
-						sprite.image = FactorioData.getModImage(variant.spritesheet);
+						sprite.image = data.getModImage(variant.spritesheet);
 						sprite.source = new Rectangle(0, 0, sourceWidth, sourceHeight);
 						sprite.source.x = frame * sprite.source.width;
 						sprite.source.y = param.variant * sprite.source.height;
@@ -245,7 +246,7 @@ public class TileRendererFactory {
 
 			Sprite sprite = new Sprite();
 			sprite.bounds = new Rectangle2D.Double(tile.position.x, tile.position.y, 1, 1);
-			sprite.image = FactorioData.getModImage(material.picture);
+			sprite.image = data.getModImage(material.picture);
 			sprite.source = new Rectangle(0, 0, sourceSize, sourceSize);
 
 			// TODO shift across the source image with sourceSize = 1 tile width
@@ -350,9 +351,6 @@ public class TileRendererFactory {
 			}
 		}
 	};
-
-	private static Map<String, TileRendererFactory> byName = new LinkedHashMap<>();
-	private static volatile boolean prototypesInitialized = false;
 
 	public static void createAllRenderers(Consumer<Renderer> register, List<TileRenderingTuple> tiles) {
 
@@ -470,44 +468,43 @@ public class TileRendererFactory {
 
 	}
 
-	public static TileRendererFactory forName(String name) {
-		return Optional.ofNullable(byName.get(name)).orElse(UNKNOWN);
-	}
-
 	public static long getRandomSeed(int row, int col, int layer, int adjCode) {
 		return ((row * 73856093) ^ (col * 19349663) ^ (layer * 83492791) ^ (adjCode * 123456789));
 	}
 
-	public static synchronized void initPrototypes(DataTable table, JSONObject json) {
-		if (prototypesInitialized) {
-			return;
+	public static void initFactories(List<TileRendererFactory> factories) {
+		for (TileRendererFactory factory : factories) {
+			factory.initFromPrototype(factory.getData().getDataTable());
 		}
+	}
+
+	public static void registerFactories(BiConsumer<String, TileRendererFactory> register, FactorioData data,
+			JSONObject json) {
+		DataTable table = data.getDataTable();
 		for (String tileName : json.keySet().stream().sorted().collect(Collectors.toList())) {
 			System.out.println("Initializing Tile " + tileName);
 			TilePrototype prototype = table.getTile(tileName).get();
 			TileRendererFactory factory = new TileRendererFactory(json.getBoolean(tileName));
+			factory.setData(data);
 			factory.setPrototype(prototype);
-			factory.initFromPrototype(table, prototype);
-			byName.put(tileName, factory);
+			register.accept(tileName, factory);
 		}
-		prototypesInitialized = true;
 	}
 
 	private final boolean spacePlatform;
 
-	protected TilePrototype prototype;
+	private FactorioData data;
+	private TilePrototype prototype;
 
 	private List<FPTileMainPictures> protoVariantsMain;
-
 	private Optional<FPTileMainPictures> protoVariantsMainSize1;
-
 	private Optional<FPTileTransitions> protoVariantsTransition;
 	private Optional<FPMaterialTextureParameters> protoVariantsMaterialBackground;
 	private int protoLayer;
-	private TileRenderProcess renderProcess = null;
 	private Optional<String> protoTransitionMergesWithTileID;
-
 	private Optional<TileRendererFactory> protoTransitionMergesWithTile;
+
+	private TileRenderProcess renderProcess = null;
 
 	public TileRendererFactory() {
 		this(false);
@@ -516,17 +513,20 @@ public class TileRendererFactory {
 	public TileRendererFactory(boolean spacePlatform) {
 		this.spacePlatform = spacePlatform;
 
+	}// TODO fix UNKNOWN so we don't need this
+
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSTile tile) {
 	}
 
-	// TODO fix UNKNOWN so we don't need this
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSTile tile) {
+	public FactorioData getData() {
+		return data;
 	}
 
 	public TilePrototype getPrototype() {
 		return prototype;
 	}
 
-	public void initFromPrototype(DataTable table, TilePrototype prototype) {
+	public void initFromPrototype(DataTable table) {
 		protoLayer = prototype.lua().get("layer").checkint();
 		LuaValue luaVariants = prototype.lua().get("variants");
 		protoVariantsMain = FPUtils.list(luaVariants.get("main"), FPTileMainPictures::new);
@@ -536,7 +536,7 @@ public class TileRendererFactory {
 				FPMaterialTextureParameters::new);
 		protoTransitionMergesWithTileID = FPUtils.optString(prototype.lua().get("transition_merges_with_tile"));
 		protoTransitionMergesWithTile = protoTransitionMergesWithTileID
-				.flatMap(k -> Optional.ofNullable(byName.get(k)));
+				.flatMap(k -> Optional.ofNullable(FactorioManager.lookupTileFactoryForName(k)));
 
 		if (!protoVariantsMain.isEmpty())
 			renderProcess = new TileRenderProcessMain();
@@ -551,6 +551,10 @@ public class TileRendererFactory {
 
 	// TODO fix UNKNOWN so we don't need this
 	public void populateWorldMap(WorldMap map, DataTable dataTable, BSTile tile) {
+	}
+
+	public void setData(FactorioData data) {
+		this.data = data;
 	}
 
 	public void setPrototype(TilePrototype prototype) {

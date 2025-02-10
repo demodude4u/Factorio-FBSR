@@ -3,6 +3,7 @@ package com.demod.fbsr.fp;
 import java.awt.Color;
 import java.util.Optional;
 
+import com.demod.factorio.FactorioData;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.RenderUtils;
@@ -30,8 +31,8 @@ public class FPSpriteParameters extends FPSpriteSource {
 		applyRuntimeTint = lua.get("apply_runtime_tint").optboolean(false);
 	}
 
-	protected Sprite createSprite() {
-		return RenderUtils.createSprite(filename.get(), drawAsShadow, blendMode, getEffectiveTint(), x, y, width,
+	protected Sprite createSprite(FactorioData data) {
+		return RenderUtils.createSprite(data, filename.get(), drawAsShadow, blendMode, getEffectiveTint(), x, y, width,
 				height, shift.x, shift.y, scale);
 	}
 

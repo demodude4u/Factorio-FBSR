@@ -2,6 +2,7 @@ package com.demod.fbsr.fp;
 
 import java.util.Optional;
 
+import com.demod.factorio.FactorioData;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.RenderUtils;
@@ -27,7 +28,7 @@ public class FPSpriteNWaySheet extends FPSpriteParameters {
 		frames = lua.get("frames").optint(directionCount);
 	}
 
-	public Sprite createSprite(Direction direction) {
+	public Sprite createSprite(FactorioData data, Direction direction) {
 		int x = this.x;
 
 		if (directionCount == 4) {
@@ -36,7 +37,7 @@ public class FPSpriteNWaySheet extends FPSpriteParameters {
 			x += width * (direction.ordinal() % frames);
 		}
 
-		return RenderUtils.createSprite(filename.get(), drawAsShadow, blendMode, getEffectiveTint(), x, y, width,
+		return RenderUtils.createSprite(data, filename.get(), drawAsShadow, blendMode, getEffectiveTint(), x, y, width,
 				height, shift.x, shift.y, scale);
 	}
 }

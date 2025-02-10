@@ -37,15 +37,15 @@ public class FPRotatedAnimation extends FPAnimationParameters {
 		counterclockwise = lua.get("counterclockwise").optboolean(false);
 	}
 
-	public void createSprites(Consumer<Sprite> consumer, double orientation, int frame) {
+	public void createSprites(Consumer<Sprite> consumer, FactorioData data, double orientation, int frame) {
 		int index = getIndex(orientation);
-		createSprites(consumer, index, frame);
+		createSprites(consumer, data, index, frame);
 	}
 
-	public void createSprites(Consumer<Sprite> consumer, int index, int frame) {
+	public void createSprites(Consumer<Sprite> consumer, FactorioData data, int index, int frame) {
 		if (layers.isPresent()) {
 			for (FPRotatedAnimation animation : layers.get()) {
-				animation.createSprites(consumer, index, frame);
+				animation.createSprites(consumer, data, index, frame);
 			}
 			return;
 		}
@@ -65,7 +65,7 @@ public class FPRotatedAnimation extends FPAnimationParameters {
 				int stripeIndex = index - stripeStartIndex;
 
 				// XXX at least it is cached
-				BufferedImage image = FactorioData.getModImage(stripe.filename);
+				BufferedImage image = data.getModImage(stripe.filename);
 
 				int width = image.getWidth() / stripe.widthInFrames;
 				int height = image.getHeight() / stripe.heightInFrames;
@@ -73,8 +73,8 @@ public class FPRotatedAnimation extends FPAnimationParameters {
 				int x = stripe.x + width * frame;
 				int y = stripe.y + height * stripeIndex;
 
-				consumer.accept(RenderUtils.createSprite(stripe.filename, drawAsShadow, blendMode, getEffectiveTint(),
-						x, y, width, height, shift.x, shift.y, scale));
+				consumer.accept(RenderUtils.createSprite(data, stripe.filename, drawAsShadow, blendMode,
+						getEffectiveTint(), x, y, width, height, shift.x, shift.y, scale));
 
 				break;
 			}
@@ -89,22 +89,22 @@ public class FPRotatedAnimation extends FPAnimationParameters {
 			int x = this.x + width * (fileFrame % lineLength);
 			int y = this.y + height * (fileFrame / lineLength);
 
-			consumer.accept(RenderUtils.createSprite(filenames.get().get(fileIndex), drawAsShadow, blendMode,
+			consumer.accept(RenderUtils.createSprite(data, filenames.get().get(fileIndex), drawAsShadow, blendMode,
 					getEffectiveTint(), x, y, width, height, shift.x, shift.y, scale));
 			return;
 		}
 
-		consumer.accept(createSprite(frame));
+		consumer.accept(createSprite(data, frame));
 	}
 
-	public List<Sprite> createSprites(double orientation, int frame) {
+	public List<Sprite> createSprites(FactorioData data, double orientation, int frame) {
 		int index = getIndex(orientation);
-		return createSprites(index, frame);
+		return createSprites(data, index, frame);
 	}
 
-	public List<Sprite> createSprites(int index, int frame) {
+	public List<Sprite> createSprites(FactorioData data, int index, int frame) {
 		List<Sprite> ret = new ArrayList<>();
-		createSprites(ret::add, index, frame);
+		createSprites(ret::add, data, index, frame);
 		return ret;
 	}
 

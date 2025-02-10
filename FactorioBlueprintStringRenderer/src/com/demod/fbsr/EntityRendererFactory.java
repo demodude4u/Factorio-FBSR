@@ -101,25 +101,24 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 		}
 	};
 
-	@SuppressWarnings("rawtypes")
-	private static final Map<String, EntityRendererFactory> byName = new LinkedHashMap<>();
-
-	private static volatile boolean prototypesInitialized = false;
-
-	@SuppressWarnings("unchecked")
-	public static <E extends BSEntity> EntityRendererFactory<E> forName(String name) {
-		return Optional.ofNullable(byName.get(name)).orElse(UNKNOWN);
-	}
-
 	public static Color getUnknownColor(String name) {
 		return Color.getHSBColor(new Random(name.hashCode()).nextFloat(), 0.6f, 0.4f);
 	}
 
 	@SuppressWarnings({ "rawtypes", "unchecked" })
-	public static synchronized void initPrototypes(DataTable table, JSONObject json) {
-		if (prototypesInitialized) {
-			return;
+	public static void initFactories(List<EntityRendererFactory> factories) {
+		for (EntityRendererFactory factory : factories) {
+			EntityPrototype prototype = factory.getPrototype();
+			factory.initFromPrototype(factory.getData().getDataTable(), prototype);
+			factory.wirePointsById = new LinkedHashMap<>();
+			factory.defineWirePoints(factory.wirePointsById::put, prototype.lua());
 		}
+	}
+
+	@SuppressWarnings({ "rawtypes" })
+	public static void registerFactories(BiConsumer<String, EntityRendererFactory> register, FactorioData data,
+			JSONObject json) {
+		DataTable table = data.getDataTable();
 		for (String entityName : json.keySet().stream().sorted().collect(Collectors.toList())) {
 			System.out.println("Initializing Entity " + entityName);
 			EntityPrototype prototype = table.getEntity(entityName).get();
@@ -128,11 +127,9 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 			try {
 				EntityRendererFactory factory = (EntityRendererFactory) Class.forName(factoryClassName).getConstructor()
 						.newInstance();
+				factory.setData(data);
 				factory.setPrototype(prototype);
-				factory.wirePointsById = new LinkedHashMap<>();
-				factory.initFromPrototype(table, prototype);
-				factory.defineWirePoints(factory.wirePointsById::put, prototype.lua());
-				byName.put(entityName, factory);
+				register.accept(entityName, factory);
 			} catch (Exception e) {
 				prototype.debugPrint();
 				System.err.println("FACTORY CLASS: " + factoryClassName);
@@ -140,9 +137,9 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 				System.exit(-1);
 			}
 		}
-		prototypesInitialized = true;
 	}
 
+	private FactorioData data = null;
 	private EntityPrototype prototype = null;
 	protected FPBoundingBox protoSelectionBox;
 	protected boolean protoBeaconed;
@@ -157,9 +154,9 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 	}
 
 	public void createModuleIcons(Consumer<Renderer> register, WorldMap map, DataTable table, E entity) {
-		Multiset<String> renderModules = RenderUtils.getModules(entity, table);
+		FactorioData data = table.getData();
+		Multiset<String> renderModules = RenderUtils.getModules(entity);
 		if (!renderModules.isEmpty()) {
-
 			register.accept(new Renderer(Layer.ENTITY_INFO_ICON_ABOVE, entity.position.createPoint(), true) {
 				final double spacing = 0.7;
 				final double shadow = 0.6;
@@ -183,7 +180,7 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 					for (String itemName : renderModules) {
 						g.setColor(new Color(0, 0, 0, 180));
 						g.fill(shadowBox);
-						BufferedImage image = table.getItem(itemName).map(FactorioData::getIcon)
+						BufferedImage image = table.getItem(itemName).map(data::getIcon)
 								.orElse(RenderUtils.EMPTY_IMAGE);
 						RenderUtils.drawImageInBounds(image, new Rectangle(0, 0, image.getWidth(), image.getHeight()),
 								spriteBox, g);
@@ -216,7 +213,7 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 					BSEntity beacon = bs.getBeacon();
 					double distributionEffectivity = bs.getDistributionEffectivity();
 
-					Multiset<String> modules2 = RenderUtils.getModules(beacon, table);
+					Multiset<String> modules2 = RenderUtils.getModules(beacon);
 					for (Multiset.Entry<String> entry : modules2.entrySet()) {
 						double amount = beaconModules.getOrDefault(entry.getElement(), 0.0);
 						amount += distributionEffectivity * entry.getCount();
@@ -254,7 +251,7 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 						for (String itemName : modules) {
 							g.setColor(new Color(0, 0, 0, 180));
 							g.fill(shadowBox);
-							BufferedImage image = table.getItem(itemName).map(FactorioData::getIcon)
+							BufferedImage image = table.getItem(itemName).map(data::getIcon)
 									.orElse(RenderUtils.EMPTY_IMAGE);
 							RenderUtils.drawImageInBounds(image,
 									new Rectangle(0, 0, image.getWidth(), image.getHeight()), spriteBox, g);
@@ -283,6 +280,10 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 
 	public FPBoundingBox getBounds() {
 		return protoSelectionBox;
+	}
+
+	public FactorioData getData() {
+		return data;
 	}
 
 	public EntityPrototype getPrototype() {
@@ -348,6 +349,10 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 
 	public void populateWorldMap(WorldMap map, DataTable dataTable, E entity) {
 		// default do nothing
+	}
+
+	public void setData(FactorioData data) {
+		this.data = data;
 	}
 
 	protected void setLogisticAcceptFilter(WorldMap map, Point2D.Double gridPos, Direction cellDir,

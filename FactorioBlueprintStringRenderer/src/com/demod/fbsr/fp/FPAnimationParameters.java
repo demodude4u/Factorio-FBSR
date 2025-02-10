@@ -1,5 +1,6 @@
 package com.demod.fbsr.fp;
 
+import com.demod.factorio.FactorioData;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Sprite;
@@ -20,12 +21,12 @@ public class FPAnimationParameters extends FPSpriteParameters {
 		this.lineLength = lineLength;
 	}
 
-	protected Sprite createSprite(int frame) {
+	protected Sprite createSprite(FactorioData data, int frame) {
 
 		int x = this.x + width * (frame % lineLength);
 		int y = this.y + height * (frame / lineLength);
 
-		return RenderUtils.createSprite(filename.get(), drawAsShadow, blendMode, getEffectiveTint(), x, y, width,
+		return RenderUtils.createSprite(data, filename.get(), drawAsShadow, blendMode, getEffectiveTint(), x, y, width,
 				height, shift.x, shift.y, scale);
 	}
 

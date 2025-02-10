@@ -31,10 +31,10 @@ public class FPAnimation extends FPAnimationParameters {
 		linesPerFile = lua.get("lines_per_file").optint(1);
 	}
 
-	public void createSprites(Consumer<Sprite> consumer, int frame) {
+	public void createSprites(Consumer<Sprite> consumer, FactorioData data, int frame) {
 		if (layers.isPresent()) {
 			for (FPAnimation animation : layers.get()) {
-				animation.createSprites(consumer, frame);
+				animation.createSprites(consumer, data, frame);
 			}
 			return;
 
@@ -42,7 +42,7 @@ public class FPAnimation extends FPAnimationParameters {
 			for (FPStripe stripe : stripes.get()) {
 
 				// XXX at least it is cached
-				BufferedImage image = FactorioData.getModImage(stripe.filename);
+				BufferedImage image = data.getModImage(stripe.filename);
 
 				// TODO do I ignore width/height in Animation proto?
 				int width = image.getWidth() / stripe.widthInFrames;
@@ -51,8 +51,8 @@ public class FPAnimation extends FPAnimationParameters {
 				int x = stripe.x + width * (frame % stripe.widthInFrames);
 				int y = stripe.y + height * (frame / stripe.heightInFrames);
 
-				consumer.accept(RenderUtils.createSprite(stripe.filename, drawAsShadow, blendMode, getEffectiveTint(),
-						x, y, width, height, shift.x, shift.y, scale));
+				consumer.accept(RenderUtils.createSprite(data, stripe.filename, drawAsShadow, blendMode,
+						getEffectiveTint(), x, y, width, height, shift.x, shift.y, scale));
 			}
 
 			return;
@@ -67,17 +67,17 @@ public class FPAnimation extends FPAnimationParameters {
 			int x = this.x + width * (fileFrame % lineLength);
 			int y = this.y + height * (fileFrame / lineLength);
 
-			consumer.accept(RenderUtils.createSprite(filenames.get().get(fileIndex), drawAsShadow, blendMode,
+			consumer.accept(RenderUtils.createSprite(data, filenames.get().get(fileIndex), drawAsShadow, blendMode,
 					getEffectiveTint(), x, y, width, height, shift.x, shift.y, scale));
 			return;
 		}
 
-		consumer.accept(createSprite(frame));
+		consumer.accept(createSprite(data, frame));
 	}
 
-	public List<Sprite> createSprites(int frame) {
+	public List<Sprite> createSprites(FactorioData data, int frame) {
 		List<Sprite> ret = new ArrayList<>();
-		createSprites(ret::add, frame);
+		createSprites(ret::add, data, frame);
 		return ret;
 	}
 }

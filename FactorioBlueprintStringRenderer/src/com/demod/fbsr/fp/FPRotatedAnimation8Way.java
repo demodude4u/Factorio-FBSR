@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 
+import com.demod.factorio.FactorioData;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.FPUtils;
@@ -51,19 +52,20 @@ public class FPRotatedAnimation8Way {
 		}
 	}
 
-	public void createSprites(Consumer<Sprite> consumer, Direction direction, double orientation, int frame) {
+	public void createSprites(Consumer<Sprite> consumer, FactorioData data, Direction direction, double orientation,
+			int frame) {
 		if (animation.isPresent()) {
-			animation.get().createSprites(consumer, orientation, frame);
+			animation.get().createSprites(consumer, data, orientation, frame);
 		} else {
 			List<Optional<FPRotatedAnimation>> directional = ImmutableList.of(north, northEast, east, southEast, south,
 					southWest, west, northWest);
-			directional.get(direction.ordinal()).get().createSprites(consumer, orientation, frame);
+			directional.get(direction.ordinal()).get().createSprites(consumer, data, orientation, frame);
 		}
 	}
 
-	public List<Sprite> createSprites(Direction direction, double orientation, int frame) {
+	public List<Sprite> createSprites(FactorioData data, Direction direction, double orientation, int frame) {
 		List<Sprite> ret = new ArrayList<>();
-		createSprites(ret::add, direction, orientation, frame);
+		createSprites(ret::add, data, direction, orientation, frame);
 		return ret;
 	}
 

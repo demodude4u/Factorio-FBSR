@@ -18,7 +18,6 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -36,12 +35,11 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.json.JSONException;
-import org.json.JSONObject;
 
 import com.demod.dcba.CommandReporting;
 import com.demod.dcba.CommandReporting.Level;
+import com.demod.factorio.Config;
 import com.demod.factorio.DataTable;
-import com.demod.factorio.FactorioData;
 import com.demod.factorio.ModInfo;
 import com.demod.factorio.TotalRawCalculator;
 import com.demod.factorio.Utils;
@@ -141,10 +139,8 @@ public class FBSR {
 		if (!blueprint.entities.isEmpty())
 			ret.put("Entities", (double) blueprint.entities.size());
 
-		DataTable table = FactorioData.getTable();
-
 		for (BSEntity entity : blueprint.entities) {
-			Multiset<String> modules = RenderUtils.getModules(entity, table);
+			Multiset<String> modules = RenderUtils.getModules(entity);
 			for (Multiset.Entry<String> entry : modules.entrySet()) {
 				addToItemAmount(ret, "Modules", entry.getCount());
 			}
@@ -164,7 +160,7 @@ public class FBSR {
 			if (itemName.equals("grass-1")) {
 				itemName = "landfill";
 			}
-			if (!table.getItem(itemName).isPresent()) {
+			if (!FactorioManager.lookupItemByName(itemName).isPresent()) {
 				System.err.println("MISSING TILE ITEM: " + itemName);
 				continue;
 			}
@@ -175,11 +171,11 @@ public class FBSR {
 	}
 
 	public static Map<String, Double> generateTotalItems(BSBlueprint blueprint) {
-		DataTable table = FactorioData.getTable();
 
 		Map<String, Double> ret = new LinkedHashMap<>();
 		for (BSEntity entity : blueprint.entities) {
 			String entityName = entity.name;
+			DataTable table = FactorioManager.lookupEntityFactoryForName(entityName).getData().getDataTable();
 			List<ItemPrototype> items = table.getItemsForEntity(entityName);
 			if (items.isEmpty()) {
 				// reporting.addWarning("Cannot find items for entity: " +
@@ -190,7 +186,7 @@ public class FBSR {
 				addToItemAmount(ret, i.getName(), 1);
 			});
 
-			Multiset<String> modules = RenderUtils.getModules(entity, table);
+			Multiset<String> modules = RenderUtils.getModules(entity);
 			for (Multiset.Entry<String> entry : modules.entrySet()) {
 				addToItemAmount(ret, entry.getElement(), entry.getCount());
 			}
@@ -210,7 +206,7 @@ public class FBSR {
 			if (itemName.equals("grass-1")) {
 				itemName = "landfill";
 			}
-			if (!table.getItem(itemName).isPresent()) {
+			if (!FactorioManager.lookupItemByName(itemName).isPresent()) {
 				System.err.println("MISSING TILE ITEM: " + itemName);
 				continue;
 			}
@@ -220,14 +216,13 @@ public class FBSR {
 	}
 
 	public static Map<String, Double> generateTotalRawItems(Map<String, Double> totalItems) {
-		DataTable table = FactorioData.getTable();
-		Map<String, RecipePrototype> recipes = table.getRecipes();
+		Map<String, RecipePrototype> recipes = FactorioManager.getRecipes();
 		Map<String, Double> ret = new LinkedHashMap<>();
 		TotalRawCalculator calculator = new TotalRawCalculator(recipes);
 		for (Entry<String, Double> entry : totalItems.entrySet()) {
 			String recipeName = entry.getKey();
 			double recipeAmount = entry.getValue();
-			table.getRecipe(recipeName).ifPresent(r -> {
+			FactorioManager.lookupRecipeByName(recipeName).ifPresent(r -> {
 				double multiplier = recipeAmount / r.getOutputs().get(recipeName);
 				Map<String, Double> totalRaw = calculator.compute(r);
 				for (Entry<String, Double> entry2 : totalRaw.entrySet()) {
@@ -240,15 +235,16 @@ public class FBSR {
 		return ret;
 	}
 
-	private static Color getItemLogisticColor(DataTable table, String itemName) {
+	private static Color getItemLogisticColor(String itemName) {
+
 		return itemColorCache.computeIfAbsent(itemName, k -> {
-			Optional<ItemPrototype> optProto = table.getItem(k);
+			Optional<ItemPrototype> optProto = FactorioManager.lookupItemByName(k);
 			if (!optProto.isPresent()) {
 				System.err.println("ITEM MISSING FOR LOGISTICS: " + k);
 				return Color.MAGENTA;
 			}
 			DataPrototype prototype = optProto.get();
-			BufferedImage image = FactorioData.getIcon(prototype);
+			BufferedImage image = prototype.getTable().getData().getIcon(prototype);
 			Color color = RenderUtils.getAverageColor(image);
 			// return new Color(color.getRGB() | 0xA0A0A0);
 			// return color.brighter().brighter();
@@ -263,8 +259,8 @@ public class FBSR {
 		if (version == null) {
 			ModInfo baseInfo;
 			try {
-				baseInfo = new ModInfo(Utils.readJsonFromStream(
-						new FileInputStream(new File(FactorioData.folderFactorio, "data/base/info.json"))));
+				baseInfo = new ModInfo(Utils.readJsonFromStream(new FileInputStream(new File(
+						Config.get().getJSONObject("factorio_manager").getString("install"), "data/base/info.json"))));
 				version = baseInfo.getVersion();
 			} catch (JSONException | IOException e) {
 				e.printStackTrace();
@@ -278,11 +274,7 @@ public class FBSR {
 		if (initialized) {
 			return;
 		}
-		DataTable table = FactorioData.getTable();
-		JSONObject jsonModRendering = new JSONObject(
-				Files.readString(new File(FactorioData.folderMods, "mod-rendering.json").toPath()));
-		EntityRendererFactory.initPrototypes(table, jsonModRendering.getJSONObject("entities"));
-		TileRendererFactory.initPrototypes(table, jsonModRendering.getJSONObject("tiles"));
+		FactorioManager.initialize();
 		initialized = true;
 	}
 
@@ -506,7 +498,6 @@ public class FBSR {
 		System.out.println("Rendering " + blueprint.label.orElse("Untitled Blueprint") + " " + blueprint.version);
 		long startMillis = System.currentTimeMillis();
 
-		DataTable table = FactorioData.getTable();
 		WorldMap map = new WorldMap();
 
 		map.setAltMode(request.show.altMode);
@@ -516,7 +507,7 @@ public class FBSR {
 		Map<Integer, EntityRenderingTuple> entityByNumber = new HashMap<>();
 
 		for (BSMetaEntity metaEntity : blueprint.entities) {
-			EntityRendererFactory<BSEntity> factory = EntityRendererFactory.forName(metaEntity.name);
+			EntityRendererFactory<BSEntity> factory = FactorioManager.lookupEntityFactoryForName(metaEntity.name);
 			BSEntity entity;
 			try {
 				if (metaEntity.isLegacy()) {
@@ -537,7 +528,7 @@ public class FBSR {
 			entityByNumber.put(entity.entityNumber, tuple);
 		}
 		for (BSTile tile : blueprint.tiles) {
-			TileRendererFactory factory = TileRendererFactory.forName(tile.name);
+			TileRendererFactory factory = FactorioManager.lookupTileFactoryForName(tile.name);
 			TileRenderingTuple tuple = new TileRenderingTuple(tile, factory);
 			tileRenderingTuples.add(tuple);
 		}
@@ -546,14 +537,14 @@ public class FBSR {
 
 		entityRenderingTuples.forEach(t -> {
 			try {
-				t.factory.populateWorldMap(map, table, t.entity);
+				t.factory.populateWorldMap(map, t.factory.getData().getDataTable(), t.entity);
 			} catch (Exception e) {
 				reporting.addException(e, t.factory.getClass().getSimpleName() + ", " + t.entity.name);
 			}
 		});
 		tileRenderingTuples.forEach(t -> {
 			try {
-				t.factory.populateWorldMap(map, table, t.tile);
+				t.factory.populateWorldMap(map, t.factory.getData().getDataTable(), t.tile);
 			} catch (Exception e) {
 				reporting.addException(e, t.factory.getClass().getSimpleName() + ", " + t.tile.name);
 			}
@@ -561,7 +552,7 @@ public class FBSR {
 
 		entityRenderingTuples.forEach(t -> {
 			try {
-				t.factory.populateLogistics(map, table, t.entity);
+				t.factory.populateLogistics(map, t.factory.getData().getDataTable(), t.entity);
 			} catch (Exception e) {
 				reporting.addException(e, t.factory.getClass().getSimpleName() + ", " + t.entity.name);
 			}
@@ -580,7 +571,7 @@ public class FBSR {
 
 		tileRenderingTuples.forEach(t -> {
 			try {
-				t.factory.createRenderers(register, map, table, t.tile);
+				t.factory.createRenderers(register, map, t.factory.getData().getDataTable(), t.tile);
 			} catch (Exception e) {
 				reporting.addException(e, t.factory.getClass().getSimpleName() + ", " + t.tile.name);
 			}
@@ -588,7 +579,7 @@ public class FBSR {
 
 		entityRenderingTuples.forEach(t -> {
 			try {
-				t.factory.createRenderers(register, map, table, t.entity);
+				t.factory.createRenderers(register, map, t.factory.getData().getDataTable(), t.entity);
 			} catch (Exception e) {
 				reporting.addException(e, t.factory.getClass().getSimpleName() + ", " + t.entity.name);
 			}
@@ -597,7 +588,7 @@ public class FBSR {
 		if (map.isAltMode()) {
 			entityRenderingTuples.forEach(t -> {
 				try {
-					t.factory.createModuleIcons(register, map, table, t.entity);
+					t.factory.createModuleIcons(register, map, t.factory.getData().getDataTable(), t.entity);
 				} catch (Exception e) {
 					reporting.addException(e, t.factory.getClass().getSimpleName() + ", " + t.entity.name);
 				}
@@ -649,8 +640,8 @@ public class FBSR {
 			}
 		}
 
-		showLogisticGrid(register, table, map, request.debug.pathItems);
-		showRailLogistics(register, table, map, request.debug.pathRails);
+		showLogisticGrid(register, map, request.debug.pathItems);
+		showRailLogistics(register, map, request.debug.pathRails);
 
 		if (request.debug.entityPlacement) {
 			entityRenderingTuples.forEach(t -> {
@@ -935,7 +926,7 @@ public class FBSR {
 		return result;
 	}
 
-	private static void showLogisticGrid(Consumer<Renderer> register, DataTable table, WorldMap map, boolean debug) {
+	private static void showLogisticGrid(Consumer<Renderer> register, WorldMap map, boolean debug) {
 		Table<Integer, Integer, LogisticGridCell> logisticGrid = map.getLogisticGrid();
 		logisticGrid.cellSet().forEach(c -> {
 			Point2D.Double pos = new Point2D.Double(c.getRowKey() / 2.0 + 0.25, c.getColumnKey() / 2.0 + 0.25);
@@ -956,7 +947,7 @@ public class FBSR {
 										Stroke ps = g.getStroke();
 										g.setStroke(
 												new BasicStroke(width, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-										g.setColor(RenderUtils.withAlpha(getItemLogisticColor(table, itemName),
+										g.setColor(RenderUtils.withAlpha(getItemLogisticColor(itemName),
 												255 - 127 / s.size()));
 										g.draw(new Line2D.Double(d.right().offset(pos, shift),
 												d.right().offset(d.offset(pos, 0.5), shift)));
@@ -1003,7 +994,7 @@ public class FBSR {
 		});
 	}
 
-	private static void showRailLogistics(Consumer<Renderer> register, DataTable table, WorldMap map, boolean debug) {
+	private static void showRailLogistics(Consumer<Renderer> register, WorldMap map, boolean debug) {
 		for (Entry<RailEdge, RailEdge> pair : map.getRailEdges()) {
 			boolean input = pair.getKey().isInput() || pair.getValue().isInput();
 			boolean output = pair.getKey().isOutput() || pair.getValue().isOutput();

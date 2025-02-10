@@ -21,7 +21,6 @@ import java.util.stream.Collectors;
 
 import org.json.JSONObject;
 
-import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
 import com.demod.factorio.Utils;
 import com.demod.factorio.prototype.ItemPrototype;
@@ -42,11 +41,11 @@ public final class RenderUtils {
 
 	private static final DecimalFormat DECIMAL_FORMAT_2_PLACES = new DecimalFormat("#,##0.##");
 
-	public static Sprite createSprite(String filename, boolean shadow, String blendMode, Color tint, int srcX, int srcY,
-			int srcWidth, int srcHeight, double dstX, double dstY, double dstScale) {
+	public static Sprite createSprite(FactorioData data, String filename, boolean shadow, String blendMode, Color tint,
+			int srcX, int srcY, int srcWidth, int srcHeight, double dstX, double dstY, double dstScale) {
 
 		Sprite ret = new Sprite();
-		ret.image = FactorioData.getModImage(filename);
+		ret.image = data.getModImage(filename);
 		ret.shadow = shadow;
 
 		if (!blendMode.equals("normal")) { // FIXME blending will take effort
@@ -198,13 +197,13 @@ public final class RenderUtils {
 		return new Color(sumR / sumA, sumG / sumA, sumB / sumA);
 	}
 
-	public static Multiset<String> getModules(BSEntity entity, DataTable table) {
+	public static Multiset<String> getModules(BSEntity entity) {
 
 		Multiset<String> modules = LinkedHashMultiset.create();
 
 		for (BSItemStack itemStack : entity.items) {
 			String itemName = itemStack.id.name;
-			Optional<ItemPrototype> item = table.getItem(itemName);
+			Optional<ItemPrototype> item = FactorioManager.lookupItemByName(itemName);
 			if (item.isPresent() && item.get().getType().equals("module")) {
 				modules.add(itemName, itemStack.itemsInInventory.size());
 			}

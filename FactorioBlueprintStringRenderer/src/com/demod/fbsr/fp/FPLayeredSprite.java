@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.BiConsumer;
 
+import com.demod.factorio.FactorioData;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.Layer;
@@ -27,20 +28,20 @@ public class FPLayeredSprite extends FPSprite {
 		}
 	}
 
-	public void createSprites(BiConsumer<Layer, Sprite> consumer) {
+	public void createSprites(BiConsumer<Layer, Sprite> consumer, FactorioData data) {
 		if (array.isPresent()) {
 			for (FPLayeredSprite item : array.get()) {
-				item.createSprites(consumer);
+				item.createSprites(consumer, data);
 			}
 			return;
 		}
 
-		super.createSprites(s -> consumer.accept(renderLayer.get(), s));
+		super.createSprites(s -> consumer.accept(renderLayer.get(), s), data);
 	}
 
-	public List<SpriteWithLayer> createSpritesWithLayers() {
+	public List<SpriteWithLayer> createSpritesWithLayers(FactorioData data) {
 		List<SpriteWithLayer> ret = new ArrayList<>();
-		createSprites((l, s) -> ret.add(new SpriteWithLayer(l, s)));
+		createSprites((l, s) -> ret.add(new SpriteWithLayer(l, s)), data);
 		return ret;
 	}
 

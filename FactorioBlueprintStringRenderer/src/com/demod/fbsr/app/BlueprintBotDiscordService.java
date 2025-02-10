@@ -36,14 +36,13 @@ import com.demod.dcba.EventReply;
 import com.demod.dcba.SlashCommandEvent;
 import com.demod.dcba.SlashCommandHandler;
 import com.demod.factorio.Config;
-import com.demod.factorio.DataTable;
-import com.demod.factorio.FactorioData;
 import com.demod.factorio.Utils;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.factorio.prototype.DataPrototype;
 import com.demod.fbsr.BlueprintFinder;
 import com.demod.fbsr.BlueprintFinder.FindBlueprintResult;
 import com.demod.fbsr.FBSR;
+import com.demod.fbsr.FactorioManager;
 import com.demod.fbsr.RenderRequest;
 import com.demod.fbsr.RenderResult;
 import com.demod.fbsr.RenderUtils;
@@ -618,10 +617,12 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		}
 
 		if (!totalItems.isEmpty()) {
-			DataTable table = FactorioData.getTable();
+			// TODO figure out wiki naming to include modded
+//			DataTable table = FactorioData.getTable();
 			String responseContent = totalItems.entrySet().stream()
 					.sorted((e1, e2) -> e1.getKey().compareTo(e2.getKey()))
-					.map(e -> table.getWikiItemName(e.getKey()) + ": " + RenderUtils.fmtDouble2(e.getValue()))
+//					.map(e -> table.getWikiItemName(e.getKey()) + ": " + RenderUtils.fmtDouble2(e.getValue()))
+					.map(e -> e.getKey() + ": " + RenderUtils.fmtDouble2(e.getValue()))
 					.collect(Collectors.joining("\n"));
 
 			String response = "```ldif\n" + responseContent + "```";
@@ -661,9 +662,11 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		Map<String, Double> rawItems = FBSR.generateTotalRawItems(totalItems);
 
 		if (!rawItems.isEmpty()) {
-			DataTable table = FactorioData.getTable();
+			// TODO figure out wiki naming to include modded
+//			DataTable table = FactorioData.getTable();
 			String responseContent = rawItems.entrySet().stream().sorted((e1, e2) -> e1.getKey().compareTo(e2.getKey()))
-					.map(e -> table.getWikiItemName(e.getKey()) + ": " + RenderUtils.fmtDouble2(e.getValue()))
+//					.map(e -> table.getWikiItemName(e.getKey()) + ": " + RenderUtils.fmtDouble2(e.getValue()))
+					.map(e -> e.getKey() + ": " + RenderUtils.fmtDouble2(e.getValue()))
 					.collect(Collectors.joining("\n"));
 
 			String response = "```ldif\n" + responseContent + "```";
@@ -1177,7 +1180,6 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 	protected void startUp() throws JSONException, IOException {
 		configJson = Config.get().getJSONObject("discord");
 
-		DataTable table = FactorioData.getTable();
 		FBSR.initialize();
 		System.out.println("Factorio " + FBSR.getVersion() + " Data Loaded.");
 
@@ -1291,43 +1293,44 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				.withOptionalParam(OptionType.ATTACHMENT, "file", "File containing blueprint string.")//
 				//
 				.addSlashCommand("prototype/entity", "Lua data for the specified entity prototype.",
-						createPrototypeCommandHandler("entity", table.getEntities()),
-						createPrototypeAutoCompleteHandler(table.getEntities()))//
+						createPrototypeCommandHandler("entity", FactorioManager.getEntities()),
+						createPrototypeAutoCompleteHandler(FactorioManager.getEntities()))//
 				.withAutoParam(OptionType.STRING, "name", "Prototype name of the entity.")//
 				//
 				.addSlashCommand("prototype/recipe", "Lua data for the specified recipe prototype.",
-						createPrototypeCommandHandler("recipe", table.getRecipes()),
-						createPrototypeAutoCompleteHandler(table.getRecipes()))//
+						createPrototypeCommandHandler("recipe", FactorioManager.getRecipes()),
+						createPrototypeAutoCompleteHandler(FactorioManager.getRecipes()))//
 				.withAutoParam(OptionType.STRING, "name", "Prototype name of the recipe.")//
 				//
 				.addSlashCommand("prototype/fluid", "Lua data for the specified fluid prototype.",
-						createPrototypeCommandHandler("fluid", table.getFluids()),
-						createPrototypeAutoCompleteHandler(table.getFluids()))//
+						createPrototypeCommandHandler("fluid", FactorioManager.getFluids()),
+						createPrototypeAutoCompleteHandler(FactorioManager.getFluids()))//
 				.withAutoParam(OptionType.STRING, "name", "Prototype name of the fluid.")//
 				//
 				.addSlashCommand("prototype/item", "Lua data for the specified item prototype.",
-						createPrototypeCommandHandler("item", table.getItems()),
-						createPrototypeAutoCompleteHandler(table.getItems()))//
+						createPrototypeCommandHandler("item", FactorioManager.getItems()),
+						createPrototypeAutoCompleteHandler(FactorioManager.getItems()))//
 				.withAutoParam(OptionType.STRING, "name", "Prototype name of the item.")//
 				//
 				.addSlashCommand("prototype/technology", "Lua data for the specified technology prototype.",
-						createPrototypeCommandHandler("technology", table.getTechnologies()),
-						createPrototypeAutoCompleteHandler(table.getTechnologies()))//
+						createPrototypeCommandHandler("technology", FactorioManager.getTechnologies()),
+						createPrototypeAutoCompleteHandler(FactorioManager.getTechnologies()))//
 				.withAutoParam(OptionType.STRING, "name", "Prototype name of the technology.")//
 				//
 				.addSlashCommand("prototype/equipment", "Lua data for the specified equipment prototype.",
-						createPrototypeCommandHandler("equipment", table.getEquipments()),
-						createPrototypeAutoCompleteHandler(table.getEquipments()))//
+						createPrototypeCommandHandler("equipment", FactorioManager.getEquipments()),
+						createPrototypeAutoCompleteHandler(FactorioManager.getEquipments()))//
 				.withAutoParam(OptionType.STRING, "name", "Prototype name of the equipment.")//
 				//
 				.addSlashCommand("prototype/tile", "Lua data for the specified tile prototype.",
-						createPrototypeCommandHandler("tile", table.getTiles()),
-						createPrototypeAutoCompleteHandler(table.getTiles()))//
+						createPrototypeCommandHandler("tile", FactorioManager.getTiles()),
+						createPrototypeAutoCompleteHandler(FactorioManager.getTiles()))//
 				.withAutoParam(OptionType.STRING, "name", "Prototype name of the tile.")//
 				//
 				//
-				.addSlashCommand("data/raw", "Lua from `data.raw` for the specified key.",
-						createDataRawCommandHandler(table::getRaw))//
+				// TODO bring back data.raw, but how?
+//				.addSlashCommand("data/raw", "Lua from `data.raw` for the specified key.",
+//						createDataRawCommandHandler(table::getRaw))//
 				.withParam(OptionType.STRING, "path", "Path to identify which key.")//
 				//
 				//

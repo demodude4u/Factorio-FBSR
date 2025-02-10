@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 
+import com.demod.factorio.FactorioData;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.RenderUtils;
@@ -50,10 +51,10 @@ public class FPRotatedSprite extends FPSpriteParameters {
 		frames = FPUtils.optList(lua.get("frames"), l -> new FPRotatedSpriteFrame(lua, width, height));
 	}
 
-	public void createSprites(Consumer<Sprite> consumer, double orientation) {
+	public void createSprites(Consumer<Sprite> consumer, FactorioData data, double orientation) {
 		if (layers.isPresent()) {
 			for (FPRotatedSprite layer : layers.get()) {
-				layer.createSprites(consumer, orientation);
+				layer.createSprites(consumer, data, orientation);
 			}
 			return;
 		}
@@ -94,14 +95,14 @@ public class FPRotatedSprite extends FPSpriteParameters {
 			shiftY += frame.shift.y;
 		}
 
-		Sprite sprite = RenderUtils.createSprite(filename, drawAsShadow, blendMode, getEffectiveTint(), x, y, width,
-				height, shiftX, shiftY, scale);
+		Sprite sprite = RenderUtils.createSprite(data, filename, drawAsShadow, blendMode, getEffectiveTint(), x, y,
+				width, height, shiftX, shiftY, scale);
 		consumer.accept(sprite);
 	}
 
-	public List<Sprite> createSprites(double orientation) {
+	public List<Sprite> createSprites(FactorioData data, double orientation) {
 		List<Sprite> ret = new ArrayList<>();
-		createSprites(ret::add, orientation);
+		createSprites(ret::add, data, orientation);
 		return ret;
 	}
 

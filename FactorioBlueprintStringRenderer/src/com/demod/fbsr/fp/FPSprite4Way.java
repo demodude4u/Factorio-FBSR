@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import com.demod.factorio.FactorioData;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.FPUtils;
@@ -37,13 +38,13 @@ public class FPSprite4Way {
 		}
 	}
 
-	public List<Sprite> createSprites(Direction direction) {
+	public List<Sprite> createSprites(FactorioData data, Direction direction) {
 		if (sprite.isPresent()) {
-			return sprite.get().createSprites();
+			return sprite.get().createSprites(data);
 		} else if (sheets.isPresent()) {
-			return sheets.get().stream().map(s -> s.createSprite(direction)).collect(Collectors.toList());
+			return sheets.get().stream().map(s -> s.createSprite(data, direction)).collect(Collectors.toList());
 		} else if (sheet.isPresent()) {
-			return ImmutableList.of(sheet.get().createSprite(direction));
+			return ImmutableList.of(sheet.get().createSprite(data, direction));
 		} else {
 			FPSprite dirSprite;
 			if (direction == Direction.EAST) {
@@ -57,7 +58,7 @@ public class FPSprite4Way {
 			} else {
 				return ImmutableList.of();
 			}
-			return dirSprite.createSprites();
+			return dirSprite.createSprites(data);
 		}
 	}
 

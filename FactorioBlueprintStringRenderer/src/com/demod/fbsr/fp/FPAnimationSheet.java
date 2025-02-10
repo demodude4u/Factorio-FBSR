@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 
+import com.demod.factorio.FactorioData;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.RenderUtils;
@@ -24,7 +25,7 @@ public class FPAnimationSheet extends FPAnimationParameters {
 		linesPerFile = lua.get("lines_per_file").optint(0);
 	}
 
-	public void createSprites(Consumer<Sprite> consumer, int variation, int frame) {
+	public void createSprites(Consumer<Sprite> consumer, FactorioData data, int variation, int frame) {
 
 		// TODO assumptions made with variation, needs testing
 		frame = variation * lineLength + frame;
@@ -39,7 +40,7 @@ public class FPAnimationSheet extends FPAnimationParameters {
 			int x = width * (fileFrame % lineLength);
 			int y = height * (fileFrame / lineLength);
 
-			consumer.accept(RenderUtils.createSprite(filenames.get().get(fileIndex), drawAsShadow, blendMode,
+			consumer.accept(RenderUtils.createSprite(data, filenames.get().get(fileIndex), drawAsShadow, blendMode,
 					getEffectiveTint(), x, y, width, height, shift.x, shift.y, scale));
 			return;
 		}
@@ -47,13 +48,13 @@ public class FPAnimationSheet extends FPAnimationParameters {
 		int x = width * (frame % lineLength);
 		int y = height * (frame / lineLength);
 
-		consumer.accept(RenderUtils.createSprite(filename.get(), drawAsShadow, blendMode, getEffectiveTint(), x, y,
-				width, height, shift.x, shift.y, scale));
+		consumer.accept(RenderUtils.createSprite(data, filename.get(), drawAsShadow, blendMode, getEffectiveTint(), x,
+				y, width, height, shift.x, shift.y, scale));
 	}
 
-	public List<Sprite> createSprites(int variation, int frame) {
+	public List<Sprite> createSprites(FactorioData data, int variation, int frame) {
 		List<Sprite> ret = new ArrayList<>();
-		createSprites(ret::add, variation, frame);
+		createSprites(ret::add, data, variation, frame);
 		return ret;
 	}
 
