@@ -50,6 +50,10 @@ public class FactorioManager {
 	private static final Map<String, TilePrototype> tileByName = new HashMap<>();
 	private static final Map<String, EquipmentPrototype> equipmentByName = new HashMap<>();
 
+	public static List<FactorioData> getDatas() {
+		return datas;
+	}
+
 	public static Map<String, EntityPrototype> getEntities() {
 		return entityByName;
 	}
