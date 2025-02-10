@@ -1,16 +1,19 @@
 package com.demod.fbsr.legacy;
 
 import java.awt.geom.Point2D;
+import java.util.OptionalDouble;
 
 import org.json.JSONObject;
 
 import com.demod.factorio.Utils;
+import com.demod.fbsr.BSUtils;
 
 public class LegacyBlueprintEntity {
 	public final int id;
 	public final String name;
 	public final Point2D.Double position;
 	public final LegacyDirection direction;
+	public final OptionalDouble orientation;
 
 	private final JSONObject json;
 
@@ -45,9 +48,9 @@ public class LegacyBlueprintEntity {
 		name = json.getString("name");
 		position = Utils.parsePoint2D(json.getJSONObject("position"));
 		direction = LegacyDirection.fromEntityJSON(json);
+		orientation = BSUtils.optDouble(json, "orientation");
 
-//		orientation = BSUtils.optDouble(json, "orientation");
-//		filters = BSUtils.list(json, "filters", j -> j.getString("name"));
+		// filters = BSUtils.list(json, "filters", j -> j.getString("name"));
 //		filter = BSUtils.optString(json, "filter");
 //		type = BSUtils.optString(json, "type");
 //		inputPriority = BSUtils.optString(json, "input_priority");

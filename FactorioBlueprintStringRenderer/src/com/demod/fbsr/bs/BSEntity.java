@@ -4,12 +4,15 @@ import java.awt.geom.Point2D;
 import java.util.List;
 import java.util.Map;
 import java.util.OptionalDouble;
+import java.util.stream.Collectors;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import com.demod.fbsr.BSUtils;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.legacy.LegacyBlueprintEntity;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 public class BSEntity {
@@ -90,10 +93,23 @@ public class BSEntity {
 		position = new BSPosition(pos.x, pos.y);
 		direction = legacy.direction.toNewDirection();
 		directionRaw = direction.ordinal() * 2;
-		orientation = OptionalDouble.empty();
+		orientation = legacy.orientation;
 
 		JSONObject json = legacy.json();
 
-		items = BSUtils.list(json, "items", j -> new BSItemStack(j.getString("item"), j.getInt("count")));
+		if (json.has("items")) {
+			Object jsonItems = json.get("items");
+			if (jsonItems instanceof JSONArray) {
+				items = BSUtils.list(json, "items", j -> new BSItemStack(j.getString("item"), j.getInt("count")));
+			} else if (jsonItems instanceof JSONObject) {
+				items = ((JSONObject) jsonItems).keySet().stream()
+						.map(item -> new BSItemStack(item, ((JSONObject) jsonItems).getInt(item)))
+						.collect(Collectors.toList());
+			} else {
+				items = ImmutableList.of();
+			}
+		} else {
+			items = ImmutableList.of();
+		}
 	}
 }
