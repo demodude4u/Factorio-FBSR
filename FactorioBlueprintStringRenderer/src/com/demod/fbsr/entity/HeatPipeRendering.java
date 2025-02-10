@@ -5,8 +5,6 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-import com.demod.factorio.DataTable;
-import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.RenderUtils;
@@ -40,14 +38,14 @@ public class HeatPipeRendering extends EntityRendererFactory<BSEntity> {
 	private List<FPSpriteVariations> protoConnectionSprites;
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSEntity entity) {
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, BSEntity entity) {
 		int adjCode = 0;
 		adjCode |= ((heatPipeFacingMeFrom(Direction.NORTH, map, entity) ? 1 : 0) << 0);
 		adjCode |= ((heatPipeFacingMeFrom(Direction.EAST, map, entity) ? 1 : 0) << 1);
 		adjCode |= ((heatPipeFacingMeFrom(Direction.SOUTH, map, entity) ? 1 : 0) << 2);
 		adjCode |= ((heatPipeFacingMeFrom(Direction.WEST, map, entity) ? 1 : 0) << 3);
 
-		register.accept(RenderUtils.spriteRenderer(protoConnectionSprites.get(adjCode).createSprites(0), entity,
+		register.accept(RenderUtils.spriteRenderer(protoConnectionSprites.get(adjCode).createSprites(data, 0), entity,
 				protoSelectionBox));
 	}
 
@@ -56,14 +54,14 @@ public class HeatPipeRendering extends EntityRendererFactory<BSEntity> {
 	}
 
 	@Override
-	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
+	public void initFromPrototype() {
 		protoConnectionSprites = Arrays.stream(heatPipeSpriteNameMapping)
 				.map(s -> new FPSpriteVariations(prototype.lua().get("connection_sprites").get(s)))
 				.collect(Collectors.toList());
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BSEntity entity) {
+	public void populateWorldMap(WorldMap map, BSEntity entity) {
 		map.setHeatPipe(entity.position.createPoint());
 	}
 }

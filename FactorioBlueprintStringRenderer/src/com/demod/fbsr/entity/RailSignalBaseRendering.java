@@ -7,9 +7,7 @@ import java.util.function.Consumer;
 
 import org.json.JSONObject;
 
-import com.demod.factorio.DataTable;
 import com.demod.factorio.fakelua.LuaValue;
-import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.BSUtils;
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.FPUtils;
@@ -75,8 +73,7 @@ public abstract class RailSignalBaseRendering extends EntityRendererFactory<BSRa
 	// TODO circuit connectors
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
-			BSRailSignalBaseEntity entity) {
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, BSRailSignalBaseEntity entity) {
 
 		boolean elevated = entity.railLayer.filter(s -> s.equals("elevated")).isPresent();
 		FPRailSignalPictureSet pictureSet = elevated ? elevatedPictureSet : groundPictureSet;
@@ -90,10 +87,10 @@ public abstract class RailSignalBaseRendering extends EntityRendererFactory<BSRa
 		FPBoundingBox shiftedSelectionBox = protoSelectionBox.shift(shift);
 
 		int railPieceFrame = pictureSet.railPiece.alignToFrameIndex.get(align);
-		List<Sprite> railPieceSprites = pictureSet.railPiece.sprites.createSprites(railPieceFrame);
+		List<Sprite> railPieceSprites = pictureSet.railPiece.sprites.createSprites(data, railPieceFrame);
 
 		int structureIndex = pictureSet.structureAlignToAnimationIndex.get(align);
-		List<Sprite> structureSprites = pictureSet.structure.createSprites(structureIndex, 0);
+		List<Sprite> structureSprites = pictureSet.structure.createSprites(data, structureIndex, 0);
 
 		if (elevated) {
 			Point2D.Double elevatedShift = new Point2D.Double(0, -3);
@@ -106,7 +103,7 @@ public abstract class RailSignalBaseRendering extends EntityRendererFactory<BSRa
 	}
 
 	@Override
-	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
+	public void initFromPrototype() {
 		groundPictureSet = new FPRailSignalPictureSet(prototype.lua().get("ground_picture_set"));
 		elevatedPictureSet = new FPRailSignalPictureSet(prototype.lua().get("elevated_picture_set"));
 	}

@@ -7,7 +7,8 @@ import com.demod.fbsr.Direction;
 import com.demod.fbsr.FPUtils;
 
 public class FPPipeConnectionDefinition {
-	public final Optional<String> flowDirection;
+	public final String flowDirection;
+	public final String connectionType;
 	public final Optional<Direction> direction;
 	public final Optional<FPVector> position;
 
@@ -15,12 +16,13 @@ public class FPPipeConnectionDefinition {
 	private final boolean output;
 
 	public FPPipeConnectionDefinition(LuaValue lua) {
-		flowDirection = FPUtils.optString(lua.get("flow_direction"));
+		flowDirection = lua.get("flow_direction").optjstring("input-output");
+		connectionType = lua.get("connection_type").optjstring("normal");
 		direction = FPUtils.optDirection(lua.get("direction"));
 		position = FPUtils.opt(lua.get("position"), FPVector::new);
 
-		input = flowDirection.filter(s -> s.equals("input") || s.equals("input-output")).isPresent();
-		output = flowDirection.filter(s -> s.equals("output") || s.equals("input-output")).isPresent();
+		input = flowDirection.equals("input") || flowDirection.equals("input-output");
+		output = flowDirection.equals("output") || flowDirection.equals("input-output");
 	}
 
 	public boolean isInput() {

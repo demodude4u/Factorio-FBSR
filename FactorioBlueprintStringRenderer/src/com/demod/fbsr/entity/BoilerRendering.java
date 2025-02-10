@@ -4,10 +4,9 @@ import java.awt.geom.Point2D;
 import java.util.List;
 import java.util.function.Consumer;
 
-import com.demod.factorio.DataTable;
+import com.demod.factorio.FactorioData;
 import com.demod.factorio.fakelua.LuaTable;
 import com.demod.factorio.fakelua.LuaValue;
-import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
@@ -40,7 +39,7 @@ public class BoilerRendering extends SimpleEntityRendering<BSEntity> {
 			west = new FPBoilerPictures(lua.get("west"));
 		}
 
-		public List<Sprite> createSprites(Direction direction, int frame) {
+		public List<Sprite> createSprites(FactorioData data, Direction direction, int frame) {
 			FPBoilerPictures dirPictures;
 			if (direction == Direction.EAST) {
 				dirPictures = east;
@@ -53,7 +52,7 @@ public class BoilerRendering extends SimpleEntityRendering<BSEntity> {
 			} else {
 				return ImmutableList.of();
 			}
-			return dirPictures.structure.createSprites(frame);
+			return dirPictures.structure.createSprites(data, frame);
 		}
 	}
 
@@ -61,10 +60,10 @@ public class BoilerRendering extends SimpleEntityRendering<BSEntity> {
 	private boolean protoHasEnergySource;
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSEntity entity) {
-		super.createRenderers(register, map, dataTable, entity);
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, BSEntity entity) {
+		super.createRenderers(register, map, entity);
 
-		register.accept(RenderUtils.spriteRenderer(protoPictures.createSprites(entity.direction, 0), entity,
+		register.accept(RenderUtils.spriteRenderer(protoPictures.createSprites(data, entity.direction, 0), entity,
 				protoSelectionBox));
 	}
 
@@ -75,16 +74,16 @@ public class BoilerRendering extends SimpleEntityRendering<BSEntity> {
 	}
 
 	@Override
-	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
-		super.initFromPrototype(dataTable, prototype);
+	public void initFromPrototype() {
+		super.initFromPrototype();
 
 		protoPictures = new FPBoilerPictureSet(prototype.lua().get("pictures"));
 		protoHasEnergySource = !prototype.lua().get("energy_source").isnil();
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BSEntity entity) {
-		super.populateWorldMap(map, dataTable, entity);
+	public void populateWorldMap(WorldMap map, BSEntity entity) {
+		super.populateWorldMap(map, entity);
 
 		Direction dir = entity.direction;
 		Point2D.Double position = dir.back().offset(entity.position.createPoint(), 0.5);

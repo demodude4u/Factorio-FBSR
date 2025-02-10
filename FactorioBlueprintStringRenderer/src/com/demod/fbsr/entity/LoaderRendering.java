@@ -14,13 +14,11 @@ import java.util.stream.Collectors;
 
 import org.json.JSONObject;
 
-import com.demod.factorio.DataTable;
-import com.demod.factorio.FactorioData;
 import com.demod.factorio.fakelua.LuaValue;
-import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.factorio.prototype.ItemPrototype;
 import com.demod.fbsr.BSUtils;
 import com.demod.fbsr.Direction;
+import com.demod.fbsr.FactorioManager;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
@@ -68,7 +66,7 @@ public abstract class LoaderRendering extends TransportBeltConnectableRendering<
 	// TODO circuit connectors
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSLoaderEntity entity) {
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, BSLoaderEntity entity) {
 		Point2D.Double beltShift = getBeltShift(entity);
 		List<Sprite> beltSprites = createBeltSprites(entity.direction.cardinal(), BeltBend.NONE.ordinal(),
 				getAlternatingFrame(entity.position.createPoint(beltShift), 0));
@@ -78,7 +76,7 @@ public abstract class LoaderRendering extends TransportBeltConnectableRendering<
 		boolean input = entity.type.get().equals("input");
 		Direction structDir = input ? entity.direction : entity.direction.back();
 		List<Sprite> structureSprites = (input ? protoStructureDirectionIn : protoStructureDirectionOut)
-				.createSprites(structDir);
+				.createSprites(data, structDir);
 		register.accept(
 				RenderUtils.spriteRenderer(Layer.HIGHER_OBJECT_UNDER, structureSprites, entity, protoSelectionBox));
 
@@ -88,10 +86,10 @@ public abstract class LoaderRendering extends TransportBeltConnectableRendering<
 			// TODO double/quad icons
 			if (!items.isEmpty()) {
 				String itemName = items.get(0);
-				Optional<ItemPrototype> optItem = dataTable.getItem(itemName);
+				Optional<ItemPrototype> optItem = FactorioManager.lookupItemByName(itemName);
 				if (optItem.isPresent()) {
 					Sprite spriteIcon = new Sprite();
-					spriteIcon.image = FactorioData.getIcon(optItem.get());
+					spriteIcon.image = optItem.get().getTable().getData().getIcon(optItem.get());
 					spriteIcon.source = new Rectangle(0, 0, spriteIcon.image.getWidth(), spriteIcon.image.getHeight());
 					spriteIcon.bounds = new Rectangle2D.Double(-0.3, -0.3, 0.6, 0.6);
 
@@ -124,8 +122,8 @@ public abstract class LoaderRendering extends TransportBeltConnectableRendering<
 	}
 
 	@Override
-	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
-		super.initFromPrototype(dataTable, prototype);
+	public void initFromPrototype() {
+		super.initFromPrototype();
 
 		protoContainerDistance = prototype.lua().get("container_distance").optdouble(1.5);
 		LuaValue luaStructure = prototype.lua().get("structure");
@@ -134,7 +132,7 @@ public abstract class LoaderRendering extends TransportBeltConnectableRendering<
 	}
 
 	@Override
-	public void populateLogistics(WorldMap map, DataTable dataTable, BSLoaderEntity entity) {
+	public void populateLogistics(WorldMap map, BSLoaderEntity entity) {
 		Direction dir = entity.direction;
 		Point2D.Double pos = entity.position.createPoint();
 		Point2D.Double beltShift = getBeltShift(entity);
@@ -209,7 +207,7 @@ public abstract class LoaderRendering extends TransportBeltConnectableRendering<
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BSLoaderEntity entity) {
+	public void populateWorldMap(WorldMap map, BSLoaderEntity entity) {
 		boolean input = entity.type.get().equals("input");
 		Point2D.Double beltShift = getBeltShift(entity);
 

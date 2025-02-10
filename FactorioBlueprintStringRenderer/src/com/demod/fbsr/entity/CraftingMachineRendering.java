@@ -8,15 +8,14 @@ import java.util.function.Consumer;
 
 import org.json.JSONObject;
 
-import com.demod.factorio.DataTable;
 import com.demod.factorio.Utils;
 import com.demod.factorio.fakelua.LuaTable;
 import com.demod.factorio.fakelua.LuaValue;
-import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.factorio.prototype.RecipePrototype;
 import com.demod.fbsr.BSUtils;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.FPUtils;
+import com.demod.fbsr.FactorioManager;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
 import com.demod.fbsr.Sprite;
@@ -56,23 +55,22 @@ public abstract class CraftingMachineRendering extends SimpleEntityRendering<BSC
 	private List<FPFluidBox> protoConditionalFluidBoxes;
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
-			BSCraftingMachineEntity entity) {
-		super.createRenderers(register, map, dataTable, entity);
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, BSCraftingMachineEntity entity) {
+		super.createRenderers(register, map, entity);
 
 		if (entity.mirror && protoGraphicsSetFlipped.isPresent()) {
-			register.accept(RenderUtils.spriteRenderer(protoGraphicsSetFlipped.get().createSprites(entity.direction, 0),
-					entity, protoSelectionBox));
+			register.accept(RenderUtils.spriteRenderer(
+					protoGraphicsSetFlipped.get().createSprites(data, entity.direction, 0), entity, protoSelectionBox));
 		} else {
-			register.accept(RenderUtils.spriteRenderer(protoGraphicsSet.createSprites(entity.direction, 0), entity,
-					protoSelectionBox));
+			register.accept(RenderUtils.spriteRenderer(protoGraphicsSet.createSprites(data, entity.direction, 0),
+					entity, protoSelectionBox));
 		}
 
 		Optional<String> recipe = entity.recipe;
 		boolean hasFluidInput = false;
 		boolean hasFluidOutput = false;
 		if (recipe.isPresent()) {
-			Optional<RecipePrototype> optRecipe = dataTable.getRecipe(recipe.get());
+			Optional<RecipePrototype> optRecipe = FactorioManager.lookupRecipeByName(recipe.get());
 			if (optRecipe.isPresent()) {
 				RecipePrototype protoRecipe = optRecipe.get();
 
@@ -112,7 +110,7 @@ public abstract class CraftingMachineRendering extends SimpleEntityRendering<BSC
 					}
 
 					if (fluidBox.pipePicture.isPresent()) {
-						List<Sprite> sprites = fluidBox.pipePicture.get().createSprites(facing);
+						List<Sprite> sprites = fluidBox.pipePicture.get().createSprites(data, facing);
 						for (Sprite sprite : sprites) {
 							sprite.bounds.x += pos.x;
 							sprite.bounds.y += pos.y;
@@ -121,7 +119,7 @@ public abstract class CraftingMachineRendering extends SimpleEntityRendering<BSC
 					}
 
 					if (fluidBox.pipeCovers.isPresent() && !map.isPipe(pos, facing)) {
-						List<Sprite> sprites = fluidBox.pipeCovers.get().createSprites(facing);
+						List<Sprite> sprites = fluidBox.pipeCovers.get().createSprites(data, facing);
 						for (Sprite sprite : sprites) {
 							sprite.bounds.x += pos.x;
 							sprite.bounds.y += pos.y;
@@ -182,8 +180,8 @@ public abstract class CraftingMachineRendering extends SimpleEntityRendering<BSC
 	}
 
 	@Override
-	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
-		super.initFromPrototype(dataTable, prototype);
+	public void initFromPrototype() {
+		super.initFromPrototype();
 
 		protoGraphicsSet = new FPWorkingVisualisations(prototype.lua().get("graphics_set"));
 		protoGraphicsSetFlipped = FPUtils.opt(prototype.lua().get("graphics_set_flipped"),
@@ -191,26 +189,26 @@ public abstract class CraftingMachineRendering extends SimpleEntityRendering<BSC
 	}
 
 	@Override
-	public void populateLogistics(WorldMap map, DataTable dataTable, BSCraftingMachineEntity entity) {
+	public void populateLogistics(WorldMap map, BSCraftingMachineEntity entity) {
 		Optional<String> recipe = entity.recipe;
 		if (recipe.isPresent()) {
-			Optional<RecipePrototype> optRecipe = dataTable.getRecipe(recipe.get());
+			Optional<RecipePrototype> optRecipe = data.getTable().getRecipe(recipe.get());
 			if (optRecipe.isPresent()) {
 				RecipePrototype protoRecipe = optRecipe.get();
-				setLogisticMachine(map, dataTable, entity, protoRecipe);
+				setLogisticMachine(map, entity, protoRecipe);
 			}
 		}
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BSCraftingMachineEntity entity) {
-		super.populateWorldMap(map, dataTable, entity);
+	public void populateWorldMap(WorldMap map, BSCraftingMachineEntity entity) {
+		super.populateWorldMap(map, entity);
 
 		if (!protoConditionalFluidBoxes.isEmpty()) {
 			Optional<String> recipe = entity.recipe;
 			boolean hasFluid = false;
 			if (recipe.isPresent()) {
-				Optional<RecipePrototype> optRecipe = dataTable.getRecipe(recipe.get());
+				Optional<RecipePrototype> optRecipe = data.getTable().getRecipe(recipe.get());
 				if (optRecipe.isPresent()) {
 					RecipePrototype protoRecipe = optRecipe.get();
 

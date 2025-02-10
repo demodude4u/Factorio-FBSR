@@ -7,9 +7,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-import com.demod.factorio.DataTable;
 import com.demod.factorio.fakelua.LuaTable;
-import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.FBSR.EntityRenderingTuple;
 import com.demod.fbsr.FPUtils;
@@ -18,6 +16,7 @@ import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
 import com.demod.fbsr.WirePoints;
 import com.demod.fbsr.WirePoints.WireColor;
+import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.bs.BSPosition;
 import com.demod.fbsr.fp.FPRotatedSprite;
@@ -66,6 +65,10 @@ public class ElectricPoleRendering extends EntityRendererFactory<BSEntity> {
 	}
 
 	@Override
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, BSEntity entity) {
+	}
+
+	@Override
 	public void defineWirePoints(BiConsumer<Integer, WirePoints> consumer, LuaTable lua) {
 		List<FPWireConnectionPoint> protoConnectionPoints = FPUtils.list(lua.get("connection_points"),
 				FPWireConnectionPoint::new);
@@ -76,7 +79,7 @@ public class ElectricPoleRendering extends EntityRendererFactory<BSEntity> {
 	}
 
 	@Override
-	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
+	public void initFromPrototype() {
 		// XXX strange that I have to force back_equals_front to be true
 		protoPictures = new FPRotatedSprite(prototype.lua().get("pictures"), Optional.of(true));
 	}
@@ -90,8 +93,8 @@ public class ElectricPoleRendering extends EntityRendererFactory<BSEntity> {
 		}).collect(Collectors.toList());
 		double orientation = computePrincipalOrientation(points);
 
-		register.accept(RenderUtils.spriteRenderer(Layer.HIGHER_OBJECT_ABOVE, protoPictures.createSprites(orientation),
-				entity, protoSelectionBox));
+		register.accept(RenderUtils.spriteRenderer(Layer.HIGHER_OBJECT_ABOVE,
+				protoPictures.createSprites(data, orientation), entity, protoSelectionBox));
 
 		return orientation;
 	}

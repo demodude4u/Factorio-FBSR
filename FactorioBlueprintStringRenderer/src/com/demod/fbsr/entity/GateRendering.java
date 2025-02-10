@@ -3,8 +3,6 @@ package com.demod.fbsr.entity;
 import java.awt.geom.Point2D;
 import java.util.function.Consumer;
 
-import com.demod.factorio.DataTable;
-import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
@@ -18,18 +16,18 @@ public class GateRendering extends EntityRendererFactory<BSEntity> {
 	private FPAnimation protoHorizontalAnimation;
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSEntity entity) {
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, BSEntity entity) {
 		if (isVertical(entity)) {
-			register.accept(
-					RenderUtils.spriteRenderer(protoVerticalAnimation.createSprites(0), entity, protoSelectionBox));
+			register.accept(RenderUtils.spriteRenderer(protoVerticalAnimation.createSprites(data, 0), entity,
+					protoSelectionBox));
 		} else {
-			register.accept(
-					RenderUtils.spriteRenderer(protoHorizontalAnimation.createSprites(0), entity, protoSelectionBox));
+			register.accept(RenderUtils.spriteRenderer(protoHorizontalAnimation.createSprites(data, 0), entity,
+					protoSelectionBox));
 		}
 	}
 
 	@Override
-	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
+	public void initFromPrototype() {
 		protoVerticalAnimation = new FPAnimation(prototype.lua().get("vertical_animation"));
 		protoHorizontalAnimation = new FPAnimation(prototype.lua().get("horizontal_animation"));
 	}
@@ -39,7 +37,7 @@ public class GateRendering extends EntityRendererFactory<BSEntity> {
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BSEntity entity) {
+	public void populateWorldMap(WorldMap map, BSEntity entity) {
 		Point2D.Double pos = entity.position.createPoint();
 		if (isVertical(entity)) {
 			map.setVerticalGate(pos);

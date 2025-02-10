@@ -10,10 +10,8 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import com.demod.factorio.DataTable;
 import com.demod.factorio.Utils;
 import com.demod.factorio.fakelua.LuaValue;
-import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.Layer;
@@ -168,8 +166,8 @@ public abstract class CargoBayConnectionsRendering extends SimpleEntityRendering
 	}
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSEntity entity) {
-		super.createRenderers(register, map, dataTable, entity);
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, BSEntity entity) {
+		super.createRenderers(register, map, entity);
 
 		FPCargoBayConnectableGraphicsSet protoSelectedGraphicsSet;
 
@@ -180,7 +178,7 @@ public abstract class CargoBayConnectionsRendering extends SimpleEntityRendering
 		}
 
 		if (protoSelectedGraphicsSet.picture.isPresent()) {
-			List<SpriteWithLayer> sprites = protoSelectedGraphicsSet.picture.get().createSpritesWithLayers();
+			List<SpriteWithLayer> sprites = protoSelectedGraphicsSet.picture.get().createSpritesWithLayers(data);
 			for (SpriteWithLayer swl : sprites) {
 				register.accept(RenderUtils.spriteRenderer(swl.getLayer(), swl.getSprite(), entity, protoSelectionBox));
 			}
@@ -229,7 +227,7 @@ public abstract class CargoBayConnectionsRendering extends SimpleEntityRendering
 
 			rand.setSeed(getRandomSeed(point, type, direction));
 			int variation = rand.nextInt(protoSprites.getVariationCount());
-			for (SpriteWithLayer swl : protoSprites.createSpritesWithLayers(variation)) {
+			for (SpriteWithLayer swl : protoSprites.createSpritesWithLayers(data, variation)) {
 				register.accept(RenderUtils.spriteRenderer(swl.getLayer(), swl.getSprite(), point,
 						new FPBoundingBox(0, 0, 0, 0)));
 			}
@@ -238,8 +236,8 @@ public abstract class CargoBayConnectionsRendering extends SimpleEntityRendering
 	}
 
 	@Override
-	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
-		super.initFromPrototype(dataTable, prototype);
+	public void initFromPrototype() {
+		super.initFromPrototype();
 
 		// TODO CargoBay also has platform_graphics_set, need to figure out if needed
 		protoGraphicsSet = new FPCargoBayConnectableGraphicsSet(prototype.lua().get("graphics_set"));
@@ -330,8 +328,8 @@ public abstract class CargoBayConnectionsRendering extends SimpleEntityRendering
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BSEntity entity) {
-		super.populateWorldMap(map, dataTable, entity);
+	public void populateWorldMap(WorldMap map, BSEntity entity) {
+		super.populateWorldMap(map, entity);
 
 		BSPosition pos = entity.position;
 		for (Point2D.Double dcp : protoConnectionPoints) {

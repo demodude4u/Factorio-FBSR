@@ -26,7 +26,8 @@ import com.demod.fbsr.bs.BSEntity;
 
 public class FactorioManager {
 
-	private static volatile boolean initialized = false;
+	private static volatile boolean initializedPrototypes = false;
+	private static volatile boolean initializedFactories = false;
 
 	private static final List<FactorioData> datas = new ArrayList<>();
 
@@ -77,27 +78,40 @@ public class FactorioManager {
 		return tileByName;
 	}
 
-	public static void initialize() throws JSONException, IOException {
-		if (initialized) {
-			return;
+	public static void initializeFactories() {
+		if (initializedFactories) {
+			throw new IllegalStateException("Already Initialized Factories!");
 		}
-		initialized = true;
+		initializedFactories = true;
 
-		JSONObject config = Config.get();
+		EntityRendererFactory.initFactories(entityFactories);
+		TileRendererFactory.initFactories(tileFactories);
+	}
 
-		String factorio = config.getString("install");
+	public static void initializePrototypes() throws JSONException, IOException {
+		if (initializedPrototypes) {
+			throw new IllegalStateException("Already Initialized Prototypes!");
+		}
+		initializedPrototypes = true;
 
-		File folderModsRoot = new File(config.optString("mods", "mods"));
+		JSONObject json = Config.get().getJSONObject("factorio_manager");
+
+		String factorio = json.getString("install");
+
+		File folderModsRoot = new File(json.optString("mods", "mods"));
 		if (folderModsRoot.mkdirs()) {
 			File folderModsVanilla = new File(folderModsRoot, "mods-vanilla");
 			folderModsVanilla.mkdir();
 		}
 
-		File folderDataRoot = new File(config.optString("data", "data"));
+		File folderDataRoot = new File(json.optString("data", "data"));
 		folderDataRoot.mkdirs();
 
 		for (File folderMods : folderModsRoot.listFiles()) {
 			if (!folderMods.isDirectory()) {
+				continue;
+			}
+			if (!new File(folderMods, "mod-list.json").exists()) {
 				continue;
 			}
 
@@ -123,13 +137,14 @@ public class FactorioManager {
 			TileRendererFactory.registerFactories(FactorioManager::registerTileFactory, data,
 					jsonModRendering.getJSONObject("tiles"));
 
-			recipeByName.putAll(data.getDataTable().getRecipes());
-			itemByName.putAll(data.getDataTable().getItems());
-			fluidByName.putAll(data.getDataTable().getFluids());
+			recipeByName.putAll(data.getTable().getRecipes());
+			itemByName.putAll(data.getTable().getItems());
+			fluidByName.putAll(data.getTable().getFluids());
+			entityByName.putAll(data.getTable().getEntities());
+			technologyByName.putAll(data.getTable().getTechnologies());
+			tileByName.putAll(data.getTable().getTiles());
+			equipmentByName.putAll(data.getTable().getEquipments());
 		}
-
-		EntityRendererFactory.initFactories(entityFactories);
-		TileRendererFactory.initFactories(tileFactories);
 	}
 
 	public static FactorioData lookupDataForModName(String modName) {

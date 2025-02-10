@@ -6,10 +6,8 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-import com.demod.factorio.DataTable;
 import com.demod.factorio.fakelua.LuaTable;
 import com.demod.factorio.fakelua.LuaValue;
-import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
@@ -43,8 +41,8 @@ public class WallRendering extends SimpleEntityRendering<BSEntity> {
 	private FPSprite4Way protoWallDiodeRed;
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSEntity entity) {
-		super.createRenderers(register, map, dataTable, entity);
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, BSEntity entity) {
+		super.createRenderers(register, map, entity);
 
 		Point2D.Double pos = entity.position.createPoint();
 
@@ -61,10 +59,11 @@ public class WallRendering extends SimpleEntityRendering<BSEntity> {
 
 		FPSpriteVariations wallSprites = protoPictures.get(adjCode);
 		int variation = Math.abs((int) pos.x + (int) pos.y) % (wallSprites.getVariationCount() / 2);
-		register.accept(RenderUtils.spriteRenderer(wallSprites.createSprites(variation), entity, protoSelectionBox));
+		register.accept(
+				RenderUtils.spriteRenderer(wallSprites.createSprites(data, variation), entity, protoSelectionBox));
 
 		if (northGate || eastGate || southGate || westGate) {
-			register.accept(RenderUtils.spriteRenderer(protoWallDiodeRed.createSprites(entity.direction), entity,
+			register.accept(RenderUtils.spriteRenderer(protoWallDiodeRed.createSprites(data, entity.direction), entity,
 					protoSelectionBox));
 		}
 	}
@@ -75,8 +74,8 @@ public class WallRendering extends SimpleEntityRendering<BSEntity> {
 	}
 
 	@Override
-	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
-		super.initFromPrototype(dataTable, prototype);
+	public void initFromPrototype() {
+		super.initFromPrototype();
 
 		LuaValue luaPictures = prototype.lua().get("pictures");
 		protoPictures = Arrays.stream(wallSpriteNameMapping).map(s -> new FPSpriteVariations(luaPictures.get(s)))
@@ -85,8 +84,8 @@ public class WallRendering extends SimpleEntityRendering<BSEntity> {
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BSEntity entity) {
-		super.populateWorldMap(map, dataTable, entity);
+	public void populateWorldMap(WorldMap map, BSEntity entity) {
+		super.populateWorldMap(map, entity);
 
 		map.setWall(entity.position.createPoint());
 	}

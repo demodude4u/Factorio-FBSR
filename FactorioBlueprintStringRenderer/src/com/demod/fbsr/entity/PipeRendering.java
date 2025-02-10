@@ -5,9 +5,7 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-import com.demod.factorio.DataTable;
 import com.demod.factorio.fakelua.LuaValue;
-import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.RenderUtils;
@@ -41,18 +39,18 @@ public class PipeRendering extends EntityRendererFactory<BSEntity> {
 	private List<FPSprite> protoPipeSprites;
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSEntity entity) {
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, BSEntity entity) {
 		int adjCode = 0;
 		adjCode |= ((pipeFacingMeFrom(Direction.NORTH, map, entity) ? 1 : 0) << 0);
 		adjCode |= ((pipeFacingMeFrom(Direction.EAST, map, entity) ? 1 : 0) << 1);
 		adjCode |= ((pipeFacingMeFrom(Direction.SOUTH, map, entity) ? 1 : 0) << 2);
 		adjCode |= ((pipeFacingMeFrom(Direction.WEST, map, entity) ? 1 : 0) << 3);
-		register.accept(
-				RenderUtils.spriteRenderer(protoPipeSprites.get(adjCode).createSprites(), entity, protoSelectionBox));
+		register.accept(RenderUtils.spriteRenderer(protoPipeSprites.get(adjCode).createSprites(data), entity,
+				protoSelectionBox));
 	}
 
 	@Override
-	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
+	public void initFromPrototype() {
 
 		LuaValue luaPictures = prototype.lua().get("pictures");
 		protoPipeSprites = Arrays.stream(pipeSpriteNameMapping).map(s -> new FPSprite(luaPictures.get(s)))
@@ -64,7 +62,7 @@ public class PipeRendering extends EntityRendererFactory<BSEntity> {
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BSEntity entity) {
+	public void populateWorldMap(WorldMap map, BSEntity entity) {
 		map.setPipe(entity.position.createPoint());
 	}
 

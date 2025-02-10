@@ -8,9 +8,7 @@ import java.util.function.Consumer;
 
 import org.json.JSONObject;
 
-import com.demod.factorio.DataTable;
 import com.demod.factorio.fakelua.LuaValue;
-import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.BSUtils;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.Layer;
@@ -52,8 +50,7 @@ public class TransportBeltRendering extends TransportBeltConnectableRendering<BS
 	// TODO circuit connectors
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
-			BSTransportBeltEntity entity) {
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, BSTransportBeltEntity entity) {
 		Double pos = entity.position.createPoint();
 		BeltBend bend = map.getBeltBend(pos).get();
 		int frame = getAlternatingFrame(pos, 0);
@@ -101,16 +98,16 @@ public class TransportBeltRendering extends TransportBeltConnectableRendering<BS
 		// TODO switch this over to the wire connector logic
 		if (entity.controlBehavior.isPresent()) {
 			int index = transportBeltConnectorFrameMappingIndex[entity.direction.cardinal()][bend.ordinal()];
-			register.accept(RenderUtils.spriteRenderer(protoConnectorFrameShadow.createSprites(index, 0), entity,
+			register.accept(RenderUtils.spriteRenderer(protoConnectorFrameShadow.createSprites(data, index, 0), entity,
 					protoSelectionBox));
-			register.accept(RenderUtils.spriteRenderer(protoConnectorFrameMain.createSprites(index, 0), entity,
+			register.accept(RenderUtils.spriteRenderer(protoConnectorFrameMain.createSprites(data, index, 0), entity,
 					protoSelectionBox));
 		}
 	}
 
 	@Override
-	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
-		super.initFromPrototype(dataTable, prototype);
+	public void initFromPrototype() {
+		super.initFromPrototype();
 
 		LuaValue connectorLua = prototype.lua().get("connector_frame_sprites");
 		protoConnectorFrameMain = new FPAnimationVariations(connectorLua.get("frame_main"));
@@ -118,7 +115,7 @@ public class TransportBeltRendering extends TransportBeltConnectableRendering<BS
 	}
 
 	@Override
-	public void populateLogistics(WorldMap map, DataTable dataTable, BSTransportBeltEntity entity) {
+	public void populateLogistics(WorldMap map, BSTransportBeltEntity entity) {
 		Direction dir = entity.direction;
 		Point2D.Double pos = entity.position.createPoint();
 
@@ -143,7 +140,7 @@ public class TransportBeltRendering extends TransportBeltConnectableRendering<BS
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BSTransportBeltEntity entity) {
+	public void populateWorldMap(WorldMap map, BSTransportBeltEntity entity) {
 		map.setBelt(entity.position.createPoint(), entity.direction, true, true);
 	}
 

@@ -14,13 +14,11 @@ import java.util.function.Consumer;
 
 import org.json.JSONObject;
 
-import com.demod.factorio.DataTable;
-import com.demod.factorio.FactorioData;
-import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.factorio.prototype.ItemPrototype;
 import com.demod.fbsr.BSUtils;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.FPUtils;
+import com.demod.fbsr.FactorioManager;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
@@ -69,8 +67,7 @@ public class SplitterRendering extends TransportBeltConnectableRendering<BSSplit
 	private Optional<FPAnimation4Way> protoStructurePatch;
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
-			BSSplitterEntity entity) {
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, BSSplitterEntity entity) {
 		Direction dir = entity.direction;
 
 		Point2D.Double belt1Shift = dir.left().offset(new Point2D.Double(), 0.5);
@@ -89,11 +86,11 @@ public class SplitterRendering extends TransportBeltConnectableRendering<BSSplit
 
 		if (protoStructurePatch.isPresent() && (dir == Direction.WEST || dir == Direction.EAST)) {
 			register.accept(RenderUtils.spriteRenderer(Layer.HIGHER_OBJECT_UNDER,
-					protoStructurePatch.get().createSprites(entity.direction, 0), entity, protoSelectionBox));
+					protoStructurePatch.get().createSprites(data, entity.direction, 0), entity, protoSelectionBox));
 		}
 
 		register.accept(RenderUtils.spriteRenderer(Layer.HIGHER_OBJECT_UNDER,
-				protoStructure.createSprites(entity.direction, 0), entity, protoSelectionBox));
+				protoStructure.createSprites(data, entity.direction, 0), entity, protoSelectionBox));
 
 		Point2D.Double pos = entity.position.createPoint();
 		Point2D.Double leftPos = dir.left().offset(pos, 0.5);
@@ -138,9 +135,9 @@ public class SplitterRendering extends TransportBeltConnectableRendering<BSSplit
 				Point2D.Double iconPos = right ? rightPos : leftPos;
 				String itemName = entity.filter.get().name;
 				Sprite spriteIcon = new Sprite();
-				Optional<ItemPrototype> optItem = dataTable.getItem(itemName);
+				Optional<ItemPrototype> optItem = FactorioManager.lookupItemByName(itemName);
 				if (optItem.isPresent()) {
-					spriteIcon.image = FactorioData.getIcon(optItem.get());
+					spriteIcon.image = optItem.get().getTable().getData().getIcon(optItem.get());
 					spriteIcon.source = new Rectangle(0, 0, spriteIcon.image.getWidth(), spriteIcon.image.getHeight());
 					spriteIcon.bounds = new Rectangle2D.Double(-0.3, -0.3, 0.6, 0.6);
 
@@ -186,15 +183,15 @@ public class SplitterRendering extends TransportBeltConnectableRendering<BSSplit
 	}
 
 	@Override
-	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
-		super.initFromPrototype(dataTable, prototype);
+	public void initFromPrototype() {
+		super.initFromPrototype();
 
 		protoStructurePatch = FPUtils.opt(prototype.lua().get("structure_patch"), FPAnimation4Way::new);
 		protoStructure = new FPAnimation4Way(prototype.lua().get("structure"));
 	}
 
 	@Override
-	public void populateLogistics(WorldMap map, DataTable dataTable, BSSplitterEntity entity) {
+	public void populateLogistics(WorldMap map, BSSplitterEntity entity) {
 		Direction dir = entity.direction;
 		Double pos = entity.position.createPoint();
 		Point2D.Double leftPos = dir.left().offset(pos, 0.5);
@@ -240,7 +237,7 @@ public class SplitterRendering extends TransportBeltConnectableRendering<BSSplit
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BSSplitterEntity entity) {
+	public void populateWorldMap(WorldMap map, BSSplitterEntity entity) {
 		Direction direction = entity.direction;
 		Point2D.Double pos = entity.position.createPoint();
 		Point2D.Double belt1Pos = direction.left().offset(pos, 0.5);

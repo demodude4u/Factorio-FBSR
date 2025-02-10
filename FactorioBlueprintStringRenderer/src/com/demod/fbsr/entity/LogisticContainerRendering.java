@@ -9,7 +9,6 @@ import java.util.stream.Collectors;
 
 import org.json.JSONObject;
 
-import com.demod.factorio.DataTable;
 import com.demod.factorio.fakelua.LuaTable;
 import com.demod.fbsr.BSUtils;
 import com.demod.fbsr.Direction;
@@ -50,7 +49,7 @@ public class LogisticContainerRendering extends ContainerRendering<BSLogisticCon
 	}
 
 	@Override
-	public void populateLogistics(WorldMap map, DataTable dataTable, BSLogisticContainerEntity entity) {
+	public void populateLogistics(WorldMap map, BSLogisticContainerEntity entity) {
 		Point2D.Double pos = entity.position.createPoint();
 
 		if (entity.requestFilters.isPresent()) {

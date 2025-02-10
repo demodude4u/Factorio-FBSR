@@ -33,7 +33,7 @@ public class FPRotatedSprite extends FPSpriteParameters {
 
 		layers = FPUtils.optList(lua.get("layers"), l -> new FPRotatedSprite(l, overrideBackEqualsFront));
 		directionCount = lua.get("direction_count").optint(1);
-		Optional<List<String>> filenames = FPUtils.optList(lua.get("filenames"), LuaValue::toString);
+		Optional<List<String>> filenames = FPUtils.optList(lua.get("filenames"), LuaValue::tojstring);
 		if (!filenames.isPresent() && filename.isPresent()) {
 			filenames = Optional.of(ImmutableList.of(filename.get()));
 		}

@@ -5,8 +5,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
-import com.demod.factorio.DataTable;
-import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.RenderUtils;
@@ -91,15 +89,15 @@ public class ArtilleryWagonRendering extends RollingStockRendering {
 	private double protoCannonBaseShiftWhenHorizontal;
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSEntity entity) {
-		super.createRenderers(register, map, dataTable, entity);
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, BSEntity entity) {
+		super.createRenderers(register, map, entity);
 
 		double orientation = entity.orientation.getAsDouble();
 
 		// TODO sloped
 
-		List<Sprite> cannonBaseSprites = protoCannonBasePictures.rotated.createSprites(orientation);
-		List<Sprite> cannonBarrelSprites = protoCannonBarrelPictures.rotated.createSprites(orientation);
+		List<Sprite> cannonBaseSprites = protoCannonBasePictures.rotated.createSprites(data, orientation);
+		List<Sprite> cannonBarrelSprites = protoCannonBarrelPictures.rotated.createSprites(data, orientation);
 
 		// Old way
 		int shiftIndex = (int) (FPUtils.projectedOrientation(orientation) * protoCannonBaseShifts.size());
@@ -109,13 +107,15 @@ public class ArtilleryWagonRendering extends RollingStockRendering {
 
 		// TODO figure out new way of calculating cannon shift
 
-		register.accept(RenderUtils.spriteRenderer(Layer.HIGHER_OBJECT_UNDER, cannonBarrelSprites, entity, protoSelectionBox));
-		register.accept(RenderUtils.spriteRenderer(Layer.HIGHER_OBJECT_UNDER, cannonBaseSprites, entity, protoSelectionBox));
+		register.accept(
+				RenderUtils.spriteRenderer(Layer.HIGHER_OBJECT_UNDER, cannonBarrelSprites, entity, protoSelectionBox));
+		register.accept(
+				RenderUtils.spriteRenderer(Layer.HIGHER_OBJECT_UNDER, cannonBaseSprites, entity, protoSelectionBox));
 	}
 
 	@Override
-	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
-		super.initFromPrototype(dataTable, prototype);
+	public void initFromPrototype() {
+		super.initFromPrototype();
 
 		protoCannonBarrelPictures = new FPRollingStockRotatedSlopedGraphics(
 				prototype.lua().get("cannon_barrel_pictures"));

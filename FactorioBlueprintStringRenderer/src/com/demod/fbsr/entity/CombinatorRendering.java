@@ -8,9 +8,7 @@ import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-import com.demod.factorio.DataTable;
 import com.demod.factorio.fakelua.LuaTable;
-import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
@@ -26,13 +24,13 @@ public abstract class CombinatorRendering<E extends BSEntity> extends SimpleEnti
 	private Map<String, FPSprite4Way> protoOperationSprites;
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, E entity) {
-		super.createRenderers(register, map, dataTable, entity);
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, E entity) {
+		super.createRenderers(register, map, entity);
 
 		Optional<String> operation = getOperation(entity);
 		if (operation.isPresent()) {
 			register.accept(RenderUtils.spriteRenderer(
-					protoOperationSprites.get(operation.get()).createSprites(entity.direction), entity,
+					protoOperationSprites.get(operation.get()).createSprites(data, entity.direction), entity,
 					protoSelectionBox));
 		}
 	}
@@ -60,8 +58,8 @@ public abstract class CombinatorRendering<E extends BSEntity> extends SimpleEnti
 	public abstract Optional<String> getOperation(E entity);
 
 	@Override
-	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
-		super.initFromPrototype(dataTable, prototype);
+	public void initFromPrototype() {
+		super.initFromPrototype();
 
 		Map<String, String> operations = new LinkedHashMap<>();
 		defineOperations(operations);

@@ -2,9 +2,7 @@ package com.demod.fbsr.entity;
 
 import java.util.function.Consumer;
 
-import com.demod.factorio.DataTable;
 import com.demod.factorio.fakelua.LuaTable;
-import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
 import com.demod.fbsr.WorldMap;
@@ -18,10 +16,10 @@ public class AgriculturalTowerRendering extends SimpleEntityRendering<BSEntity> 
 	// TODO the crane
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSEntity entity) {
-		super.createRenderers(register, map, dataTable, entity);
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, BSEntity entity) {
+		super.createRenderers(register, map, entity);
 
-		register.accept(RenderUtils.spriteRenderer(protoGraphicsSet.createSprites(entity.direction, 0), entity,
+		register.accept(RenderUtils.spriteRenderer(protoGraphicsSet.createSprites(data, entity.direction, 0), entity,
 				protoSelectionBox));
 	}
 
@@ -30,8 +28,8 @@ public class AgriculturalTowerRendering extends SimpleEntityRendering<BSEntity> 
 	}
 
 	@Override
-	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
-		super.initFromPrototype(dataTable, prototype);
+	public void initFromPrototype() {
+		super.initFromPrototype();
 
 		protoGraphicsSet = new FPWorkingVisualisations(prototype.lua().get("graphics_set"));
 	}

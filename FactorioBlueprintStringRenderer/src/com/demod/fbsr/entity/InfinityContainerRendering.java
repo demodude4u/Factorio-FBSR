@@ -14,12 +14,11 @@ import java.util.stream.Collectors;
 
 import org.json.JSONObject;
 
-import com.demod.factorio.DataTable;
-import com.demod.factorio.FactorioData;
 import com.demod.factorio.Utils;
 import com.demod.factorio.prototype.ItemPrototype;
 import com.demod.fbsr.BSUtils;
 import com.demod.fbsr.Direction;
+import com.demod.fbsr.FactorioManager;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
@@ -60,9 +59,8 @@ public class InfinityContainerRendering extends ContainerRendering<BSInfinityCon
 	}
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
-			BSInfinityContainerEntity entity) {
-		super.createRenderers(register, map, dataTable, entity);
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, BSInfinityContainerEntity entity) {
+		super.createRenderers(register, map, entity);
 
 		if (entity.infinitySettings.isPresent() && map.isAltMode()) {
 			List<String> items = entity.infinitySettings.get().filters.stream().filter(bs -> bs.count > 0)
@@ -71,10 +69,10 @@ public class InfinityContainerRendering extends ContainerRendering<BSInfinityCon
 			// TODO show double/quad icons if more than one
 			if (!items.isEmpty()) {
 				String itemName = items.get(0);
-				Optional<ItemPrototype> optItem = dataTable.getItem(itemName);
+				Optional<ItemPrototype> optItem = FactorioManager.lookupItemByName(itemName);
 				if (optItem.isPresent()) {
 					Sprite spriteIcon = new Sprite();
-					spriteIcon.image = FactorioData.getIcon(optItem.get());
+					spriteIcon.image = optItem.get().getTable().getData().getIcon(optItem.get());
 					spriteIcon.source = new Rectangle(0, 0, spriteIcon.image.getWidth(), spriteIcon.image.getHeight());
 					spriteIcon.bounds = new Rectangle2D.Double(-0.3, -0.3, 0.6, 0.6);
 
@@ -93,7 +91,7 @@ public class InfinityContainerRendering extends ContainerRendering<BSInfinityCon
 	}
 
 	@Override
-	public void populateLogistics(WorldMap map, DataTable dataTable, BSInfinityContainerEntity entity) {
+	public void populateLogistics(WorldMap map, BSInfinityContainerEntity entity) {
 		Point2D.Double pos = entity.position.createPoint();
 
 		if (entity.infinitySettings.isPresent()) {

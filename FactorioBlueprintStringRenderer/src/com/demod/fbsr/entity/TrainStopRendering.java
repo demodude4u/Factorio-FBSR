@@ -8,10 +8,8 @@ import java.util.function.Consumer;
 
 import org.json.JSONObject;
 
-import com.demod.factorio.DataTable;
 import com.demod.factorio.Utils;
 import com.demod.factorio.fakelua.LuaTable;
-import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.BSUtils;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.Layer;
@@ -51,9 +49,8 @@ public class TrainStopRendering extends SimpleEntityRendering<BSTrainStopEntity>
 	private FPAnimation4Way protoTopAnimations;
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
-			BSTrainStopEntity entity) {
-		super.createRenderers(register, map, dataTable, entity);
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, BSTrainStopEntity entity) {
+		super.createRenderers(register, map, entity);
 
 		Color color;
 		if (entity.color.isPresent()) {
@@ -62,13 +59,13 @@ public class TrainStopRendering extends SimpleEntityRendering<BSTrainStopEntity>
 			color = new Color(242, 0, 0, 127);
 		}
 
-		List<Sprite> topSprites = protoTopAnimations.createSprites(entity.direction, 0);
+		List<Sprite> topSprites = protoTopAnimations.createSprites(data, entity.direction, 0);
 		// FIXME find a more correct way to apply tint
 		topSprites.get(1).image = Utils.tintImage(topSprites.get(1).image, color);
 
 		register.accept(RenderUtils.spriteRenderer(Layer.RAIL_SCREW,
-				protoRailOverlayAnimations.createSprites(entity.direction, 0), entity, protoSelectionBox));
-		register.accept(RenderUtils.spriteRenderer(protoAnimations.createSprites(entity.direction, 0), entity,
+				protoRailOverlayAnimations.createSprites(data, entity.direction, 0), entity, protoSelectionBox));
+		register.accept(RenderUtils.spriteRenderer(protoAnimations.createSprites(data, entity.direction, 0), entity,
 				protoSelectionBox));
 		register.accept(RenderUtils.spriteRenderer(Layer.HIGHER_OBJECT_UNDER, topSprites, entity, protoSelectionBox));
 
@@ -85,8 +82,8 @@ public class TrainStopRendering extends SimpleEntityRendering<BSTrainStopEntity>
 	}
 
 	@Override
-	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
-		super.initFromPrototype(dataTable, prototype);
+	public void initFromPrototype() {
+		super.initFromPrototype();
 
 		protoRailOverlayAnimations = new FPAnimation4Way(prototype.lua().get("rail_overlay_animations"));
 		protoAnimations = new FPAnimation4Way(prototype.lua().get("animations"));
@@ -94,8 +91,8 @@ public class TrainStopRendering extends SimpleEntityRendering<BSTrainStopEntity>
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BSTrainStopEntity entity) {
-		super.populateWorldMap(map, dataTable, entity);
+	public void populateWorldMap(WorldMap map, BSTrainStopEntity entity) {
+		super.populateWorldMap(map, entity);
 
 		Point2D.Double pos = entity.position.createPoint();
 		Direction dir = entity.direction;

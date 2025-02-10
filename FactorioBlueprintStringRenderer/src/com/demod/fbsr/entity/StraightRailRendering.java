@@ -2,7 +2,6 @@ package com.demod.fbsr.entity;
 
 import java.awt.geom.Point2D;
 
-import com.demod.factorio.DataTable;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.bs.BSEntity;
@@ -30,7 +29,7 @@ public class StraightRailRendering extends RailRendering {
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BSEntity entity) {
+	public void populateWorldMap(WorldMap map, BSEntity entity) {
 		Point2D.Double pos = entity.position.createPoint();
 		Direction dir = entity.direction;
 

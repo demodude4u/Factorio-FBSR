@@ -89,7 +89,7 @@ public class FBSR {
 	private static final long MAX_WORLD_RENDER_PIXELS = (long) (TARGET_FILE_SIZE * ESTIMATED_JPG_PIXELS_PER_BYTE);
 
 	public static final Color GROUND_COLOR = new Color(40, 40, 40);
-	public static final Color GRID_COLOR = GUIStyle.FONT_BP_COLOR.darker().darker();
+	public static final Color GRID_COLOR = new Color(0xffe6c0);
 
 	private static final BasicStroke GRID_STROKE = new BasicStroke((float) (3 / FBSR.TILE_SIZE));
 
@@ -175,7 +175,7 @@ public class FBSR {
 		Map<String, Double> ret = new LinkedHashMap<>();
 		for (BSEntity entity : blueprint.entities) {
 			String entityName = entity.name;
-			DataTable table = FactorioManager.lookupEntityFactoryForName(entityName).getData().getDataTable();
+			DataTable table = FactorioManager.lookupEntityFactoryForName(entityName).getData().getTable();
 			List<ItemPrototype> items = table.getItemsForEntity(entityName);
 			if (items.isEmpty()) {
 				// reporting.addWarning("Cannot find items for entity: " +
@@ -274,8 +274,9 @@ public class FBSR {
 		if (initialized) {
 			return;
 		}
-		FactorioManager.initialize();
 		initialized = true;
+		FactorioManager.initializePrototypes();
+		FactorioManager.initializeFactories();
 	}
 
 	private static void populateRailBlocking(WorldMap map) {
@@ -537,14 +538,14 @@ public class FBSR {
 
 		entityRenderingTuples.forEach(t -> {
 			try {
-				t.factory.populateWorldMap(map, t.factory.getData().getDataTable(), t.entity);
+				t.factory.populateWorldMap(map, t.entity);
 			} catch (Exception e) {
 				reporting.addException(e, t.factory.getClass().getSimpleName() + ", " + t.entity.name);
 			}
 		});
 		tileRenderingTuples.forEach(t -> {
 			try {
-				t.factory.populateWorldMap(map, t.factory.getData().getDataTable(), t.tile);
+				t.factory.populateWorldMap(map, t.factory.getData().getTable(), t.tile);
 			} catch (Exception e) {
 				reporting.addException(e, t.factory.getClass().getSimpleName() + ", " + t.tile.name);
 			}
@@ -552,7 +553,7 @@ public class FBSR {
 
 		entityRenderingTuples.forEach(t -> {
 			try {
-				t.factory.populateLogistics(map, t.factory.getData().getDataTable(), t.entity);
+				t.factory.populateLogistics(map, t.entity);
 			} catch (Exception e) {
 				reporting.addException(e, t.factory.getClass().getSimpleName() + ", " + t.entity.name);
 			}
@@ -571,7 +572,7 @@ public class FBSR {
 
 		tileRenderingTuples.forEach(t -> {
 			try {
-				t.factory.createRenderers(register, map, t.factory.getData().getDataTable(), t.tile);
+				t.factory.createRenderers(register, map, t.factory.getData().getTable(), t.tile);
 			} catch (Exception e) {
 				reporting.addException(e, t.factory.getClass().getSimpleName() + ", " + t.tile.name);
 			}
@@ -579,7 +580,7 @@ public class FBSR {
 
 		entityRenderingTuples.forEach(t -> {
 			try {
-				t.factory.createRenderers(register, map, t.factory.getData().getDataTable(), t.entity);
+				t.factory.createRenderers(register, map, t.entity);
 			} catch (Exception e) {
 				reporting.addException(e, t.factory.getClass().getSimpleName() + ", " + t.entity.name);
 			}
@@ -588,7 +589,7 @@ public class FBSR {
 		if (map.isAltMode()) {
 			entityRenderingTuples.forEach(t -> {
 				try {
-					t.factory.createModuleIcons(register, map, t.factory.getData().getDataTable(), t.entity);
+					t.factory.createModuleIcons(register, map, t.entity);
 				} catch (Exception e) {
 					reporting.addException(e, t.factory.getClass().getSimpleName() + ", " + t.entity.name);
 				}

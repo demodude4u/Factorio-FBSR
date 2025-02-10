@@ -16,15 +16,13 @@ import java.util.stream.Collectors;
 
 import org.json.JSONObject;
 
-import com.demod.factorio.DataTable;
-import com.demod.factorio.FactorioData;
 import com.demod.factorio.Utils;
 import com.demod.factorio.fakelua.LuaTable;
 import com.demod.factorio.fakelua.LuaValue;
-import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.factorio.prototype.ItemPrototype;
 import com.demod.fbsr.BSUtils;
 import com.demod.fbsr.Direction;
+import com.demod.fbsr.FactorioManager;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.LogisticGridCell;
 import com.demod.fbsr.RenderUtils;
@@ -92,14 +90,13 @@ public class InserterRendering extends SimpleEntityRendering<BSInserterEntity> {
 	private FPSprite protoIndicationArrow;
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
-			BSInserterEntity entity) {
-		super.createRenderers(register, map, dataTable, entity);
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, BSInserterEntity entity) {
+		super.createRenderers(register, map, entity);
 
 		Point2D.Double pos = entity.position.createPoint();
 		Direction dir = entity.direction;
 
-		List<Sprite> platformSprites = protoPlatformPicture.createSprites(dir.back());
+		List<Sprite> platformSprites = protoPlatformPicture.createSprites(data, dir.back());
 
 		boolean modded = entity.pickupPosition.isPresent() || entity.dropPosition.isPresent();
 
@@ -142,7 +139,7 @@ public class InserterRendering extends SimpleEntityRendering<BSInserterEntity> {
 			public void render(Graphics2D g) {
 				AffineTransform pat = g.getTransform();
 
-				for (Sprite sprite : protoHandOpenPicture.createSprites()) {
+				for (Sprite sprite : protoHandOpenPicture.createSprites(data)) {
 					Rectangle2D.Double bounds = sprite.bounds;
 					Rectangle source = sprite.source;
 					BufferedImage image = sprite.image;
@@ -166,7 +163,7 @@ public class InserterRendering extends SimpleEntityRendering<BSInserterEntity> {
 
 					double pickupRotate = Math.atan2(pickupPos.y, pickupPos.x);
 
-					for (Sprite sprite : protoIndicationLine.createSprites()) {
+					for (Sprite sprite : protoIndicationLine.createSprites(data)) {
 						Rectangle2D.Double bounds = sprite.bounds;
 						Rectangle source = sprite.source;
 						BufferedImage image = sprite.image;
@@ -205,7 +202,7 @@ public class InserterRendering extends SimpleEntityRendering<BSInserterEntity> {
 
 					double insertRotate = Math.atan2(insertPos.y, insertPos.x);
 
-					for (Sprite sprite : protoIndicationArrow.createSprites()) {
+					for (Sprite sprite : protoIndicationArrow.createSprites(data)) {
 						Rectangle2D.Double bounds = sprite.bounds;
 						Rectangle source = sprite.source;
 						BufferedImage image = sprite.image;
@@ -246,9 +243,9 @@ public class InserterRendering extends SimpleEntityRendering<BSInserterEntity> {
 			if (!items.isEmpty()) {
 				String itemName = items.get(0);
 				Sprite spriteIcon = new Sprite();
-				Optional<ItemPrototype> optItem = dataTable.getItem(itemName);
+				Optional<ItemPrototype> optItem = FactorioManager.lookupItemByName(itemName);
 				if (optItem.isPresent()) {
-					spriteIcon.image = FactorioData.getIcon(optItem.get());
+					spriteIcon.image = optItem.get().getTable().getData().getIcon(optItem.get());
 					spriteIcon.source = new Rectangle(0, 0, spriteIcon.image.getWidth(), spriteIcon.image.getHeight());
 					spriteIcon.bounds = new Rectangle2D.Double(-0.3, -0.3, 0.6, 0.6);
 
@@ -272,8 +269,8 @@ public class InserterRendering extends SimpleEntityRendering<BSInserterEntity> {
 	}
 
 	@Override
-	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
-		super.initFromPrototype(dataTable, prototype);
+	public void initFromPrototype() {
+		super.initFromPrototype();
 
 		protoPlatformPicture = new FPSprite4Way(prototype.lua().get("platform_picture"));
 		protoHandOpenPicture = new FPSprite(prototype.lua().get("hand_open_picture"));
@@ -281,13 +278,13 @@ public class InserterRendering extends SimpleEntityRendering<BSInserterEntity> {
 		protoPickupPosition = new FPVector(prototype.lua().get("pickup_position"));
 		protoInsertPosition = new FPVector(prototype.lua().get("insert_position"));
 
-		LuaValue optUtilityConstantsLua = dataTable.getRaw("utility-sprites", "default").get();
+		LuaValue optUtilityConstantsLua = data.getTable().getRaw("utility-sprites", "default").get();
 		protoIndicationLine = new FPSprite(optUtilityConstantsLua.get("indication_line"));
 		protoIndicationArrow = new FPSprite(optUtilityConstantsLua.get("indication_arrow"));
 	}
 
 	@Override
-	public void populateLogistics(WorldMap map, DataTable dataTable, BSInserterEntity entity) {
+	public void populateLogistics(WorldMap map, BSInserterEntity entity) {
 		if (entity.pickupPosition.isPresent() || entity.dropPosition.isPresent()) {
 			return; // TODO Modded inserter logistics
 		}

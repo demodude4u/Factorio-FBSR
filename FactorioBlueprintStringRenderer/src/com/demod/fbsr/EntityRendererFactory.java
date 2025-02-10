@@ -45,11 +45,11 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 		Set<String> labeledTypes = new HashSet<>();
 
 		@Override
-		public void createModuleIcons(Consumer<Renderer> register, WorldMap map, DataTable table, BSEntity entity) {
+		public void createModuleIcons(Consumer<Renderer> register, WorldMap map, BSEntity entity) {
 		}
 
 		@Override
-		public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSEntity entity) {
+		public void createRenderers(Consumer<Renderer> register, WorldMap map, BSEntity entity) {
 			Point2D.Double pos = entity.position.createPoint();
 			Rectangle2D.Double bounds = new Rectangle2D.Double(pos.x - 0.5, pos.y - 0.5, 1.0, 1.0);
 			register.accept(new Renderer(Layer.ENTITY_INFO_ICON_ABOVE, bounds, false) {
@@ -86,15 +86,15 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 		}
 
 		@Override
-		public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
+		public void initFromPrototype() {
 		}
 
 		@Override
-		public void populateLogistics(WorldMap map, DataTable dataTable, BSEntity entity) {
+		public void populateLogistics(WorldMap map, BSEntity entity) {
 		}
 
 		@Override
-		public void populateWorldMap(WorldMap map, DataTable dataTable, BSEntity entity) {
+		public void populateWorldMap(WorldMap map, BSEntity entity) {
 			if (!labeledTypes.isEmpty()) {
 				labeledTypes.clear();
 			}
@@ -109,18 +109,24 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 	public static void initFactories(List<EntityRendererFactory> factories) {
 		for (EntityRendererFactory factory : factories) {
 			EntityPrototype prototype = factory.getPrototype();
-			factory.initFromPrototype(factory.getData().getDataTable(), prototype);
-			factory.wirePointsById = new LinkedHashMap<>();
-			factory.defineWirePoints(factory.wirePointsById::put, prototype.lua());
+			try {
+				factory.initFromPrototype();
+				factory.wirePointsById = new LinkedHashMap<>();
+				factory.defineWirePoints(factory.wirePointsById::put, prototype.lua());
+			} catch (Exception e) {
+				System.err.println("ENTITY " + prototype.getName() + " (" + prototype.getType() + ")");
+				throw e;
+			}
 		}
+
+		System.out.println("Initialized " + factories.size() + " entities.");
 	}
 
 	@SuppressWarnings({ "rawtypes" })
 	public static void registerFactories(BiConsumer<String, EntityRendererFactory> register, FactorioData data,
 			JSONObject json) {
-		DataTable table = data.getDataTable();
+		DataTable table = data.getTable();
 		for (String entityName : json.keySet().stream().sorted().collect(Collectors.toList())) {
-			System.out.println("Initializing Entity " + entityName);
 			EntityPrototype prototype = table.getEntity(entityName).get();
 			String factoryName = json.getString(entityName);
 			String factoryClassName = "com.demod.fbsr.entity." + factoryName;
@@ -139,8 +145,8 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 		}
 	}
 
-	private FactorioData data = null;
-	private EntityPrototype prototype = null;
+	protected FactorioData data = null;
+	protected EntityPrototype prototype = null;
 	protected FPBoundingBox protoSelectionBox;
 	protected boolean protoBeaconed;
 
@@ -153,8 +159,9 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 		map.getOrCreateLogisticGridCell(cellDir1.offset(gridPos1, 0.25)).addWarp(cellDir2.offset(gridPos2, 0.25));
 	}
 
-	public void createModuleIcons(Consumer<Renderer> register, WorldMap map, DataTable table, E entity) {
-		FactorioData data = table.getData();
+	public void createModuleIcons(Consumer<Renderer> register, WorldMap map, E entity) {
+		DataTable table = data.getTable();
+
 		Multiset<String> renderModules = RenderUtils.getModules(entity);
 		if (!renderModules.isEmpty()) {
 			register.accept(new Renderer(Layer.ENTITY_INFO_ICON_ABOVE, entity.position.createPoint(), true) {
@@ -180,7 +187,7 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 					for (String itemName : renderModules) {
 						g.setColor(new Color(0, 0, 0, 180));
 						g.fill(shadowBox);
-						BufferedImage image = table.getItem(itemName).map(data::getIcon)
+						BufferedImage image = data.getTable().getItem(itemName).map(data::getIcon)
 								.orElse(RenderUtils.EMPTY_IMAGE);
 						RenderUtils.drawImageInBounds(image, new Rectangle(0, 0, image.getWidth(), image.getHeight()),
 								spriteBox, g);
@@ -266,8 +273,7 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 		}
 	}
 
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, E entity) {
-	}
+	public abstract void createRenderers(Consumer<Renderer> register, WorldMap map, E entity);
 
 	public Optional<WirePoint> createWirePoint(Consumer<Renderer> register, Point2D.Double position, double orientation,
 			int connectionId) {
@@ -324,7 +330,7 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 		}
 	}
 
-	public abstract void initFromPrototype(DataTable dataTable, EntityPrototype prototype);
+	public abstract void initFromPrototype();
 
 	// Returns orientation if applicable
 	public double initWireConnector(Consumer<Renderer> register, E entity, List<EntityRenderingTuple> wired) {
@@ -343,11 +349,11 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 		return constructor.newInstance(legacy);
 	}
 
-	public void populateLogistics(WorldMap map, DataTable dataTable, E entity) {
+	public void populateLogistics(WorldMap map, E entity) {
 		// default do nothing
 	}
 
-	public void populateWorldMap(WorldMap map, DataTable dataTable, E entity) {
+	public void populateWorldMap(WorldMap map, E entity) {
 		// default do nothing
 	}
 
@@ -361,7 +367,7 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 		cell.setAcceptFilter(Optional.of(acceptFilter));
 	}
 
-	protected void setLogisticMachine(WorldMap map, DataTable dataTable, BSEntity entity, RecipePrototype recipe) {
+	protected void setLogisticMachine(WorldMap map, BSEntity entity, RecipePrototype recipe) {
 		Point2D.Double entityPos = entity.position.createPoint();
 		Rectangle2D.Double box = protoSelectionBox.createRect();
 		double xStart = entityPos.x + box.x;
@@ -369,9 +375,11 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 		double xEnd = xStart + box.width;
 		double yEnd = yStart + box.height;
 
-		Set<String> inputs = recipe.getInputs().keySet().stream().filter(k -> dataTable.getItem(k).isPresent())
+		DataTable table = data.getTable();
+
+		Set<String> inputs = recipe.getInputs().keySet().stream().filter(k -> table.getItem(k).isPresent())
 				.collect(Collectors.toSet());
-		Set<String> outputs = recipe.getOutputs().keySet().stream().filter(k -> dataTable.getItem(k).isPresent())
+		Set<String> outputs = recipe.getOutputs().keySet().stream().filter(k -> table.getItem(k).isPresent())
 				.collect(Collectors.toSet());
 
 		Point2D.Double cellPos = new Point2D.Double();

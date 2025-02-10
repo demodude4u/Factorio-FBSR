@@ -8,8 +8,6 @@ import java.awt.geom.Rectangle2D;
 import java.util.Optional;
 import java.util.function.Consumer;
 
-import com.demod.factorio.DataTable;
-import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.Renderer;
@@ -27,11 +25,11 @@ public class ErrorRendering extends EntityRendererFactory<BSEntity> {
 	}
 
 	@Override
-	public void createModuleIcons(Consumer<Renderer> register, WorldMap map, DataTable table, BSEntity entity) {
+	public void createModuleIcons(Consumer<Renderer> register, WorldMap map, BSEntity entity) {
 	}
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSEntity entity) {
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, BSEntity entity) {
 		Point2D.Double pos = entity.position.createPoint();
 		FPBoundingBox box = factory.getBounds();
 		Rectangle2D.Double bounds = new Rectangle2D.Double(pos.x + box.leftTop.x, pos.y + box.leftTop.y,
@@ -55,15 +53,15 @@ public class ErrorRendering extends EntityRendererFactory<BSEntity> {
 	}
 
 	@Override
-	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
+	public void initFromPrototype() {
 	}
 
 	@Override
-	public void populateLogistics(WorldMap map, DataTable dataTable, BSEntity entity) {
+	public void populateLogistics(WorldMap map, BSEntity entity) {
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BSEntity entity) {
+	public void populateWorldMap(WorldMap map, BSEntity entity) {
 	}
 
 }

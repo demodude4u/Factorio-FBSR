@@ -7,9 +7,7 @@ import java.util.function.Consumer;
 
 import org.json.JSONObject;
 
-import com.demod.factorio.DataTable;
 import com.demod.factorio.fakelua.LuaValue;
-import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.BSUtils;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.Layer;
@@ -48,8 +46,7 @@ public class UndergroundBeltRendering extends TransportBeltConnectableRendering<
 	private int protoMaxDistance;
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
-			BSUndergroundBeltEntity entity) {
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, BSUndergroundBeltEntity entity) {
 		List<Sprite> beltSprites = createBeltSprites(entity.direction.cardinal(), BeltBend.NONE.ordinal(),
 				getAlternatingFrame(entity.position.createPoint(), 0));
 		register.accept(RenderUtils.spriteRenderer(Layer.TRANSPORT_BELT, beltSprites, entity, protoSelectionBox));
@@ -68,14 +65,14 @@ public class UndergroundBeltRendering extends TransportBeltConnectableRendering<
 						: protoStructureDirectionOutSideLoading;
 			}
 		}
-		List<Sprite> structureSprites = protoStructSprite.createSprites(structDir);
+		List<Sprite> structureSprites = protoStructSprite.createSprites(data, structDir);
 		register.accept(
 				RenderUtils.spriteRenderer(Layer.HIGHER_OBJECT_UNDER, structureSprites, entity, protoSelectionBox));
 	}
 
 	@Override
-	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
-		super.initFromPrototype(dataTable, prototype);
+	public void initFromPrototype() {
+		super.initFromPrototype();
 
 		LuaValue luaStructure = prototype.lua().get("structure");
 		protoStructureDirectionIn = new FPSprite4Way(luaStructure.get("direction_in"));
@@ -87,7 +84,7 @@ public class UndergroundBeltRendering extends TransportBeltConnectableRendering<
 	}
 
 	@Override
-	public void populateLogistics(WorldMap map, DataTable dataTable, BSUndergroundBeltEntity entity) {
+	public void populateLogistics(WorldMap map, BSUndergroundBeltEntity entity) {
 		Direction dir = entity.direction;
 		Point2D.Double pos = entity.position.createPoint();
 		boolean input = entity.type.get().equals("input");
@@ -118,7 +115,7 @@ public class UndergroundBeltRendering extends TransportBeltConnectableRendering<
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BSUndergroundBeltEntity entity) {
+	public void populateWorldMap(WorldMap map, BSUndergroundBeltEntity entity) {
 		boolean input = entity.type.get().equals("input");
 
 		Point2D.Double pos = entity.position.createPoint();

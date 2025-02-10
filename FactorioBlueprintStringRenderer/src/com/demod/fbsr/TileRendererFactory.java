@@ -474,15 +474,15 @@ public class TileRendererFactory {
 
 	public static void initFactories(List<TileRendererFactory> factories) {
 		for (TileRendererFactory factory : factories) {
-			factory.initFromPrototype(factory.getData().getDataTable());
+			factory.initFromPrototype(factory.getData().getTable());
 		}
+		System.out.println("Initialized " + factories.size() + " tiles.");
 	}
 
 	public static void registerFactories(BiConsumer<String, TileRendererFactory> register, FactorioData data,
 			JSONObject json) {
-		DataTable table = data.getDataTable();
+		DataTable table = data.getTable();
 		for (String tileName : json.keySet().stream().sorted().collect(Collectors.toList())) {
-			System.out.println("Initializing Tile " + tileName);
 			TilePrototype prototype = table.getTile(tileName).get();
 			TileRendererFactory factory = new TileRendererFactory(json.getBoolean(tileName));
 			factory.setData(data);

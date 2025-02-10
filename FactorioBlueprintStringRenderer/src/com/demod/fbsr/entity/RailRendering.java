@@ -3,9 +3,7 @@ package com.demod.fbsr.entity;
 import java.util.Optional;
 import java.util.function.Consumer;
 
-import com.demod.factorio.DataTable;
 import com.demod.factorio.fakelua.LuaValue;
-import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.FPUtils;
@@ -89,33 +87,33 @@ public abstract class RailRendering extends EntityRendererFactory<BSEntity> {
 	}
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSEntity entity) {
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, BSEntity entity) {
 
 		FPRailPieceLayers railPieceLayers = protoPictures.get(entity.direction);
 		if (railPieceLayers.stonePathBackground.isPresent()) {
 			register.accept(RenderUtils.spriteRenderer(layerRailStoneBackground,
-					railPieceLayers.stonePathBackground.get().createSprites(0), entity, protoSelectionBox));
+					railPieceLayers.stonePathBackground.get().createSprites(data, 0), entity, protoSelectionBox));
 		}
 		if (railPieceLayers.stonePath.isPresent()) {
-			register.accept(RenderUtils.spriteRenderer(layerRailStone, railPieceLayers.stonePath.get().createSprites(0),
-					entity, protoSelectionBox));
+			register.accept(RenderUtils.spriteRenderer(layerRailStone,
+					railPieceLayers.stonePath.get().createSprites(data, 0), entity, protoSelectionBox));
 		}
 		if (railPieceLayers.ties.isPresent()) {
-			register.accept(RenderUtils.spriteRenderer(layerRailTies, railPieceLayers.ties.get().createSprites(0),
+			register.accept(RenderUtils.spriteRenderer(layerRailTies, railPieceLayers.ties.get().createSprites(data, 0),
 					entity, protoSelectionBox));
 		}
 		if (railPieceLayers.backplates.isPresent()) {
 			register.accept(RenderUtils.spriteRenderer(layerRailBackplates,
-					railPieceLayers.backplates.get().createSprites(0), entity, protoSelectionBox));
+					railPieceLayers.backplates.get().createSprites(data, 0), entity, protoSelectionBox));
 		}
 		if (railPieceLayers.metals.isPresent()) {
-			register.accept(RenderUtils.spriteRenderer(layerRailMetals, railPieceLayers.metals.get().createSprites(0),
-					entity, protoSelectionBox));
+			register.accept(RenderUtils.spriteRenderer(layerRailMetals,
+					railPieceLayers.metals.get().createSprites(data, 0), entity, protoSelectionBox));
 		}
 	}
 
 	@Override
-	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
+	public void initFromPrototype() {
 		protoPictures = new FPRailPictureSet(prototype.lua().get("pictures"));
 	}
 

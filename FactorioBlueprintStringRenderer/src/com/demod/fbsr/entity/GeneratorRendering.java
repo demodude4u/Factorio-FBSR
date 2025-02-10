@@ -2,9 +2,7 @@ package com.demod.fbsr.entity;
 
 import java.util.function.Consumer;
 
-import com.demod.factorio.DataTable;
 import com.demod.factorio.fakelua.LuaTable;
-import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
 import com.demod.fbsr.WorldMap;
@@ -17,15 +15,15 @@ public class GeneratorRendering extends SimpleEntityRendering<BSEntity> {
 	private FPAnimation protoHorizontalAnimation;
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSEntity entity) {
-		super.createRenderers(register, map, dataTable, entity);
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, BSEntity entity) {
+		super.createRenderers(register, map, entity);
 
 		if (isVertical(entity)) {
-			register.accept(
-					RenderUtils.spriteRenderer(protoVerticalAnimation.createSprites(0), entity, protoSelectionBox));
+			register.accept(RenderUtils.spriteRenderer(protoVerticalAnimation.createSprites(data, 0), entity,
+					protoSelectionBox));
 		} else {
-			register.accept(
-					RenderUtils.spriteRenderer(protoHorizontalAnimation.createSprites(0), entity, protoSelectionBox));
+			register.accept(RenderUtils.spriteRenderer(protoHorizontalAnimation.createSprites(data, 0), entity,
+					protoSelectionBox));
 		}
 	}
 
@@ -35,8 +33,8 @@ public class GeneratorRendering extends SimpleEntityRendering<BSEntity> {
 	}
 
 	@Override
-	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
-		super.initFromPrototype(dataTable, prototype);
+	public void initFromPrototype() {
+		super.initFromPrototype();
 
 		protoVerticalAnimation = new FPAnimation(prototype.lua().get("vertical_animation"));
 		protoHorizontalAnimation = new FPAnimation(prototype.lua().get("horizontal_animation"));

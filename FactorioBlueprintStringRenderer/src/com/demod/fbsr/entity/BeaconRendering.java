@@ -7,9 +7,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 
-import com.demod.factorio.DataTable;
+import com.demod.factorio.FactorioData;
 import com.demod.factorio.fakelua.LuaValue;
-import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.RenderUtils;
@@ -29,10 +28,10 @@ public class BeaconRendering extends EntityRendererFactory<BSEntity> {
 			animationList = FPUtils.list(lua.get("animation_list"), FPAnimationElement::new);
 		}
 
-		public List<Sprite> createSprites(int frame) {
+		public List<Sprite> createSprites(FactorioData data, int frame) {
 			List<Sprite> ret = new ArrayList<>();
 			for (FPAnimationElement element : animationList) {
-				element.animation.createSprites(ret::add, frame);
+				element.animation.createSprites(ret::add, data, frame);
 			}
 			return ret;
 		}
@@ -44,18 +43,18 @@ public class BeaconRendering extends EntityRendererFactory<BSEntity> {
 	private double protoDistributionEffectivity;
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSEntity entity) {
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, BSEntity entity) {
 		if (protoGraphicsSet.isPresent()) {
-			register.accept(
-					RenderUtils.spriteRenderer(protoGraphicsSet.get().createSprites(0), entity, protoSelectionBox));
+			register.accept(RenderUtils.spriteRenderer(protoGraphicsSet.get().createSprites(data, 0), entity,
+					protoSelectionBox));
 		} else {
-			register.accept(
-					RenderUtils.spriteRenderer(protoBasePicture.get().createSprites(0), entity, protoSelectionBox));
+			register.accept(RenderUtils.spriteRenderer(protoBasePicture.get().createSprites(data, 0), entity,
+					protoSelectionBox));
 		}
 	}
 
 	@Override
-	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
+	public void initFromPrototype() {
 
 		protoGraphicsSet = FPUtils.opt(prototype.lua().get("graphics_set"), FPBeaconGraphicsSet::new);
 		protoBasePicture = FPUtils.opt(prototype.lua().get("base_picture"), FPAnimation::new);
@@ -64,7 +63,7 @@ public class BeaconRendering extends EntityRendererFactory<BSEntity> {
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BSEntity entity) {
+	public void populateWorldMap(WorldMap map, BSEntity entity) {
 		Point2D.Double pos = entity.position.createPoint();
 
 		Rectangle2D.Double supplyBounds = protoSelectionBox.createRect();

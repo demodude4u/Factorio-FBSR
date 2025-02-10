@@ -3,9 +3,7 @@ package com.demod.fbsr.entity;
 import java.util.Optional;
 import java.util.function.Consumer;
 
-import com.demod.factorio.DataTable;
 import com.demod.factorio.fakelua.LuaTable;
-import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
@@ -31,16 +29,16 @@ public class MiningDrillRendering extends SimpleEntityRendering<BSEntity> {
 	// - graphics_set.animation
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSEntity entity) {
-		super.createRenderers(register, map, dataTable, entity);
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, BSEntity entity) {
+		super.createRenderers(register, map, entity);
 
 		if (protoBasePicture.isPresent()) {
-			register.accept(RenderUtils.spriteRenderer(protoBasePicture.get().createSprites(entity.direction), entity,
-					protoSelectionBox));
+			register.accept(RenderUtils.spriteRenderer(protoBasePicture.get().createSprites(data, entity.direction),
+					entity, protoSelectionBox));
 		}
 
 		if (protoGraphicsSet.isPresent()) {
-			register.accept(RenderUtils.spriteRenderer(protoGraphicsSet.get().createSprites(entity.direction, 0),
+			register.accept(RenderUtils.spriteRenderer(protoGraphicsSet.get().createSprites(data, entity.direction, 0),
 					entity, protoSelectionBox));
 		}
 	}
@@ -53,8 +51,8 @@ public class MiningDrillRendering extends SimpleEntityRendering<BSEntity> {
 	}
 
 	@Override
-	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
-		super.initFromPrototype(dataTable, prototype);
+	public void initFromPrototype() {
+		super.initFromPrototype();
 
 		protoBasePicture = FPUtils.opt(prototype.lua().get("base_picture"), FPSprite4Way::new);
 		protoGraphicsSet = FPUtils.opt(prototype.lua().get("graphics_set"), FPWorkingVisualisations::new);

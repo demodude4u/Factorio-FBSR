@@ -49,7 +49,7 @@ public class GUILayoutBlueprint {
 	static {
 		try {
 			FactorioData data = FactorioManager.lookupDataForModName("core");
-			timeIcon = new FPSprite(data.getDataTable().getRaw("utility-sprites", "default", "clock").get())
+			timeIcon = new FPSprite(data.getTable().getRaw("utility-sprites", "default", "clock").get())
 					.createSprites(data).get(0).image;
 		} catch (Exception e) {
 			e.printStackTrace();

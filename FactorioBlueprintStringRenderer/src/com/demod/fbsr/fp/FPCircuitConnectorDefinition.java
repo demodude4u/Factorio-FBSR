@@ -7,10 +7,10 @@ import com.demod.fbsr.FPUtils;
 
 public class FPCircuitConnectorDefinition {
 	public final Optional<FPCircuitConnectorSprites> sprites;
-	public final FPWireConnectionPoint points;
+	public final Optional<FPWireConnectionPoint> points;
 
 	public FPCircuitConnectorDefinition(LuaValue lua) {
 		sprites = FPUtils.opt(lua.get("sprites"), FPCircuitConnectorSprites::new);
-		points = new FPWireConnectionPoint(lua.get("points"));
+		points = FPUtils.opt(lua.get("points"), FPWireConnectionPoint::new);
 	}
 }

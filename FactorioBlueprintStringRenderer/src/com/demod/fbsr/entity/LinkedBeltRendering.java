@@ -6,9 +6,7 @@ import java.util.function.Consumer;
 
 import org.json.JSONObject;
 
-import com.demod.factorio.DataTable;
 import com.demod.factorio.fakelua.LuaValue;
-import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.BSUtils;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.Layer;
@@ -45,8 +43,7 @@ public class LinkedBeltRendering extends TransportBeltConnectableRendering<BSLin
 	private FPSprite4Way protoStructureDirectionOut;
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable,
-			BSLinkedBeltEntity entity) {
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, BSLinkedBeltEntity entity) {
 		List<Sprite> beltSprites = createBeltSprites(entity.direction.cardinal(), BeltBend.NONE.ordinal(),
 				getAlternatingFrame(entity.position.createPoint(), 0));
 		register.accept(RenderUtils.spriteRenderer(Layer.TRANSPORT_BELT, beltSprites, entity, protoSelectionBox));
@@ -54,14 +51,14 @@ public class LinkedBeltRendering extends TransportBeltConnectableRendering<BSLin
 		boolean input = entity.type.get().equals("input");
 		Direction structDir = input ? entity.direction : entity.direction.back();
 		List<Sprite> structureSprites = (input ? protoStructureDirectionIn : protoStructureDirectionOut)
-				.createSprites(structDir);
+				.createSprites(data, structDir);
 		register.accept(
 				RenderUtils.spriteRenderer(Layer.HIGHER_OBJECT_UNDER, structureSprites, entity, protoSelectionBox));
 	}
 
 	@Override
-	public void initFromPrototype(DataTable dataTable, EntityPrototype prototype) {
-		super.initFromPrototype(dataTable, prototype);
+	public void initFromPrototype() {
+		super.initFromPrototype();
 
 		LuaValue luaStructure = prototype.lua().get("structure");
 		protoStructureDirectionIn = new FPSprite4Way(luaStructure.get("direction_in"));
