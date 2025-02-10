@@ -1,18 +1,20 @@
 package com.demod.fbsr.task;
 
-import java.awt.Desktop;
-import java.io.File;
-import java.io.PrintStream;
-
-import com.demod.factorio.Utils;
-import com.demod.fbsr.FactorioManager;
-
 public class FBSRScratchPad {
 
 	// Change as you like to get what information you need
 	public static void main(String[] args) throws Exception {
-		FactorioManager.initializePrototypes();
+//		StartAllServices.main(args);
+//		FactorioManager.initializePrototypes();
 //		FactorioManager.initializeFactories();
+
+//		File fileProto = new File("tempdata/proto.txt");
+//		fileProto.getParentFile().mkdirs();
+//		try (PrintStream ps = new PrintStream(fileProto)) {
+//			Utils.debugPrintLua(FactorioManager.lookupEntityByName("creative-mod_super-roboport").get().lua().tovalue(),
+//					ps);
+//		}
+//		Desktop.getDesktop().edit(fileProto);
 
 		// Extract entity types and generate lines for mods-rendering.json
 //		String cfgFactorioInstall = "C:\\Factorio Installs\\Factorio 2.0.28";
@@ -63,14 +65,6 @@ public class FBSRScratchPad {
 //		for (String tileName : tiles.stream().sorted().collect(Collectors.toList())) {
 //			System.out.println("\"" + tileName + "\": false,");
 //		}
-
-		File fileProto = new File("tempdata/proto.txt");
-		fileProto.getParentFile().mkdirs();
-		try (PrintStream ps = new PrintStream(fileProto)) {
-			Utils.debugPrintLua(FactorioManager.lookupEntityByName("creative-mod_super-roboport").get().lua().tovalue(),
-					ps);
-		}
-		Desktop.getDesktop().edit(fileProto);
 
 //		ItemPrototype proto = table.getItem("aai-v3-loader").get();
 //		LuaValue luaIcons = proto.lua().get("icons");
