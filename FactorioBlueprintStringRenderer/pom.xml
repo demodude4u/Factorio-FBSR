@@ -71,6 +71,8 @@
 			<groupId>net.dean.jraw</groupId>
 			<artifactId>JRAW</artifactId>
 			<version>0.9.0</version>
+			<scope>system</scope>
+			<systemPath>${project.basedir}/lib/JRAW-0.9.0.jar</systemPath>
 		</dependency>
 		<dependency>
 			<groupId>org.rapidoid</groupId>
