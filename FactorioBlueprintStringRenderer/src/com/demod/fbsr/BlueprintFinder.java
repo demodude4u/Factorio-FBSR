@@ -154,26 +154,32 @@ public final class BlueprintFinder {
 	private static void findBlueprints(InputStream in, CommandReporting reporting, Set<FindBlueprintResult> results)
 			throws IOException {
 		String content = new String(in.readNBytes(20000000));
-
-		try {
-			int first = content.indexOf('{');
-			int last = content.lastIndexOf('}');
-			if (first != -1 && last != -1) {
-				JSONObject json = new JSONObject(content.substring(first, last + 1));
-				results.add(new FindBlueprintResult(Optional.empty(), Optional.of(json)));
-				return;
-			}
-		} catch (JSONException e) {
-		}
-
+		boolean hasEncoded = false;
 		try (Scanner scanner = new Scanner(content)) {
 			String blueprintString;
 			while ((blueprintString = scanner.findWithinHorizon(blueprintPattern, 0)) != null) {
 				try {
 					results.add(new FindBlueprintResult(Optional.of(blueprintString), Optional.empty()));
+					hasEncoded = true;
 				} catch (Exception e) {
 					reporting.addException(e);
 				}
+			}
+		}
+		if (!hasEncoded) {// Check for decoded
+			try {
+				int first = content.indexOf('{');
+				int last = content.lastIndexOf('}');
+				if (first != -1 && last != -1) {
+					JSONObject json = new JSONObject(content.substring(first, last + 1));
+					if (json.has("blueprint") //
+							|| json.has("blueprint_book") //
+							|| json.has("upgrade_planner") //
+							|| json.has("deconstruction_planner")) {
+						results.add(new FindBlueprintResult(Optional.empty(), Optional.of(json)));
+					}
+				}
+			} catch (JSONException e) {
 			}
 		}
 	}
