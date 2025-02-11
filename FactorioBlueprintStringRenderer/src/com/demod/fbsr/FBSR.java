@@ -544,7 +544,7 @@ public class FBSR {
 		});
 		tileRenderingTuples.forEach(t -> {
 			try {
-				t.factory.populateWorldMap(map, t.factory.getData().getTable(), t.tile);
+				t.factory.populateWorldMap(map, t.tile);
 			} catch (Exception e) {
 				reporting.addException(e, t.factory.getClass().getSimpleName() + ", " + t.tile.name);
 			}
@@ -571,7 +571,7 @@ public class FBSR {
 
 		tileRenderingTuples.forEach(t -> {
 			try {
-				t.factory.createRenderers(register, map, t.factory.getData().getTable(), t.tile);
+				t.factory.createRenderers(register, map, t.tile);
 			} catch (Exception e) {
 				reporting.addException(e, t.factory.getClass().getSimpleName() + ", " + t.tile.name);
 			}

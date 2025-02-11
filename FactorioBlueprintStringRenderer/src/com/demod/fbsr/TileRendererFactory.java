@@ -314,7 +314,7 @@ public class TileRendererFactory {
 		Set<String> labeledTypes = new HashSet<>();
 
 		@Override
-		public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSTile tile) {
+		public void createRenderers(Consumer<Renderer> register, WorldMap map, BSTile tile) {
 			Point2D.Double pos = tile.position.createPoint();
 			Rectangle2D.Double bounds = new Rectangle2D.Double(pos.x + 0.25, pos.y + 0.25, 0.5, 0.5);
 			float randomFactor = new Random(tile.name.hashCode()).nextFloat();
@@ -345,7 +345,7 @@ public class TileRendererFactory {
 		}
 
 		@Override
-		public void populateWorldMap(WorldMap map, DataTable dataTable, BSTile tile) {
+		public void populateWorldMap(WorldMap map, BSTile tile) {
 			if (!labeledTypes.isEmpty()) {
 				labeledTypes.clear();
 			}
@@ -381,8 +381,8 @@ public class TileRendererFactory {
 		Table<Integer, Integer, TileCell> tileMap = HashBasedTable.create();
 
 		// XXX should I also do render order (left to right, top to bottom)?
-		List<TileRenderingTuple> tileOrder = tiles.stream().sorted(Comparator.comparing(t -> t.factory.protoLayer))
-				.collect(Collectors.toList());
+		List<TileRenderingTuple> tileOrder = tiles.stream().filter(t -> t.factory != TileRendererFactory.UNKNOWN)
+				.sorted(Comparator.comparing(t -> t.factory.protoLayer)).collect(Collectors.toList());
 
 		// <layer, <row, col, cell>>
 		LinkedHashMap<Integer, Table<Integer, Integer, TileEdgeCell>> tileEdgeMaps = new LinkedHashMap<>();
@@ -515,7 +515,7 @@ public class TileRendererFactory {
 
 	}// TODO fix UNKNOWN so we don't need this
 
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, DataTable dataTable, BSTile tile) {
+	public void createRenderers(Consumer<Renderer> register, WorldMap map, BSTile tile) {
 	}
 
 	public FactorioData getData() {
@@ -550,7 +550,7 @@ public class TileRendererFactory {
 	}
 
 	// TODO fix UNKNOWN so we don't need this
-	public void populateWorldMap(WorldMap map, DataTable dataTable, BSTile tile) {
+	public void populateWorldMap(WorldMap map, BSTile tile) {
 	}
 
 	public void setData(FactorioData data) {
