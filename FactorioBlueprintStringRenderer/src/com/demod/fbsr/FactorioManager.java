@@ -4,11 +4,15 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -111,8 +115,20 @@ public class FactorioManager {
 		File folderDataRoot = new File(json.optString("data", "data"));
 		folderDataRoot.mkdirs();
 
-		for (File folderMods : folderModsRoot.listFiles()) {
-			if (!folderMods.isDirectory()) {
+		List<File> modsFiles;
+		if (json.has("mods_include")) {
+			JSONArray jsonModsInclude = json.getJSONArray("mods_include");
+			modsFiles = IntStream.range(0, jsonModsInclude.length())
+					.mapToObj(i -> new File(folderModsRoot, jsonModsInclude.getString(i))).filter(File::exists)
+					.collect(Collectors.toList());
+		} else {
+			modsFiles = Arrays.asList(folderModsRoot.listFiles());
+		}
+		System.out
+				.println("MODS FOLDERS: " + modsFiles.stream().map(f -> f.getName()).collect(Collectors.joining(", ")));
+
+		for (File folderMods : modsFiles) {
+			if (!folderMods.exists() || !folderMods.isDirectory()) {
 				continue;
 			}
 			if (!new File(folderMods, "mod-list.json").exists()) {
