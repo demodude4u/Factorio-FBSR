@@ -523,7 +523,13 @@ public abstract class SimpleEntityRendering<E extends BSEntity> extends EntityRe
 						continue;
 					}
 					Direction facing = conn.direction.get().rotate(dir);
-					Point2D.Double pos = dir.rotatePoint(conn.position.get().createPoint());
+
+					Point2D.Double pos;
+					if (conn.position.isPresent()) {
+						pos = dir.rotatePoint(conn.position.get().createPoint());
+					} else {
+						pos = conn.positions.get().get(dir.cardinal()).createPoint();
+					}
 
 					if (fluidBox.pipePicture.isPresent()) {
 						List<Sprite> sprites = fluidBox.pipePicture.get().createSprites(data, facing);
