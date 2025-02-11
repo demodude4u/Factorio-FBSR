@@ -135,7 +135,12 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 			JSONObject json) {
 		DataTable table = data.getTable();
 		for (String entityName : json.keySet().stream().sorted().collect(Collectors.toList())) {
-			EntityPrototype prototype = table.getEntity(entityName).get();
+			Optional<EntityPrototype> entity = table.getEntity(entityName);
+			if (!entity.isPresent()) {
+				System.err.println("MISSING ENTITY: " + entityName);
+				continue;
+			}
+			EntityPrototype prototype = entity.get();
 			String factoryName = json.getString(entityName);
 			String factoryClassName = "com.demod.fbsr.entity." + factoryName;
 			try {
