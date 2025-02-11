@@ -1,6 +1,10 @@
 package com.demod.fbsr.entity;
 
+import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.Rectangle;
 import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -11,11 +15,13 @@ import org.json.JSONObject;
 import com.demod.factorio.Utils;
 import com.demod.factorio.fakelua.LuaTable;
 import com.demod.factorio.fakelua.LuaValue;
+import com.demod.factorio.prototype.DataPrototype;
 import com.demod.factorio.prototype.RecipePrototype;
 import com.demod.fbsr.BSUtils;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.FactorioManager;
+import com.demod.fbsr.Layer;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Renderer;
 import com.demod.fbsr.Sprite;
@@ -130,42 +136,42 @@ public abstract class CraftingMachineRendering extends SimpleEntityRendering<BSC
 			}
 		}
 
-//		Sprite spriteIcon = new Sprite();
-//		Optional<String> recipe = entity.recipe;
-//		if (recipe.isPresent() && map.isAltMode()) {
-//			Optional<RecipePrototype> optRecipe = dataTable.getRecipe(recipe.get());
-//			if (optRecipe.isPresent()) {
-//				RecipePrototype protoRecipe = optRecipe.get();
-//				if (!protoRecipe.lua().get("icon").isnil() || !protoRecipe.lua().get("icons").isnil()) {
-//					spriteIcon.image = FactorioData.getIcon(protoRecipe);
-//				} else {
-//					String name;
-//					if (protoRecipe.lua().get("results") != LuaValue.NIL) {
-//						name = protoRecipe.lua().get("results").get(1).get("name").toString();
-//					} else {
-//						name = protoRecipe.lua().get("result").toString();
-//					}
-//					Optional<? extends DataPrototype> protoProduct = dataTable.getItem(name);
-//					if (!protoProduct.isPresent()) {
-//						protoProduct = dataTable.getFluid(name);
-//					}
-//					spriteIcon.image = protoProduct.map(FactorioData::getIcon).orElse(RenderUtils.EMPTY_IMAGE);
-//				}
-//
-//				spriteIcon.source = new Rectangle(0, 0, spriteIcon.image.getWidth(), spriteIcon.image.getHeight());
-//				spriteIcon.bounds = new Rectangle2D.Double(-0.7, -1.0, 1.4, 1.4);
-//
-//				Renderer delegate = RenderUtils.spriteRenderer(spriteIcon, entity, protoSelectionBox);
-//				register.accept(new Renderer(Layer.ENTITY_INFO_ICON, delegate.getBounds(), true) {
-//					@Override
-//					public void render(Graphics2D g) throws Exception {
-//						g.setColor(new Color(0, 0, 0, 180));
-//						g.fill(spriteIcon.bounds);
-//						delegate.render(g);
-//					}
-//				});
-//			}
-//		}
+		if (recipe.isPresent() && map.isAltMode()) {
+			Optional<RecipePrototype> optRecipe = FactorioManager.lookupRecipeByName(recipe.get());
+			if (optRecipe.isPresent()) {
+				RecipePrototype protoRecipe = optRecipe.get();
+				Sprite spriteIcon = new Sprite();
+				if (!protoRecipe.lua().get("icon").isnil() || !protoRecipe.lua().get("icons").isnil()) {
+					spriteIcon.image = protoRecipe.getTable().getData().getIcon(protoRecipe);
+				} else {
+					String name;
+					if (protoRecipe.lua().get("results") != LuaValue.NIL) {
+						name = protoRecipe.lua().get("results").get(1).get("name").toString();
+					} else {
+						name = protoRecipe.lua().get("result").toString();
+					}
+					Optional<? extends DataPrototype> protoProduct = FactorioManager.lookupItemByName(name);
+					if (!protoProduct.isPresent()) {
+						protoProduct = FactorioManager.lookupFluidByName(name);
+					}
+					spriteIcon.image = protoProduct.map(p -> p.getTable().getData().getIcon(p))
+							.orElse(RenderUtils.EMPTY_IMAGE);
+				}
+
+				spriteIcon.source = new Rectangle(0, 0, spriteIcon.image.getWidth(), spriteIcon.image.getHeight());
+				spriteIcon.bounds = new Rectangle2D.Double(-0.7, -1.0, 1.4, 1.4);
+
+				Renderer delegate = RenderUtils.spriteRenderer(spriteIcon, entity, protoSelectionBox);
+				register.accept(new Renderer(Layer.ENTITY_INFO_ICON, delegate.getBounds(), true) {
+					@Override
+					public void render(Graphics2D g) throws Exception {
+						g.setColor(new Color(0, 0, 0, 180));
+						g.fill(spriteIcon.bounds);
+						delegate.render(g);
+					}
+				});
+			}
+		}
 	}
 
 	@Override
