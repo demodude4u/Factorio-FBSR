@@ -5,6 +5,7 @@ import java.util.List;
 import org.json.JSONObject;
 
 import com.demod.fbsr.BSUtils;
+import com.google.common.collect.ImmutableList;
 
 public class BSSchedule {
 	public final List<Integer> locomotives;
@@ -12,6 +13,10 @@ public class BSSchedule {
 
 	public BSSchedule(JSONObject json) {
 		locomotives = BSUtils.listInt(json, "locomotives");
-		scheduleRecords = BSUtils.list(json.getJSONObject("schedule"), "records", BSScheduleRecord::new);
+		if (json.isNull("schedule")) {
+			scheduleRecords = ImmutableList.of();
+		} else {
+			scheduleRecords = BSUtils.list(json.getJSONObject("schedule"), "records", BSScheduleRecord::new);
+		}
 	}
 }
