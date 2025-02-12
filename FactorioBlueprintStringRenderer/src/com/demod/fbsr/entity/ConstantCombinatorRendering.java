@@ -9,6 +9,7 @@ import org.json.JSONObject;
 import com.demod.factorio.fakelua.LuaTable;
 import com.demod.fbsr.BSUtils;
 import com.demod.fbsr.FPUtils;
+import com.demod.fbsr.Layer;
 import com.demod.fbsr.WirePoints;
 import com.demod.fbsr.WirePoints.WireColor;
 import com.demod.fbsr.bs.BSEntity;
@@ -44,6 +45,12 @@ public class ConstantCombinatorRendering extends SimpleEntityRendering<BSConstan
 
 	@Override
 	public void defineEntity(Bindings bind, LuaTable lua) {
+
+		// this is technically part of EntityWithHealth, but only py has used it here
+		Layer integrationPatchLayer = FPUtils.optLayer(lua.get("integration_patch_render_layer"))
+				.orElse(Layer.LOWER_OBJECT);
+		bind.sprite4Way(lua.get("integration_patch")).layer(integrationPatchLayer);
+
 		bind.sprite4Way(lua.get("sprites"));
 	}
 
