@@ -86,11 +86,25 @@ public class FactorioManager {
 		return tileByName;
 	}
 
-	public static void initializeFactories() {
+	public static void initializeFactories() throws JSONException, IOException {
+		if (!initializedPrototypes) {
+			throw new IllegalStateException("Must initialize prototypes first!");
+		}
 		if (initializedFactories) {
 			throw new IllegalStateException("Already Initialized Factories!");
 		}
 		initializedFactories = true;
+
+		for (FactorioData data : datas) {
+			File folderMods = data.folderMods;
+
+			JSONObject jsonModRendering = new JSONObject(
+					Files.readString(new File(folderMods, "mod-rendering.json").toPath()));
+			EntityRendererFactory.registerFactories(FactorioManager::registerEntityFactory, data,
+					jsonModRendering.getJSONObject("entities"));
+			TileRendererFactory.registerFactories(FactorioManager::registerTileFactory, data,
+					jsonModRendering.getJSONObject("tiles"));
+		}
 
 		EntityRendererFactory.initFactories(entityFactories);
 		TileRendererFactory.initFactories(tileFactories);
@@ -149,13 +163,6 @@ public class FactorioManager {
 
 			ModLoader modLoader = data.getModLoader();
 			modLoader.getMods().keySet().stream().forEach(s -> dataByModName.put(s, data));
-
-			JSONObject jsonModRendering = new JSONObject(
-					Files.readString(new File(folderMods, "mod-rendering.json").toPath()));
-			EntityRendererFactory.registerFactories(FactorioManager::registerEntityFactory, data,
-					jsonModRendering.getJSONObject("entities"));
-			TileRendererFactory.registerFactories(FactorioManager::registerTileFactory, data,
-					jsonModRendering.getJSONObject("tiles"));
 
 			recipeByName.putAll(data.getTable().getRecipes());
 			itemByName.putAll(data.getTable().getItems());
