@@ -1,13 +1,12 @@
 package com.demod.fbsr.task;
 
-import java.io.File;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.stream.Collectors;
-
 import org.json.JSONObject;
+import org.json.JSONTokener;
 
+import com.demod.factorio.FactorioData;
 import com.demod.factorio.Utils;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 
 public class FBSRScratchPad {
 
@@ -17,19 +16,37 @@ public class FBSRScratchPad {
 //		FactorioManager.initializePrototypes();
 //		FactorioManager.initializeFactories();
 
-//		Generate mod-download.json based on mods folder
-		File folderMods = new File("C:\\FBSR Workspace\\Git\\Factorio-BPBot-Mods\\mods-pyanodon");
-		JSONObject json = new JSONObject();
-		Utils.terribleHackToHaveOrderedJSONObject(json);
-		for (File file : Arrays.asList(folderMods.listFiles()).stream().sorted(Comparator.comparing(f -> f.getName()))
-				.collect(Collectors.toList())) {
-			if (!file.getName().endsWith(".zip")) {
-				continue;
-			}
-			String[] split = file.getName().substring(0, file.getName().length() - 4).split("_");
-			json.put(split[0], split[1]);
+//		Flip the type hiearchy to be more readable
+		JSONObject json = new JSONObject(
+				new JSONTokener(FactorioData.class.getClassLoader().getResourceAsStream("type-hiearchy.json")));
+		Multimap<String, String> tree = HashMultimap.create();
+		for (String child : json.keySet()) {
+			String parent = json.optString(child);
+			tree.put(parent, child);
 		}
-		System.out.println(json.toString(4));
+		class Walk {
+			JSONObject createStructure(String parent) {
+				JSONObject ret = new JSONObject();
+				Utils.terribleHackToHaveOrderedJSONObject(ret);
+				tree.get(parent).stream().sorted().forEach(child -> ret.put(child, createStructure(child)));
+				return ret;
+			}
+		}
+		System.out.println(new Walk().createStructure("").toString(4));
+
+////		Generate mod-download.json based on mods folder
+//		File folderMods = new File("C:\\FBSR Workspace\\Git\\Factorio-BPBot-Mods\\mods-pyanodon");
+//		JSONObject json = new JSONObject();
+//		Utils.terribleHackToHaveOrderedJSONObject(json);
+//		for (File file : Arrays.asList(folderMods.listFiles()).stream().sorted(Comparator.comparing(f -> f.getName()))
+//				.collect(Collectors.toList())) {
+//			if (!file.getName().endsWith(".zip")) {
+//				continue;
+//			}
+//			String[] split = file.getName().substring(0, file.getName().length() - 4).split("_");
+//			json.put(split[0], split[1]);
+//		}
+//		System.out.println(json.toString(4));
 
 ////		Fetch a prototype
 //		File fileProto = new File("tempdata/proto.txt");

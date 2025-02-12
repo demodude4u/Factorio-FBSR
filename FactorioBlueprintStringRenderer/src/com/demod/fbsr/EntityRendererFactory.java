@@ -131,29 +131,31 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 	}
 
 	@SuppressWarnings({ "rawtypes" })
-	public static void registerFactories(BiConsumer<String, EntityRendererFactory> register, FactorioData data,
-			JSONObject json) {
+	public static void registerFactories(Consumer<EntityRendererFactory> register, FactorioData data, JSONObject json) {
 		DataTable table = data.getTable();
-		for (String entityName : json.keySet().stream().sorted().collect(Collectors.toList())) {
-			Optional<EntityPrototype> entity = table.getEntity(entityName);
-			if (!entity.isPresent()) {
-				System.err.println("MISSING ENTITY: " + entityName);
-				continue;
-			}
-			EntityPrototype prototype = entity.get();
-			String factoryName = json.getString(entityName);
-			String factoryClassName = "com.demod.fbsr.entity." + factoryName;
-			try {
-				EntityRendererFactory factory = (EntityRendererFactory) Class.forName(factoryClassName).getConstructor()
-						.newInstance();
-				factory.setData(data);
-				factory.setPrototype(prototype);
-				register.accept(entityName, factory);
-			} catch (Exception e) {
-				prototype.debugPrint();
-				System.err.println("FACTORY CLASS: " + factoryClassName);
-				e.printStackTrace();
-				System.exit(-1);
+		for (String groupName : json.keySet().stream().sorted().collect(Collectors.toList())) {
+			JSONObject jsonGroup = json.getJSONObject(groupName);
+			for (String entityName : jsonGroup.keySet().stream().sorted().collect(Collectors.toList())) {
+				Optional<EntityPrototype> entity = table.getEntity(entityName);
+				if (!entity.isPresent()) {
+					System.err.println("MISSING ENTITY: " + entityName);
+					continue;
+				}
+				EntityPrototype prototype = entity.get();
+				String factoryName = jsonGroup.getString(entityName);
+				String factoryClassName = "com.demod.fbsr.entity." + factoryName;
+				try {
+					EntityRendererFactory factory = (EntityRendererFactory) Class.forName(factoryClassName)
+							.getConstructor().newInstance();
+					factory.setData(data);
+					factory.setPrototype(prototype);
+					register.accept(factory);
+				} catch (Exception e) {
+					prototype.debugPrint();
+					System.err.println("FACTORY CLASS: " + factoryClassName);
+					e.printStackTrace();
+					System.exit(-1);
+				}
 			}
 		}
 	}
@@ -200,7 +202,7 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 					for (String itemName : renderModules) {
 						g.setColor(new Color(0, 0, 0, 180));
 						g.fill(shadowBox);
-						BufferedImage image = data.getTable().getItem(itemName).map(data::getIcon)
+						BufferedImage image = data.getTable().getItem(itemName).map(data::getWikiIcon)
 								.orElse(RenderUtils.EMPTY_IMAGE);
 						RenderUtils.drawImageInBounds(image, new Rectangle(0, 0, image.getWidth(), image.getHeight()),
 								spriteBox, g);
@@ -271,7 +273,7 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 						for (String itemName : modules) {
 							g.setColor(new Color(0, 0, 0, 180));
 							g.fill(shadowBox);
-							BufferedImage image = table.getItem(itemName).map(data::getIcon)
+							BufferedImage image = table.getItem(itemName).map(data::getWikiIcon)
 									.orElse(RenderUtils.EMPTY_IMAGE);
 							RenderUtils.drawImageInBounds(image,
 									new Rectangle(0, 0, image.getWidth(), image.getHeight()), spriteBox, g);

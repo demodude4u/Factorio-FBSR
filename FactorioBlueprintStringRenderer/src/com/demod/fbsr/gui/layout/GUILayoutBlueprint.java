@@ -190,7 +190,7 @@ public class GUILayoutBlueprint {
 
 						if (protoItem.isPresent()) {
 							GUIImage imgIcon = new GUIImage(cellBounds,
-									protoItem.get().getTable().getData().getIcon(protoItem.get()), itemIconScale,
+									protoItem.get().getTable().getData().getWikiIcon(protoItem.get()), itemIconScale,
 									false);
 							imgIcon.render(g);
 						} else {
@@ -263,7 +263,7 @@ public class GUILayoutBlueprint {
 								prototype = FactorioManager.lookupFluidByName(item);
 							}
 
-							image = prototype.map(p -> p.getTable().getData().getIcon(p));
+							image = prototype.map(p -> p.getTable().getData().getWikiIcon(p));
 							scale = itemIconScale;
 						}
 

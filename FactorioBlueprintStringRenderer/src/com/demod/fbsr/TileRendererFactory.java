@@ -20,7 +20,6 @@ import java.util.OptionalInt;
 import java.util.Random;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -479,15 +478,17 @@ public class TileRendererFactory {
 		System.out.println("Initialized " + factories.size() + " tiles.");
 	}
 
-	public static void registerFactories(BiConsumer<String, TileRendererFactory> register, FactorioData data,
-			JSONObject json) {
+	public static void registerFactories(Consumer<TileRendererFactory> register, FactorioData data, JSONObject json) {
 		DataTable table = data.getTable();
-		for (String tileName : json.keySet().stream().sorted().collect(Collectors.toList())) {
-			TilePrototype prototype = table.getTile(tileName).get();
-			TileRendererFactory factory = new TileRendererFactory(json.getBoolean(tileName));
-			factory.setData(data);
-			factory.setPrototype(prototype);
-			register.accept(tileName, factory);
+		for (String groupName : json.keySet().stream().sorted().collect(Collectors.toList())) {
+			JSONObject jsonGroup = json.getJSONObject(groupName);
+			for (String tileName : jsonGroup.keySet().stream().sorted().collect(Collectors.toList())) {
+				TilePrototype prototype = table.getTile(tileName).get();
+				TileRendererFactory factory = new TileRendererFactory(jsonGroup.getBoolean(tileName));
+				factory.setData(data);
+				factory.setPrototype(prototype);
+				register.accept(factory);
+			}
 		}
 	}
 

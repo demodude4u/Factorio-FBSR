@@ -89,7 +89,7 @@ public abstract class LoaderRendering extends TransportBeltConnectableRendering<
 				Optional<ItemPrototype> optItem = FactorioManager.lookupItemByName(itemName);
 				if (optItem.isPresent()) {
 					Sprite spriteIcon = new Sprite();
-					spriteIcon.image = optItem.get().getTable().getData().getIcon(optItem.get());
+					spriteIcon.image = optItem.get().getTable().getData().getWikiIcon(optItem.get());
 					spriteIcon.source = new Rectangle(0, 0, spriteIcon.image.getWidth(), spriteIcon.image.getHeight());
 					spriteIcon.bounds = new Rectangle2D.Double(-0.3, -0.3, 0.6, 0.6);
 

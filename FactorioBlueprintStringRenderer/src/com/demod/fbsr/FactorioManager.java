@@ -19,6 +19,7 @@ import org.json.JSONObject;
 import com.demod.factorio.Config;
 import com.demod.factorio.FactorioData;
 import com.demod.factorio.ModLoader;
+import com.demod.factorio.fakelua.LuaValue;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.factorio.prototype.EquipmentPrototype;
 import com.demod.factorio.prototype.FluidPrototype;
@@ -30,21 +31,31 @@ import com.demod.fbsr.bs.BSEntity;
 
 public class FactorioManager {
 
+	public static class LookupDataRawResult {
+		public final FactorioData data;
+		public final LuaValue value;
+
+		public LookupDataRawResult(FactorioData data, LuaValue value) {
+			this.data = data;
+			this.value = value;
+		}
+	}
+
 	private static volatile boolean initializedPrototypes = false;
+
 	private static volatile boolean initializedFactories = false;
 
 	private static final List<FactorioData> datas = new ArrayList<>();
 
 	private static final Map<String, FactorioData> dataByModName = new HashMap<>();
-
 	@SuppressWarnings("rawtypes")
 	private static final List<EntityRendererFactory> entityFactories = new ArrayList<>();
+
 	@SuppressWarnings("rawtypes")
 	private static final Map<String, EntityRendererFactory> entityFactoryByName = new HashMap<>();
-
 	private static final List<TileRendererFactory> tileFactories = new ArrayList<>();
-	private static final Map<String, TileRendererFactory> tileFactoryByName = new HashMap<>();
 
+	private static final Map<String, TileRendererFactory> tileFactoryByName = new HashMap<>();
 	// TODO prioritize vanilla first
 	private static final Map<String, ItemPrototype> itemByName = new HashMap<>();
 	private static final Map<String, RecipePrototype> recipeByName = new HashMap<>();
@@ -52,6 +63,7 @@ public class FactorioManager {
 	private static final Map<String, TechPrototype> technologyByName = new HashMap<>();
 	private static final Map<String, EntityPrototype> entityByName = new HashMap<>();
 	private static final Map<String, TilePrototype> tileByName = new HashMap<>();
+
 	private static final Map<String, EquipmentPrototype> equipmentByName = new HashMap<>();
 
 	public static List<FactorioData> getDatas() {
@@ -214,6 +226,21 @@ public class FactorioManager {
 		return dataByModName.get(modName);
 	}
 
+	public static Optional<LookupDataRawResult> lookupDataRaw(String[] path, String key) {
+		for (FactorioData data : datas) {
+			Optional<LuaValue> luaParent = data.getTable().getRaw(path);
+			if (!luaParent.isPresent() || luaParent.get().isnil()) {
+				continue;
+			}
+			LuaValue luaValue = luaParent.get().get(key);
+			if (luaValue.isnil()) {
+				continue;
+			}
+			return Optional.of(new LookupDataRawResult(data, luaValue));
+		}
+		return Optional.empty();
+	}
+
 	public static Optional<EntityPrototype> lookupEntityByName(String name) {
 		return Optional.ofNullable(entityByName.get(name));
 	}
@@ -252,7 +279,8 @@ public class FactorioManager {
 	}
 
 	@SuppressWarnings("rawtypes")
-	private static synchronized void registerEntityFactory(String name, EntityRendererFactory factory) {
+	private static synchronized void registerEntityFactory(EntityRendererFactory factory) {
+		String name = factory.getPrototype().getName();
 		if (entityFactoryByName.containsKey(name)) {
 			throw new IllegalArgumentException("Entity already exists! " + name);
 		}
@@ -260,7 +288,8 @@ public class FactorioManager {
 		entityFactoryByName.put(name, factory);
 	}
 
-	private static synchronized void registerTileFactory(String name, TileRendererFactory factory) {
+	private static synchronized void registerTileFactory(TileRendererFactory factory) {
+		String name = factory.getPrototype().getName();
 		if (tileFactoryByName.containsKey(name)) {
 			throw new IllegalArgumentException("Tile already exists! " + name);
 		}

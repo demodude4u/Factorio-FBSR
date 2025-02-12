@@ -129,7 +129,7 @@ public class LaneSplitterRendering extends TransportBeltConnectableRendering<BSS
 				Sprite spriteIcon = new Sprite();
 				Optional<ItemPrototype> optItem = FactorioManager.lookupItemByName(itemName);
 				if (optItem.isPresent()) {
-					spriteIcon.image = optItem.get().getTable().getData().getIcon(optItem.get());
+					spriteIcon.image = optItem.get().getTable().getData().getWikiIcon(optItem.get());
 					spriteIcon.source = new Rectangle(0, 0, spriteIcon.image.getWidth(), spriteIcon.image.getHeight());
 					spriteIcon.bounds = new Rectangle2D.Double(-0.15, -0.15, 0.3, 0.3);
 

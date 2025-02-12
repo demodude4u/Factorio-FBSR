@@ -142,7 +142,7 @@ public abstract class CraftingMachineRendering extends SimpleEntityRendering<BSC
 				RecipePrototype protoRecipe = optRecipe.get();
 				Sprite spriteIcon = new Sprite();
 				if (!protoRecipe.lua().get("icon").isnil() || !protoRecipe.lua().get("icons").isnil()) {
-					spriteIcon.image = protoRecipe.getTable().getData().getIcon(protoRecipe);
+					spriteIcon.image = protoRecipe.getTable().getData().getWikiIcon(protoRecipe);
 				} else {
 					String name;
 					if (protoRecipe.lua().get("results") != LuaValue.NIL) {
@@ -154,7 +154,7 @@ public abstract class CraftingMachineRendering extends SimpleEntityRendering<BSC
 					if (!protoProduct.isPresent()) {
 						protoProduct = FactorioManager.lookupFluidByName(name);
 					}
-					spriteIcon.image = protoProduct.map(p -> p.getTable().getData().getIcon(p))
+					spriteIcon.image = protoProduct.map(p -> p.getTable().getData().getWikiIcon(p))
 							.orElse(RenderUtils.EMPTY_IMAGE);
 				}
 
