@@ -129,6 +129,22 @@ public class FactorioManager {
 		File folderDataRoot = new File(json.optString("data", "data"));
 		folderDataRoot.mkdirs();
 
+		boolean modPortalApi;
+		String modPortalApiUsername = null;
+		String modPortalApiPassword = null;
+		if (json.has("mod_portal_api")) {
+			JSONObject jsonModPortalAPI = json.getJSONObject("mod_portal_api");
+			if (!jsonModPortalAPI.has("username") || !jsonModPortalAPI.has("password")//
+					|| (modPortalApiUsername = jsonModPortalAPI.getString("username")).isBlank() //
+					|| (modPortalApiPassword = jsonModPortalAPI.getString("password")).isBlank()) {
+				modPortalApi = false;
+			} else {
+				modPortalApi = true;
+			}
+		} else {
+			modPortalApi = false;
+		}
+
 		List<File> modsFiles;
 		if (json.has("mods_include")) {
 			JSONArray jsonModsInclude = json.getJSONArray("mods_include");
@@ -147,6 +163,26 @@ public class FactorioManager {
 			}
 			if (!new File(folderMods, "mod-list.json").exists()) {
 				continue;
+			}
+
+			File fileModRendering = new File(folderMods, "mod-download.json");
+			if (modPortalApi && fileModRendering.exists()) {
+				JSONObject jsonModDownload = new JSONObject(Files.readString(fileModRendering.toPath()));
+				boolean auth = false;
+				String authParams = null;
+				for (String modName : jsonModDownload.keySet()) {
+					String modVersion = jsonModDownload.getString(modName);
+					JSONObject jsonRelease = FactorioModPortal.findModReleaseInfo(modName, modVersion);
+					File fileModZip = new File(folderMods, jsonRelease.getString("file_name"));
+					if (!fileModZip.exists()) {
+						if (!auth) {
+							auth = true;
+							authParams = FactorioModPortal.getAuthParams(modPortalApiUsername, modPortalApiPassword);
+						}
+						File file = FactorioModPortal.downloadMod(folderMods, modName, modVersion, authParams);
+					}
+				}
+
 			}
 
 			File folderData = new File(folderDataRoot, folderMods.getName());

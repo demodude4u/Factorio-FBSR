@@ -43,6 +43,10 @@
 	"factorio_manager": {
 		"install": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Factorio",
 		"mods": "mods",
-		"data": "data"
+		"data": "data",
+		"mod_portal_api": {
+			"username": "",
+			"password": ""
+		}
 	}
 }

@@ -1,26 +1,43 @@
 package com.demod.fbsr.task;
 
-import java.awt.Desktop;
 import java.io.File;
-import java.io.PrintStream;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.stream.Collectors;
+
+import org.json.JSONObject;
 
 import com.demod.factorio.Utils;
-import com.demod.fbsr.FactorioManager;
 
 public class FBSRScratchPad {
 
 	// Change as you like to get what information you need
 	public static void main(String[] args) throws Exception {
 //		StartAllServices.main(args);
-		FactorioManager.initializePrototypes();
+//		FactorioManager.initializePrototypes();
 //		FactorioManager.initializeFactories();
 
-		File fileProto = new File("tempdata/proto.txt");
-		fileProto.getParentFile().mkdirs();
-		try (PrintStream ps = new PrintStream(fileProto)) {
-			Utils.debugPrintLua(FactorioManager.lookupEntityByName("solar-tower-panel0").get().lua().tovalue(), ps);
+//		Generate mod-download.json based on mods folder
+		File folderMods = new File("C:\\FBSR Workspace\\Git\\Factorio-BPBot-Mods\\mods-pyanodon");
+		JSONObject json = new JSONObject();
+		Utils.terribleHackToHaveOrderedJSONObject(json);
+		for (File file : Arrays.asList(folderMods.listFiles()).stream().sorted(Comparator.comparing(f -> f.getName()))
+				.collect(Collectors.toList())) {
+			if (!file.getName().endsWith(".zip")) {
+				continue;
+			}
+			String[] split = file.getName().substring(0, file.getName().length() - 4).split("_");
+			json.put(split[0], split[1]);
 		}
-		Desktop.getDesktop().edit(fileProto);
+		System.out.println(json.toString(4));
+
+////		Fetch a prototype
+//		File fileProto = new File("tempdata/proto.txt");
+//		fileProto.getParentFile().mkdirs();
+//		try (PrintStream ps = new PrintStream(fileProto)) {
+//			Utils.debugPrintLua(FactorioManager.lookupEntityByName("solar-tower-panel0").get().lua().tovalue(), ps);
+//		}
+//		Desktop.getDesktop().edit(fileProto);
 
 ////		 Extract entity types and generate lines for mods-rendering.json
 //		String cfgFactorioInstall = "C:\\Factorio Installs\\Factorio 2.0.28";
