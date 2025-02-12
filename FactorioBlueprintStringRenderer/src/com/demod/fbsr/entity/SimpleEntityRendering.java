@@ -33,8 +33,10 @@ import com.demod.fbsr.entity.SimpleEntityRendering.BindRotateAction.BindRotateNo
 import com.demod.fbsr.entity.SimpleEntityRendering.BindRotateDirFrameAction.BindRotateDirFrameNoAction;
 import com.demod.fbsr.entity.SimpleEntityRendering.BindRotateFrameAction.BindRotateFrameNoAction;
 import com.demod.fbsr.entity.SimpleEntityRendering.BindVarAction.BindVarNoAction;
+import com.demod.fbsr.entity.SimpleEntityRendering.BindVarFrameAction.BindVarFrameNoAction;
 import com.demod.fbsr.fp.FPAnimation;
 import com.demod.fbsr.fp.FPAnimation4Way;
+import com.demod.fbsr.fp.FPAnimationVariations;
 import com.demod.fbsr.fp.FPCircuitConnectorDefinition;
 import com.demod.fbsr.fp.FPFluidBox;
 import com.demod.fbsr.fp.FPLayeredSprite;
@@ -50,6 +52,7 @@ import com.demod.fbsr.fp.FPWireConnectionPoint;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
+//TODO needs to be renamed not to be confused with SimpleEntityPrototype...
 public abstract class SimpleEntityRendering<E extends BSEntity> extends EntityRendererFactory<E> {
 
 	public static abstract class BindAction<T> {
@@ -170,6 +173,21 @@ public abstract class SimpleEntityRendering<E extends BSEntity> extends EntityRe
 				}
 			};
 			ret.proto = new FPAnimation4Way(lua);
+			bindings.add(ret);
+			return ret;
+		}
+
+		public BindVarFrameAction<FPAnimationVariations> animationVariations(LuaValue lua) {
+			if (lua.isnil()) {
+				return new BindVarFrameNoAction<>();
+			}
+			BindVarFrameAction<FPAnimationVariations> ret = new BindVarFrameAction<FPAnimationVariations>() {
+				@Override
+				public List<Sprite> createSprites(BSEntity entity) {
+					return proto.createSprites(data, variation, frame);
+				}
+			};
+			ret.proto = new FPAnimationVariations(lua);
 			bindings.add(ret);
 			return ret;
 		}
@@ -496,6 +514,28 @@ public abstract class SimpleEntityRendering<E extends BSEntity> extends EntityRe
 		}
 
 		public BindVarAction<T> variation(int variation) {
+			this.variation = variation;
+			return this;
+		}
+	}
+
+	public static abstract class BindVarFrameAction<T> extends BindFrameAction<T> {
+		public static class BindVarFrameNoAction<T> extends BindVarFrameAction<T> {
+			@Override
+			public List<Sprite> createSprites(BSEntity entity) {
+				return ImmutableList.of();
+			}
+		}
+
+		protected int variation = 0;
+
+		@Override
+		public BindVarFrameAction<T> layer(Layer layer) {
+			super.layer(layer);
+			return this;
+		}
+
+		public BindVarFrameAction<T> variation(int variation) {
 			this.variation = variation;
 			return this;
 		}

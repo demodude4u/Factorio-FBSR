@@ -1,88 +1,94 @@
 package com.demod.fbsr.task;
 
+import java.awt.Desktop;
 import java.io.File;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
+import java.io.PrintStream;
 
-import org.json.JSONObject;
-
-import com.demod.dcba.CommandReporting;
-import com.demod.factorio.DataTable;
-import com.demod.factorio.FactorioData;
-import com.demod.factorio.prototype.EntityPrototype;
-import com.demod.fbsr.BlueprintFinder;
-import com.demod.fbsr.bs.BSBlueprint;
-import com.demod.fbsr.bs.BSBlueprintString;
-import com.demod.fbsr.bs.BSEntity;
-import com.demod.fbsr.bs.BSTile;
+import com.demod.factorio.Utils;
+import com.demod.fbsr.FactorioManager;
 
 public class FBSRScratchPad {
 
 	// Change as you like to get what information you need
 	public static void main(String[] args) throws Exception {
 //		StartAllServices.main(args);
-//		FactorioManager.initializePrototypes();
+		FactorioManager.initializePrototypes();
 //		FactorioManager.initializeFactories();
 
-//		File fileProto = new File("tempdata/proto.txt");
-//		fileProto.getParentFile().mkdirs();
-//		try (PrintStream ps = new PrintStream(fileProto)) {
-//			Utils.debugPrintLua(FactorioManager.lookupEntityByName("creative-mod_super-roboport").get().lua().tovalue(),
-//					ps);
-//		}
-//		Desktop.getDesktop().edit(fileProto);
+		File fileProto = new File("tempdata/proto.txt");
+		fileProto.getParentFile().mkdirs();
+		try (PrintStream ps = new PrintStream(fileProto)) {
+			Utils.debugPrintLua(FactorioManager.lookupEntityByName("solar-tower-panel0").get().lua().tovalue(), ps);
+		}
+		Desktop.getDesktop().edit(fileProto);
 
-//		 Extract entity types and generate lines for mods-rendering.json
-		String cfgFactorioInstall = "C:\\Factorio Installs\\Factorio 2.0.28";
-		String cfgModsFolder = "C:\\Factorio Installs\\Git\\Factorio-BPBot-Mods\\mods-utilities";
-		String cfgBlueprint = "https://gist.github.com/demodude4u/197d44056e2d785efec4a39883d858e3";
-		File folderData = new File("tempdata");
-		folderData.deleteOnExit();
-		JSONObject config = new JSONObject();
-		config.put("factorio", cfgFactorioInstall);
-		config.put("data", folderData.getAbsolutePath());
-		config.put("mods", cfgModsFolder);
-		FactorioData factorioData = new FactorioData(config);
-		factorioData.initialize();
-		DataTable table = factorioData.getTable();
-		CommandReporting reporting = new CommandReporting(null, null, null);
-		List<BSBlueprintString> bpStrings = BlueprintFinder.search(cfgBlueprint, reporting);
-		reporting.getExceptions().forEach(e -> e.printStackTrace());
-		Set<String> entities = new HashSet<>();
-		Set<String> tiles = new HashSet<>();
-		for (BSBlueprintString blueprintString : bpStrings) {
-			for (BSBlueprint blueprint : blueprintString.findAllBlueprints()) {
-				for (BSEntity entity : blueprint.entities) {
-					if (entities.add(entity.name)) {
-						System.out.println("CHECK ENTITY " + entity.name);
-						table.getEntity(entity.name).get();
-					}
-				}
-				for (BSTile tile : blueprint.tiles) {
-					if (tiles.add(tile.name)) {
-						System.out.println("CHECK TILE " + tile.name);
-						table.getTile(tile.name).get();
-					}
-				}
-			}
-		}
-		System.out.println();
-		for (String entityName : entities.stream().sorted().collect(Collectors.toList())) {
-			EntityPrototype proto = table.getEntity(entityName).get();
-			String type = proto.lua().get("type").tojstring();
-			StringBuilder sb = new StringBuilder();
-			for (String part : type.split("-")) {
-				sb.append(part.substring(0, 1).toUpperCase() + part.substring(1));
-			}
-			sb.append("Rendering");
-			System.out.println("\t\t\"" + entityName + "\": \"" + sb.toString() + "\",");
-		}
-		System.out.println();
-		for (String tileName : tiles.stream().sorted().collect(Collectors.toList())) {
-			System.out.println("\t\t\"" + tileName + "\": false,");
-		}
+////		 Extract entity types and generate lines for mods-rendering.json
+//		String cfgFactorioInstall = "C:\\Factorio Installs\\Factorio 2.0.28";
+//		String cfgModsFolder = "C:\\Factorio Installs\\Git\\Factorio-BPBot-Mods\\mods-pyanodon";
+//		String[] cfgBlueprints = { //
+//				"https://gist.github.com/demodude4u/d9e2a6f9fbb16b65f264fcffec2c90f4", //
+//				"https://gist.github.com/demodude4u/c76cc93494126189e19428299d0cd133", //
+//				"https://gist.github.com/demodude4u/f0d90d0c81124aca4bacc64793476ef0", //
+//				"https://gist.github.com/demodude4u/99c76a891bb2b1362c93ee7b6555183f", //
+//				"https://gist.github.com/demodude4u/ddafd8e9457610e29fa32aab0c629e26",//
+//		};
+//		File folderData = new File("tempdata");
+//		folderData.deleteOnExit();
+//		JSONObject config = new JSONObject();
+//		config.put("factorio", cfgFactorioInstall);
+//		config.put("data", folderData.getAbsolutePath());
+//		config.put("mods", cfgModsFolder);
+//		FactorioData factorioData = new FactorioData(config);
+//		factorioData.initialize();
+//		DataTable table = factorioData.getTable();
+//		CommandReporting reporting = new CommandReporting(null, null, null);
+//		List<BSBlueprintString> bpStrings = BlueprintFinder
+//				.search(Arrays.asList(cfgBlueprints).stream().collect(Collectors.joining(" ")), reporting);
+//		reporting.getExceptions().forEach(e -> e.printStackTrace());
+//		Set<String> entities = new HashSet<>();
+//		Set<String> tiles = new HashSet<>();
+//		Set<String> missing = new LinkedHashSet<>();
+//		for (BSBlueprintString blueprintString : bpStrings) {
+//			for (BSBlueprint blueprint : blueprintString.findAllBlueprints()) {
+//				for (BSEntity entity : blueprint.entities) {
+//					if (entities.add(entity.name)) {
+//						System.out.println("CHECK ENTITY " + entity.name);
+//						Optional<EntityPrototype> proto = table.getEntity(entity.name);
+//						if (proto.isEmpty()) {
+//							missing.add(entity.name);
+//							entities.remove(entity.name);
+//						}
+//					}
+//				}
+//				for (BSTile tile : blueprint.tiles) {
+//					if (tiles.add(tile.name)) {
+//						System.out.println("CHECK TILE " + tile.name);
+//						Optional<TilePrototype> proto = table.getTile(tile.name);
+//						if (proto.isEmpty()) {
+//							missing.add(tile.name);
+//							tiles.remove(tile.name);
+//						}
+//					}
+//				}
+//			}
+//		}
+//		System.out.println();
+//		for (String entityName : entities.stream().sorted().collect(Collectors.toList())) {
+//			EntityPrototype proto = table.getEntity(entityName).get();
+//			String type = proto.lua().get("type").tojstring();
+//			StringBuilder sb = new StringBuilder();
+//			for (String part : type.split("-")) {
+//				sb.append(part.substring(0, 1).toUpperCase() + part.substring(1));
+//			}
+//			sb.append("Rendering");
+//			System.out.println("\t\t\"" + entityName + "\": \"" + sb.toString() + "\",");
+//		}
+//		System.out.println();
+//		for (String tileName : tiles.stream().sorted().collect(Collectors.toList())) {
+//			System.out.println("\t\t\"" + tileName + "\": false,");
+//		}
+//		System.out.println();
+//		missing.forEach(s -> System.err.println("MISSING " + s));
 
 //		ItemPrototype proto = table.getItem("aai-v3-loader").get();
 //		LuaValue luaIcons = proto.lua().get("icons");

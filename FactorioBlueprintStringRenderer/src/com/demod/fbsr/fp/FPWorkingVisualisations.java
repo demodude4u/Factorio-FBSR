@@ -16,10 +16,15 @@ public class FPWorkingVisualisations {
 	public final Optional<FPAnimation4Way> idleAnimation;
 	public final Optional<List<FPWorkingVisualisation>> workingVisualisations;
 
+	public final Optional<FPSprite4Way> integrationPatch;
+
 	public FPWorkingVisualisations(LuaValue lua) {
 		idleAnimation = FPUtils.opt(lua.get("idle_animation"), FPAnimation4Way::new);
 		animation = FPUtils.opt(lua.get("animation"), FPAnimation4Way::new).or(() -> idleAnimation);
 		workingVisualisations = FPUtils.optList(lua.get("working_visualisations"), FPWorkingVisualisation::new);
+
+		// Not mentioned in docs, found in py
+		integrationPatch = FPUtils.opt(lua.get("integration_patch"), FPSprite4Way::new);
 	}
 
 	public void createSprites(Consumer<Sprite> consumer, FactorioData data, Direction direction, int frame) {
@@ -31,6 +36,7 @@ public class FPWorkingVisualisations {
 				}
 			}
 		});
+		integrationPatch.ifPresent(sprite -> sprite.createSprites(consumer, data, direction));
 	}
 
 	public List<Sprite> createSprites(FactorioData data, Direction direction, int frame) {

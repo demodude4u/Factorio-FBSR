@@ -7,6 +7,7 @@ import com.demod.fbsr.bs.BSEntity;
 public class RocketSiloRendering extends SimpleEntityRendering<BSEntity> {
 	@Override
 	public void defineEntity(Bindings bind, LuaTable lua) {
+		bind.animation(lua.get("satellite_animation"));
 		bind.sprite(lua.get("shadow_sprite"));
 		bind.sprite(lua.get("door_front_sprite"));
 		bind.sprite(lua.get("door_back_sprite"));

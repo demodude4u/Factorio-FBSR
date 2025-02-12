@@ -1,15 +1,15 @@
 package com.demod.fbsr.fp;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
+import java.util.function.Consumer;
 
 import com.demod.factorio.FactorioData;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.Sprite;
-import com.google.common.collect.ImmutableList;
 
 public class FPSprite4Way {
 
@@ -38,13 +38,13 @@ public class FPSprite4Way {
 		}
 	}
 
-	public List<Sprite> createSprites(FactorioData data, Direction direction) {
+	public void createSprites(Consumer<Sprite> consumer, FactorioData data, Direction direction) {
 		if (sprite.isPresent()) {
-			return sprite.get().createSprites(data);
+			sprite.get().createSprites(consumer, data);
 		} else if (sheets.isPresent()) {
-			return sheets.get().stream().map(s -> s.createSprite(data, direction)).collect(Collectors.toList());
+			sheets.get().stream().forEach(s -> consumer.accept(s.createSprite(data, direction)));
 		} else if (sheet.isPresent()) {
-			return ImmutableList.of(sheet.get().createSprite(data, direction));
+			consumer.accept(sheet.get().createSprite(data, direction));
 		} else {
 			FPSprite dirSprite;
 			if (direction == Direction.EAST) {
@@ -56,10 +56,16 @@ public class FPSprite4Way {
 			} else if (direction == Direction.WEST) {
 				dirSprite = west.get();
 			} else {
-				return ImmutableList.of();
+				return;
 			}
-			return dirSprite.createSprites(data);
+			dirSprite.createSprites(consumer, data);
 		}
+	}
+
+	public List<Sprite> createSprites(FactorioData data, Direction direction) {
+		List<Sprite> ret = new ArrayList<>();
+		createSprites(ret::add, data, direction);
+		return ret;
 	}
 
 }

@@ -58,7 +58,13 @@ public class WallRendering extends SimpleEntityRendering<BSEntity> {
 		adjCode |= ((map.isWall(Direction.WEST.offset(pos)) || westGate ? 1 : 0) << 3);
 
 		FPSpriteVariations wallSprites = protoPictures.get(adjCode);
-		int variation = Math.abs((int) pos.x + (int) pos.y) % (wallSprites.getVariationCount() / 2);
+
+		int variation;
+		if (wallSprites.getVariationCount() > 1) {
+			variation = Math.abs((int) pos.x + (int) pos.y) % (wallSprites.getVariationCount() / 2);
+		} else {
+			variation = 0;
+		}
 		register.accept(
 				RenderUtils.spriteRenderer(wallSprites.createSprites(data, variation), entity, protoSelectionBox));
 
