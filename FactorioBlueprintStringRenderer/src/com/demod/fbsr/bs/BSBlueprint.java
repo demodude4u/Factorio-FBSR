@@ -31,7 +31,7 @@ public class BSBlueprint {
 	public BSBlueprint(JSONObject json) {
 		version = new MapVersion(json.getLong("version"));
 
-		if (version.compareTo(new MapVersion(2, 0, 0, 0)) >= 0) {
+		if (version.compareTo(new MapVersion(2, 0, 0, 0)) < 0) {
 
 			LegacyBlueprint legacyBlueprint = new LegacyBlueprint(json);
 
