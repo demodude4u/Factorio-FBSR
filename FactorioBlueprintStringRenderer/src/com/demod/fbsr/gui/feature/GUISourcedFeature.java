@@ -13,6 +13,6 @@ public abstract class GUISourcedFeature {
 	public GUISourcedFeature(String filename, GUIBox source) {
 		this.filename = filename;
 		this.source = source;
-		image = FactorioManager.lookupDataForModName("core").getModImage(filename);
+		image = FactorioManager.getBaseData().getModImage(filename);
 	}
 }

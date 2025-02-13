@@ -87,10 +87,7 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 
 		@Override
 		public FactorioData getData() {
-			if (data == null) {
-				data = FactorioManager.lookupDataForModName("core");
-			}
-			return super.getData();
+			return FactorioManager.getBaseData();
 		}
 
 		@Override
@@ -147,6 +144,8 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 				try {
 					EntityRendererFactory factory = (EntityRendererFactory) Class.forName(factoryClassName)
 							.getConstructor().newInstance();
+					factory.setName(entityName);
+					factory.setGroupName(groupName);
 					factory.setData(data);
 					factory.setPrototype(prototype);
 					register.accept(factory);
@@ -160,6 +159,8 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 		}
 	}
 
+	protected String name = null;
+	protected String groupName = null;
 	protected FactorioData data = null;
 	protected EntityPrototype prototype = null;
 	protected FPBoundingBox protoSelectionBox;
@@ -307,6 +308,14 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 		return data;
 	}
 
+	public String getGroupName() {
+		return groupName;
+	}
+
+	public String getName() {
+		return name;
+	}
+
 	public EntityPrototype getPrototype() {
 		return prototype;
 	}
@@ -376,6 +385,10 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 		this.data = data;
 	}
 
+	public void setGroupName(String groupName) {
+		this.groupName = groupName;
+	}
+
 	protected void setLogisticAcceptFilter(WorldMap map, Point2D.Double gridPos, Direction cellDir,
 			Direction acceptFilter) {
 		LogisticGridCell cell = map.getOrCreateLogisticGridCell(cellDir.offset(gridPos, 0.25));
@@ -417,6 +430,10 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 		LogisticGridCell cell = map.getOrCreateLogisticGridCell(cellDir.offset(gridPos, 0.25));
 		cell.setMove(Optional.of(moveDir));
 		cell.setAcceptFilter(Optional.of(acceptFilter));
+	}
+
+	public void setName(String name) {
+		this.name = name;
 	}
 
 	public void setPrototype(EntityPrototype prototype) {

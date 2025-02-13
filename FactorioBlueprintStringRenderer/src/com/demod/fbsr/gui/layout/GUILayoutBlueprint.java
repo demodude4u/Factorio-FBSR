@@ -6,20 +6,25 @@ import java.awt.RenderingHints;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.OptionalInt;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import com.demod.dcba.CommandReporting;
+import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
 import com.demod.factorio.TotalRawCalculator;
 import com.demod.factorio.prototype.DataPrototype;
 import com.demod.factorio.prototype.ItemPrototype;
+import com.demod.factorio.prototype.TilePrototype;
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.FBSR;
 import com.demod.fbsr.FactorioManager;
@@ -37,6 +42,7 @@ import com.demod.fbsr.gui.part.GUIImage;
 import com.demod.fbsr.gui.part.GUILabel;
 import com.demod.fbsr.gui.part.GUILabel.Align;
 import com.demod.fbsr.gui.part.GUIPanel;
+import com.google.common.collect.ImmutableMap;
 
 public class GUILayoutBlueprint {
 
@@ -48,7 +54,7 @@ public class GUILayoutBlueprint {
 	private static BufferedImage timeIcon;
 	static {
 		try {
-			FactorioData data = FactorioManager.lookupDataForModName("core");
+			FactorioData data = FactorioManager.getBaseData();
 			timeIcon = new FPSprite(data.getTable().getRaw("utility-sprites", "default", "clock").get())
 					.createSprites(data).get(0).image;
 		} catch (Exception e) {
@@ -99,6 +105,15 @@ public class GUILayoutBlueprint {
 		GUIPanel panel = new GUIPanel(bounds, GUIStyle.FRAME_DARK_INNER, GUIStyle.FRAME_OUTER);
 		panel.render(g);
 
+		boolean foundation = blueprint.tiles.stream().anyMatch(t -> {
+			Optional<TilePrototype> tile = FactorioManager.lookupTileByName(t.name);
+			return tile.isPresent() && tile.get().isFoundation();
+		});
+		if (foundation) {
+			g.setColor(new Color(0, 0, 2, 220));
+			g.fillRect(bounds.x, bounds.y, bounds.width, bounds.height);
+		}
+
 		AffineTransform xform = g.getTransform();
 		int renderWidth = (int) (bounds.width * xform.getScaleX());
 		int renderHeight = (int) (bounds.height * xform.getScaleY());
@@ -116,6 +131,34 @@ public class GUILayoutBlueprint {
 
 		GUIImage image = new GUIImage(bounds, result.image, true);
 		image.render(g);
+
+		Set<String> groups = new LinkedHashSet<>();
+		blueprint.entities.stream().map(e -> FactorioManager.lookupEntityFactoryForName(e.name))
+				.map(e -> e.getGroupName()).forEach(groups::add);
+		blueprint.tiles.stream().map(t -> FactorioManager.lookupTileFactoryForName(t.name)).map(t -> t.getGroupName())
+				.forEach(groups::add);
+
+		boolean spaceAge = groups.contains("Space Age");
+		groups.removeAll(Arrays.asList("Base", "Space Age"));
+		List<String> mods = groups.stream().sorted().collect(Collectors.toList());
+
+		GUIBox boundsCell = bounds.cutTop(28).cutRight(100);
+
+		if (spaceAge) {
+			GUIStyle.CIRCLE_WHITE.render(g, boundsCell);
+			GUILabel label = new GUILabel(boundsCell, "Space Age", GUIStyle.FONT_BP_BOLD.deriveFont(15f), Color.black,
+					Align.CENTER);
+			label.render(g);
+			boundsCell = boundsCell.indexed(1, 0);
+		}
+
+		for (String mod : mods) {
+			GUIStyle.CIRCLE_YELLOW.render(g, boundsCell);
+			GUILabel label = new GUILabel(boundsCell, mod, GUIStyle.FONT_BP_BOLD.deriveFont(15f), Color.black,
+					Align.CENTER);
+			label.render(g);
+			boundsCell = boundsCell.indexed(1, 0);
+		}
 	}
 
 	private void drawInfoPane(Graphics2D g, GUIBox bounds) {
@@ -215,7 +258,7 @@ public class GUILayoutBlueprint {
 		}
 
 		// Raw
-		{
+		if (totalRawItems.size() > 0) {
 			int itemRows = (totalRawItems.size() + itemColumns - 1) / itemColumns;
 			int subPanelHeight = subPanelInset.add(itemGridInset).getVertical() + itemGridCell.height * itemRows;
 			subPanels.add(new SubPanel(bounds.shrinkTop(cutY).cutTop(subPanelHeight), "Raw") {
@@ -318,8 +361,19 @@ public class GUILayoutBlueprint {
 
 	public BufferedImage generateDiscordImage() {
 
+		DataTable baseTable = FactorioManager.getBaseData().getTable();
+		boolean baseDataOnly = blueprint.entities.stream().allMatch(e -> baseTable.getEntity(e.name).isPresent())
+				&& blueprint.tiles.stream().allMatch(t -> baseTable.getTile(t.name).isPresent());
+		System.out.println("BASE DATA ONLY? " + baseDataOnly);
+		if (!baseDataOnly) {
+			blueprint.entities.stream().filter(e -> !baseTable.getEntity(e.name).isPresent())
+					.forEach(System.err::println);
+			blueprint.tiles.stream().filter(t -> !baseTable.getTile(t.name).isPresent()).forEach(System.err::println);
+		}
+
 		totalItems = FBSR.generateTotalItems(blueprint);
-		totalRawItems = FBSR.generateTotalRawItems(totalItems);
+		totalRawItems = baseDataOnly ? FBSR.generateTotalRawItems(totalItems) : ImmutableMap.of();
+		totalRawItems.forEach((k, q) -> System.out.println("\t" + k + ": " + q));
 
 		int itemCount = totalItems.size() + totalRawItems.size();
 		int itemRowMax;

@@ -28,6 +28,8 @@ import com.demod.factorio.prototype.RecipePrototype;
 import com.demod.factorio.prototype.TechPrototype;
 import com.demod.factorio.prototype.TilePrototype;
 import com.demod.fbsr.bs.BSEntity;
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ListMultimap;
 
 public class FactorioManager {
 
@@ -42,20 +44,21 @@ public class FactorioManager {
 	}
 
 	private static volatile boolean initializedPrototypes = false;
-
 	private static volatile boolean initializedFactories = false;
 
+	private static FactorioData baseData;
 	private static final List<FactorioData> datas = new ArrayList<>();
+	private static final ListMultimap<String, FactorioData> dataByModName = ArrayListMultimap.create();
+	private static final Map<String, FactorioData> dataByGroupName = new HashMap<>();
 
-	private static final Map<String, FactorioData> dataByModName = new HashMap<>();
 	@SuppressWarnings("rawtypes")
 	private static final List<EntityRendererFactory> entityFactories = new ArrayList<>();
-
 	@SuppressWarnings("rawtypes")
 	private static final Map<String, EntityRendererFactory> entityFactoryByName = new HashMap<>();
-	private static final List<TileRendererFactory> tileFactories = new ArrayList<>();
 
+	private static final List<TileRendererFactory> tileFactories = new ArrayList<>();
 	private static final Map<String, TileRendererFactory> tileFactoryByName = new HashMap<>();
+
 	// TODO prioritize vanilla first
 	private static final Map<String, ItemPrototype> itemByName = new HashMap<>();
 	private static final Map<String, RecipePrototype> recipeByName = new HashMap<>();
@@ -63,11 +66,14 @@ public class FactorioManager {
 	private static final Map<String, TechPrototype> technologyByName = new HashMap<>();
 	private static final Map<String, EntityPrototype> entityByName = new HashMap<>();
 	private static final Map<String, TilePrototype> tileByName = new HashMap<>();
-
 	private static final Map<String, EquipmentPrototype> equipmentByName = new HashMap<>();
 
 	public static List<FactorioData> getDatas() {
 		return datas;
+	}
+
+	public static FactorioData getBaseData() {
+		return baseData;
 	}
 
 	public static Map<String, EntityPrototype> getEntities() {
@@ -116,10 +122,24 @@ public class FactorioManager {
 					jsonModRendering.getJSONObject("entities"));
 			TileRendererFactory.registerFactories(FactorioManager::registerTileFactory, data,
 					jsonModRendering.getJSONObject("tiles"));
+
 		}
 
 		EntityRendererFactory.initFactories(entityFactories);
 		TileRendererFactory.initFactories(tileFactories);
+
+		baseData = entityFactories.stream().filter(e -> e.getGroupName().equals("Base")).map(e -> e.getData())
+				.findAny().orElseThrow(() -> new IOException("No entities for group \"Base\" was found."));
+		entityFactories.forEach(e -> dataByGroupName.put(e.getGroupName(), e.getData()));
+
+		// Place vanilla protos again to be the priority
+		recipeByName.putAll(baseData.getTable().getRecipes());
+		itemByName.putAll(baseData.getTable().getItems());
+		fluidByName.putAll(baseData.getTable().getFluids());
+		entityByName.putAll(baseData.getTable().getEntities());
+		technologyByName.putAll(baseData.getTable().getTechnologies());
+		tileByName.putAll(baseData.getTable().getTiles());
+		equipmentByName.putAll(baseData.getTable().getEquipments());
 	}
 
 	public static void initializePrototypes() throws JSONException, IOException {
@@ -191,7 +211,7 @@ public class FactorioManager {
 							auth = true;
 							authParams = FactorioModPortal.getAuthParams(modPortalApiUsername, modPortalApiPassword);
 						}
-						File file = FactorioModPortal.downloadMod(folderMods, modName, modVersion, authParams);
+						FactorioModPortal.downloadMod(folderMods, modName, modVersion, authParams);
 					}
 				}
 
@@ -222,7 +242,11 @@ public class FactorioManager {
 		}
 	}
 
-	public static FactorioData lookupDataForModName(String modName) {
+	public static FactorioData lookupDataByGroupName(String groupName) {
+		return dataByGroupName.get(groupName);
+	}
+
+	public static List<FactorioData> lookupDataByModName(String modName) {
 		return dataByModName.get(modName);
 	}
 

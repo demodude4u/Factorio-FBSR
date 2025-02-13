@@ -49,6 +49,11 @@ public final class GUIStyle {
 	public static GUISliceFeature FRAME_LIGHT_OUTER = GUISliceFeature.outer(DEFAULT_TILESET, //
 			new GUIBox(85, 0, 17, 17), new GUISpacing(8, 8, 8, 8));
 
+	public static GUISliceFeature CIRCLE_WHITE = GUISliceFeature.inner(DEFAULT_TILESET, //
+			new GUIBox(128, 96, 28, 28), new GUISpacing(14, 14, 13, 13));
+	public static GUISliceFeature CIRCLE_YELLOW = GUISliceFeature.inner(DEFAULT_TILESET, //
+			new GUIBox(156, 96, 28, 28), new GUISpacing(14, 14, 13, 13));
+
 	// Probably not used correctly...
 	public static GUISliceFeature FRAME_TAB = GUISliceFeature.inner(DEFAULT_TILESET, new GUIBox(448, 103, 17, 17),
 			new GUISpacing(16, 8, 0, 8));
@@ -60,8 +65,7 @@ public final class GUIStyle {
 
 	public static Font createFont(String path) {
 		try {
-			return Font.createFont(Font.TRUETYPE_FONT,
-					FactorioManager.lookupDataForModName("core").getModResource(path).get());
+			return Font.createFont(Font.TRUETYPE_FONT, FactorioManager.getBaseData().getModResource(path).get());
 		} catch (FontFormatException | IOException e) {
 			System.err.println("FAILED TO LOAD FONT: " + path);
 			e.printStackTrace();

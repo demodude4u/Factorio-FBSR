@@ -534,7 +534,7 @@ public class FBSR {
 			tileRenderingTuples.add(tuple);
 		}
 
-		map.setSpacePlatform(tileRenderingTuples.stream().anyMatch(t -> t.factory.isSpacePlatform()));
+		map.setFoundation(tileRenderingTuples.stream().anyMatch(t -> t.factory.getPrototype().isFoundation()));
 
 		entityRenderingTuples.forEach(t -> {
 			try {
@@ -696,7 +696,7 @@ public class FBSR {
 
 		double worldRenderScale = 1;
 
-		boolean gridPlatformMode = map.isSpacePlatform() && !request.show.gridNumbers;
+		boolean gridPlatformMode = map.isFoundation() && !request.show.gridNumbers;
 
 		// Max scale limit
 		if (request.getMaxScale().isPresent()) {

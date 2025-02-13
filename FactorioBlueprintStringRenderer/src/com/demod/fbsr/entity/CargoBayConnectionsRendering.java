@@ -171,7 +171,7 @@ public abstract class CargoBayConnectionsRendering extends SimpleEntityRendering
 
 		FPCargoBayConnectableGraphicsSet protoSelectedGraphicsSet;
 
-		if (map.isSpacePlatform() && protoPlatformGraphicsSet.isPresent()) {
+		if (map.isFoundation() && protoPlatformGraphicsSet.isPresent()) {
 			protoSelectedGraphicsSet = protoPlatformGraphicsSet.get();
 		} else {
 			protoSelectedGraphicsSet = protoGraphicsSet;

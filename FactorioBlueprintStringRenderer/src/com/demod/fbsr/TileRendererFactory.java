@@ -25,6 +25,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import com.demod.factorio.DataTable;
@@ -481,10 +482,13 @@ public class TileRendererFactory {
 	public static void registerFactories(Consumer<TileRendererFactory> register, FactorioData data, JSONObject json) {
 		DataTable table = data.getTable();
 		for (String groupName : json.keySet().stream().sorted().collect(Collectors.toList())) {
-			JSONObject jsonGroup = json.getJSONObject(groupName);
-			for (String tileName : jsonGroup.keySet().stream().sorted().collect(Collectors.toList())) {
+			JSONArray jsonGroup = json.getJSONArray(groupName);
+			for (int i = 0; i < jsonGroup.length(); i++) {
+				String tileName = jsonGroup.getString(i);
 				TilePrototype prototype = table.getTile(tileName).get();
-				TileRendererFactory factory = new TileRendererFactory(jsonGroup.getBoolean(tileName));
+				TileRendererFactory factory = new TileRendererFactory();
+				factory.setName(tileName);
+				factory.setGroupName(groupName);
 				factory.setData(data);
 				factory.setPrototype(prototype);
 				register.accept(factory);
@@ -492,8 +496,8 @@ public class TileRendererFactory {
 		}
 	}
 
-	private final boolean spacePlatform;
-
+	private String name;
+	private String groupName;
 	private FactorioData data;
 	private TilePrototype prototype;
 
@@ -507,20 +511,19 @@ public class TileRendererFactory {
 
 	private TileRenderProcess renderProcess = null;
 
-	public TileRendererFactory() {
-		this(false);
-	}
-
-	public TileRendererFactory(boolean spacePlatform) {
-		this.spacePlatform = spacePlatform;
-
-	}// TODO fix UNKNOWN so we don't need this
-
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, BSTile tile) {
 	}
 
 	public FactorioData getData() {
 		return data;
+	}
+
+	public String getGroupName() {
+		return groupName;
+	}
+
+	public String getName() {
+		return name;
 	}
 
 	public TilePrototype getPrototype() {
@@ -546,16 +549,20 @@ public class TileRendererFactory {
 		}
 	}
 
-	public boolean isSpacePlatform() {
-		return spacePlatform;
-	}
-
 	// TODO fix UNKNOWN so we don't need this
 	public void populateWorldMap(WorldMap map, BSTile tile) {
 	}
 
 	public void setData(FactorioData data) {
 		this.data = data;
+	}
+
+	public void setGroupName(String groupName) {
+		this.groupName = groupName;
+	}
+
+	public void setName(String name) {
+		this.name = name;
 	}
 
 	public void setPrototype(TilePrototype prototype) {
