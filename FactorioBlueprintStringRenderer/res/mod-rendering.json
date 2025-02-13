@@ -139,24 +139,24 @@
 		}
 	},
 	"tiles": {
-		"Base": {
-			"concrete": false,
-			"hazard-concrete-left": false,
-			"hazard-concrete-right": false,
-			"landfill": false,
-			"refined-concrete": false,
-			"refined-hazard-concrete-left": false,
-			"refined-hazard-concrete-right": false,
-			"stone-path": false
-		},
-		"Space Age": {
-			"foundation": false,
-			"ice-platform": false,
-			"artificial-jellynut-soil": false,
-			"overgrowth-jellynut-soil": false,
-			"space-platform-foundation": true,
-			"artificial-yumako-soil": false,
-			"overgrowth-yumako-soil": false
-		}
+		"Base": [
+			"concrete",
+			"hazard-concrete-left",
+			"hazard-concrete-right",
+			"landfill",
+			"refined-concrete",
+			"refined-hazard-concrete-left",
+			"refined-hazard-concrete-right",
+			"stone-path"
+		],
+		"Space Age": [
+			"foundation",
+			"ice-platform",
+			"artificial-jellynut-soil",
+			"overgrowth-jellynut-soil",
+			"space-platform-foundation",
+			"artificial-yumako-soil",
+			"overgrowth-yumako-soil"
+		]
 	}
 }
