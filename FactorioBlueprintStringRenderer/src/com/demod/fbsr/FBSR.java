@@ -215,13 +215,14 @@ public class FBSR {
 	}
 
 	public static Map<String, Double> generateTotalRawItems(Map<String, Double> totalItems) {
-		Map<String, RecipePrototype> recipes = FactorioManager.getRecipes();
+		DataTable baseTable = FactorioManager.getBaseData().getTable();
+		Map<String, RecipePrototype> recipes = baseTable.getRecipes();
 		Map<String, Double> ret = new LinkedHashMap<>();
 		TotalRawCalculator calculator = new TotalRawCalculator(recipes);
 		for (Entry<String, Double> entry : totalItems.entrySet()) {
 			String recipeName = entry.getKey();
 			double recipeAmount = entry.getValue();
-			FactorioManager.lookupRecipeByName(recipeName).ifPresent(r -> {
+			baseTable.getRecipe(recipeName).ifPresent(r -> {
 				double multiplier = recipeAmount / r.getOutputs().get(recipeName);
 				Map<String, Double> totalRaw = calculator.compute(r);
 				for (Entry<String, Double> entry2 : totalRaw.entrySet()) {
