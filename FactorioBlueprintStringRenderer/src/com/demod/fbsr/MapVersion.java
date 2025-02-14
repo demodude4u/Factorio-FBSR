@@ -1,14 +1,9 @@
 package com.demod.fbsr;
 
-public class MapVersion {
-	private static final int UINT16_MASK = 0xFFFF;
+import java.util.Objects;
 
-	// returns the greater of the two map versions
-	public static MapVersion max(MapVersion a, MapVersion b) {
-		if (a.greaterOrEquals(b))
-			return a;
-		return b;
-	}
+public class MapVersion implements Comparable<MapVersion> {
+	private static final int UINT16_MASK = 0xFFFF;
 
 	private final long version;
 	private final int main;
@@ -37,12 +32,22 @@ public class MapVersion {
 	}
 
 	@Override
-	public boolean equals(Object other) {
-		if (other instanceof MapVersion) {
-			MapVersion otherVersion = (MapVersion) other;
-			return this.version == otherVersion.version;
+	public int compareTo(MapVersion other) {
+		return Long.compare(version, other.version);
+	}
+
+	@Override
+	public boolean equals(Object o) {
+		if (o == null || this.getClass() != o.getClass()) {
+			return false;
 		}
-		return false;
+		MapVersion that = (MapVersion) o;
+		return this.version == that.version;
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hashCode(this.version);
 	}
 
 	public int getDev() {

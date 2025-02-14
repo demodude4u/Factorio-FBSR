@@ -7,13 +7,18 @@
 	<version>0.0.1-SNAPSHOT</version>
 	<build>
 		<sourceDirectory>src</sourceDirectory>
+		<resources>
+			<resource>
+				<directory>res</directory>
+			</resource>
+		</resources>
 		<plugins>
 			<plugin>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>3.5.1</version>
 				<configuration>
-					<source>1.8</source>
-					<target>1.8</target>
+					<source>11</source>
+					<target>11</target>
 				</configuration>
 			</plugin>
 		</plugins>
@@ -71,6 +76,8 @@
 			<groupId>net.dean.jraw</groupId>
 			<artifactId>JRAW</artifactId>
 			<version>0.9.0</version>
+			<scope>system</scope>
+			<systemPath>${project.basedir}/lib/JRAW-0.9.0.jar</systemPath>
 		</dependency>
 		<dependency>
 			<groupId>org.rapidoid</groupId>
