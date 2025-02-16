@@ -30,8 +30,12 @@ import com.demod.factorio.prototype.TilePrototype;
 import com.demod.fbsr.bs.BSEntity;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class FactorioManager {
+
+	private static final Logger LOGGER = LoggerFactory.getLogger(FactorioManager.class);
 
 	public static class LookupDataRawResult {
 		public final FactorioData data;
@@ -186,8 +190,7 @@ public class FactorioManager {
 		} else {
 			modsFiles = Arrays.asList(folderModsRoot.listFiles());
 		}
-		System.out
-				.println("MODS FOLDERS: " + modsFiles.stream().map(f -> f.getName()).collect(Collectors.joining(", ")));
+		LOGGER.info("MODS FOLDERS: {}", modsFiles.stream().map(f -> f.getName()).collect(Collectors.joining(", ")));
 
 		for (File folderMods : modsFiles) {
 			if (!folderMods.exists() || !folderMods.isDirectory()) {

@@ -30,10 +30,13 @@ import com.demod.fbsr.fp.FPBoundingBox;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.Multiset;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class RenderUtils {
 
 	public static final BufferedImage EMPTY_IMAGE = new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
+	private static final Logger LOGGER = LoggerFactory.getLogger(RenderUtils.class);
 
 	static {
 		EMPTY_IMAGE.setRGB(0, 0, 0x00000000);
@@ -252,27 +255,27 @@ public final class RenderUtils {
 
 	private static void printObjectTree(Object obj, String prefix) {
 		if (obj == null) {
-			System.out.println(prefix + "null");
+			LOGGER.info("{}null", prefix);
 			return;
 		}
 		Class<?> clazz = obj.getClass();
 
 		if (obj instanceof Collection) {
-			System.out.println(prefix + "(Collection):");
+			LOGGER.info("{}(Collection):", prefix);
 			for (Object item : (Collection<?>) obj)
 				printObjectTree(item, prefix + "|  ");
 		} else if (obj instanceof Optional) {
 			Optional<?> optional = (Optional<?>) obj;
 			if (optional.isPresent()) {
-				System.out.println(prefix + "(Optional Present):");
+				LOGGER.info("{}(Optional Present):", prefix);
 				printObjectTree(optional.get(), prefix + "|  ");
 			} else {
-				System.out.println(prefix + "(Optional Empty)");
+				LOGGER.info("{}(Optional Empty)", prefix);
 			}
 		} else if (clazz.isPrimitive() || obj instanceof String || obj instanceof Number || obj instanceof Boolean) {
-			System.out.println(prefix + obj.toString());
+			LOGGER.info("{}{}", prefix, obj.toString());
 		} else {
-			System.out.println(prefix + clazz.getName() + ":");
+			LOGGER.info("{}{}:", prefix, clazz.getName());
 			for (Field field : clazz.getDeclaredFields()) {
 				if (java.lang.reflect.Modifier.isPublic(field.getModifiers())
 						&& java.lang.reflect.Modifier.isFinal(field.getModifiers())) {
@@ -281,14 +284,13 @@ public final class RenderUtils {
 						Object fieldValue = field.get(obj);
 						if (fieldValue == null || fieldValue instanceof String || fieldValue instanceof Number
 								|| fieldValue instanceof Boolean || fieldValue.getClass().isPrimitive()) {
-							System.out.println(prefix + "|  " + field.getName() + ": " + fieldValue);
+							LOGGER.info("{}|  {}: {}", prefix, field.getName(), fieldValue);
 						} else {
-							System.out.println(
-									prefix + "|  " + field.getName() + ": (" + fieldValue.getClass().getName() + ")");
+							LOGGER.info("{}|  {}: ({})", prefix, field.getName(), fieldValue.getClass().getName());
 							printObjectTree(fieldValue, prefix + "|  ");
 						}
 					} catch (IllegalAccessException e) {
-						System.out.println(prefix + "|  " + field.getName() + ": [Error accessing field]");
+						LOGGER.info("{}|  {}: [Error accessing field]", prefix, field.getName());
 					}
 				}
 			}

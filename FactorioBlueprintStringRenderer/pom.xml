@@ -32,10 +32,9 @@
 	</repositories>
 	<dependencies>
 		<dependency>
-			<groupId>org.slf4j</groupId>
-			<artifactId>slf4j-nop</artifactId>
-			<version>1.7.13</version>
-			<scope>runtime</scope>
+			<groupId>ch.qos.logback</groupId>
+			<artifactId>logback-classic</artifactId>
+			<version>1.2.13</version>
 		</dependency>
 		<dependency>
 			<groupId>com.google.guava</groupId>

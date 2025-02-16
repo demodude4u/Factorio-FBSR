@@ -9,8 +9,12 @@ import com.demod.fbsr.FactorioManager;
 import com.demod.fbsr.gui.feature.GUIPipeFeature;
 import com.demod.fbsr.gui.feature.GUISliceFeature;
 import com.demod.fbsr.gui.feature.GUIStaticFeature;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class GUIStyle {
+	private static final Logger LOGGER = LoggerFactory.getLogger(GUIStyle.class);
+
 	public static final Font FONT_BP_REGULAR = createFont("__core__/fonts/Lilittium-Regular.ttf");
 	public static final Font FONT_BP_BOLD = createFont("__core__/fonts/Lilittium-Bold.ttf");
 	public static final Color FONT_BP_COLOR = new Color(0xffe6c0);
@@ -67,8 +71,7 @@ public final class GUIStyle {
 		try {
 			return Font.createFont(Font.TRUETYPE_FONT, FactorioManager.getBaseData().getModResource(path).get());
 		} catch (FontFormatException | IOException e) {
-			System.err.println("FAILED TO LOAD FONT: " + path);
-			e.printStackTrace();
+			LOGGER.error("FAILED TO LOAD FONT: {}", path, e);
 			throw new RuntimeException(e);
 		}
 	}

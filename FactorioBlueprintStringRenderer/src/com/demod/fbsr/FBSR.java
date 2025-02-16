@@ -59,8 +59,12 @@ import com.demod.fbsr.gui.GUIStyle;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Table;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class FBSR {
+
+	private static final Logger LOGGER = LoggerFactory.getLogger(FBSR.class);
 
 	public static class EntityRenderingTuple<E extends BSEntity> {
 		public final E entity;
@@ -160,7 +164,7 @@ public class FBSR {
 				itemName = "landfill";
 			}
 			if (!FactorioManager.lookupItemByName(itemName).isPresent()) {
-				System.err.println("MISSING TILE ITEM: " + itemName);
+				LOGGER.warn("MISSING TILE ITEM: {}", itemName);
 				continue;
 			}
 			addToItemAmount(ret, "Tiles", 1);
@@ -206,7 +210,7 @@ public class FBSR {
 				itemName = "landfill";
 			}
 			if (!FactorioManager.lookupItemByName(itemName).isPresent()) {
-				System.err.println("MISSING TILE ITEM: " + itemName);
+				LOGGER.warn("MISSING TILE ITEM: {}", itemName);
 				continue;
 			}
 			addToItemAmount(ret, itemName, 1);
@@ -240,7 +244,7 @@ public class FBSR {
 		return itemColorCache.computeIfAbsent(itemName, k -> {
 			Optional<ItemPrototype> optProto = FactorioManager.lookupItemByName(k);
 			if (!optProto.isPresent()) {
-				System.err.println("ITEM MISSING FOR LOGISTICS: " + k);
+				LOGGER.warn("ITEM MISSING FOR LOGISTICS: {}", k);
 				return Color.MAGENTA;
 			}
 			DataPrototype prototype = optProto.get();
@@ -496,7 +500,7 @@ public class FBSR {
 		BSBlueprint blueprint = request.getBlueprint();
 		CommandReporting reporting = request.getReporting();
 
-		System.out.println("Rendering " + blueprint.label.orElse("Untitled Blueprint") + " " + blueprint.version);
+		LOGGER.info("Rendering {} {}", blueprint.label.orElse("Untitled Blueprint"), blueprint.version);
 		long startMillis = System.currentTimeMillis();
 
 		WorldMap map = new WorldMap();
@@ -745,7 +749,7 @@ public class FBSR {
 				Math.min(maxWidthPixels, (int) Math.round(worldBounds.getWidth() * worldRenderScale * TILE_SIZE)));
 		int imageHeight = Math.max(minHeightPixels,
 				Math.min(maxHeightPixels, (int) Math.round(worldBounds.getHeight() * worldRenderScale * TILE_SIZE)));
-		System.out.println("\t" + imageWidth + "x" + imageHeight + " (" + worldRenderScale + ")");
+		LOGGER.info("\t{}x{} ({})", imageWidth, imageHeight, worldRenderScale);
 
 		BufferedImage image = new BufferedImage(imageWidth, imageHeight, BufferedImage.TYPE_INT_ARGB);
 		Graphics2D g = image.createGraphics();
@@ -913,7 +917,7 @@ public class FBSR {
 		g.dispose();
 
 		long endMillis = System.currentTimeMillis();
-		System.out.println("\tRender Time " + (endMillis - startMillis) + " ms");
+		LOGGER.info("\tRender Time {} ms", endMillis - startMillis);
 
 		RenderResult result = new RenderResult(image, endMillis - startMillis, worldRenderScale);
 		return result;

@@ -11,8 +11,12 @@ import com.demod.fbsr.app.PluginFinder.Plugin;
 import com.google.common.util.concurrent.Service;
 import com.google.common.util.concurrent.ServiceManager;
 import com.google.common.util.concurrent.ServiceManager.Listener;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class StartAllServices {
+
+	private static final Logger LOGGER = LoggerFactory.getLogger(StartAllServices.class);
 
 	private static void addServiceIfEnabled(List<Service> services, String configKey,
 			Supplier<? extends Service> factory) {
@@ -34,18 +38,18 @@ public class StartAllServices {
 		manager.addListener(new Listener() {
 			@Override
 			public void failure(Service service) {
-				System.out.println("SERVICE FAILURE: " + service.getClass().getSimpleName());
+				LOGGER.info("SERVICE FAILURE: {}", service.getClass().getSimpleName());
 				service.failureCause().printStackTrace();
 			}
 
 			@Override
 			public void healthy() {
-				System.out.println("ALL SERVICES ARE HEALTHY!");
+				LOGGER.info("ALL SERVICES ARE HEALTHY!");
 			}
 
 			@Override
 			public void stopped() {
-				System.out.println("ALL SERVICES HAVE STOPPED!");
+				LOGGER.info("ALL SERVICES HAVE STOPPED!");
 			}
 		});
 

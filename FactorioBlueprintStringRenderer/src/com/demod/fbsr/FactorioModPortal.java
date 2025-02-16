@@ -16,8 +16,11 @@ import java.security.NoSuchAlgorithmException;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class FactorioModPortal {
+	private static final Logger LOGGER = LoggerFactory.getLogger(FactorioModPortal.class);
 	private static final String API_URL = "https://mods.factorio.com/";
 
 	private static String bytesToHex(byte[] bytes) {
@@ -49,14 +52,14 @@ public class FactorioModPortal {
 				out.write(buffer, 0, bytesRead);
 				sha1Digest.update(buffer, 0, bytesRead);
 			}
-			System.out.println("Downloaded " + file.getAbsolutePath());
+			LOGGER.info("Downloaded {}", file.getAbsolutePath());
 
 			// Verify SHA-1 hash
 			String fileSha1 = bytesToHex(sha1Digest.digest());
 			if (!fileSha1.equalsIgnoreCase(expectedSha1)) {
 				throw new IOException("SHA-1 mismatch! Expected: " + expectedSha1 + " but got: " + fileSha1);
 			}
-			System.out.println("SHA-1 hash verified successfully.");
+			LOGGER.info("SHA-1 hash verified successfully.");
 			return file;
 		} catch (NoSuchAlgorithmException e) {
 			e.printStackTrace();

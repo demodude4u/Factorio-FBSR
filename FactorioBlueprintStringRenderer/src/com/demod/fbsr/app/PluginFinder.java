@@ -6,7 +6,12 @@ import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class PluginFinder {
+	private static final Logger LOGGER = LoggerFactory.getLogger(PluginFinder.class);
+
 	public interface Plugin {
 		public void run();
 	}
@@ -23,10 +28,9 @@ public class PluginFinder {
 						@SuppressWarnings("resource")
 						URLClassLoader classLoader = new URLClassLoader(new URL[] { file.toURI().toURL() });
 						ret.add((Plugin) classLoader.loadClass("Plugin").newInstance());
-						System.out.println("PLUGIN LOADED: " + file.getName());
+						LOGGER.info("PLUGIN LOADED: {}", file.getName());
 					} catch (Exception e) {
-						System.err.println("FAILED TO LOAD PLUGIN: " + file.getName());
-						e.printStackTrace();
+						LOGGER.error("FAILED TO LOAD PLUGIN: {}", file.getName(), e);
 					}
 				}
 			}

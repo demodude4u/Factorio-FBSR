@@ -43,12 +43,15 @@ import com.demod.fbsr.gui.part.GUILabel;
 import com.demod.fbsr.gui.part.GUILabel.Align;
 import com.demod.fbsr.gui.part.GUIPanel;
 import com.google.common.collect.ImmutableMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class GUILayoutBlueprint {
 
 	// Discord messages at 100% scale embed images at 550x350
 	// This is double so it has a nice zoom but also crisp in detail
 	public static final GUISize DISCORD_IMAGE_SIZE = new GUISize(1100, 700);
+	private static final Logger LOGGER = LoggerFactory.getLogger(GUILayoutBlueprint.class);
 
 	// XXX this is a bad hack
 	private static BufferedImage timeIcon;
@@ -364,7 +367,7 @@ public class GUILayoutBlueprint {
 		DataTable baseTable = FactorioManager.getBaseData().getTable();
 		boolean baseDataOnly = blueprint.entities.stream().allMatch(e -> baseTable.getEntity(e.name).isPresent())
 				&& blueprint.tiles.stream().allMatch(t -> baseTable.getTile(t.name).isPresent());
-		System.out.println("BASE DATA ONLY? " + baseDataOnly);
+		LOGGER.info("BASE DATA ONLY? {}", baseDataOnly);
 		if (!baseDataOnly) {
 			blueprint.entities.stream().filter(e -> !baseTable.getEntity(e.name).isPresent())
 					.forEach(System.err::println);
@@ -373,7 +376,7 @@ public class GUILayoutBlueprint {
 
 		totalItems = FBSR.generateTotalItems(blueprint);
 		totalRawItems = baseDataOnly ? FBSR.generateTotalRawItems(totalItems) : ImmutableMap.of();
-		totalRawItems.forEach((k, q) -> System.out.println("\t" + k + ": " + q));
+		totalRawItems.forEach((k, q) -> LOGGER.info("\t{}: {}", k, q));
 
 		int itemCount = totalItems.size() + totalRawItems.size();
 		int itemRowMax;

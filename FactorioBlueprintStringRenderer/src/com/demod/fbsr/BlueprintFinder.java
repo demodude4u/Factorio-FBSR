@@ -28,8 +28,12 @@ import com.demod.factorio.Utils;
 import com.demod.fbsr.bs.BSBlueprintString;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.Uninterruptibles;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class BlueprintFinder {
+
+	private static final Logger LOGGER = LoggerFactory.getLogger(BlueprintFinder.class);
 
 	public static class FindBlueprintResult {
 		public final boolean encoded;
@@ -192,10 +196,10 @@ public final class BlueprintFinder {
 				try {
 					String matchString = content.substring(matcher.start(), matcher.end());
 
-					System.out.println("\t[" + provider + "] " + matchString);
+					LOGGER.info("\t[{}] {}", provider, matchString);
 
 					if (!uniqueCheck.add(matchString)) {
-						System.out.println("\t\tDuplicate match!");
+						LOGGER.info("\t\tDuplicate match!");
 						continue;
 					}
 
@@ -206,7 +210,7 @@ public final class BlueprintFinder {
 								findBlueprints(in.get(), reporting, results);
 								break;
 							} catch (FileNotFoundException e) {
-								System.out.println("\t\tFile not Found!");
+								LOGGER.info("\t\tFile not Found!");
 							} catch (Exception e) {
 								tryExceptions.add(e);
 							}

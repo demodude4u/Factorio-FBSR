@@ -38,6 +38,8 @@ import com.demod.fbsr.fp.FPBoundingBox;
 import com.demod.fbsr.legacy.LegacyBlueprintEntity;
 import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.Multiset;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class EntityRendererFactory<E extends BSEntity> {
 
@@ -105,6 +107,7 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 			}
 		}
 	};
+	private static final Logger LOGGER = LoggerFactory.getLogger(EntityRendererFactory.class);
 
 	public static Color getUnknownColor(String name) {
 		return Color.getHSBColor(new Random(name.hashCode()).nextFloat(), 0.6f, 0.4f);
@@ -119,12 +122,12 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 				factory.wirePointsById = new LinkedHashMap<>();
 				factory.defineWirePoints(factory.wirePointsById::put, prototype.lua());
 			} catch (Exception e) {
-				System.err.println("ENTITY " + prototype.getName() + " (" + prototype.getType() + ")");
+				LOGGER.error("ENTITY {} ({})", prototype.getName(), prototype.getType());
 				throw e;
 			}
 		}
 
-		System.out.println("Initialized " + factories.size() + " entities.");
+		LOGGER.info("Initialized {} entities.", factories.size());
 	}
 
 	@SuppressWarnings({ "rawtypes" })
@@ -135,7 +138,7 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 			for (String entityName : jsonGroup.keySet().stream().sorted().collect(Collectors.toList())) {
 				Optional<EntityPrototype> entity = table.getEntity(entityName);
 				if (!entity.isPresent()) {
-					System.err.println("MISSING ENTITY: " + entityName);
+					LOGGER.warn("MISSING ENTITY: {}", entityName);
 					continue;
 				}
 				EntityPrototype prototype = entity.get();
@@ -151,8 +154,7 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 					register.accept(factory);
 				} catch (Exception e) {
 					prototype.debugPrint();
-					System.err.println("FACTORY CLASS: " + factoryClassName);
-					e.printStackTrace();
+					LOGGER.error("FACTORY CLASS: {}", factoryClassName, e);
 					System.exit(-1);
 				}
 			}
