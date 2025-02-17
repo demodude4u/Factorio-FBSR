@@ -270,7 +270,7 @@ public class FBSR {
 		return version;
 	}
 
-	public static synchronized void initialize() throws JSONException, IOException {
+	public static synchronized void initialize() throws IOException {
 		if (initialized) {
 			return;
 		}
