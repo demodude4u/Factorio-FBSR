@@ -55,6 +55,8 @@ import net.dean.jraw.paginators.Sorting;
 import net.dean.jraw.paginators.SubredditPaginator;
 import net.dean.jraw.paginators.TimePeriod;
 import net.dv8tion.jda.api.entities.MessageEmbed.Field;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class BlueprintBotRedditService extends AbstractScheduledService {
 
@@ -62,6 +64,7 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 
 	private static final File CACHE_FILE = new File("redditCache.json");
 	private static final String REDDIT_AUTHOR_URL = "https://upload.wikimedia.org/wikipedia/commons/thumb/4/43/Reddit.svg/64px-Reddit.svg.png";
+	private static final Logger LOGGER = LoggerFactory.getLogger(BlueprintBotRedditService.class);
 
 	private JSONObject configJson;
 	private String myUserName;
@@ -82,15 +85,18 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 		if (System.currentTimeMillis() + 60000 > authExpireMillis) {
 			for (int wait = 4000; true; wait = Math.min(wait * 2, (5) * 60 * 1000)) {
 				try {
-					System.out.println("Connecting to Reddit...");
+					LOGGER.info("Connecting to Reddit...");
 					authData = reddit.getOAuthHelper().easyAuth(credentials);
 					authExpireMillis = authData.getExpirationDate().getTime();
 					reddit.authenticate(authData);
-					System.out.println("Reconnected to Reddit!");
+					LOGGER.info("Reconnected to Reddit!");
 					break;
 				} catch (Exception e) {
-					System.out.println("[Waiting " + TimeUnit.MILLISECONDS.toSeconds(wait)
-							+ " seconds] Connection Failure [" + e.getClass().getSimpleName() + "]: " + e.getMessage());
+					LOGGER.info(
+							"[Waiting {} seconds] Connection Failure [{}]: {}",
+							TimeUnit.MILLISECONDS.toSeconds(wait),
+							e.getClass().getSimpleName(),
+							e.getMessage());
 					Thread.sleep(wait);
 				}
 			}
@@ -270,7 +276,7 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 			}
 		}
 		for (Entry<Comment, String> pair : pendingReplies) {
-			System.out.println("IM TRYING TO REPLY TO A COMMENT!");
+			LOGGER.info("IM TRYING TO REPLY TO A COMMENT!");
 			String message = pair.getValue();
 			if (message.length() > 10000) {
 
@@ -287,7 +293,7 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 					break;
 				} catch (ApiException e) {
 					if (e.getReason().equals("RATELIMIT")) {
-						System.out.println("RATE LIMITED! WAITING 6 MINUTES...");
+						LOGGER.info("RATE LIMITED! WAITING 6 MINUTES...");
 						Uninterruptibles.sleepUninterruptibly(6, TimeUnit.MINUTES);
 					} else {
 						throw e;
@@ -297,7 +303,7 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 		}
 
 		if (processedCount > 0) {
-			System.out.println("Processed " + processedCount + " comment(s) from /r/" + subreddit);
+			LOGGER.info("Processed {} comment(s) from /r/{}", processedCount, subreddit);
 			cacheJson.put("lastProcessedCommentMillis-" + subreddit, newestMillis);
 			return true;
 		} else {
@@ -348,7 +354,7 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 		}
 
 		for (Entry<Message, String> pair : pendingReplies) {
-			System.out.println("IM TRYING TO REPLY TO A MESSAGE!");
+			LOGGER.info("IM TRYING TO REPLY TO A MESSAGE!");
 			String message = pair.getValue();
 			if (message.length() > 10000) {
 				// TODO links expire, need a new approach
@@ -364,7 +370,7 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 					break;
 				} catch (ApiException e) {
 					if (e.getReason().equals("RATELIMIT")) {
-						System.out.println("RATE LIMITED! WAITING 6 MINUTES...");
+						LOGGER.info("RATE LIMITED! WAITING 6 MINUTES...");
 						Uninterruptibles.sleepUninterruptibly(6, TimeUnit.MINUTES);
 					} else {
 						throw e;
@@ -374,7 +380,7 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 		}
 
 		if (processedCount > 0) {
-			System.out.println("Processed " + processedCount + " message(s)");
+			LOGGER.info("Processed {} message(s)", processedCount);
 			cacheJson.put("lastProcessedMessageMillis", newestMillis);
 			return true;
 		} else {
@@ -424,7 +430,7 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 			}
 		}
 		for (Entry<Submission, String> pair : pendingReplies) {
-			System.out.println("IM TRYING TO REPLY TO A SUBMISSION!");
+			LOGGER.info("IM TRYING TO REPLY TO A SUBMISSION!");
 			String message = pair.getValue();
 			if (message.length() > 10000) {
 				// TODO links expire, need a new approach
@@ -440,7 +446,7 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 					break;
 				} catch (ApiException e) {
 					if (e.getReason().equals("RATELIMIT")) {
-						System.out.println("RATE LIMITED! WAITING 6 MINUTES...");
+						LOGGER.info("RATE LIMITED! WAITING 6 MINUTES...");
 						Uninterruptibles.sleepUninterruptibly(6, TimeUnit.MINUTES);
 					} else {
 						throw e;
@@ -450,7 +456,7 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 		}
 
 		if (processedCount > 0) {
-			System.out.println("Processed " + processedCount + " submission(s) from /r/" + subreddit);
+			LOGGER.info("Processed {} submission(s) from /r/{}", processedCount, subreddit);
 			cacheJson.put("lastProcessedSubmissionMillis-" + subreddit, newestMillis);
 			return true;
 		} else {
@@ -459,12 +465,12 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 	}
 
 	public void processRequest(String... ids) throws NetworkException, ApiException {
-		System.out.println("REQUESTED: " + Arrays.toString(ids));
+		LOGGER.info("REQUESTED: {}", Arrays.toString(ids));
 		Listing<Thing> listing = reddit.get(ids);
-		System.out.println("REQUESTED RESULT = " + listing.size());
+		LOGGER.info("REQUESTED RESULT = {}", listing.size());
 		for (Thing thing : listing) {
 			if (thing instanceof Comment) {
-				System.out.println("REQUESTED COMMENT!");
+				LOGGER.info("REQUESTED COMMENT!");
 				Comment comment = (Comment) thing;
 				List<String> responses = processContent(comment.getBody(), getPermaLink(comment),
 						comment.getSubredditName(), comment.getAuthor(), Optional.empty());
@@ -472,7 +478,7 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 					account.reply(comment, response);
 				}
 			} else if (thing instanceof Submission) {
-				System.out.println("REQUESTED SUBMISSION!");
+				LOGGER.info("REQUESTED SUBMISSION!");
 				Submission submission = (Submission) thing;
 				List<String> responses = processContent(submission.getSelftext(), submission.getUrl(),
 						submission.getSubredditName(), submission.getAuthor(), Optional.empty());
@@ -509,7 +515,7 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 
 			watchdog.ifPresent(w -> w.notifyActive(WATCHDOG_LABEL));
 		} catch (NetworkException e) {
-			System.out.println("Network Problem [" + e.getClass().getSimpleName() + "]: " + e.getMessage());
+			LOGGER.info("Network Problem [{}]: {}", e.getClass().getSimpleName(), e.getMessage());
 			authExpireMillis = 0;
 		} catch (Exception e) {
 			e.printStackTrace();

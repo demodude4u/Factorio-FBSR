@@ -45,8 +45,12 @@ import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Table;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TileRendererFactory {
+
+	private static final Logger LOGGER = LoggerFactory.getLogger(TileRendererFactory.class);
 
 	public static class FPTileMainPictures extends FPTileSpriteLayout {
 		public final int size;
@@ -476,7 +480,7 @@ public class TileRendererFactory {
 		for (TileRendererFactory factory : factories) {
 			factory.initFromPrototype(factory.getData().getTable());
 		}
-		System.out.println("Initialized " + factories.size() + " tiles.");
+		LOGGER.info("Initialized {} tiles.", factories.size());
 	}
 
 	public static void registerFactories(Consumer<TileRendererFactory> register, FactorioData data, JSONObject json) {

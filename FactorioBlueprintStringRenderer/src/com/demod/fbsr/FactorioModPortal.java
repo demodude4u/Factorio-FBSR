@@ -17,11 +17,14 @@ import java.util.Arrays;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 
 public class FactorioModPortal {
+	private static final Logger LOGGER = LoggerFactory.getLogger(FactorioModPortal.class);
 	private static final String API_URL = "https://mods.factorio.com/";
 
 	private static Cache<String, JSONObject> cacheGet = CacheBuilder.newBuilder().maximumSize(100).softValues().build();
@@ -68,14 +71,14 @@ public class FactorioModPortal {
 				out.write(buffer, 0, bytesRead);
 				sha1Digest.update(buffer, 0, bytesRead);
 			}
-			System.out.println("Downloaded " + file.getAbsolutePath());
+			LOGGER.info("Downloaded {}", file.getAbsolutePath());
 
 			// Verify SHA-1 hash
 			String fileSha1 = bytesToHex(sha1Digest.digest());
 			if (!fileSha1.equalsIgnoreCase(expectedSha1)) {
 				throw new IOException("SHA-1 mismatch! Expected: " + expectedSha1 + " but got: " + fileSha1);
 			}
-			System.out.println("SHA-1 hash verified successfully.");
+			LOGGER.info("SHA-1 hash verified successfully.");
 			return file;
 		} catch (NoSuchAlgorithmException e) {
 			e.printStackTrace();

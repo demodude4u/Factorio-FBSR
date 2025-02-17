@@ -34,8 +34,12 @@ import com.demod.fbsr.bs.BSBlueprintString;
 import com.google.common.util.concurrent.AbstractIdleService;
 
 import net.dv8tion.jda.api.entities.MessageEmbed.Field;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class WebAPIService extends AbstractIdleService {
+
+	private static final Logger LOGGER = LoggerFactory.getLogger(WebAPIService.class);
 
 	private JSONObject configJson;
 
@@ -78,7 +82,7 @@ public class WebAPIService extends AbstractIdleService {
 		On.address(address).port(port);
 
 		On.post("/blueprint").serve((req, resp) -> {
-			System.out.println("Web API POST!");
+			LOGGER.info("Web API POST!");
 			CommandReporting reporting = new CommandReporting(
 					"Web API / " + req.clientIpAddress() + " / "
 							+ Optional.ofNullable(req.header("User-Agent", null)).orElse("<Unknown>"),
@@ -226,7 +230,7 @@ public class WebAPIService extends AbstractIdleService {
 
 		});
 
-		System.out.println("Web API Initialized at " + address + ":" + port);
+		LOGGER.info("Web API Initialized at {}:{}", address, port);
 	}
 
 }

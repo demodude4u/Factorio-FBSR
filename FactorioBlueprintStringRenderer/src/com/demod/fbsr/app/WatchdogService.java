@@ -7,8 +7,12 @@ import org.json.JSONObject;
 
 import com.demod.factorio.Config;
 import com.google.common.util.concurrent.AbstractScheduledService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class WatchdogService extends AbstractScheduledService {
+
+	private static final Logger LOGGER = LoggerFactory.getLogger(WatchdogService.class);
 
 	public static interface WatchdogReporter {
 		public void notifyInactive(String label);
@@ -25,7 +29,7 @@ public class WatchdogService extends AbstractScheduledService {
 		known.add(label);
 		active.add(label);
 		if (alarmed.remove(label)) {
-			System.out.println("WATCHDOG: " + label + " is now active again!");
+			LOGGER.info("WATCHDOG: {} is now active again!", label);
 			ServiceFinder.findService(WatchdogReporter.class).ifPresent(reporter -> {
 				reporter.notifyReactive(label);
 			});
@@ -43,7 +47,7 @@ public class WatchdogService extends AbstractScheduledService {
 		for (String label : known) {
 			if (!active.contains(label) && !alarmed.contains(label)) {
 				alarmed.add(label);
-				System.out.println("WATCHDOG: " + label + " has gone inactive!");
+				LOGGER.info("WATCHDOG: {} has gone inactive!", label);
 				ServiceFinder.findService(WatchdogReporter.class).ifPresent(reporter -> {
 					reporter.notifyInactive(label);
 				});

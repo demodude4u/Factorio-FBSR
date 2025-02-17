@@ -21,8 +21,12 @@ import com.demod.fbsr.bs.BSBlueprint;
 import com.demod.fbsr.bs.BSBlueprintString;
 import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.bs.BSTile;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class FBSRScratchPad {
+
+	private static final Logger LOGGER = LoggerFactory.getLogger(FBSRScratchPad.class);
 
 	// Change as you like to get what information you need
 	public static void main(String[] args) throws Exception {
@@ -81,7 +85,7 @@ public class FBSRScratchPad {
 			for (BSBlueprint blueprint : blueprintString.findAllBlueprints()) {
 				for (BSEntity entity : blueprint.entities) {
 					if (entities.add(entity.name)) {
-						System.out.println("CHECK ENTITY " + entity.name);
+						LOGGER.info("CHECK ENTITY {}", entity.name);
 						Optional<EntityPrototype> proto = table.getEntity(entity.name);
 						if (proto.isEmpty()) {
 							missing.add(entity.name);
@@ -91,7 +95,7 @@ public class FBSRScratchPad {
 				}
 				for (BSTile tile : blueprint.tiles) {
 					if (tiles.add(tile.name)) {
-						System.out.println("CHECK TILE " + tile.name);
+						LOGGER.info("CHECK TILE {}", tile.name);
 						Optional<TilePrototype> proto = table.getTile(tile.name);
 						if (proto.isEmpty()) {
 							missing.add(tile.name);
@@ -101,7 +105,7 @@ public class FBSRScratchPad {
 				}
 			}
 		}
-		System.out.println();
+		LOGGER.info("");
 		for (String entityName : entities.stream().sorted().collect(Collectors.toList())) {
 			EntityPrototype proto = table.getEntity(entityName).get();
 			String type = proto.lua().get("type").tojstring();
@@ -110,14 +114,14 @@ public class FBSRScratchPad {
 				sb.append(part.substring(0, 1).toUpperCase() + part.substring(1));
 			}
 			sb.append("Rendering");
-			System.out.println("\t\t\"" + entityName + "\": \"" + sb.toString() + "\",");
+			LOGGER.info("\t\t\"{}\": \"{}\",", entityName, sb.toString());
 		}
-		System.out.println();
+		LOGGER.info("");
 		for (String tileName : tiles.stream().sorted().collect(Collectors.toList())) {
-			System.out.println("\t\t\"" + tileName + "\"");
+			LOGGER.info("\t\t\"{}\"", tileName);
 		}
-		System.out.println();
-		missing.forEach(s -> System.err.println("MISSING " + s));
+		LOGGER.info("");
+		missing.forEach(s -> LOGGER.warn("MISSING {}", s));
 
 //		ItemPrototype proto = table.getItem("aai-v3-loader").get();
 //		LuaValue luaIcons = proto.lua().get("icons");

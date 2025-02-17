@@ -85,8 +85,12 @@ import net.dv8tion.jda.api.requests.ErrorResponse;
 import net.dv8tion.jda.api.requests.restaction.MessageCreateAction;
 import net.dv8tion.jda.api.utils.ChunkingFilter;
 import net.dv8tion.jda.api.utils.FileUpload;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class BlueprintBotDiscordService extends AbstractIdleService {
+
+	private static final Logger LOGGER = LoggerFactory.getLogger(BlueprintBotDiscordService.class);
 
 	private static class CachedMessageImageResult {
 		public final Optional<String> label;
@@ -1055,7 +1059,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			}
 
 		} else {
-			System.err.println("UNKNOWN COMMAND " + command);
+			LOGGER.warn("UNKNOWN COMMAND {}", command);
 			event.reply("Unknown Command: " + command).setEphemeral(true).queue();
 		}
 
@@ -1132,7 +1136,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			}
 
 		} else {
-			System.out.println("UNKNOWN COMMAND " + command);
+			LOGGER.info("UNKNOWN COMMAND {}", command);
 			event.reply("Unknown Command: " + command).setEphemeral(true).queue();
 		}
 
@@ -1181,7 +1185,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		configJson = Config.get().getJSONObject("discord");
 
 		FBSR.initialize();
-		System.out.println("Factorio " + FBSR.getVersion() + " Data Loaded.");
+		LOGGER.info("Factorio {} Data Loaded.", FBSR.getVersion());
 
 		bot = DCBA.builder()//
 				.setInfo("Blueprint Bot")//
