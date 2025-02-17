@@ -73,6 +73,9 @@ public class FPRotatedSprite extends FPSpriteParameters {
 			fileIndex = index / fileLength;
 			tileIndex = index % fileLength;
 		}
+		if (fileIndex >= filenames.get().size()) {
+			System.out.println("Warning: Trying to access sprite " + index + " in " + filenames.get().size() + " files");
+		}
 		String filename = filenames.get().get(fileIndex);
 		if (lineLength > 0) {
 			x += (tileIndex % lineLength) * width;
@@ -122,6 +125,9 @@ public class FPRotatedSprite extends FPSpriteParameters {
 		}
 		if (backEqualsFront) {
 			index = index % (directionCount / 2);
+		}
+		if (index == directionCount) {
+			index = 0;
 		}
 		return index;
 	}

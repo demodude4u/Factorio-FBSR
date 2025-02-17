@@ -367,12 +367,6 @@ public class GUILayoutBlueprint {
 		DataTable baseTable = FactorioManager.getBaseData().getTable();
 		boolean baseDataOnly = blueprint.entities.stream().allMatch(e -> baseTable.getEntity(e.name).isPresent())
 				&& blueprint.tiles.stream().allMatch(t -> baseTable.getTile(t.name).isPresent());
-		LOGGER.info("BASE DATA ONLY? {}", baseDataOnly);
-		if (!baseDataOnly) {
-			blueprint.entities.stream().filter(e -> !baseTable.getEntity(e.name).isPresent())
-					.forEach(System.err::println);
-			blueprint.tiles.stream().filter(t -> !baseTable.getTile(t.name).isPresent()).forEach(System.err::println);
-		}
 
 		totalItems = FBSR.generateTotalItems(blueprint);
 		totalRawItems = baseDataOnly ? FBSR.generateTotalRawItems(totalItems) : ImmutableMap.of();

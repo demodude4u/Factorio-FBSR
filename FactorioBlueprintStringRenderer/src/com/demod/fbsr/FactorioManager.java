@@ -308,9 +308,19 @@ public class FactorioManager {
 	@SuppressWarnings("rawtypes")
 	private static synchronized void registerEntityFactory(EntityRendererFactory factory) {
 		String name = factory.getPrototype().getName();
+
 		if (entityFactoryByName.containsKey(name)) {
-			throw new IllegalArgumentException("Entity already exists! " + name);
+			EntityRendererFactory existingFactory = entityFactoryByName.get(name);
+
+			String detailMessage = String.format(
+					"Entity '%s' is already registered in group '%s' from mod '%s'. Attempted re-registration from mod '%s' is not allowed.",
+					name,
+					existingFactory.getGroupName(),
+					existingFactory.getData().folderMods.getName(),
+					factory.getData().folderMods.getName());
+			throw new IllegalArgumentException(detailMessage);
 		}
+
 		entityFactories.add(factory);
 		entityFactoryByName.put(name, factory);
 	}
