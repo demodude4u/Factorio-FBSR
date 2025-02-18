@@ -133,7 +133,7 @@ public class InserterRendering extends SimpleEntityRendering<BSInserterEntity> {
 			outPos = dir.offset(pos, armStretch);
 		}
 
-		register.accept(RenderUtils.spriteRenderer(platformSprites, entity, protoSelectionBox));
+		register.accept(RenderUtils.spriteRenderer(platformSprites, entity, drawBounds));
 		register.accept(new Renderer(Layer.HIGHER_OBJECT_UNDER, pos, true) {
 			@Override
 			public void render(Graphics2D g) {
@@ -249,7 +249,7 @@ public class InserterRendering extends SimpleEntityRendering<BSInserterEntity> {
 					spriteIcon.source = new Rectangle(0, 0, spriteIcon.image.getWidth(), spriteIcon.image.getHeight());
 					spriteIcon.bounds = new Rectangle2D.Double(-0.3, -0.3, 0.6, 0.6);
 
-					Renderer delegate = RenderUtils.spriteRenderer(spriteIcon, entity, protoSelectionBox);
+					Renderer delegate = RenderUtils.spriteRenderer(spriteIcon, entity, drawBounds);
 					register.accept(new Renderer(Layer.ENTITY_INFO_ICON, delegate.getBounds(), true) {
 						@Override
 						public void render(Graphics2D g) throws Exception {

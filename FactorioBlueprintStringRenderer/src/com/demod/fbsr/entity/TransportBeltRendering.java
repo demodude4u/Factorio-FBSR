@@ -56,7 +56,7 @@ public class TransportBeltRendering extends TransportBeltConnectableRendering<BS
 		int frame = getAlternatingFrame(pos, 0);
 
 		List<Sprite> beltSprites = createBeltSprites(entity.direction.cardinal(), bend.ordinal(), frame);
-		register.accept(RenderUtils.spriteRenderer(Layer.TRANSPORT_BELT, beltSprites, entity, protoSelectionBox));
+		register.accept(RenderUtils.spriteRenderer(Layer.TRANSPORT_BELT, beltSprites, entity, drawBounds));
 
 		Point2D.Double forwardPos = entity.direction.offset(pos);
 		boolean ending = true;
@@ -73,7 +73,7 @@ public class TransportBeltRendering extends TransportBeltConnectableRendering<BS
 			List<Sprite> endingSprites = createBeltEndingSprites(entity.direction.cardinal(), frame);
 			RenderUtils.shiftSprites(endingSprites, entity.direction.offset());
 			register.accept(
-					RenderUtils.spriteRenderer(Layer.TRANSPORT_BELT_ENDINGS, endingSprites, entity, protoSelectionBox));
+					RenderUtils.spriteRenderer(Layer.TRANSPORT_BELT_ENDINGS, endingSprites, entity, drawBounds));
 		}
 
 		Direction backDir = bend.reverse(entity.direction);
@@ -92,16 +92,16 @@ public class TransportBeltRendering extends TransportBeltConnectableRendering<BS
 			List<Sprite> startingSprites = createBeltStartingSprites(backDir.cardinal(), frame);
 			RenderUtils.shiftSprites(startingSprites, backDir.offset());
 			register.accept(RenderUtils.spriteRenderer(Layer.TRANSPORT_BELT_ENDINGS, startingSprites, entity,
-					protoSelectionBox));
+					drawBounds));
 		}
 
 		// TODO switch this over to the wire connector logic
 		if (entity.controlBehavior.isPresent()) {
 			int index = transportBeltConnectorFrameMappingIndex[entity.direction.cardinal()][bend.ordinal()];
 			register.accept(RenderUtils.spriteRenderer(protoConnectorFrameShadow.createSprites(data, index, 0), entity,
-					protoSelectionBox));
+					drawBounds));
 			register.accept(RenderUtils.spriteRenderer(protoConnectorFrameMain.createSprites(data, index, 0), entity,
-					protoSelectionBox));
+					drawBounds));
 		}
 	}
 

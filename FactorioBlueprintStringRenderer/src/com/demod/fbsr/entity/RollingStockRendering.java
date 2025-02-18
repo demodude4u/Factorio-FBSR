@@ -57,13 +57,13 @@ public class RollingStockRendering extends EntityRendererFactory<BSEntity> {
 			RenderUtils.shiftSprites(wheelSprites2, new Point2D.Double(jointX, jointY - railShift));
 
 			register.accept(
-					RenderUtils.spriteRenderer(Layer.HIGHER_OBJECT_UNDER, wheelSprites1, entity, protoSelectionBox));
+					RenderUtils.spriteRenderer(Layer.HIGHER_OBJECT_UNDER, wheelSprites1, entity, drawBounds));
 			register.accept(
-					RenderUtils.spriteRenderer(Layer.HIGHER_OBJECT_UNDER, wheelSprites2, entity, protoSelectionBox));
+					RenderUtils.spriteRenderer(Layer.HIGHER_OBJECT_UNDER, wheelSprites2, entity, drawBounds));
 		}
 
 		register.accept(RenderUtils.spriteRenderer(Layer.HIGHER_OBJECT_UNDER,
-				protoPictures.rotated.createSprites(data, orientation), entity, protoSelectionBox));
+				protoPictures.rotated.createSprites(data, orientation), entity, drawBounds));
 	}
 
 	@Override

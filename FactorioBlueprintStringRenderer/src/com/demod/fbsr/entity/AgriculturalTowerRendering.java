@@ -20,7 +20,7 @@ public class AgriculturalTowerRendering extends SimpleEntityRendering<BSEntity> 
 		super.createRenderers(register, map, entity);
 
 		register.accept(RenderUtils.spriteRenderer(protoGraphicsSet.createSprites(data, entity.direction, 0), entity,
-				protoSelectionBox));
+				drawBounds));
 	}
 
 	@Override

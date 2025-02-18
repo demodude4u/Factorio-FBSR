@@ -46,14 +46,14 @@ public class LinkedBeltRendering extends TransportBeltConnectableRendering<BSLin
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, BSLinkedBeltEntity entity) {
 		List<Sprite> beltSprites = createBeltSprites(entity.direction.cardinal(), BeltBend.NONE.ordinal(),
 				getAlternatingFrame(entity.position.createPoint(), 0));
-		register.accept(RenderUtils.spriteRenderer(Layer.TRANSPORT_BELT, beltSprites, entity, protoSelectionBox));
+		register.accept(RenderUtils.spriteRenderer(Layer.TRANSPORT_BELT, beltSprites, entity, drawBounds));
 
 		boolean input = entity.type.get().equals("input");
 		Direction structDir = input ? entity.direction : entity.direction.back();
 		List<Sprite> structureSprites = (input ? protoStructureDirectionIn : protoStructureDirectionOut)
 				.createSprites(data, structDir);
 		register.accept(
-				RenderUtils.spriteRenderer(Layer.HIGHER_OBJECT_UNDER, structureSprites, entity, protoSelectionBox));
+				RenderUtils.spriteRenderer(Layer.HIGHER_OBJECT_UNDER, structureSprites, entity, drawBounds));
 	}
 
 	@Override

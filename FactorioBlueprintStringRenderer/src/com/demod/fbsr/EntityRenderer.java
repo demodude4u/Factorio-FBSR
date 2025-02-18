@@ -7,10 +7,11 @@ import java.awt.geom.Rectangle2D;
 public abstract class EntityRenderer extends Renderer {
 
 	public EntityRenderer(Layer layer, Point2D.Double position, boolean ignoreBoundsCalculation) {
-		super(layer, new Rectangle2D.Double(position.x, position.y, 0, 0), ignoreBoundsCalculation);
+		super(layer, new BoundingBoxWithHeight(position.x, position.y, position.x, position.y, 0),
+				ignoreBoundsCalculation);
 	}
 
-	public EntityRenderer(Layer layer, Rectangle2D.Double bounds, boolean ignoreBoundsCalculation) {
+	public EntityRenderer(Layer layer, BoundingBoxWithHeight bounds, boolean ignoreBoundsCalculation) {
 		super(layer, bounds, ignoreBoundsCalculation);
 	}
 

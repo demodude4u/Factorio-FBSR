@@ -20,18 +20,17 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.demod.factorio.FactorioData;
 import com.demod.factorio.Utils;
 import com.demod.factorio.prototype.ItemPrototype;
 import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.bs.BSItemStack;
-import com.demod.fbsr.fp.FPBoundingBox;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.Multiset;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class RenderUtils {
 
@@ -71,8 +70,9 @@ public final class RenderUtils {
 
 	public static Renderer createWireRenderer(Point2D.Double p1, Point2D.Double p2, Color color, Point2D.Double shadow1,
 			Point2D.Double shadow2) {
-		Rectangle2D.Double bounds = new Rectangle2D.Double();
-		bounds.setFrameFromDiagonal(p1, p2);
+		Rectangle2D.Double bounds2D = new Rectangle2D.Double();
+		bounds2D.setFrameFromDiagonal(p1, p2);
+		BoundingBoxWithHeight bounds = new BoundingBoxWithHeight(bounds2D, 0);
 
 		return new EntityRenderer(Layer.WIRE, bounds, true) {
 			final double drop = 0.6;
@@ -127,8 +127,8 @@ public final class RenderUtils {
 				AffineTransform pat = g.getTransform();
 
 				g.setFont(new Font("Monospaced", Font.BOLD, 1).deriveFont(0.4f));
-				float textX = (float) bounds.x;
-				float textY = (float) bounds.y;
+				float textX = (float) position.x;
+				float textY = (float) position.y;
 
 				g.translate(textX, textY);
 				g.rotate(angle);
@@ -152,8 +152,8 @@ public final class RenderUtils {
 			@Override
 			public void render(Graphics2D g) {
 				g.setFont(new Font("Monospaced", Font.BOLD, 1).deriveFont(0.4f));
-				float textX = (float) bounds.x;
-				float textY = (float) bounds.y;
+				float textX = (float) position.x;
+				float textY = (float) position.y;
 				g.setColor(Color.darkGray);
 				g.drawString(string, textX + 0.05f, textY + 0.05f);
 				g.setColor(color);
@@ -313,47 +313,24 @@ public final class RenderUtils {
 	}
 
 	public static EntityRenderer spriteRenderer(Layer layer, List<Sprite> sprites, BSEntity entity,
-			FPBoundingBox bounds) {
+			BoundingBoxWithHeight bounds) {
 		return spriteRenderer(layer, sprites, entity.position.createPoint(), bounds.rotate(entity.direction));
 	}
 
 	public static EntityRenderer spriteRenderer(Layer layer, List<Sprite> sprites, Point2D.Double pos,
-			FPBoundingBox bounds) {
+			BoundingBoxWithHeight bounds) {
 		RenderUtils.shiftSprites(sprites, pos);
 
 		Map<Boolean, List<Sprite>> groupedSprites = sprites.stream()
 				.collect(Collectors.partitioningBy(sprite -> sprite.shadow));
 
-		Rectangle2D.Double groundBounds = bounds.createRect();
-		groundBounds.x += pos.x;
-		groundBounds.y += pos.y;
+		bounds = bounds.shift(pos.x, pos.y);
 
-		return new EntityRenderer(layer, groundBounds, false) {
-			@SuppressWarnings("unused")
-			private void debugShowBounds(Rectangle2D.Double groundBounds, Graphics2D g) {
-				long x = Math.round(groundBounds.getCenterX() * 2);
-				long y = Math.round(groundBounds.getCenterY() * 2);
-				long w = Math.round(groundBounds.width * 2);
-				long h = Math.round(groundBounds.height * 2);
-
-				g.setColor(new Color(255, 255, 255, 64));
-				g.draw(groundBounds);
-
-				if (((w / 2) % 2) == (x % 2)) {
-					g.setColor(new Color(255, 0, 0, 64));
-					g.fill(groundBounds);
-				}
-				if (((h / 2) % 2) == (y % 2)) {
-					g.setColor(new Color(0, 255, 0, 64));
-					g.fill(groundBounds);
-				}
-			}
-
+		return new EntityRenderer(layer, bounds, false) {
 			@Override
 			public void render(Graphics2D g) {
 				for (Sprite sprite : groupedSprites.get(false)) {
 					drawSprite(sprite, g);
-					// debugShowBounds(groundBounds, g);
 				}
 			}
 
@@ -366,15 +343,17 @@ public final class RenderUtils {
 		};
 	}
 
-	public static EntityRenderer spriteRenderer(Layer layer, Sprite sprite, BSEntity entity, FPBoundingBox bounds) {
+	public static EntityRenderer spriteRenderer(Layer layer, Sprite sprite, BSEntity entity,
+			BoundingBoxWithHeight bounds) {
 		return spriteRenderer(layer, ImmutableList.of(sprite), entity, bounds);
 	}
 
-	public static EntityRenderer spriteRenderer(Layer layer, Sprite sprite, Point2D.Double pos, FPBoundingBox bounds) {
+	public static EntityRenderer spriteRenderer(Layer layer, Sprite sprite, Point2D.Double pos,
+			BoundingBoxWithHeight bounds) {
 		return spriteRenderer(layer, ImmutableList.of(sprite), pos, bounds);
 	}
 
-	public static Renderer spriteRenderer(Layer layer, Sprite sprite, Rectangle2D.Double bounds) {
+	public static Renderer spriteRenderer(Layer layer, Sprite sprite, BoundingBoxWithHeight bounds) {
 		return new Renderer(layer, bounds, false) {
 			@SuppressWarnings("unused")
 			private void debugShowBounds(Rectangle2D.Double groundBounds, Graphics2D g) {
@@ -407,11 +386,11 @@ public final class RenderUtils {
 		};
 	}
 
-	public static EntityRenderer spriteRenderer(List<Sprite> sprites, BSEntity entity, FPBoundingBox bounds) {
+	public static EntityRenderer spriteRenderer(List<Sprite> sprites, BSEntity entity, BoundingBoxWithHeight bounds) {
 		return spriteRenderer(Layer.OBJECT, sprites, entity, bounds);
 	}
 
-	public static EntityRenderer spriteRenderer(Sprite sprite, BSEntity entity, FPBoundingBox bounds) {
+	public static EntityRenderer spriteRenderer(Sprite sprite, BSEntity entity, BoundingBoxWithHeight bounds) {
 		return spriteRenderer(Layer.OBJECT, sprite, entity, bounds);
 	}
 

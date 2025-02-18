@@ -20,10 +20,10 @@ public class GeneratorRendering extends SimpleEntityRendering<BSEntity> {
 
 		if (isVertical(entity)) {
 			register.accept(RenderUtils.spriteRenderer(protoVerticalAnimation.createSprites(data, 0), entity,
-					protoSelectionBox));
+					drawBounds));
 		} else {
 			register.accept(RenderUtils.spriteRenderer(protoHorizontalAnimation.createSprites(data, 0), entity,
-					protoSelectionBox));
+					drawBounds));
 		}
 	}
 

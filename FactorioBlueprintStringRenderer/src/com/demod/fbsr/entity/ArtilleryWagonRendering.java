@@ -107,10 +107,8 @@ public class ArtilleryWagonRendering extends RollingStockRendering {
 
 		// TODO figure out new way of calculating cannon shift
 
-		register.accept(
-				RenderUtils.spriteRenderer(Layer.HIGHER_OBJECT_UNDER, cannonBarrelSprites, entity, protoSelectionBox));
-		register.accept(
-				RenderUtils.spriteRenderer(Layer.HIGHER_OBJECT_UNDER, cannonBaseSprites, entity, protoSelectionBox));
+		register.accept(RenderUtils.spriteRenderer(Layer.HIGHER_OBJECT_UNDER, cannonBarrelSprites, entity, drawBounds));
+		register.accept(RenderUtils.spriteRenderer(Layer.HIGHER_OBJECT_UNDER, cannonBaseSprites, entity, drawBounds));
 	}
 
 	@Override

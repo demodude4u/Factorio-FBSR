@@ -32,8 +32,8 @@ public class RailChainSignalRendering extends RailSignalBaseRendering {
 //		railSprite.bounds.y += shift.y;
 //		RenderUtils.shiftSprites(sprites, shift);
 //
-//		register.accept(RenderUtils.spriteRenderer(railSprite, entity, protoSelectionBox));
-//		register.accept(RenderUtils.spriteRenderer(sprites, entity, protoSelectionBox));
+//		register.accept(RenderUtils.spriteRenderer(railSprite, entity, drawBounds));
+//		register.accept(RenderUtils.spriteRenderer(sprites, entity, drawBounds));
 //	}
 
 	@Override

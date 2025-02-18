@@ -64,10 +64,10 @@ public class TrainStopRendering extends SimpleEntityRendering<BSTrainStopEntity>
 		topSprites.get(1).image = Utils.tintImage(topSprites.get(1).image, color);
 
 		register.accept(RenderUtils.spriteRenderer(Layer.RAIL_SCREW,
-				protoRailOverlayAnimations.createSprites(data, entity.direction, 0), entity, protoSelectionBox));
+				protoRailOverlayAnimations.createSprites(data, entity.direction, 0), entity, drawBounds));
 		register.accept(RenderUtils.spriteRenderer(protoAnimations.createSprites(data, entity.direction, 0), entity,
-				protoSelectionBox));
-		register.accept(RenderUtils.spriteRenderer(Layer.HIGHER_OBJECT_UNDER, topSprites, entity, protoSelectionBox));
+				drawBounds));
+		register.accept(RenderUtils.spriteRenderer(Layer.HIGHER_OBJECT_UNDER, topSprites, entity, drawBounds));
 
 		if (entity.station.isPresent() && map.isAltMode()) {
 			String stationName = entity.station.get();

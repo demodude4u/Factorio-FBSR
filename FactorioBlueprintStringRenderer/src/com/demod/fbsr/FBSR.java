@@ -113,28 +113,55 @@ public class FBSR {
 		items.put(itemName, amount);
 	}
 
-	private static Rectangle2D.Double computeBounds(List<Renderer> renderers, boolean includeIgnoredBounds) {
+	private static Rectangle2D.Double computeDrawBounds(List<Renderer> renderers) {
 		if (renderers.isEmpty()) {
 			return new Rectangle2D.Double();
 		}
 		boolean first = true;
 		double minX = 0, minY = 0, maxX = 0, maxY = 0;
 		for (Renderer renderer : renderers) {
-			if (!includeIgnoredBounds && renderer.ignoreBoundsCalculation()) {
+			if (renderer.ignoreBoundsCalculation()) {
 				continue;
 			}
-			Rectangle2D.Double bounds = renderer.bounds;
+			BoundingBoxWithHeight bounds = renderer.bounds;
 			if (first) {
 				first = false;
-				minX = bounds.getMinX();
-				minY = bounds.getMinY();
-				maxX = bounds.getMaxX();
-				maxY = bounds.getMaxY();
+				minX = bounds.x1;
+				minY = bounds.y1 - bounds.height;
+				maxX = bounds.x2;
+				maxY = bounds.y2;
 			} else {
-				minX = Math.min(minX, bounds.getMinX());
-				minY = Math.min(minY, bounds.getMinY());
-				maxX = Math.max(maxX, bounds.getMaxX());
-				maxY = Math.max(maxY, bounds.getMaxY());
+				minX = Math.min(minX, bounds.x1);
+				minY = Math.min(minY, bounds.y1 - bounds.height);
+				maxX = Math.max(maxX, bounds.x2);
+				maxY = Math.max(maxY, bounds.y2);
+			}
+		}
+		return new Rectangle2D.Double(minX, minY, maxX - minX, maxY - minY);
+	}
+
+	private static Rectangle2D.Double computeGroundBounds(List<Renderer> renderers) {
+		if (renderers.isEmpty()) {
+			return new Rectangle2D.Double();
+		}
+		boolean first = true;
+		double minX = 0, minY = 0, maxX = 0, maxY = 0;
+		for (Renderer renderer : renderers) {
+			if (renderer.ignoreBoundsCalculation()) {
+				continue;
+			}
+			BoundingBoxWithHeight bounds = renderer.bounds;
+			if (first) {
+				first = false;
+				minX = bounds.x1;
+				minY = bounds.y1;
+				maxX = bounds.x2;
+				maxY = bounds.y2;
+			} else {
+				minX = Math.min(minX, bounds.x1);
+				minY = Math.min(minY, bounds.y1);
+				maxX = Math.max(maxX, bounds.x2);
+				maxY = Math.max(maxY, bounds.y2);
 			}
 		}
 		return new Rectangle2D.Double(minX, minY, maxX - minX, maxY - minY);
@@ -225,9 +252,9 @@ public class FBSR {
 	public static String getVersion() {
 		if (version == null) {
 			ModInfo baseInfo;
-			try {
-				baseInfo = new ModInfo(Utils.readJsonFromStream(new FileInputStream(new File(
-						Config.get().getJSONObject("factorio_manager").getString("install"), "data/base/info.json"))));
+			try (FileInputStream fis = new FileInputStream(new File(
+					Config.get().getJSONObject("factorio_manager").getString("install"), "data/base/info.json"))) {
+				baseInfo = new ModInfo(Utils.readJsonFromStream(fis));
 				version = baseInfo.getVersion();
 			} catch (JSONException | IOException e) {
 				e.printStackTrace();
@@ -644,11 +671,11 @@ public class FBSR {
 		double gridRound = (!request.getGridLines().isEmpty() && request.show.gridNumbers) ? 0.6 : 0.2;
 		double worldPadding = 0.5;
 
-		Rectangle2D.Double visualBounds = computeBounds(renderers, true);
+		Rectangle2D.Double visualBounds = computeDrawBounds(renderers);
 		visualBounds.setFrameFromDiagonal(Math.floor(visualBounds.getMinX() + 0.4),
 				Math.floor(visualBounds.getMinY() + 0.4), Math.ceil(visualBounds.getMaxX() - 0.4),
 				Math.ceil(visualBounds.getMaxY() - 0.4));
-		Rectangle2D.Double gridBounds = computeBounds(renderers, false);
+		Rectangle2D.Double gridBounds = computeGroundBounds(renderers);
 		gridBounds.setFrameFromDiagonal(Math.floor(gridBounds.getMinX() + 0.4) - gridPadding,
 				Math.floor(gridBounds.getMinY() + 0.4) - gridPadding,
 				Math.ceil(gridBounds.getMaxX() - 0.4) + gridPadding,
@@ -758,7 +785,7 @@ public class FBSR {
 		// Grid Lines
 		if (request.getGridLines().isPresent() && !gridTooSmall) {
 			if (gridPlatformMode) {
-				renderers.add(new Renderer(gridLayer, gridBounds, true) {
+				renderers.add(new Renderer(gridLayer, new BoundingBoxWithHeight(gridBounds, 0), true) {
 					@Override
 					public void render(Graphics2D g) throws Exception {
 						g.setStroke(GRID_STROKE);
@@ -773,7 +800,7 @@ public class FBSR {
 					}
 				});
 			} else {
-				renderers.add(new Renderer(gridLayer, gridBounds, true) {
+				renderers.add(new Renderer(gridLayer, new BoundingBoxWithHeight(gridBounds, 0), true) {
 					@Override
 					public void render(Graphics2D g) throws Exception {
 						g.setStroke(GRID_STROKE);
@@ -791,9 +818,9 @@ public class FBSR {
 			}
 		}
 
-		renderers.stream().filter(r1 -> r1 instanceof EntityRenderer).map(r3 -> (EntityRenderer) r3).forEach(r2 -> {
+		renderers.stream().filter(r -> r instanceof EntityRenderer).map(r -> (EntityRenderer) r).forEach(r -> {
 			try {
-				r2.renderShadows(shadowG);
+				r.renderShadows(shadowG);
 			} catch (Exception e) {
 				reporting.addException(e);
 			}
@@ -801,7 +828,7 @@ public class FBSR {
 		shadowG.dispose();
 		RenderUtils.halveAlpha(shadowImage);
 
-		renderers.add(new Renderer(Layer.SHADOW_BUFFER, worldBounds, true) {
+		renderers.add(new Renderer(Layer.SHADOW_BUFFER, new BoundingBoxWithHeight(worldBounds, 0), true) {
 			@Override
 			public void render(Graphics2D g) throws Exception {
 				AffineTransform tempXform = g.getTransform();
@@ -813,37 +840,42 @@ public class FBSR {
 		});
 
 		boolean debugBounds = request.debug.entityPlacement;
-		renderers.stream().sorted((r11, r21) -> {
+		renderers.stream().sorted((r1, r2) -> {
 			int ret;
 
-			ret = r11.getLayer().compareTo(r21.getLayer());
+			ret = r1.getLayer().compareTo(r2.getLayer());
 			if (ret != 0) {
 				return ret;
 			}
 
-			Rectangle2D.Double b1 = r11.getBounds();
-			Rectangle2D.Double b2 = r21.getBounds();
+			BoundingBoxWithHeight b1 = r1.getBounds();
+			BoundingBoxWithHeight b2 = r2.getBounds();
 
-			ret = Double.compare(b1.getMinY(), b2.getMinY());
+			ret = Double.compare(b1.y1, b2.y1);
 			if (ret != 0) {
 				return ret;
 			}
 
-			ret = Double.compare(b1.getMinX(), b2.getMinX());
+			ret = Double.compare(b1.x1, b2.x1);
 			if (ret != 0) {
 				return ret;
 			}
 
-			ret = r11.getLayer().compareTo(r21.getLayer());
+			ret = r1.getLayer().compareTo(r2.getLayer());
 			return ret;
-		}).forEach(r4 -> {
+		}).forEach(r -> {
 			try {
-				r4.render(g);
+				r.render(g);
 
 				if (debugBounds) {
 					g.setStroke(new BasicStroke(1f / (float) TILE_SIZE));
-					g.setColor(r4.ignoreBoundsCalculation() ? Color.gray : Color.magenta);
-					g.draw(r4.bounds);
+					g.setColor(r.ignoreBoundsCalculation() ? Color.gray : Color.magenta);
+					BoundingBoxWithHeight b = r.bounds;
+					g.draw(new Rectangle2D.Double(b.x1, b.y1 - b.height, b.x2 - b.x1, b.y2 - b.y1 + b.height));
+					if (b.height > 0) {
+						g.setColor(g.getColor().darker());
+						g.draw(new Line2D.Double(b.x1, b.y1, b.x2, b.y1));
+					}
 				}
 			} catch (Exception e) {
 				reporting.addException(e);

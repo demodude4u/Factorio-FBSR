@@ -34,12 +34,12 @@ public class MiningDrillRendering extends SimpleEntityRendering<BSEntity> {
 
 		if (protoBasePicture.isPresent()) {
 			register.accept(RenderUtils.spriteRenderer(protoBasePicture.get().createSprites(data, entity.direction),
-					entity, protoSelectionBox));
+					entity, drawBounds));
 		}
 
 		if (protoGraphicsSet.isPresent()) {
 			register.accept(RenderUtils.spriteRenderer(protoGraphicsSet.get().createSprites(data, entity.direction, 0),
-					entity, protoSelectionBox));
+					entity, drawBounds));
 		}
 	}
 

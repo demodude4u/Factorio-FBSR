@@ -92,23 +92,23 @@ public abstract class RailRendering extends EntityRendererFactory<BSEntity> {
 		FPRailPieceLayers railPieceLayers = protoPictures.get(entity.direction);
 		if (railPieceLayers.stonePathBackground.isPresent()) {
 			register.accept(RenderUtils.spriteRenderer(layerRailStoneBackground,
-					railPieceLayers.stonePathBackground.get().createSprites(data, 0), entity, protoSelectionBox));
+					railPieceLayers.stonePathBackground.get().createSprites(data, 0), entity, drawBounds));
 		}
 		if (railPieceLayers.stonePath.isPresent()) {
 			register.accept(RenderUtils.spriteRenderer(layerRailStone,
-					railPieceLayers.stonePath.get().createSprites(data, 0), entity, protoSelectionBox));
+					railPieceLayers.stonePath.get().createSprites(data, 0), entity, drawBounds));
 		}
 		if (railPieceLayers.ties.isPresent()) {
 			register.accept(RenderUtils.spriteRenderer(layerRailTies, railPieceLayers.ties.get().createSprites(data, 0),
-					entity, protoSelectionBox));
+					entity, drawBounds));
 		}
 		if (railPieceLayers.backplates.isPresent()) {
 			register.accept(RenderUtils.spriteRenderer(layerRailBackplates,
-					railPieceLayers.backplates.get().createSprites(data, 0), entity, protoSelectionBox));
+					railPieceLayers.backplates.get().createSprites(data, 0), entity, drawBounds));
 		}
 		if (railPieceLayers.metals.isPresent()) {
 			register.accept(RenderUtils.spriteRenderer(layerRailMetals,
-					railPieceLayers.metals.get().createSprites(data, 0), entity, protoSelectionBox));
+					railPieceLayers.metals.get().createSprites(data, 0), entity, drawBounds));
 		}
 	}
 

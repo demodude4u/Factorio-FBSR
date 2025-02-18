@@ -64,7 +64,7 @@ public class BoilerRendering extends SimpleEntityRendering<BSEntity> {
 		super.createRenderers(register, map, entity);
 
 		register.accept(RenderUtils.spriteRenderer(protoPictures.createSprites(data, entity.direction, 0), entity,
-				protoSelectionBox));
+				drawBounds));
 	}
 
 	@Override

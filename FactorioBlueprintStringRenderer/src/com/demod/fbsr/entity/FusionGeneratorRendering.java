@@ -37,7 +37,7 @@ public class FusionGeneratorRendering extends SimpleEntityRendering<BSEntity> {
 		} else if (dir == Direction.WEST) {
 			sprites = protoWestAnimation.createSprites(data, 0);
 		}
-		register.accept(RenderUtils.spriteRenderer(sprites, entity, protoSelectionBox));
+		register.accept(RenderUtils.spriteRenderer(sprites, entity, drawBounds));
 	}
 
 	@Override

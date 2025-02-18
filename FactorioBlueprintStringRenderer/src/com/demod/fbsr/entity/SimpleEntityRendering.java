@@ -551,7 +551,7 @@ public abstract class SimpleEntityRendering<E extends BSEntity> extends EntityRe
 			List<SpritesWithLayer> sprites = bindAction.createLayeredSprites(entity);
 			for (SpritesWithLayer spritesWithLayer : sprites) {
 				register.accept(RenderUtils.spriteRenderer(spritesWithLayer.getLayer(), spritesWithLayer.getSprites(),
-						entity, protoSelectionBox));
+						entity, drawBounds));
 			}
 		}
 
@@ -577,7 +577,7 @@ public abstract class SimpleEntityRendering<E extends BSEntity> extends EntityRe
 							sprite.bounds.x += pos.x;
 							sprite.bounds.y += pos.y;
 						}
-						register.accept(RenderUtils.spriteRenderer(sprites, entity, protoSelectionBox));
+						register.accept(RenderUtils.spriteRenderer(sprites, entity, drawBounds));
 					}
 
 					if (fluidBox.pipeCovers.isPresent() && map.isPipe(facing.offset(pos, 1.0), facing)) {
@@ -586,7 +586,7 @@ public abstract class SimpleEntityRendering<E extends BSEntity> extends EntityRe
 							sprite.bounds.x += pos.x;
 							sprite.bounds.y += pos.y;
 						}
-						register.accept(RenderUtils.spriteRenderer(sprites, entity, protoSelectionBox));
+						register.accept(RenderUtils.spriteRenderer(sprites, entity, drawBounds));
 					}
 				}
 			}
@@ -627,19 +627,19 @@ public abstract class SimpleEntityRendering<E extends BSEntity> extends EntityRe
 			circuitConnector.sprites.ifPresent(sprites -> {
 				if (sprites.connectorMain.isPresent()) {
 					register.accept(RenderUtils.spriteRenderer(sprites.connectorMain.get().createSprites(data), entity,
-							protoSelectionBox));
+							drawBounds));
 				}
 				if (sprites.connectorShadow.isPresent()) {
 					register.accept(RenderUtils.spriteRenderer(sprites.connectorShadow.get().createSprites(data),
-							entity, protoSelectionBox));
+							entity, drawBounds));
 				}
 				if (sprites.wirePins.isPresent()) {
 					register.accept(RenderUtils.spriteRenderer(sprites.wirePins.get().createSprites(data), entity,
-							protoSelectionBox));
+							drawBounds));
 				}
 				if (sprites.wirePinsShadow.isPresent()) {
 					register.accept(RenderUtils.spriteRenderer(sprites.wirePinsShadow.get().createSprites(data), entity,
-							protoSelectionBox));
+							drawBounds));
 				}
 			});
 		}

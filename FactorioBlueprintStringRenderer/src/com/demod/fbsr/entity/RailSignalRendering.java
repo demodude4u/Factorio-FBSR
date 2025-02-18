@@ -21,8 +21,8 @@ public class RailSignalRendering extends RailSignalBaseRendering {
 //			sprite.source.y += sprite.source.height * (entity.direction.ordinal());
 //		}
 //
-//		register.accept(RenderUtils.spriteRenderer(railSprite, entity, protoSelectionBox));
-//		register.accept(RenderUtils.spriteRenderer(sprites, entity, protoSelectionBox));
+//		register.accept(RenderUtils.spriteRenderer(railSprite, entity, drawBounds));
+//		register.accept(RenderUtils.spriteRenderer(sprites, entity, drawBounds));
 //	}
 //
 //	@Override

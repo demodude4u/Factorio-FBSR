@@ -31,7 +31,7 @@ public abstract class CombinatorRendering<E extends BSEntity> extends SimpleEnti
 		if (operation.isPresent()) {
 			register.accept(RenderUtils.spriteRenderer(
 					protoOperationSprites.get(operation.get()).createSprites(data, entity.direction), entity,
-					protoSelectionBox));
+					drawBounds));
 		}
 	}
 

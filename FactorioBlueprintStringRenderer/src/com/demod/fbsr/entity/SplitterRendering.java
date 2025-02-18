@@ -81,16 +81,16 @@ public class SplitterRendering extends TransportBeltConnectableRendering<BSSplit
 		RenderUtils.shiftSprites(belt1Sprites, belt1Shift);
 		RenderUtils.shiftSprites(belt2Sprites, belt2Shift);
 
-		register.accept(RenderUtils.spriteRenderer(Layer.TRANSPORT_BELT, belt1Sprites, entity, protoSelectionBox));
-		register.accept(RenderUtils.spriteRenderer(Layer.TRANSPORT_BELT, belt2Sprites, entity, protoSelectionBox));
+		register.accept(RenderUtils.spriteRenderer(Layer.TRANSPORT_BELT, belt1Sprites, entity, drawBounds));
+		register.accept(RenderUtils.spriteRenderer(Layer.TRANSPORT_BELT, belt2Sprites, entity, drawBounds));
 
 		if (protoStructurePatch.isPresent() && (dir == Direction.WEST || dir == Direction.EAST)) {
 			register.accept(RenderUtils.spriteRenderer(Layer.HIGHER_OBJECT_UNDER,
-					protoStructurePatch.get().createSprites(data, entity.direction, 0), entity, protoSelectionBox));
+					protoStructurePatch.get().createSprites(data, entity.direction, 0), entity, drawBounds));
 		}
 
 		register.accept(RenderUtils.spriteRenderer(Layer.HIGHER_OBJECT_UNDER,
-				protoStructure.createSprites(data, entity.direction, 0), entity, protoSelectionBox));
+				protoStructure.createSprites(data, entity.direction, 0), entity, drawBounds));
 
 		Point2D.Double pos = entity.position.createPoint();
 		Point2D.Double leftPos = dir.left().offset(pos, 0.5);
@@ -141,7 +141,7 @@ public class SplitterRendering extends TransportBeltConnectableRendering<BSSplit
 					spriteIcon.source = new Rectangle(0, 0, spriteIcon.image.getWidth(), spriteIcon.image.getHeight());
 					spriteIcon.bounds = new Rectangle2D.Double(-0.3, -0.3, 0.6, 0.6);
 
-					Renderer delegate = RenderUtils.spriteRenderer(spriteIcon, entity, protoSelectionBox);
+					Renderer delegate = RenderUtils.spriteRenderer(spriteIcon, entity, drawBounds);
 					spriteIcon.bounds = new Rectangle2D.Double(iconPos.x - 0.3, iconPos.y - 0.3, 0.6, 0.6);
 					register.accept(new Renderer(Layer.ENTITY_INFO_ICON, delegate.getBounds(), true) {
 						@Override

@@ -66,11 +66,11 @@ public class WallRendering extends SimpleEntityRendering<BSEntity> {
 			variation = 0;
 		}
 		register.accept(
-				RenderUtils.spriteRenderer(wallSprites.createSprites(data, variation), entity, protoSelectionBox));
+				RenderUtils.spriteRenderer(wallSprites.createSprites(data, variation), entity, drawBounds));
 
 		if (northGate || eastGate || southGate || westGate) {
 			register.accept(RenderUtils.spriteRenderer(protoWallDiodeRed.createSprites(data, entity.direction), entity,
-					protoSelectionBox));
+					drawBounds));
 		}
 	}
 

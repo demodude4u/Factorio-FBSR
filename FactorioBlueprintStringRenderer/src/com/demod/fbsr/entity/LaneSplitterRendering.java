@@ -74,15 +74,15 @@ public class LaneSplitterRendering extends TransportBeltConnectableRendering<BSS
 		List<Sprite> beltSprites = createBeltSprites(dir.cardinal(), BeltBend.NONE.ordinal(),
 				getAlternatingFrame(entity.position.createPoint(), 0));
 
-		register.accept(RenderUtils.spriteRenderer(Layer.TRANSPORT_BELT, beltSprites, entity, protoSelectionBox));
+		register.accept(RenderUtils.spriteRenderer(Layer.TRANSPORT_BELT, beltSprites, entity, drawBounds));
 
 		if (protoStructurePatch.isPresent() && (dir == Direction.WEST || dir == Direction.EAST)) {
 			register.accept(RenderUtils.spriteRenderer(Layer.HIGHER_OBJECT_UNDER,
-					protoStructurePatch.get().createSprites(data, entity.direction, 0), entity, protoSelectionBox));
+					protoStructurePatch.get().createSprites(data, entity.direction, 0), entity, drawBounds));
 		}
 
 		register.accept(RenderUtils.spriteRenderer(Layer.HIGHER_OBJECT_UNDER,
-				protoStructure.createSprites(data, entity.direction, 0), entity, protoSelectionBox));
+				protoStructure.createSprites(data, entity.direction, 0), entity, drawBounds));
 
 		Point2D.Double pos = entity.position.createPoint();
 		Point2D.Double leftPos = dir.left().offset(pos, 0.25);
@@ -133,7 +133,7 @@ public class LaneSplitterRendering extends TransportBeltConnectableRendering<BSS
 					spriteIcon.source = new Rectangle(0, 0, spriteIcon.image.getWidth(), spriteIcon.image.getHeight());
 					spriteIcon.bounds = new Rectangle2D.Double(-0.15, -0.15, 0.3, 0.3);
 
-					Renderer delegate = RenderUtils.spriteRenderer(spriteIcon, entity, protoSelectionBox);
+					Renderer delegate = RenderUtils.spriteRenderer(spriteIcon, entity, drawBounds);
 					spriteIcon.bounds = new Rectangle2D.Double(iconPos.x - 0.3, iconPos.y - 0.3, 0.6, 0.6);
 					register.accept(new Renderer(Layer.ENTITY_INFO_ICON, delegate.getBounds(), true) {
 						@Override

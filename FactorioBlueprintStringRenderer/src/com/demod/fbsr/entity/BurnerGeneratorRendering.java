@@ -17,7 +17,7 @@ public class BurnerGeneratorRendering extends EntityRendererFactory<BSEntity> {
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, BSEntity entity) {
 		register.accept(RenderUtils.spriteRenderer(protoAnimation.createSprites(data, entity.direction, 0), entity,
-				protoSelectionBox));
+				drawBounds));
 	}
 
 	@Override

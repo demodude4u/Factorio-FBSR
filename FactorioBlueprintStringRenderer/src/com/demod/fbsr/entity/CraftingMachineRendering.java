@@ -66,10 +66,10 @@ public abstract class CraftingMachineRendering extends SimpleEntityRendering<BSC
 
 		if (entity.mirror && protoGraphicsSetFlipped.isPresent()) {
 			register.accept(RenderUtils.spriteRenderer(
-					protoGraphicsSetFlipped.get().createSprites(data, entity.direction, 0), entity, protoSelectionBox));
+					protoGraphicsSetFlipped.get().createSprites(data, entity.direction, 0), entity, drawBounds));
 		} else {
 			register.accept(RenderUtils.spriteRenderer(protoGraphicsSet.createSprites(data, entity.direction, 0),
-					entity, protoSelectionBox));
+					entity, drawBounds));
 		}
 
 		Optional<String> recipe = entity.recipe;
@@ -121,7 +121,7 @@ public abstract class CraftingMachineRendering extends SimpleEntityRendering<BSC
 							sprite.bounds.x += pos.x;
 							sprite.bounds.y += pos.y;
 						}
-						register.accept(RenderUtils.spriteRenderer(sprites, entity, protoSelectionBox));
+						register.accept(RenderUtils.spriteRenderer(sprites, entity, drawBounds));
 					}
 
 					if (fluidBox.pipeCovers.isPresent() && !map.isPipe(pos, facing)) {
@@ -130,7 +130,7 @@ public abstract class CraftingMachineRendering extends SimpleEntityRendering<BSC
 							sprite.bounds.x += pos.x;
 							sprite.bounds.y += pos.y;
 						}
-						register.accept(RenderUtils.spriteRenderer(sprites, entity, protoSelectionBox));
+						register.accept(RenderUtils.spriteRenderer(sprites, entity, drawBounds));
 					}
 				}
 			}
@@ -161,7 +161,7 @@ public abstract class CraftingMachineRendering extends SimpleEntityRendering<BSC
 				spriteIcon.source = new Rectangle(0, 0, spriteIcon.image.getWidth(), spriteIcon.image.getHeight());
 				spriteIcon.bounds = new Rectangle2D.Double(-0.7, -1.0, 1.4, 1.4);
 
-				Renderer delegate = RenderUtils.spriteRenderer(spriteIcon, entity, protoSelectionBox);
+				Renderer delegate = RenderUtils.spriteRenderer(spriteIcon, entity, drawBounds);
 				register.accept(new Renderer(Layer.ENTITY_INFO_ICON, delegate.getBounds(), true) {
 					@Override
 					public void render(Graphics2D g) throws Exception {

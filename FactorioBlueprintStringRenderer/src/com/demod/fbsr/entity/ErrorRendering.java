@@ -8,6 +8,7 @@ import java.awt.geom.Rectangle2D;
 import java.util.Optional;
 import java.util.function.Consumer;
 
+import com.demod.fbsr.BoundingBoxWithHeight;
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.Renderer;
@@ -31,14 +32,14 @@ public class ErrorRendering extends EntityRendererFactory<BSEntity> {
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, BSEntity entity) {
 		Point2D.Double pos = entity.position.createPoint();
-		FPBoundingBox box = factory.getBounds();
-		Rectangle2D.Double bounds = new Rectangle2D.Double(pos.x + box.leftTop.x, pos.y + box.leftTop.y,
-				box.rightBottom.x - box.leftTop.x, box.rightBottom.y - box.leftTop.y);
+		BoundingBoxWithHeight bounds = factory.getDrawBounds().rotate(entity.direction);
+		bounds = bounds.shift(pos.x, pos.y);
 		register.accept(new Renderer(Layer.ENTITY_INFO_ICON_ABOVE, bounds, false) {
 			@Override
 			public void render(Graphics2D g) {
-				g.setColor(Color.red);
-				g.fill(bounds);
+				g.setColor(new Color(255, 0, 0, 128));
+				g.fill(new Rectangle2D.Double(bounds.x1, bounds.y1 - bounds.height, bounds.x2 - bounds.x1,
+						bounds.y2 - bounds.y1 + bounds.height));
 				g.setColor(Color.white);
 				g.setFont(new Font("Monospaced", Font.BOLD, 1).deriveFont(1f));
 				g.drawString("!", (float) bounds.getCenterX() - 0.25f, (float) bounds.getCenterY() + 0.3f);

@@ -21,7 +21,7 @@ public class SpiderVehicleRendering extends EntityRendererFactory<BSEntity> {
 		// XXX this is hard-coded and wrong
 		Sprite sprite = RenderUtils.createSprite(data, protoIcon, false, "normal", Color.white, 0, 0, 64, 64, -1, -1,
 				2);
-		register.accept(RenderUtils.spriteRenderer(sprite, entity, protoSelectionBox));
+		register.accept(RenderUtils.spriteRenderer(sprite, entity, drawBounds));
 	}
 
 	@Override

@@ -166,7 +166,8 @@ public class TileRendererFactory {
 			sprite.image = data.getModImage(main.picture);
 			sprite.source = new Rectangle(0, 0, sourceSize, sourceSize);
 			sprite.source.x = frame * sprite.source.width;
-			register.accept(RenderUtils.spriteRenderer(Layer.DECALS, sprite, sprite.bounds));
+			register.accept(
+					RenderUtils.spriteRenderer(Layer.DECALS, sprite, new BoundingBoxWithHeight(sprite.bounds, 0)));
 		}
 
 		@Override
@@ -199,7 +200,7 @@ public class TileRendererFactory {
 						sprite.source.x = frame * sprite.source.width;
 						sprite.source.y = param.variant * sprite.source.height;
 						register.accept(RenderUtils.spriteRenderer(Layer.DECALS, sprite,
-								new Rectangle2D.Double(pos.x, pos.y, 1, 1)));
+								new BoundingBoxWithHeight(pos.x, pos.y, pos.x + 1, pos.y + 1, 0)));
 					}
 				}
 			}
@@ -229,7 +230,7 @@ public class TileRendererFactory {
 						sprite.source.x = frame * sprite.source.width;
 						sprite.source.y = param.variant * sprite.source.height;
 						register.accept(RenderUtils.spriteRenderer(Layer.UNDER_TILES, sprite,
-								new Rectangle2D.Double(pos.x, pos.y, 1, 1)));
+								new BoundingBoxWithHeight(pos.x, pos.y, pos.x + 1, pos.y + 1, 0)));
 					}
 				}
 			}
@@ -260,7 +261,8 @@ public class TileRendererFactory {
 			sprite.source.x = ((int) Math.floor(pos.x * sourceSize) % w + w) % w;
 			sprite.source.y = ((int) Math.floor(pos.y * sourceSize) % h + h) % h;
 
-			register.accept(RenderUtils.spriteRenderer(Layer.DECALS, sprite, sprite.bounds));
+			register.accept(
+					RenderUtils.spriteRenderer(Layer.DECALS, sprite, new BoundingBoxWithHeight(sprite.bounds, 0)));
 		}
 
 		@Override
@@ -320,13 +322,14 @@ public class TileRendererFactory {
 		@Override
 		public void createRenderers(Consumer<Renderer> register, WorldMap map, BSTile tile) {
 			Point2D.Double pos = tile.position.createPoint();
-			Rectangle2D.Double bounds = new Rectangle2D.Double(pos.x + 0.25, pos.y + 0.25, 0.5, 0.5);
+			BoundingBoxWithHeight bounds = new BoundingBoxWithHeight(pos.x - 0.25, pos.y - 0.25, pos.x + 0.25,
+					pos.y + 0.25, 0);
 			float randomFactor = new Random(tile.name.hashCode()).nextFloat();
 			register.accept(new Renderer(Layer.ABOVE_TILES, bounds, false) {
 				@Override
 				public void render(Graphics2D g) {
 					g.setColor(RenderUtils.withAlpha(Color.getHSBColor(randomFactor, 0.6f, 0.4f), 128));
-					g.fill(new Ellipse2D.Double(bounds.x, bounds.y, bounds.width, bounds.height));
+					g.fill(new Ellipse2D.Double(bounds.x1, bounds.y1, bounds.x2 - bounds.x1, bounds.y2 - bounds.y1));
 					g.setColor(Color.gray);
 					g.setFont(new Font("Monospaced", Font.BOLD, 1).deriveFont(0.5f));
 					g.drawString("?", (float) bounds.getCenterX() - 0.125f, (float) bounds.getCenterY() + 0.15f);
@@ -337,8 +340,8 @@ public class TileRendererFactory {
 				public void render(Graphics2D g) {
 					if (labeledTypes.add(tile.name)) {
 						g.setFont(g.getFont().deriveFont(0.4f));
-						float textX = (float) bounds.x;
-						float textY = (float) (bounds.y + bounds.height * randomFactor);
+						float textX = (float) bounds.x1;
+						float textY = (float) (bounds.y1 + (bounds.y2 - bounds.y1) * randomFactor);
 						g.setColor(Color.darkGray);
 						g.drawString(tile.name, textX + 0.05f, textY + 0.05f);
 						g.setColor(Color.white);

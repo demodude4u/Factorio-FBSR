@@ -12,6 +12,7 @@ import java.util.stream.Collectors;
 
 import com.demod.factorio.Utils;
 import com.demod.factorio.fakelua.LuaValue;
+import com.demod.fbsr.BoundingBoxWithHeight;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.Layer;
@@ -180,7 +181,7 @@ public abstract class CargoBayConnectionsRendering extends SimpleEntityRendering
 		if (protoSelectedGraphicsSet.picture.isPresent()) {
 			List<SpriteWithLayer> sprites = protoSelectedGraphicsSet.picture.get().createSpritesWithLayers(data);
 			for (SpriteWithLayer swl : sprites) {
-				register.accept(RenderUtils.spriteRenderer(swl.getLayer(), swl.getSprite(), entity, protoSelectionBox));
+				register.accept(RenderUtils.spriteRenderer(swl.getLayer(), swl.getSprite(), entity, drawBounds));
 			}
 		}
 
@@ -229,7 +230,7 @@ public abstract class CargoBayConnectionsRendering extends SimpleEntityRendering
 			int variation = rand.nextInt(protoSprites.getVariationCount());
 			for (SpriteWithLayer swl : protoSprites.createSpritesWithLayers(data, variation)) {
 				register.accept(RenderUtils.spriteRenderer(swl.getLayer(), swl.getSprite(), point,
-						new FPBoundingBox(0, 0, 0, 0)));
+						new BoundingBoxWithHeight(0, 0, 0, 0, 0)));
 			}
 
 		}

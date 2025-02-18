@@ -49,7 +49,7 @@ public class UndergroundBeltRendering extends TransportBeltConnectableRendering<
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, BSUndergroundBeltEntity entity) {
 		List<Sprite> beltSprites = createBeltSprites(entity.direction.cardinal(), BeltBend.NONE.ordinal(),
 				getAlternatingFrame(entity.position.createPoint(), 0));
-		register.accept(RenderUtils.spriteRenderer(Layer.TRANSPORT_BELT, beltSprites, entity, protoSelectionBox));
+		register.accept(RenderUtils.spriteRenderer(Layer.TRANSPORT_BELT, beltSprites, entity, drawBounds));
 
 		boolean input = entity.type.get().equals("input");
 		Direction structDir = input ? entity.direction : entity.direction.back();
@@ -67,7 +67,7 @@ public class UndergroundBeltRendering extends TransportBeltConnectableRendering<
 		}
 		List<Sprite> structureSprites = protoStructSprite.createSprites(data, structDir);
 		register.accept(
-				RenderUtils.spriteRenderer(Layer.HIGHER_OBJECT_UNDER, structureSprites, entity, protoSelectionBox));
+				RenderUtils.spriteRenderer(Layer.HIGHER_OBJECT_UNDER, structureSprites, entity, drawBounds));
 	}
 
 	@Override

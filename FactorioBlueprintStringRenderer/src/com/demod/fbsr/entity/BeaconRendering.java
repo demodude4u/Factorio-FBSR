@@ -46,10 +46,10 @@ public class BeaconRendering extends EntityRendererFactory<BSEntity> {
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, BSEntity entity) {
 		if (protoGraphicsSet.isPresent()) {
 			register.accept(RenderUtils.spriteRenderer(protoGraphicsSet.get().createSprites(data, 0), entity,
-					protoSelectionBox));
+					drawBounds));
 		} else {
 			register.accept(RenderUtils.spriteRenderer(protoBasePicture.get().createSprites(data, 0), entity,
-					protoSelectionBox));
+					drawBounds));
 		}
 	}
 

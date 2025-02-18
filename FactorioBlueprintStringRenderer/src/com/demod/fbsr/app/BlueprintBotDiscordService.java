@@ -205,33 +205,6 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 	private String hostingChannelID;
 
-	// TODO
-//	private AutoCompleteHandler createDataRawAutoCompleteHandler(Function<String[], Optional<LuaValue>> query) {
-//		return (event) -> {
-//			String name = event.getParamString("name").trim().toLowerCase();
-//
-//			if (name.isEmpty()) {
-//				event.reply(ImmutableList.of());
-//				return;
-//			}
-//
-//			List<String> nameStartsWith = new ArrayList<>();
-//			List<String> nameContains = new ArrayList<>();
-//			map.keySet().stream().sorted().forEach(n -> {
-//				String lowerCase = n.toLowerCase();
-//				if (lowerCase.startsWith(name)) {
-//					nameStartsWith.add(n);
-//				} else if (lowerCase.contains(name)) {
-//					nameContains.add(n);
-//				}
-//			});
-//
-//			List<String> choices = ImmutableList.<String>builder().addAll(nameStartsWith).addAll(nameContains).build()
-//					.stream().limit(OptionData.MAX_CHOICES).collect(Collectors.toList());
-//			event.reply(choices);
-//		};
-//	}
-
 	private AutoCompleteHandler createDataRawAutoCompleteHandler() {
 		return (event) -> {
 			event.reply(FactorioManager.getDatas().stream().map(d -> d.getFolderMods().getName())
@@ -1142,13 +1115,28 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		JSONObject json = new JSONObject();
 		Utils.terribleHackToHaveOrderedJSONObject(json);
 		json.put("name", name);
+		LuaValue luaType = lua.get("type");
+		if (luaType.isjstring()) {
+			json.put("type", luaType.tojstring());
+		}
 		json.put("category", category);
 		json.put("version", FBSR.getVersion());
-		json.put("data", Utils.<JSONObject>convertLuaToJson(lua));
+		json.put("data", sortedJSON(Utils.<JSONObject>convertLuaToJson(lua)));
 		String fileName = category + "_" + name + "_dump_" + FBSR.getVersion() + ".json";
-//		String url = WebUtils.uploadToHostingService(fileName, json.toString(2).getBytes());
-//		event.reply(category + " " + name + " lua dump: [" + fileName + "](" + url + ")");
 		event.replyFile(json.toString(2).getBytes(), fileName);
+	}
+
+	private JSONObject sortedJSON(JSONObject json) {
+		JSONObject ret = new JSONObject();
+		Utils.terribleHackToHaveOrderedJSONObject(ret);
+		json.keySet().stream().sorted().forEach(k -> {
+			Object value = json.get(k);
+			if (value instanceof JSONObject) {
+				value = sortedJSON((JSONObject) value);
+			}
+			ret.put(k, value);
+		});
+		return ret;
 	}
 
 	@Override

@@ -24,6 +24,8 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
@@ -35,11 +37,10 @@ import com.demod.fbsr.WirePoints.WirePoint;
 import com.demod.fbsr.WorldMap.BeaconSource;
 import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.fp.FPBoundingBox;
+import com.demod.fbsr.fp.FPVector;
 import com.demod.fbsr.legacy.LegacyBlueprintEntity;
 import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.Multiset;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public abstract class EntityRendererFactory<E extends BSEntity> {
 
@@ -53,12 +54,13 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 		@Override
 		public void createRenderers(Consumer<Renderer> register, WorldMap map, BSEntity entity) {
 			Point2D.Double pos = entity.position.createPoint();
-			Rectangle2D.Double bounds = new Rectangle2D.Double(pos.x - 0.5, pos.y - 0.5, 1.0, 1.0);
+			BoundingBoxWithHeight bounds = new BoundingBoxWithHeight(pos.x - 0.5, pos.y - 0.5, pos.x + 0.5, pos.y + 0.5,
+					0);
 			register.accept(new Renderer(Layer.ENTITY_INFO_ICON_ABOVE, bounds, false) {
 				@Override
 				public void render(Graphics2D g) {
 					g.setColor(RenderUtils.withAlpha(getUnknownColor(entity.name), 128));
-					g.fill(new Ellipse2D.Double(bounds.x, bounds.y, bounds.width, bounds.height));
+					g.fill(new Ellipse2D.Double(bounds.x1, bounds.y1, bounds.x2 - bounds.x1, bounds.y2 - bounds.y1));
 					g.setColor(Color.gray);
 					g.setFont(new Font("Monospaced", Font.BOLD, 1).deriveFont(1f));
 					g.drawString("?", (float) bounds.getCenterX() - 0.25f, (float) bounds.getCenterY() + 0.3f);
@@ -69,9 +71,9 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 				public void render(Graphics2D g) {
 					if (labeledTypes.add(entity.name)) {
 						g.setFont(new Font("Monospaced", Font.BOLD, 1).deriveFont(0.4f));
-						float textX = (float) bounds.x;
-						float textY = (float) (bounds.y
-								+ bounds.height * new Random(entity.name.hashCode()).nextFloat());
+						float textX = (float) bounds.x1;
+						float textY = (float) (bounds.y1
+								+ (bounds.y2 - bounds.y1) * new Random(entity.name.hashCode()).nextFloat());
 						g.setColor(Color.darkGray);
 						g.drawString(entity.name, textX + 0.05f, textY + 0.05f);
 						g.setColor(Color.white);
@@ -126,6 +128,7 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 				factory.initFromPrototype();
 				factory.wirePointsById = new LinkedHashMap<>();
 				factory.defineWirePoints(factory.wirePointsById::put, prototype.lua());
+				factory.drawBounds = factory.computeBounds();
 			} catch (Exception e) {
 				LOGGER.error("ENTITY {} ({})", prototype.getName(), prototype.getType());
 				throw e;
@@ -133,6 +136,39 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 		}
 
 		LOGGER.info("Initialized {} entities.", factories.size());
+	}
+
+	protected BoundingBoxWithHeight computeBounds() {
+		LuaTable lua = prototype.lua();
+		Optional<FPBoundingBox> selectionBox = FPUtils.opt(lua.get("selection_box"), FPBoundingBox::new);
+		Optional<FPBoundingBox> collisionBox = FPUtils.opt(lua.get("collision_box"), FPBoundingBox::new);
+		double drawingBoxVerticalExtension = lua.get("drawing_box_vertical_extension").optdouble(0);
+
+		// Combine selection and collision boxes, add vertical extension
+		FPVector sb1;
+		FPVector sb2;
+		if (selectionBox.isPresent()) {
+			sb1 = selectionBox.get().leftTop;
+			sb2 = selectionBox.get().rightBottom;
+		} else {
+			sb1 = new FPVector(0, 0);
+			sb2 = new FPVector(0, 0);
+		}
+		FPVector cb1;
+		FPVector cb2;
+		if (collisionBox.isPresent()) {
+			cb1 = collisionBox.get().leftTop;
+			cb2 = collisionBox.get().rightBottom;
+		} else {
+			cb1 = new FPVector(0, 0);
+			cb2 = new FPVector(0, 0);
+		}
+		double x1 = Math.min(sb1.x, cb1.x);
+		double y1 = Math.min(sb1.y, cb1.y);
+		double x2 = Math.max(sb2.x, cb2.x);
+		double y2 = Math.max(sb2.y, cb2.y);
+
+		return new BoundingBoxWithHeight(x1, y1, x2, y2, drawingBoxVerticalExtension);
 	}
 
 	@SuppressWarnings({ "rawtypes" })
@@ -172,6 +208,8 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 	protected EntityPrototype prototype = null;
 	protected FPBoundingBox protoSelectionBox;
 	protected boolean protoBeaconed;
+
+	protected BoundingBoxWithHeight drawBounds;
 
 	protected Map<Integer, WirePoints> wirePointsById;
 
@@ -307,12 +345,16 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 
 	}
 
-	public FPBoundingBox getBounds() {
+	public FPBoundingBox getSelectionBox() {
 		return protoSelectionBox;
 	}
 
 	public FactorioData getData() {
 		return data;
+	}
+
+	public BoundingBoxWithHeight getDrawBounds() {
+		return drawBounds;
 	}
 
 	public String getGroupName() {

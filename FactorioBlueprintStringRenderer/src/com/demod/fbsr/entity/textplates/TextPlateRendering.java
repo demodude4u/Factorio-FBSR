@@ -40,7 +40,7 @@ public class TextPlateRendering extends EntityRendererFactory<BSTextPlateEntity>
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, BSTextPlateEntity entity) {
 		register.accept(RenderUtils.spriteRenderer(protoRenderLayer,
-				protoPictures.createSprites(data, entity.variation - 1), entity, protoSelectionBox));
+				protoPictures.createSprites(data, entity.variation - 1), entity, drawBounds));
 	}
 
 	@Override

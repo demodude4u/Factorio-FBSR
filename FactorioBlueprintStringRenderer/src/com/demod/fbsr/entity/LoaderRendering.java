@@ -71,14 +71,13 @@ public abstract class LoaderRendering extends TransportBeltConnectableRendering<
 		List<Sprite> beltSprites = createBeltSprites(entity.direction.cardinal(), BeltBend.NONE.ordinal(),
 				getAlternatingFrame(entity.position.createPoint(beltShift), 0));
 		RenderUtils.shiftSprites(beltSprites, beltShift);
-		register.accept(RenderUtils.spriteRenderer(Layer.TRANSPORT_BELT, beltSprites, entity, protoSelectionBox));
+		register.accept(RenderUtils.spriteRenderer(Layer.TRANSPORT_BELT, beltSprites, entity, drawBounds));
 
 		boolean input = entity.type.get().equals("input");
 		Direction structDir = input ? entity.direction : entity.direction.back();
 		List<Sprite> structureSprites = (input ? protoStructureDirectionIn : protoStructureDirectionOut)
 				.createSprites(data, structDir);
-		register.accept(
-				RenderUtils.spriteRenderer(Layer.HIGHER_OBJECT_UNDER, structureSprites, entity, protoSelectionBox));
+		register.accept(RenderUtils.spriteRenderer(Layer.HIGHER_OBJECT_UNDER, structureSprites, entity, drawBounds));
 
 		if (!entity.filters.isEmpty() && map.isAltMode()) {
 			List<String> items = entity.filters.stream().map(bs -> bs.name).collect(Collectors.toList());
@@ -93,7 +92,7 @@ public abstract class LoaderRendering extends TransportBeltConnectableRendering<
 					spriteIcon.source = new Rectangle(0, 0, spriteIcon.image.getWidth(), spriteIcon.image.getHeight());
 					spriteIcon.bounds = new Rectangle2D.Double(-0.3, -0.3, 0.6, 0.6);
 
-					Renderer delegate = RenderUtils.spriteRenderer(spriteIcon, entity, protoSelectionBox);
+					Renderer delegate = RenderUtils.spriteRenderer(spriteIcon, entity, drawBounds);
 					register.accept(new Renderer(Layer.ENTITY_INFO_ICON, delegate.getBounds(), true) {
 						@Override
 						public void render(Graphics2D g) throws Exception {

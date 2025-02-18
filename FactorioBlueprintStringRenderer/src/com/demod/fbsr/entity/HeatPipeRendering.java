@@ -46,7 +46,7 @@ public class HeatPipeRendering extends EntityRendererFactory<BSEntity> {
 		adjCode |= ((heatPipeFacingMeFrom(Direction.WEST, map, entity) ? 1 : 0) << 3);
 
 		register.accept(RenderUtils.spriteRenderer(protoConnectionSprites.get(adjCode).createSprites(data, 0), entity,
-				protoSelectionBox));
+				drawBounds));
 	}
 
 	public boolean heatPipeFacingMeFrom(Direction direction, WorldMap map, BSEntity entity) {

@@ -9,6 +9,7 @@ import org.json.JSONObject;
 
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.BSUtils;
+import com.demod.fbsr.BoundingBoxWithHeight;
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.Layer;
@@ -98,8 +99,9 @@ public abstract class RailSignalBaseRendering extends EntityRendererFactory<BSRa
 			RenderUtils.shiftSprites(structureSprites, elevatedShift);
 		}
 
-		register.accept(RenderUtils.spriteRenderer(layer, railPieceSprites, entity, shiftedSelectionBox));
-		register.accept(RenderUtils.spriteRenderer(layer, structureSprites, entity, shiftedSelectionBox));
+		BoundingBoxWithHeight drawBounds = new BoundingBoxWithHeight(shiftedSelectionBox, this.drawBounds.height);
+		register.accept(RenderUtils.spriteRenderer(layer, railPieceSprites, entity, drawBounds));
+		register.accept(RenderUtils.spriteRenderer(layer, structureSprites, entity, drawBounds));
 	}
 
 	@Override

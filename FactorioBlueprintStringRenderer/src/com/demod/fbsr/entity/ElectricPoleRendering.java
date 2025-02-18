@@ -94,7 +94,7 @@ public class ElectricPoleRendering extends EntityRendererFactory<BSEntity> {
 		double orientation = computePrincipalOrientation(points);
 
 		register.accept(RenderUtils.spriteRenderer(Layer.HIGHER_OBJECT_ABOVE,
-				protoPictures.createSprites(data, orientation), entity, protoSelectionBox));
+				protoPictures.createSprites(data, orientation), entity, drawBounds));
 
 		return orientation;
 	}

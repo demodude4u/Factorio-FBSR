@@ -19,10 +19,10 @@ public class GateRendering extends EntityRendererFactory<BSEntity> {
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, BSEntity entity) {
 		if (isVertical(entity)) {
 			register.accept(RenderUtils.spriteRenderer(protoVerticalAnimation.createSprites(data, 0), entity,
-					protoSelectionBox));
+					drawBounds));
 		} else {
 			register.accept(RenderUtils.spriteRenderer(protoHorizontalAnimation.createSprites(data, 0), entity,
-					protoSelectionBox));
+					drawBounds));
 		}
 	}
 
