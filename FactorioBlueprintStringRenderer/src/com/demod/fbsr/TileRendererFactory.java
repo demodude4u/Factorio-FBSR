@@ -354,6 +354,11 @@ public class TileRendererFactory {
 				labeledTypes.clear();
 			}
 		}
+
+		@Override
+		public boolean isUnknown() {
+			return true;
+		}
 	};
 
 	public static void createAllRenderers(Consumer<Renderer> register, List<TileRenderingTuple> tiles) {
@@ -551,6 +556,10 @@ public class TileRendererFactory {
 		else if (protoVariantsMaterialBackground.isPresent()) {
 			renderProcess = new TileRenderProcessMaterial();
 		}
+	}
+
+	public boolean isUnknown() {
+		return false;
 	}
 
 	// TODO fix UNKNOWN so we don't need this

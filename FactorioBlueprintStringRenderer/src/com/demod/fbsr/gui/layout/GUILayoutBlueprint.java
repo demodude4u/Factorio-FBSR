@@ -138,9 +138,9 @@ public class GUILayoutBlueprint {
 
 		Set<String> groups = new LinkedHashSet<>();
 		blueprint.entities.stream().map(e -> FactorioManager.lookupEntityFactoryForName(e.name))
-				.map(e -> e.getGroupName()).forEach(groups::add);
-		blueprint.tiles.stream().map(t -> FactorioManager.lookupTileFactoryForName(t.name)).map(t -> t.getGroupName())
-				.forEach(groups::add);
+				.filter(e -> !e.isUnknown()).map(e -> e.getGroupName()).forEach(groups::add);
+		blueprint.tiles.stream().map(t -> FactorioManager.lookupTileFactoryForName(t.name)).filter(t -> !t.isUnknown())
+				.map(t -> t.getGroupName()).forEach(groups::add);
 
 		boolean spaceAge = groups.contains("Space Age");
 		groups.removeAll(Arrays.asList("Base", "Space Age"));

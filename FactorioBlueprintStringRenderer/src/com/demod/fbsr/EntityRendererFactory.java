@@ -106,6 +106,11 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 				labeledTypes.clear();
 			}
 		}
+
+		@Override
+		public boolean isUnknown() {
+			return true;
+		}
 	};
 	private static final Logger LOGGER = LoggerFactory.getLogger(EntityRendererFactory.class);
 
@@ -361,6 +366,10 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 	// Returns orientation if applicable
 	public double initWireConnector(Consumer<Renderer> register, E entity, List<EntityRenderingTuple> wired) {
 		return 0;
+	}
+
+	public boolean isUnknown() {
+		return false;
 	}
 
 	public E parseEntity(JSONObject json) throws Exception {
