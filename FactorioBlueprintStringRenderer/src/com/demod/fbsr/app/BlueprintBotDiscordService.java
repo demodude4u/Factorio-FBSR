@@ -734,45 +734,6 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		}
 	}
 
-	private void handleBlueprintTotalsCommand(SlashCommandEvent event) throws IOException {
-		String content = event.getCommandString();
-
-		Optional<Attachment> attachment = event.optParamAttachment("file");
-		if (attachment.isPresent()) {
-			content += " " + attachment.get().getUrl();
-		}
-
-		List<BSBlueprintString> blueprintStrings = BlueprintFinder.search(content, event.getReporting());
-
-		Map<String, Double> totalItems = new LinkedHashMap<>();
-		for (BSBlueprintString bs : blueprintStrings) {
-			for (BSBlueprint blueprint : bs.findAllBlueprints()) {
-				Map<String, Double> items = FBSR.generateSummedTotalItems(blueprint);
-				items.forEach((k, v) -> {
-					totalItems.compute(k, ($, old) -> old == null ? v : old + v);
-				});
-			}
-		}
-
-		if (!totalItems.isEmpty()) {
-			String responseContent = totalItems.entrySet().stream()
-					.sorted((e1, e2) -> e1.getKey().compareTo(e2.getKey()))
-					.map(e -> e.getKey() + ": " + RenderUtils.fmtDouble2(e.getValue()))
-					.collect(Collectors.joining("\n"));
-
-			String response = "```ldif\n" + responseContent + "```";
-			if (response.length() < 2000) {
-				event.reply(response);
-			} else {
-				event.replyFile(responseContent.getBytes(), "totals.txt");
-			}
-		} else if (!blueprintStrings.isEmpty() && totalItems.isEmpty()) {
-			event.replyIfNoException("I couldn't find any items!");
-		} else {
-			event.replyIfNoException("No blueprint found!");
-		}
-	}
-
 	private void handleBookDirectoryCommand(SlashCommandEvent event) throws IOException {
 		String content = event.getCommandString();
 
@@ -1292,13 +1253,6 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				//
 				.addSlashCommand("raw/items", "Prints out all of the raw items needed by the blueprint.",
 						event -> handleBlueprintItemsRawCommand(event))//
-				.withOptionalParam(OptionType.STRING, "string", "Blueprint string.")//
-				.withOptionalParam(OptionType.STRING, "url", "Url containing blueprint string.")//
-				.withOptionalParam(OptionType.ATTACHMENT, "file", "File containing blueprint string.")//
-				//
-				.addSlashCommand("counts",
-						"Prints out the total counts of entities, items and tiles needed by the blueprint.",
-						event -> handleBlueprintTotalsCommand(event))
 				.withOptionalParam(OptionType.STRING, "string", "Blueprint string.")//
 				.withOptionalParam(OptionType.STRING, "url", "Url containing blueprint string.")//
 				.withOptionalParam(OptionType.ATTACHMENT, "file", "File containing blueprint string.")//
