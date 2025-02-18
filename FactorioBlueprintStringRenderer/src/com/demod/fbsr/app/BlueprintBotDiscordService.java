@@ -37,6 +37,7 @@ import com.demod.dcba.EventReply;
 import com.demod.dcba.SlashCommandEvent;
 import com.demod.dcba.SlashCommandHandler;
 import com.demod.factorio.Config;
+import com.demod.factorio.FactorioData;
 import com.demod.factorio.Utils;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.factorio.prototype.DataPrototype;
@@ -230,11 +231,26 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 //		};
 //	}
 
-	private SlashCommandHandler createDataRawCommandHandler(Function<String[], Optional<LuaValue>> query) {
+	private AutoCompleteHandler createDataRawAutoCompleteHandler() {
 		return (event) -> {
+			event.reply(FactorioManager.getDatas().stream().map(d -> d.getFolderMods().getName())
+					.collect(Collectors.toList()));
+		};
+	}
+
+	private SlashCommandHandler createDataRawCommandHandler() {
+		return (event) -> {
+			String profile = event.getParamString("profile");
+			Optional<FactorioData> data = FactorioManager.getDatas().stream()
+					.filter(d -> d.getFolderMods().getName().equals(profile)).findAny();
+			if (data.isEmpty()) {
+				event.reply("Could not find profile!");
+				return;
+			}
+
 			String key = event.getParamString("path");
 			String[] path = key.split("\\.");
-			Optional<LuaValue> lua = query.apply(path);
+			Optional<LuaValue> lua = data.get().getTable().getRaw(path);
 			if (!lua.isPresent()) {
 				event.reply("I could not find a lua table for the path [`"
 						+ Arrays.asList(path).stream().collect(Collectors.joining(", ")) + "`] :frowning:");
@@ -1329,9 +1345,9 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				.withAutoParam(OptionType.STRING, "name", "Prototype name of the tile.")//
 				//
 				//
-				// TODO bring back data.raw, but how?
-//				.addSlashCommand("data/raw", "Lua from `data.raw` for the specified key.",
-//						createDataRawCommandHandler(table::getRaw))//
+				.addSlashCommand("data/raw", "Lua from `data.raw` for the specified key.",
+						createDataRawCommandHandler(), createDataRawAutoCompleteHandler())//
+				.withAutoParam(OptionType.STRING, "profile", "Which factorio profile to load from.")
 				.withParam(OptionType.STRING, "path", "Path to identify which key.")//
 				//
 				//
