@@ -84,6 +84,10 @@ public class FactorioManager {
 		return entityByName;
 	}
 
+	public static List<EntityRendererFactory> getEntityFactories() {
+		return entityFactories;
+	}
+
 	public static Map<String, EquipmentPrototype> getEquipments() {
 		return equipmentByName;
 	}
@@ -106,6 +110,10 @@ public class FactorioManager {
 
 	public static Map<String, TilePrototype> getTiles() {
 		return tileByName;
+	}
+
+	public static List<TileRendererFactory> getTileFactories() {
+		return tileFactories;
 	}
 
 	public static void initializeFactories() throws JSONException, IOException {

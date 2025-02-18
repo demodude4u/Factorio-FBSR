@@ -12,15 +12,16 @@ import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.OptionalInt;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import javax.imageio.ImageIO;
@@ -28,6 +29,8 @@ import javax.imageio.ImageIO;
 import org.apache.commons.text.similarity.LevenshteinDistance;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.demod.dcba.AutoCompleteHandler;
 import com.demod.dcba.CommandReporting;
@@ -86,8 +89,6 @@ import net.dv8tion.jda.api.requests.ErrorResponse;
 import net.dv8tion.jda.api.requests.restaction.MessageCreateAction;
 import net.dv8tion.jda.api.utils.ChunkingFilter;
 import net.dv8tion.jda.api.utils.FileUpload;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class BlueprintBotDiscordService extends AbstractIdleService {
 
@@ -1164,6 +1165,10 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		FBSR.initialize();
 		LOGGER.info("Factorio {} Data Loaded.", FBSR.getVersion());
 
+		Set<String> groups = new HashSet<>();
+		FactorioManager.getEntityFactories().forEach(e -> groups.add(e.getGroupName()));
+		FactorioManager.getTileFactories().forEach(t -> groups.add(t.getGroupName()));
+
 		bot = DCBA.builder()//
 				.setInfo("Blueprint Bot")//
 				.withSupport(
@@ -1182,8 +1187,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				.withCredits("Special Thanks", "Members of Team Steelaxe")//
 				.withVersion("Multiverse " + FBSR.getVersion())
 				.withCustomField("Mods Loaded",
-						FactorioManager.getDatas().stream().flatMap(d -> d.getModLoader().getMods().keySet().stream())
-								.distinct().sorted(Comparator.comparing(s -> s.toLowerCase()))
+						groups.stream().sorted(Comparator.comparing(s -> s.toLowerCase()))
 								.collect(Collectors.joining(", ")))
 				.addSlashCommand("bp/string", "Renders an image of the blueprint string.",
 						event -> handleBlueprintCommand(event))//
