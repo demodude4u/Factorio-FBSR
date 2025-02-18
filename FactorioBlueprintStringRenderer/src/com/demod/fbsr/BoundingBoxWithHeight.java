@@ -52,4 +52,8 @@ public class BoundingBoxWithHeight {
 	public double getCenterY() {
 		return (y1 + y2) / 2.0 - height / 2.0;
 	}
+
+	public BoundingBoxWithHeight shiftHeight(int height) {
+		return new BoundingBoxWithHeight(x1, y1, x2, y2, this.height + height);
+	}
 }

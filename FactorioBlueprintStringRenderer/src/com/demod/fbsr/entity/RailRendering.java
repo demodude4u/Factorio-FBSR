@@ -4,6 +4,7 @@ import java.util.Optional;
 import java.util.function.Consumer;
 
 import com.demod.factorio.fakelua.LuaValue;
+import com.demod.fbsr.BoundingBoxWithHeight;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.FPUtils;
@@ -63,6 +64,8 @@ public abstract class RailRendering extends EntityRendererFactory<BSEntity> {
 		}
 	}
 
+	private final boolean elevated;
+
 	protected FPRailPictureSet protoPictures;
 	private final Layer layerRailStoneBackground;
 	private final Layer layerRailStone;
@@ -71,6 +74,7 @@ public abstract class RailRendering extends EntityRendererFactory<BSEntity> {
 	private final Layer layerRailMetals;
 
 	public RailRendering(boolean elevated) {
+		this.elevated = elevated;
 		if (elevated) {
 			layerRailStoneBackground = Layer.ELEVATED_RAIL_STONE_PATH_LOWER;
 			layerRailStone = Layer.ELEVATED_RAIL_STONE_PATH;
@@ -115,6 +119,15 @@ public abstract class RailRendering extends EntityRendererFactory<BSEntity> {
 	@Override
 	public void initFromPrototype() {
 		protoPictures = new FPRailPictureSet(prototype.lua().get("pictures"));
+	}
+
+	@Override
+	protected BoundingBoxWithHeight computeBounds() {
+		BoundingBoxWithHeight ret = super.computeBounds();
+		if (elevated) {
+			ret = ret.shiftHeight(3);
+		}
+		return ret;
 	}
 
 }
