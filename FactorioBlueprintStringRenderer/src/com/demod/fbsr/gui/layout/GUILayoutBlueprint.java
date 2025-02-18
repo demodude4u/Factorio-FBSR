@@ -18,6 +18,9 @@ import java.util.OptionalInt;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.demod.dcba.CommandReporting;
 import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
@@ -43,8 +46,6 @@ import com.demod.fbsr.gui.part.GUILabel;
 import com.demod.fbsr.gui.part.GUILabel.Align;
 import com.demod.fbsr.gui.part.GUIPanel;
 import com.google.common.collect.ImmutableMap;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class GUILayoutBlueprint {
 
