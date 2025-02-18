@@ -76,6 +76,32 @@ public final class FPUtils {
 		return Optional.of(builder.build());
 	}
 
+	// TODO this is due to a bug in WorkingVisualisations, may delete later
+	public static <T> Optional<List<Optional<T>>> optListOpt(LuaValue lua, Function<LuaValue, T> factory) {
+		if (lua.isnil()) {
+			return Optional.empty();
+		}
+		if (lua.isarray()) {
+			return optList(lua, l -> Optional.of(factory.apply(l)));
+		} else {
+			// Rebuild the array with missing indices
+			Builder<Optional<T>> builder = ImmutableList.builder();
+			int count = 0;
+			int i = 1;
+			while (count < lua.length()) {
+				LuaValue luaItem = lua.get(Integer.toString(i));
+				if (luaItem.isnil()) {
+					builder.add(Optional.empty());
+				} else {
+					builder.add(Optional.of(factory.apply(luaItem)));
+					count++;
+				}
+				i++;
+			}
+			return Optional.of(builder.build());
+		}
+	}
+
 	public static Optional<String> optString(LuaValue lua) {
 		if (lua.isnil()) {
 			return Optional.empty();
