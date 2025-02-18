@@ -1,16 +1,17 @@
 package com.demod.fbsr.task;
 
 import java.util.Comparator;
-import java.util.List;
 import java.util.stream.Collectors;
 
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.demod.factorio.ItemToPlace;
+import com.demod.factorio.fakelua.LuaValue;
 import com.demod.factorio.prototype.EntityPrototype;
-import com.demod.factorio.prototype.TilePrototype;
 import com.demod.fbsr.FactorioManager;
+import com.google.common.collect.HashMultiset;
+import com.google.common.collect.Multiset;
 
 public class FBSRScratchPad {
 
@@ -20,29 +21,42 @@ public class FBSRScratchPad {
 	public static void main(String[] args) throws Exception {
 //		Choose what you want to load
 //		StartAllServices.main(args);
-//		FactorioManager.initializePrototypes();
+		FactorioManager.initializePrototypes();
 //		FactorioManager.initializeFactories();
 
-		// List out all of the entities and tiles that are placed down by items
+		Multiset<String> keyBags = HashMultiset.create();
 		for (EntityPrototype entity : FactorioManager.getEntities().values().stream()
 				.sorted(Comparator.comparing(e -> e.getName())).collect(Collectors.toList())) {
-			List<ItemToPlace> placeBy = entity.getPlacedBy();
-			if (placeBy.size() > 0) {
-				LOGGER.info(entity.getName() + " PLACED BY "
-						+ placeBy.stream().map(i -> i.getItem() + (i.getCount() > 1 ? ("(" + i.getCount() + ")") : ""))
-								.sorted().collect(Collectors.joining(",", "[", "]")));
+			LuaValue lua = entity.lua().get("graphics_set").get("working_visualisations");
+			if (!lua.isnil() && lua.isobject()) {
+				JSONObject json = (JSONObject) lua.getJson();
+				keyBags.addAll(json.keySet());
 			}
 		}
-		LOGGER.info("");
-		for (TilePrototype tile : FactorioManager.getTiles().values().stream()
-				.sorted(Comparator.comparing(e -> e.getName())).collect(Collectors.toList())) {
-			List<ItemToPlace> placeBy = tile.getPlacedBy();
-			if (placeBy.size() > 0) {
-				LOGGER.info(tile.getName() + " PLACED BY "
-						+ placeBy.stream().map(i -> i.getItem() + (i.getCount() > 1 ? ("(" + i.getCount() + ")") : ""))
-								.sorted().collect(Collectors.joining(",", "[", "]")));
-			}
-		}
+		keyBags.entrySet().stream().sorted(Comparator.comparing(e -> e.getCount())).forEach(e -> {
+			LOGGER.debug("{}: {}", e.getElement(), e.getCount());
+		});
+
+//		// List out all of the entities and tiles that are placed down by items
+//		for (EntityPrototype entity : FactorioManager.getEntities().values().stream()
+//				.sorted(Comparator.comparing(e -> e.getName())).collect(Collectors.toList())) {
+//			List<ItemToPlace> placeBy = entity.getPlacedBy();
+//			if (placeBy.size() > 0) {
+//				LOGGER.info(entity.getName() + " PLACED BY "
+//						+ placeBy.stream().map(i -> i.getItem() + (i.getCount() > 1 ? ("(" + i.getCount() + ")") : ""))
+//								.sorted().collect(Collectors.joining(",", "[", "]")));
+//			}
+//		}
+//		LOGGER.info("");
+//		for (TilePrototype tile : FactorioManager.getTiles().values().stream()
+//				.sorted(Comparator.comparing(e -> e.getName())).collect(Collectors.toList())) {
+//			List<ItemToPlace> placeBy = tile.getPlacedBy();
+//			if (placeBy.size() > 0) {
+//				LOGGER.info(tile.getName() + " PLACED BY "
+//						+ placeBy.stream().map(i -> i.getItem() + (i.getCount() > 1 ? ("(" + i.getCount() + ")") : ""))
+//								.sorted().collect(Collectors.joining(",", "[", "]")));
+//			}
+//		}
 
 ////		Generate mod-download.json based on mods folder
 //		File folderMods = new File("C:\\Factorio Installs\\Git\\Factorio-BPBot-Mods\\mods-aai");
