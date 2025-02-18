@@ -22,7 +22,7 @@ public class FPSpriteSource {
 			width = lua.get("width").optint(0);
 			height = lua.get("height").optint(0);
 		} else {
-			if (luaSize.istable()) {
+			if (luaSize.isarray()) {
 				width = luaSize.get(1).optint(0);
 				height = luaSize.get(2).optint(width);
 			} else {

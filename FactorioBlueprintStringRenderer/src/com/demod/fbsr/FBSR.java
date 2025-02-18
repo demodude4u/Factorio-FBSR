@@ -35,16 +35,21 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.json.JSONException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.demod.dcba.CommandReporting;
 import com.demod.factorio.Config;
 import com.demod.factorio.DataTable;
+import com.demod.factorio.ItemToPlace;
 import com.demod.factorio.ModInfo;
 import com.demod.factorio.TotalRawCalculator;
 import com.demod.factorio.Utils;
 import com.demod.factorio.prototype.DataPrototype;
+import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.factorio.prototype.ItemPrototype;
 import com.demod.factorio.prototype.RecipePrototype;
+import com.demod.factorio.prototype.TilePrototype;
 import com.demod.fbsr.WirePoints.WirePoint;
 import com.demod.fbsr.WorldMap.RailEdge;
 import com.demod.fbsr.WorldMap.RailNode;
@@ -59,12 +64,8 @@ import com.demod.fbsr.gui.GUIStyle;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Table;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class FBSR {
-
-	private static final Logger LOGGER = LoggerFactory.getLogger(FBSR.class);
 
 	public static class EntityRenderingTuple<E extends BSEntity> {
 		public final E entity;
@@ -86,6 +87,8 @@ public class FBSR {
 			this.factory = factory;
 		}
 	}
+
+	private static final Logger LOGGER = LoggerFactory.getLogger(FBSR.class);
 
 	private static final long TARGET_FILE_SIZE = 10 << 20; // 10MB
 	private static final float ESTIMATED_JPG_PIXELS_PER_BYTE = 3.5f; // Based on measuring large JPG renders
@@ -178,16 +181,16 @@ public class FBSR {
 		Map<String, Double> ret = new LinkedHashMap<>();
 		for (BSEntity entity : blueprint.entities) {
 			String entityName = entity.name;
-			DataTable table = FactorioManager.lookupEntityFactoryForName(entityName).getData().getTable();
-			List<ItemPrototype> items = table.getItemsForEntity(entityName);
-			if (items.isEmpty()) {
-				// reporting.addWarning("Cannot find items for entity: " +
-				// entity.getName());
+			EntityRendererFactory<BSEntity> entityFactory = FactorioManager.lookupEntityFactoryForName(entityName);
+			EntityPrototype entityPrototype = entityFactory.getPrototype();
+
+			Optional<ItemToPlace> primaryItem = entityPrototype.getPrimaryItem();
+			if (primaryItem.isEmpty()) {
+				LOGGER.warn("MISSING ENTITY ITEM: {}", entityName);
 				continue;
 			}
-			items.forEach(i -> {
-				addToItemAmount(ret, i.getName(), 1);
-			});
+
+			addToItemAmount(ret, primaryItem.get().getItem(), primaryItem.get().getCount());
 
 			Multiset<String> modules = RenderUtils.getModules(entity);
 			for (Multiset.Entry<String> entry : modules.entrySet()) {
@@ -195,25 +198,17 @@ public class FBSR {
 			}
 		}
 		for (BSTile tile : blueprint.tiles) {
-			String itemName = tile.name;
-			// TODO hard-coded
-			if (itemName.startsWith("hazard-concrete")) {
-				itemName = "hazard-concrete";
-			}
-			if (itemName.startsWith("refined-hazard-concrete")) {
-				itemName = "refined-hazard-concrete";
-			}
-			if (itemName.equals("stone-path")) {
-				itemName = "stone-brick";
-			}
-			if (itemName.equals("grass-1")) {
-				itemName = "landfill";
-			}
-			if (!FactorioManager.lookupItemByName(itemName).isPresent()) {
-				LOGGER.warn("MISSING TILE ITEM: {}", itemName);
+			String tileName = tile.name;
+			TileRendererFactory tileFactory = FactorioManager.lookupTileFactoryForName(tileName);
+			TilePrototype tilePrototype = tileFactory.getPrototype();
+
+			Optional<ItemToPlace> primaryItem = tilePrototype.getPrimaryItem();
+			if (primaryItem.isEmpty()) {
+				LOGGER.warn("MISSING TILE ITEM: {}", tilePrototype.getName());
 				continue;
 			}
-			addToItemAmount(ret, itemName, 1);
+
+			addToItemAmount(ret, primaryItem.get().getItem(), primaryItem.get().getCount());
 		}
 		return ret;
 	}

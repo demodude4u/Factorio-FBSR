@@ -13,14 +13,19 @@ import java.util.stream.Collectors;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.demod.factorio.Config;
 import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
+import com.demod.factorio.prototype.EntityPrototype;
+import com.demod.factorio.prototype.TilePrototype;
 import com.demod.fbsr.FactorioModPortal;
 import com.google.common.collect.ImmutableSet;
 
 public class FBSRModDumperTask {
+	private static final Logger LOGGER = LoggerFactory.getLogger(FBSRModDumperTask.class);
 
 	public static final Set<String> BUILTIN_MODS = ImmutableSet.of("base", "space-age", "quality", "elevated-rails");
 
@@ -53,6 +58,38 @@ public class FBSRModDumperTask {
 			"thruster", "train-stop", "transport-belt", "turbo-loader", "turbo-splitter", "turbo-transport-belt",
 			"turbo-underground-belt", "underground-belt", "wooden-chest");
 
+	public static final Set<String> BASE_TILES = ImmutableSet.of("artificial-jellynut-soil", "artificial-yumako-soil",
+			"concrete", "foundation", "frozen-concrete", "frozen-hazard-concrete-left", "frozen-hazard-concrete-right",
+			"frozen-refined-concrete", "frozen-refined-hazard-concrete-left", "frozen-refined-hazard-concrete-right",
+			"hazard-concrete-left", "hazard-concrete-right", "ice-platform", "landfill", "overgrowth-jellynut-soil",
+			"overgrowth-yumako-soil", "refined-concrete", "refined-hazard-concrete-left",
+			"refined-hazard-concrete-right", "space-platform-foundation", "stone-path");
+
+	// based on cannot_ghost() by _codegreen
+	private static boolean isBlueprintable(EntityPrototype entity) {
+		boolean cantGhost = false;
+		if (entity.getFlags().contains("not-blueprintable")) {
+			cantGhost = true;
+		}
+		if (!entity.getFlags().contains("player-creation")) {
+			cantGhost = true;
+		}
+		if (entity.getPlacedBy().isEmpty()) {
+			cantGhost = true;
+		}
+		return !cantGhost;
+	}
+
+	private static boolean isBlueprintable(TilePrototype tile) {
+		if (!tile.lua().get("can_be_part_of_blueprint").optboolean(true)) {
+			return false;
+		}
+		if (tile.getPlacedBy().isEmpty()) {
+			return false;
+		}
+		return true;
+	}
+
 	public static void main(String[] args) throws IOException {
 		String[] mods = { "base", "space-age", "quality", "elevated-rails" };
 
@@ -72,10 +109,10 @@ public class FBSRModDumperTask {
 			walkDependencies(allMods, mod);
 		}
 
-		System.out.println("Requested Mods: " + Arrays.asList(mods).stream().collect(Collectors.joining(", ")));
-		System.out.println();
-		System.out.println("Mod List: " + allMods.stream().collect(Collectors.joining(", ")));
-		System.out.println();
+		LOGGER.info("Requested Mods: " + Arrays.asList(mods).stream().collect(Collectors.joining(", ")));
+		LOGGER.info("");
+		LOGGER.info("Mod List: " + allMods.stream().collect(Collectors.joining(", ")));
+		LOGGER.info("");
 
 		File folderMods = new File("tempmods");
 		folderMods.mkdirs();
@@ -108,7 +145,7 @@ public class FBSRModDumperTask {
 			}
 			if (file.getName().endsWith("zip") && !modZipFilenames.contains(file.getName())) {
 				file.delete();
-				System.out.println("Deleted " + file.getAbsolutePath());
+				LOGGER.info("Deleted " + file.getAbsolutePath());
 			}
 		}
 
@@ -148,27 +185,21 @@ public class FBSRModDumperTask {
 		factorioData.initialize();
 		DataTable table = factorioData.getTable();
 
-		// TODO check items that place tiles and entities to narrow down the lists
+		LOGGER.info("");
+		table.getEntities().values().stream().filter(e -> isBlueprintable(e))
+				.sorted(Comparator.comparing(e -> e.getName())).forEach(e -> {
+					if (!BASE_ENTITIES.contains(e.getName())) {
+						LOGGER.info(e.getName());
+					}
+				});
 
-		System.out.println();
-		table.getEntities().values().stream().filter(e -> {
-			if (e.getFlags().contains("not-blueprintable")) {
-				return false;
-			}
-			if (e.getFlags().contains("player-creation")) {
-				return true;
-			}
-			return false;
-		}).sorted(Comparator.comparing(e -> e.getName())).forEach(e -> {
-			if (!BASE_ENTITIES.contains(e.getName())) {
-				System.out.println(e.getName());
-			}
-		});
-
-		System.out.println();
-		table.getTiles().values().stream().filter(t -> {
-			return t.lua().get("can_be_part_of_blueprint").optboolean(true);
-		}).sorted(Comparator.comparing(t -> t.getName())).forEach(t -> System.out.println(t.getName()));
+		LOGGER.info("");
+		table.getTiles().values().stream().filter(t -> isBlueprintable(t))
+				.sorted(Comparator.comparing(t -> t.getName())).forEach(t -> {
+					if (!BASE_TILES.contains(t.getName())) {
+						LOGGER.info(t.getName());
+					}
+				});
 
 //		table.getItems().values().stream().filter(i -> !i.lua().get("place_result").isnil())
 //				.map(i -> i.lua().get("place_result").tojstring()).sorted()

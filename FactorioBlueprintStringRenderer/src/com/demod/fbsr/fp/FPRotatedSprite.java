@@ -5,6 +5,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.demod.factorio.FactorioData;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.FPUtils;
@@ -13,6 +16,7 @@ import com.demod.fbsr.Sprite;
 import com.google.common.collect.ImmutableList;
 
 public class FPRotatedSprite extends FPSpriteParameters {
+	private static final Logger LOGGER = LoggerFactory.getLogger(FPRotatedSprite.class);
 
 	public final Optional<List<FPRotatedSprite>> layers;
 	public final int directionCount;
@@ -74,7 +78,7 @@ public class FPRotatedSprite extends FPSpriteParameters {
 			tileIndex = index % fileLength;
 		}
 		if (fileIndex >= filenames.get().size()) {
-			System.out.println("Warning: Trying to access sprite " + index + " in " + filenames.get().size() + " files");
+			LOGGER.warn("Warning: Trying to access sprite " + index + " in " + filenames.get().size() + " files");
 		}
 		String filename = filenames.get().get(fileIndex);
 		if (lineLength > 0) {
