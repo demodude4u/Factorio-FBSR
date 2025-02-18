@@ -140,48 +140,16 @@ public class FBSR {
 		return new Rectangle2D.Double(minX, minY, maxX - minX, maxY - minY);
 	}
 
-	public static Map<String, Double> generateSummedTotalItems(BSBlueprint blueprint) {
-		Map<String, Double> ret = new LinkedHashMap<>();
-		if (!blueprint.entities.isEmpty())
-			ret.put("Entities", (double) blueprint.entities.size());
-
-		for (BSEntity entity : blueprint.entities) {
-			Multiset<String> modules = RenderUtils.getModules(entity);
-			for (Multiset.Entry<String> entry : modules.entrySet()) {
-				addToItemAmount(ret, "Modules", entry.getCount());
-			}
-		}
-		for (BSTile tile : blueprint.tiles) {
-			String itemName = tile.name;
-			// TODO hard-coded
-			if (itemName.startsWith("hazard-concrete")) {
-				itemName = "hazard-concrete";
-			}
-			if (itemName.startsWith("refined-hazard-concrete")) {
-				itemName = "refined-hazard-concrete";
-			}
-			if (itemName.equals("stone-path")) {
-				itemName = "stone-brick";
-			}
-			if (itemName.equals("grass-1")) {
-				itemName = "landfill";
-			}
-			if (!FactorioManager.lookupItemByName(itemName).isPresent()) {
-				LOGGER.warn("MISSING TILE ITEM: {}", itemName);
-				continue;
-			}
-			addToItemAmount(ret, "Tiles", 1);
-		}
-
-		return ret;
-	}
-
 	public static Map<String, Double> generateTotalItems(BSBlueprint blueprint) {
 
 		Map<String, Double> ret = new LinkedHashMap<>();
 		for (BSEntity entity : blueprint.entities) {
 			String entityName = entity.name;
 			EntityRendererFactory<BSEntity> entityFactory = FactorioManager.lookupEntityFactoryForName(entityName);
+			if (entityFactory.isUnknown()) {
+				continue;
+			}
+
 			EntityPrototype entityPrototype = entityFactory.getPrototype();
 
 			Optional<ItemToPlace> primaryItem = entityPrototype.getPrimaryItem();
