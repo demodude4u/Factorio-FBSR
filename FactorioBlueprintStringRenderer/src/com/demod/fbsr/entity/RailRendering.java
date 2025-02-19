@@ -4,7 +4,6 @@ import java.util.Optional;
 import java.util.function.Consumer;
 
 import com.demod.factorio.fakelua.LuaValue;
-import com.demod.fbsr.BoundingBoxWithHeight;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.FPUtils;
@@ -14,6 +13,7 @@ import com.demod.fbsr.Renderer;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.fp.FPSpriteVariations;
+import com.demod.fbsr.map.MapRect3D;
 import com.google.common.collect.ImmutableList;
 
 public abstract class RailRendering extends EntityRendererFactory<BSEntity> {
@@ -122,8 +122,8 @@ public abstract class RailRendering extends EntityRendererFactory<BSEntity> {
 	}
 
 	@Override
-	protected BoundingBoxWithHeight computeBounds() {
-		BoundingBoxWithHeight ret = super.computeBounds();
+	protected MapRect3D computeBounds() {
+		MapRect3D ret = super.computeBounds();
 		if (elevated) {
 			ret = ret.shiftHeight(3);
 		}

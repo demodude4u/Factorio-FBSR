@@ -8,7 +8,6 @@ import java.awt.geom.Rectangle2D;
 import java.util.Optional;
 import java.util.function.Consumer;
 
-import com.demod.fbsr.BoundingBoxWithHeight;
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.Renderer;
@@ -16,6 +15,7 @@ import com.demod.fbsr.WirePoints.WirePoint;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.fp.FPBoundingBox;
+import com.demod.fbsr.map.MapRect3D;
 
 public class ErrorRendering extends EntityRendererFactory<BSEntity> {
 
@@ -32,7 +32,7 @@ public class ErrorRendering extends EntityRendererFactory<BSEntity> {
 	@Override
 	public void createRenderers(Consumer<Renderer> register, WorldMap map, BSEntity entity) {
 		Point2D.Double pos = entity.position.createPoint();
-		BoundingBoxWithHeight bounds = factory.getDrawBounds().rotate(entity.direction);
+		MapRect3D bounds = factory.getDrawBounds().rotate(entity.direction);
 		bounds = bounds.shift(pos.x, pos.y);
 		register.accept(new Renderer(Layer.ENTITY_INFO_ICON_ABOVE, bounds, false) {
 			@Override

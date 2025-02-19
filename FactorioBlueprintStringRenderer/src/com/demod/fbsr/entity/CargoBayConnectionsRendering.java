@@ -12,7 +12,6 @@ import java.util.stream.Collectors;
 
 import com.demod.factorio.Utils;
 import com.demod.factorio.fakelua.LuaValue;
-import com.demod.fbsr.BoundingBoxWithHeight;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.Layer;
@@ -27,6 +26,7 @@ import com.demod.fbsr.fp.FPBoundingBox;
 import com.demod.fbsr.fp.FPLayeredSprite;
 import com.demod.fbsr.fp.FPLayeredSpriteVariations;
 import com.demod.fbsr.fp.FPVector;
+import com.demod.fbsr.map.MapRect3D;
 
 //Not a real prototype, but to render cargo bay connection tilings
 public abstract class CargoBayConnectionsRendering extends SimpleEntityRendering<BSEntity> {
@@ -230,7 +230,7 @@ public abstract class CargoBayConnectionsRendering extends SimpleEntityRendering
 			int variation = rand.nextInt(protoSprites.getVariationCount());
 			for (SpriteWithLayer swl : protoSprites.createSpritesWithLayers(data, variation)) {
 				register.accept(RenderUtils.spriteRenderer(swl.getLayer(), swl.getSprite(), point,
-						new BoundingBoxWithHeight(0, 0, 0, 0, 0)));
+						new MapRect3D(0, 0, 0, 0, 0)));
 			}
 
 		}

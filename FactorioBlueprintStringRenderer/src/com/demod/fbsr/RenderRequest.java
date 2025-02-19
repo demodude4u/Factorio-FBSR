@@ -32,6 +32,7 @@ public class RenderRequest {
 	private OptionalInt minWidth = OptionalInt.empty();
 	private OptionalInt minHeight = OptionalInt.empty();
 	private OptionalDouble maxScale = OptionalDouble.empty();
+	private boolean dontClipSprites = false;
 
 	private Optional<Color> background = Optional.of(FBSR.GROUND_COLOR);
 	private Optional<Color> gridLines = Optional.of(FBSR.GRID_COLOR);
@@ -80,12 +81,20 @@ public class RenderRequest {
 		return reporting;
 	}
 
+	public boolean isDontClipSprites() {
+		return dontClipSprites;
+	}
+
 	public void setBackground(Optional<Color> background) {
 		this.background = background;
 	}
 
 	public void setBlueprint(BSBlueprint blueprint) {
 		this.blueprint = blueprint;
+	}
+
+	public void setDontClipSprites(boolean dontClipSprites) {
+		this.dontClipSprites = dontClipSprites;
 	}
 
 	public void setGridLines(Optional<Color> gridLines) {

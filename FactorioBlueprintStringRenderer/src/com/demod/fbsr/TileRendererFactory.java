@@ -40,6 +40,7 @@ import com.demod.fbsr.fp.FPTileSpriteLayout;
 import com.demod.fbsr.fp.FPTileSpriteLayoutVariant;
 import com.demod.fbsr.fp.FPTileTransitionVariantLayout;
 import com.demod.fbsr.fp.FPTileTransitions;
+import com.demod.fbsr.map.MapRect3D;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ImmutableList;
@@ -167,7 +168,7 @@ public class TileRendererFactory {
 			sprite.source = new Rectangle(0, 0, sourceSize, sourceSize);
 			sprite.source.x = frame * sprite.source.width;
 			register.accept(
-					RenderUtils.spriteRenderer(Layer.DECALS, sprite, new BoundingBoxWithHeight(sprite.bounds, 0)));
+					RenderUtils.spriteRenderer(Layer.DECALS, sprite, new MapRect3D(sprite.bounds, 0)));
 		}
 
 		@Override
@@ -200,7 +201,7 @@ public class TileRendererFactory {
 						sprite.source.x = frame * sprite.source.width;
 						sprite.source.y = param.variant * sprite.source.height;
 						register.accept(RenderUtils.spriteRenderer(Layer.DECALS, sprite,
-								new BoundingBoxWithHeight(pos.x, pos.y, pos.x + 1, pos.y + 1, 0)));
+								new MapRect3D(pos.x, pos.y, pos.x + 1, pos.y + 1, 0)));
 					}
 				}
 			}
@@ -230,7 +231,7 @@ public class TileRendererFactory {
 						sprite.source.x = frame * sprite.source.width;
 						sprite.source.y = param.variant * sprite.source.height;
 						register.accept(RenderUtils.spriteRenderer(Layer.UNDER_TILES, sprite,
-								new BoundingBoxWithHeight(pos.x, pos.y, pos.x + 1, pos.y + 1, 0)));
+								new MapRect3D(pos.x, pos.y, pos.x + 1, pos.y + 1, 0)));
 					}
 				}
 			}
@@ -262,7 +263,7 @@ public class TileRendererFactory {
 			sprite.source.y = ((int) Math.floor(pos.y * sourceSize) % h + h) % h;
 
 			register.accept(
-					RenderUtils.spriteRenderer(Layer.DECALS, sprite, new BoundingBoxWithHeight(sprite.bounds, 0)));
+					RenderUtils.spriteRenderer(Layer.DECALS, sprite, new MapRect3D(sprite.bounds, 0)));
 		}
 
 		@Override
@@ -322,7 +323,7 @@ public class TileRendererFactory {
 		@Override
 		public void createRenderers(Consumer<Renderer> register, WorldMap map, BSTile tile) {
 			Point2D.Double pos = tile.position.createPoint();
-			BoundingBoxWithHeight bounds = new BoundingBoxWithHeight(pos.x - 0.25, pos.y - 0.25, pos.x + 0.25,
+			MapRect3D bounds = new MapRect3D(pos.x - 0.25, pos.y - 0.25, pos.x + 0.25,
 					pos.y + 0.25, 0);
 			float randomFactor = new Random(tile.name.hashCode()).nextFloat();
 			register.accept(new Renderer(Layer.ABOVE_TILES, bounds, false) {

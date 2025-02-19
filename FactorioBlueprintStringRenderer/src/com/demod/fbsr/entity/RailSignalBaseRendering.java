@@ -9,7 +9,6 @@ import org.json.JSONObject;
 
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.BSUtils;
-import com.demod.fbsr.BoundingBoxWithHeight;
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.Layer;
@@ -24,6 +23,7 @@ import com.demod.fbsr.fp.FPBoundingBox;
 import com.demod.fbsr.fp.FPRotatedAnimation;
 import com.demod.fbsr.fp.FPVector;
 import com.demod.fbsr.legacy.LegacyBlueprintEntity;
+import com.demod.fbsr.map.MapRect3D;
 
 public abstract class RailSignalBaseRendering extends EntityRendererFactory<BSRailSignalBaseEntity> {
 
@@ -99,7 +99,7 @@ public abstract class RailSignalBaseRendering extends EntityRendererFactory<BSRa
 			RenderUtils.shiftSprites(structureSprites, elevatedShift);
 		}
 
-		BoundingBoxWithHeight drawBounds = new BoundingBoxWithHeight(shiftedSelectionBox, this.drawBounds.height);
+		MapRect3D drawBounds = new MapRect3D(shiftedSelectionBox, this.drawBounds.height);
 		register.accept(RenderUtils.spriteRenderer(layer, railPieceSprites, entity, drawBounds));
 		register.accept(RenderUtils.spriteRenderer(layer, structureSprites, entity, drawBounds));
 	}

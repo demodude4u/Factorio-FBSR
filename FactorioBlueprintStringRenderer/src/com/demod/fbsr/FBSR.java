@@ -61,6 +61,7 @@ import com.demod.fbsr.bs.BSTile;
 import com.demod.fbsr.bs.BSWire;
 import com.demod.fbsr.entity.ErrorRendering;
 import com.demod.fbsr.gui.GUIStyle;
+import com.demod.fbsr.map.MapRect3D;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Table;
@@ -113,6 +114,30 @@ public class FBSR {
 		items.put(itemName, amount);
 	}
 
+	private static Rectangle2D.Double computeSpriteBounds(List<Renderer> renderers) {
+		if (renderers.isEmpty()) {
+			return new Rectangle2D.Double();
+		}
+		boolean first = true;
+		double minX = 0, minY = 0, maxX = 0, maxY = 0;
+		for (Renderer renderer : renderers) {
+			MapRect3D bounds = renderer.bounds;
+			if (first) {
+				first = false;
+				minX = bounds.x1;
+				minY = bounds.y1 - bounds.height;
+				maxX = bounds.x2;
+				maxY = bounds.y2;
+			} else {
+				minX = Math.min(minX, bounds.x1);
+				minY = Math.min(minY, bounds.y1 - bounds.height);
+				maxX = Math.max(maxX, bounds.x2);
+				maxY = Math.max(maxY, bounds.y2);
+			}
+		}
+		return new Rectangle2D.Double(minX, minY, maxX - minX, maxY - minY);
+	}
+
 	private static Rectangle2D.Double computeDrawBounds(List<Renderer> renderers) {
 		if (renderers.isEmpty()) {
 			return new Rectangle2D.Double();
@@ -123,7 +148,7 @@ public class FBSR {
 			if (renderer.ignoreBoundsCalculation()) {
 				continue;
 			}
-			BoundingBoxWithHeight bounds = renderer.bounds;
+			MapRect3D bounds = renderer.bounds;
 			if (first) {
 				first = false;
 				minX = bounds.x1;
@@ -150,7 +175,7 @@ public class FBSR {
 			if (renderer.ignoreBoundsCalculation()) {
 				continue;
 			}
-			BoundingBoxWithHeight bounds = renderer.bounds;
+			MapRect3D bounds = renderer.bounds;
 			if (first) {
 				first = false;
 				minX = bounds.x1;
@@ -785,7 +810,7 @@ public class FBSR {
 		// Grid Lines
 		if (request.getGridLines().isPresent() && !gridTooSmall) {
 			if (gridPlatformMode) {
-				renderers.add(new Renderer(gridLayer, new BoundingBoxWithHeight(gridBounds, 0), true) {
+				renderers.add(new Renderer(gridLayer, new MapRect3D(gridBounds, 0), true) {
 					@Override
 					public void render(Graphics2D g) throws Exception {
 						g.setStroke(GRID_STROKE);
@@ -800,7 +825,7 @@ public class FBSR {
 					}
 				});
 			} else {
-				renderers.add(new Renderer(gridLayer, new BoundingBoxWithHeight(gridBounds, 0), true) {
+				renderers.add(new Renderer(gridLayer, new MapRect3D(gridBounds, 0), true) {
 					@Override
 					public void render(Graphics2D g) throws Exception {
 						g.setStroke(GRID_STROKE);
@@ -828,7 +853,7 @@ public class FBSR {
 		shadowG.dispose();
 		RenderUtils.halveAlpha(shadowImage);
 
-		renderers.add(new Renderer(Layer.SHADOW_BUFFER, new BoundingBoxWithHeight(worldBounds, 0), true) {
+		renderers.add(new Renderer(Layer.SHADOW_BUFFER, new MapRect3D(worldBounds, 0), true) {
 			@Override
 			public void render(Graphics2D g) throws Exception {
 				AffineTransform tempXform = g.getTransform();
@@ -848,8 +873,8 @@ public class FBSR {
 				return ret;
 			}
 
-			BoundingBoxWithHeight b1 = r1.getBounds();
-			BoundingBoxWithHeight b2 = r2.getBounds();
+			MapRect3D b1 = r1.getBounds();
+			MapRect3D b2 = r2.getBounds();
 
 			ret = Double.compare(b1.y1, b2.y1);
 			if (ret != 0) {
@@ -870,7 +895,7 @@ public class FBSR {
 				if (debugBounds) {
 					g.setStroke(new BasicStroke(1f / (float) TILE_SIZE));
 					g.setColor(r.ignoreBoundsCalculation() ? Color.gray : Color.magenta);
-					BoundingBoxWithHeight b = r.bounds;
+					MapRect3D b = r.bounds;
 					g.draw(new Rectangle2D.Double(b.x1, b.y1 - b.height, b.x2 - b.x1, b.y2 - b.y1 + b.height));
 					if (b.height > 0) {
 						g.setColor(g.getColor().darker());

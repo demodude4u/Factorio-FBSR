@@ -39,6 +39,7 @@ import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.fp.FPBoundingBox;
 import com.demod.fbsr.fp.FPVector;
 import com.demod.fbsr.legacy.LegacyBlueprintEntity;
+import com.demod.fbsr.map.MapRect3D;
 import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.Multiset;
 
@@ -54,7 +55,7 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 		@Override
 		public void createRenderers(Consumer<Renderer> register, WorldMap map, BSEntity entity) {
 			Point2D.Double pos = entity.position.createPoint();
-			BoundingBoxWithHeight bounds = new BoundingBoxWithHeight(pos.x - 0.5, pos.y - 0.5, pos.x + 0.5, pos.y + 0.5,
+			MapRect3D bounds = new MapRect3D(pos.x - 0.5, pos.y - 0.5, pos.x + 0.5, pos.y + 0.5,
 					0);
 			register.accept(new Renderer(Layer.ENTITY_INFO_ICON_ABOVE, bounds, false) {
 				@Override
@@ -138,7 +139,7 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 		LOGGER.info("Initialized {} entities.", factories.size());
 	}
 
-	protected BoundingBoxWithHeight computeBounds() {
+	protected MapRect3D computeBounds() {
 		LuaTable lua = prototype.lua();
 		Optional<FPBoundingBox> selectionBox = FPUtils.opt(lua.get("selection_box"), FPBoundingBox::new);
 		Optional<FPBoundingBox> collisionBox = FPUtils.opt(lua.get("collision_box"), FPBoundingBox::new);
@@ -168,7 +169,7 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 		double x2 = Math.max(sb2.x, cb2.x);
 		double y2 = Math.max(sb2.y, cb2.y);
 
-		return new BoundingBoxWithHeight(x1, y1, x2, y2, drawingBoxVerticalExtension);
+		return new MapRect3D(x1, y1, x2, y2, drawingBoxVerticalExtension);
 	}
 
 	@SuppressWarnings({ "rawtypes" })
@@ -209,7 +210,7 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 	protected FPBoundingBox protoSelectionBox;
 	protected boolean protoBeaconed;
 
-	protected BoundingBoxWithHeight drawBounds;
+	protected MapRect3D drawBounds;
 
 	protected Map<Integer, WirePoints> wirePointsById;
 
@@ -353,7 +354,7 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 		return data;
 	}
 
-	public BoundingBoxWithHeight getDrawBounds() {
+	public MapRect3D getDrawBounds() {
 		return drawBounds;
 	}
 

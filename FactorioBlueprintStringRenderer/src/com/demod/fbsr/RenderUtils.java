@@ -28,6 +28,7 @@ import com.demod.factorio.Utils;
 import com.demod.factorio.prototype.ItemPrototype;
 import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.bs.BSItemStack;
+import com.demod.fbsr.map.MapRect3D;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.Multiset;
@@ -43,18 +44,17 @@ public final class RenderUtils {
 
 	private static final DecimalFormat DECIMAL_FORMAT_2_PLACES = new DecimalFormat("#,##0.##");
 
-	public static Sprite createSprite(FactorioData data, String filename, boolean shadow, String blendMode, Color tint,
+	public static Sprite createSprite(FactorioData data, String filename, Layer layer, String blendMode, Color tint,
 			int srcX, int srcY, int srcWidth, int srcHeight, double dstX, double dstY, double dstScale) {
 
 		Sprite ret = new Sprite();
 		ret.image = data.getModImage(filename);
-		ret.shadow = shadow;
+		ret.layer = layer;
 
 		if (!blendMode.equals("normal")) { // FIXME blending will take effort
 			ret.image = RenderUtils.EMPTY_IMAGE;
 		}
 
-		// FIXME
 		if (!tint.equals(Color.white)) {
 			ret.image = Utils.tintImage(ret.image, tint);
 		}
@@ -72,7 +72,7 @@ public final class RenderUtils {
 			Point2D.Double shadow2) {
 		Rectangle2D.Double bounds2D = new Rectangle2D.Double();
 		bounds2D.setFrameFromDiagonal(p1, p2);
-		BoundingBoxWithHeight bounds = new BoundingBoxWithHeight(bounds2D, 0);
+		MapRect3D bounds = new MapRect3D(bounds2D, 0);
 
 		return new EntityRenderer(Layer.WIRE, bounds, true) {
 			final double drop = 0.6;
@@ -152,8 +152,8 @@ public final class RenderUtils {
 			@Override
 			public void render(Graphics2D g) {
 				g.setFont(new Font("Monospaced", Font.BOLD, 1).deriveFont(0.4f));
-				float textX = (float) position.x;
-				float textY = (float) position.y;
+				float textX = (float) position.getX();
+				float textY = (float) position.getY();
 				g.setColor(Color.darkGray);
 				g.drawString(string, textX + 0.05f, textY + 0.05f);
 				g.setColor(color);
@@ -312,17 +312,15 @@ public final class RenderUtils {
 		}
 	}
 
-	public static EntityRenderer spriteRenderer(Layer layer, List<Sprite> sprites, BSEntity entity,
-			BoundingBoxWithHeight bounds) {
-		return spriteRenderer(layer, sprites, entity.position.createPoint(), bounds.rotate(entity.direction));
+	public static EntityRenderer spriteRenderer(List<Sprite> sprites, BSEntity entity, MapRect3D bounds) {
+		return spriteRenderer(sprites, entity.position.createPoint(), bounds.rotate(entity.direction));
 	}
 
-	public static EntityRenderer spriteRenderer(Layer layer, List<Sprite> sprites, Point2D.Double pos,
-			BoundingBoxWithHeight bounds) {
+	public static EntityRenderer spriteRenderer(List<Sprite> sprites, Point2D.Double pos, MapRect3D bounds) {
 		RenderUtils.shiftSprites(sprites, pos);
 
 		Map<Boolean, List<Sprite>> groupedSprites = sprites.stream()
-				.collect(Collectors.partitioningBy(sprite -> sprite.shadow));
+				.collect(Collectors.partitioningBy(sprite -> sprite.layer == Layer.SHADOW_BUFFER));
 
 		bounds = bounds.shift(pos.x, pos.y);
 
@@ -343,18 +341,16 @@ public final class RenderUtils {
 		};
 	}
 
-	public static EntityRenderer spriteRenderer(Layer layer, Sprite sprite, BSEntity entity,
-			BoundingBoxWithHeight bounds) {
-		return spriteRenderer(layer, ImmutableList.of(sprite), entity, bounds);
+	public static EntityRenderer spriteRenderer(Sprite sprite, BSEntity entity, MapRect3D bounds) {
+		return spriteRenderer(ImmutableList.of(sprite), entity, bounds);
 	}
 
-	public static EntityRenderer spriteRenderer(Layer layer, Sprite sprite, Point2D.Double pos,
-			BoundingBoxWithHeight bounds) {
-		return spriteRenderer(layer, ImmutableList.of(sprite), pos, bounds);
+	public static EntityRenderer spriteRenderer(Sprite sprite, Point2D.Double pos, MapRect3D bounds) {
+		return spriteRenderer(ImmutableList.of(sprite), pos, bounds);
 	}
 
-	public static Renderer spriteRenderer(Layer layer, Sprite sprite, BoundingBoxWithHeight bounds) {
-		return new Renderer(layer, bounds, false) {
+	public static Renderer spriteRenderer(Sprite sprite, MapRect3D bounds) {
+		return new Renderer(sprite.layer, bounds, false) {
 			@SuppressWarnings("unused")
 			private void debugShowBounds(Rectangle2D.Double groundBounds, Graphics2D g) {
 				long x = Math.round(groundBounds.getCenterX() * 2);
@@ -384,14 +380,6 @@ public final class RenderUtils {
 				// debugShowBounds(groundBounds, g);
 			}
 		};
-	}
-
-	public static EntityRenderer spriteRenderer(List<Sprite> sprites, BSEntity entity, BoundingBoxWithHeight bounds) {
-		return spriteRenderer(Layer.OBJECT, sprites, entity, bounds);
-	}
-
-	public static EntityRenderer spriteRenderer(Sprite sprite, BSEntity entity, BoundingBoxWithHeight bounds) {
-		return spriteRenderer(Layer.OBJECT, sprite, entity, bounds);
 	}
 
 	public static Color withAlpha(Color color, int alpha) {

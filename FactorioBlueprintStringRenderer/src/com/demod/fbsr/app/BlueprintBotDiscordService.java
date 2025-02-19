@@ -8,7 +8,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
-import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -22,16 +21,17 @@ import java.util.OptionalInt;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import javax.imageio.ImageIO;
 
-import org.apache.commons.text.similarity.LevenshteinDistance;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.demod.dcba.AutoCompleteEvent;
 import com.demod.dcba.AutoCompleteHandler;
 import com.demod.dcba.CommandReporting;
 import com.demod.dcba.DCBA;
@@ -46,6 +46,7 @@ import com.demod.factorio.fakelua.LuaValue;
 import com.demod.factorio.prototype.DataPrototype;
 import com.demod.fbsr.BlueprintFinder;
 import com.demod.fbsr.BlueprintFinder.FindBlueprintResult;
+import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.FBSR;
 import com.demod.fbsr.FactorioManager;
 import com.demod.fbsr.RenderRequest;
@@ -57,6 +58,7 @@ import com.demod.fbsr.bs.BSBlueprint;
 import com.demod.fbsr.bs.BSBlueprintBook;
 import com.demod.fbsr.bs.BSBlueprintString;
 import com.demod.fbsr.bs.BSDeconstructionPlanner;
+import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.bs.BSUpgradePlanner;
 import com.demod.fbsr.gui.layout.GUILayoutBlueprint;
 import com.demod.fbsr.gui.layout.GUILayoutBook;
@@ -205,54 +207,54 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 	private String hostingChannelID;
 
-	private AutoCompleteHandler createDataRawAutoCompleteHandler() {
-		return (event) -> {
-			event.reply(FactorioManager.getDatas().stream().map(d -> d.getFolderMods().getName())
-					.collect(Collectors.toList()));
-		};
+	private void handleDataRawAutoComplete(AutoCompleteEvent event) {
+		event.reply(
+				FactorioManager.getDatas().stream().map(d -> d.getFolderMods().getName()).collect(Collectors.toList()));
 	}
 
-	private SlashCommandHandler createDataRawCommandHandler() {
-		return (event) -> {
-			String profile = event.getParamString("profile");
-			Optional<FactorioData> data = FactorioManager.getDatas().stream()
-					.filter(d -> d.getFolderMods().getName().equals(profile)).findAny();
-			if (data.isEmpty()) {
-				event.reply("Could not find profile!");
-				return;
-			}
+	private void handleDataRawCommand(SlashCommandEvent event) throws IOException {
+		String profile = event.getParamString("profile");
+		Optional<FactorioData> data = FactorioManager.getDatas().stream()
+				.filter(d -> d.getFolderMods().getName().equals(profile)).findAny();
+		if (data.isEmpty()) {
+			event.reply("Could not find profile!");
+			return;
+		}
 
-			String key = event.getParamString("path");
-			String[] path = key.split("\\.");
-			Optional<LuaValue> lua = data.get().getTable().getRaw(path);
-			if (!lua.isPresent()) {
-				event.reply("I could not find a lua table for the path [`"
-						+ Arrays.asList(path).stream().collect(Collectors.joining(", ")) + "`] :frowning:");
-				return;
-			}
-			sendLuaDumpFile(event, "raw", key, lua.get());
-		};
+		String key = event.getParamString("path");
+		String[] path = key.split("\\.");
+		Optional<LuaValue> lua = data.get().getTable().getRaw(path);
+		if (!lua.isPresent()) {
+			event.reply("I could not find a lua table for the path [`"
+					+ Arrays.asList(path).stream().collect(Collectors.joining(", ")) + "`] :frowning:");
+			return;
+		}
+		sendLuaDumpFile(event, "raw", key, lua.get());
 	}
 
-	private AutoCompleteHandler createPrototypeAutoCompleteHandler(Map<String, ? extends DataPrototype> map) {
+	private AutoCompleteHandler createPrototypeAutoCompleteHandler(List<? extends DataPrototype> options) {
 		return (event) -> {
-			String name = event.getParamString("name").trim().toLowerCase();
+			String search = event.getParamString("name").trim().toLowerCase();
 
-			if (name.isEmpty()) {
+			if (search.isEmpty()) {
 				event.reply(ImmutableList.of());
 				return;
 			}
 
 			List<String> nameStartsWith = new ArrayList<>();
 			List<String> nameContains = new ArrayList<>();
-			map.keySet().stream().sorted().forEach(n -> {
-				String lowerCase = n.toLowerCase();
-				if (lowerCase.startsWith(name)) {
-					nameStartsWith.add(n);
-				} else if (lowerCase.contains(name)) {
-					nameContains.add(n);
+			for (DataPrototype proto : options) {
+				String name = proto.getName();
+				String lowerCase = name.toLowerCase();
+				if (lowerCase.startsWith(search)) {
+					nameStartsWith.add(name);
+				} else if (lowerCase.contains(search)) {
+					nameContains.add(name);
 				}
-			});
+				if (nameStartsWith.size() + nameContains.size() >= OptionData.MAX_CHOICES) {
+					break;
+				}
+			}
 
 			List<String> choices = ImmutableList.<String>builder().addAll(nameStartsWith).addAll(nameContains).build()
 					.stream().limit(OptionData.MAX_CHOICES).collect(Collectors.toList());
@@ -261,19 +263,12 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 	}
 
 	private SlashCommandHandler createPrototypeCommandHandler(String category,
-			Map<String, ? extends DataPrototype> map) {
+			Function<String, Optional<? extends DataPrototype>> lookup) {
 		return (event) -> {
 			String search = event.getParamString("name");
-			Optional<? extends DataPrototype> prototype = Optional.ofNullable(map.get(search));
+			Optional<? extends DataPrototype> prototype = lookup.apply(search);
 			if (!prototype.isPresent()) {
-				LevenshteinDistance levenshteinDistance = LevenshteinDistance.getDefaultInstance();
-				List<String> suggestions = map.keySet().stream()
-						.map(k -> new SimpleEntry<>(k, levenshteinDistance.apply(search, k)))
-						.sorted((p1, p2) -> Integer.compare(p1.getValue(), p2.getValue())).limit(5).map(p -> p.getKey())
-						.collect(Collectors.toList());
-				event.reply("I could not find the " + category + " prototype for `" + search
-						+ "`. :frowning:\nDid you mean:\n"
-						+ suggestions.stream().map(s -> "\t - " + s).collect(Collectors.joining("\n")));
+				event.reply("I could not find the " + category + " prototype for `" + search);
 				return;
 			}
 
@@ -784,6 +779,60 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		}
 	}
 
+	private void handleShowEntityCommand(SlashCommandEvent event) {
+		String entityName = event.getParamString("entity");
+		boolean debug = event.optParamBoolean("debug").orElse(false);
+
+		EntityRendererFactory<BSEntity> factory = FactorioManager.lookupEntityFactoryForName(entityName);
+		if (factory.isUnknown()) {
+			event.reply("I could not find a way to display a `" + entityName);
+			return;
+		}
+
+		String jsonRaw = "{\"blueprint\":{\"entities\":[{\"entity_number\":1,\"name\":\"" + entityName
+				+ "\",\"position\":{\"x\":0,\"y\":0}}],\"version\":562949955649542}}";
+		BSBlueprint blueprint = BlueprintFinder.search(jsonRaw, event.getReporting()).get(0).findAllBlueprints().get(0);
+
+		RenderRequest request = new RenderRequest(blueprint, event.getReporting());
+		request.setBackground(Optional.empty());
+		request.setGridLines(Optional.empty());
+		request.debug.entityPlacement = debug;
+
+		RenderResult result = FBSR.renderBlueprint(request);
+
+		ImageShrinkResult shrinkResult = shrinkImageToFitUploadLimit(result.image);
+		String imageFilename = WebUtils.formatBlueprintFilename(Optional.of(entityName), shrinkResult.extension);
+		event.replyFile(shrinkResult.data, imageFilename);
+	}
+
+	private void handleShowEntityAutoComplete(AutoCompleteEvent event) {
+		String search = event.getParamString("entity").trim().toLowerCase();
+
+		if (search.isEmpty()) {
+			event.reply(ImmutableList.of());
+			return;
+		}
+
+		List<String> nameStartsWith = new ArrayList<>();
+		List<String> nameContains = new ArrayList<>();
+		for (EntityRendererFactory<?> factory : FactorioManager.getEntityFactories()) {
+			String name = factory.getName();
+			String lowerCase = name.toLowerCase();
+			if (lowerCase.startsWith(search)) {
+				nameStartsWith.add(name);
+			} else if (lowerCase.contains(search)) {
+				nameContains.add(name);
+			}
+			if (nameStartsWith.size() + nameContains.size() >= OptionData.MAX_CHOICES) {
+				break;
+			}
+		}
+
+		List<String> choices = ImmutableList.<String>builder().addAll(nameStartsWith).addAll(nameContains).build()
+				.stream().limit(OptionData.MAX_CHOICES).collect(Collectors.toList());
+		event.reply(choices);
+	}
+
 	public void onBlueprintContextInteraction(MessageContextInteractionEvent event, CommandReporting reporting)
 			throws InterruptedException, ExecutionException, IOException {
 
@@ -1177,32 +1226,30 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				.withCustomField("Mods Loaded",
 						groups.stream().sorted(Comparator.comparing(s -> s.toLowerCase()))
 								.collect(Collectors.joining(", ")))
-				.addSlashCommand("bp/string", "Renders an image of the blueprint string.",
-						event -> handleBlueprintCommand(event))//
+				.addSlashCommand("bp/string", "Renders an image of the blueprint string.", this::handleBlueprintCommand)//
 				.withParam(OptionType.STRING, "string", "Blueprint string.")//
 				//
-				.addSlashCommand("bp/url", "Renders an image of the blueprint url.",
-						event -> handleBlueprintCommand(event))//
+				.addSlashCommand("bp/url", "Renders an image of the blueprint url.", this::handleBlueprintCommand)//
 				.withParam(OptionType.STRING, "url", "Url containing blueprint string.")//
 				//
 				.addSlashCommand("bp/file", "Renders an image of the blueprint attachment.",
-						event -> handleBlueprintCommand(event))//
+						this::handleBlueprintCommand)//
 				.withParam(OptionType.ATTACHMENT, "file", "File containing blueprint string.")//
 				//
 				.addSlashCommand("blueprint/string", "Renders an image of the blueprint string.",
-						event -> handleBlueprintCommand(event))//
+						this::handleBlueprintCommand)//
 				.withParam(OptionType.STRING, "string", "Blueprint string.")//
 				//
 				.addSlashCommand("blueprint/url", "Renders an image of the blueprint url.",
-						event -> handleBlueprintCommand(event))//
+						this::handleBlueprintCommand)//
 				.withParam(OptionType.STRING, "url", "Url containing blueprint string.")//
 				//
 				.addSlashCommand("blueprint/file", "Renders an image of the blueprint attachment.",
-						event -> handleBlueprintCommand(event))//
+						this::handleBlueprintCommand)//
 				.withParam(OptionType.ATTACHMENT, "file", "File containing blueprint string.")//
 				//
 				.addSlashCommand("blueprint/custom", "Alternative rendering options to display a blueprint.",
-						event -> handleBlueprintCustomCommand(event))//
+						this::handleBlueprintCustomCommand)//
 				.withOptionalParam(OptionType.STRING, "string", "Blueprint string.")//
 				.withOptionalParam(OptionType.STRING, "url", "Url containing blueprint string.")//
 				.withOptionalParam(OptionType.ATTACHMENT, "file", "File containing blueprint string.")//
@@ -1232,67 +1279,73 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 						"Show debug markers for entity position, direction, and bounds.")//
 				//
 				.addSlashCommand("json", "Provides a dump of the json data in the specified blueprint string.",
-						event -> handleBlueprintJsonCommand(event))//
+						this::handleBlueprintJsonCommand)//
 				.withOptionalParam(OptionType.STRING, "string", "Blueprint string.")//
 				.withOptionalParam(OptionType.STRING, "url", "Url containing blueprint string.")//
 				.withOptionalParam(OptionType.ATTACHMENT, "file", "File containing blueprint string.")//
 				//
 				.addSlashCommand("items", "Prints out all of the items needed by the blueprint.",
-						event -> handleBlueprintItemsCommand(event))//
+						this::handleBlueprintItemsCommand)//
 				.withOptionalParam(OptionType.STRING, "string", "Blueprint string.")//
 				.withOptionalParam(OptionType.STRING, "url", "Url containing blueprint string.")//
 				.withOptionalParam(OptionType.ATTACHMENT, "file", "File containing blueprint string.")//
 				//
 				.addSlashCommand("raw/items", "Prints out all of the raw items needed by the blueprint.",
-						event -> handleBlueprintItemsRawCommand(event))//
+						this::handleBlueprintItemsRawCommand)//
 				.withOptionalParam(OptionType.STRING, "string", "Blueprint string.")//
 				.withOptionalParam(OptionType.STRING, "url", "Url containing blueprint string.")//
 				.withOptionalParam(OptionType.ATTACHMENT, "file", "File containing blueprint string.")//
 				//
 				.addSlashCommand("book/directory", "Prints out list of all blueprints in a blueprint book.",
-						event -> handleBookDirectoryCommand(event))
+						this::handleBookDirectoryCommand)
 				.withOptionalParam(OptionType.STRING, "string", "Blueprint string.")//
 				.withOptionalParam(OptionType.STRING, "url", "Url containing blueprint string.")//
 				.withOptionalParam(OptionType.ATTACHMENT, "file", "File containing blueprint string.")//
 				//
 				.addSlashCommand("prototype/entity", "Lua data for the specified entity prototype.",
-						createPrototypeCommandHandler("entity", FactorioManager.getEntities()),
+						createPrototypeCommandHandler("entity", FactorioManager::lookupEntityByName),
 						createPrototypeAutoCompleteHandler(FactorioManager.getEntities()))//
 				.withAutoParam(OptionType.STRING, "name", "Prototype name of the entity.")//
 				//
 				.addSlashCommand("prototype/recipe", "Lua data for the specified recipe prototype.",
-						createPrototypeCommandHandler("recipe", FactorioManager.getRecipes()),
+						createPrototypeCommandHandler("recipe", FactorioManager::lookupRecipeByName),
 						createPrototypeAutoCompleteHandler(FactorioManager.getRecipes()))//
 				.withAutoParam(OptionType.STRING, "name", "Prototype name of the recipe.")//
 				//
 				.addSlashCommand("prototype/fluid", "Lua data for the specified fluid prototype.",
-						createPrototypeCommandHandler("fluid", FactorioManager.getFluids()),
+						createPrototypeCommandHandler("fluid", FactorioManager::lookupFluidByName),
 						createPrototypeAutoCompleteHandler(FactorioManager.getFluids()))//
 				.withAutoParam(OptionType.STRING, "name", "Prototype name of the fluid.")//
 				//
 				.addSlashCommand("prototype/item", "Lua data for the specified item prototype.",
-						createPrototypeCommandHandler("item", FactorioManager.getItems()),
+						createPrototypeCommandHandler("item", FactorioManager::lookupItemByName),
 						createPrototypeAutoCompleteHandler(FactorioManager.getItems()))//
 				.withAutoParam(OptionType.STRING, "name", "Prototype name of the item.")//
 				//
 				.addSlashCommand("prototype/technology", "Lua data for the specified technology prototype.",
-						createPrototypeCommandHandler("technology", FactorioManager.getTechnologies()),
+						createPrototypeCommandHandler("technology", FactorioManager::lookupTechnologyByName),
 						createPrototypeAutoCompleteHandler(FactorioManager.getTechnologies()))//
 				.withAutoParam(OptionType.STRING, "name", "Prototype name of the technology.")//
 				//
 				.addSlashCommand("prototype/equipment", "Lua data for the specified equipment prototype.",
-						createPrototypeCommandHandler("equipment", FactorioManager.getEquipments()),
+						createPrototypeCommandHandler("equipment", FactorioManager::lookupEquipmentByName),
 						createPrototypeAutoCompleteHandler(FactorioManager.getEquipments()))//
 				.withAutoParam(OptionType.STRING, "name", "Prototype name of the equipment.")//
 				//
 				.addSlashCommand("prototype/tile", "Lua data for the specified tile prototype.",
-						createPrototypeCommandHandler("tile", FactorioManager.getTiles()),
+						createPrototypeCommandHandler("tile", FactorioManager::lookupTileByName),
 						createPrototypeAutoCompleteHandler(FactorioManager.getTiles()))//
 				.withAutoParam(OptionType.STRING, "name", "Prototype name of the tile.")//
 				//
 				//
-				.addSlashCommand("data/raw", "Lua from `data.raw` for the specified key.",
-						createDataRawCommandHandler(), createDataRawAutoCompleteHandler())//
+				.addSlashCommand("show/entity", "Display an example of the specified entity.",
+						this::handleShowEntityCommand, this::handleShowEntityAutoComplete)//
+				.withAutoParam(OptionType.STRING, "entity", "Entity name to be shown.")
+				.withOptionalParam(OptionType.BOOLEAN, "debug", "Show debug markers.")
+				//
+				//
+				.addSlashCommand("data/raw", "Lua from `data.raw` for the specified key.", this::handleDataRawCommand,
+						this::handleDataRawAutoComplete)//
 				.withAutoParam(OptionType.STRING, "profile", "Which factorio profile to load from.")
 				.withParam(OptionType.STRING, "path", "Path to identify which key.")//
 				//
