@@ -1,13 +1,19 @@
 package com.demod.fbsr.task;
 
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -19,9 +25,11 @@ import org.slf4j.LoggerFactory;
 import com.demod.factorio.Config;
 import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
+import com.demod.factorio.Utils;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.factorio.prototype.TilePrototype;
 import com.demod.fbsr.FactorioModPortal;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
 public class FBSRModDumperTask {
@@ -65,6 +73,11 @@ public class FBSRModDumperTask {
 			"overgrowth-yumako-soil", "refined-concrete", "refined-hazard-concrete-left",
 			"refined-hazard-concrete-right", "space-platform-foundation", "stone-path");
 
+	public static final Map<String, String> RENDERING_MAP = ImmutableMap.<String, String>builder()//
+			.put("ContainerRendering", "BasicContainerRendering")//
+			.put("LoaderRendering", "Loader1x2Rendering")//
+			.build();
+
 	// based on cannot_ghost() by _codegreen
 	private static boolean isBlueprintable(EntityPrototype entity) {
 		boolean cantGhost = false;
@@ -91,7 +104,9 @@ public class FBSRModDumperTask {
 	}
 
 	public static void main(String[] args) throws IOException {
-		String[] mods = { "base", "space-age", "quality", "elevated-rails" };
+		String[] mods = { "5dim_energy", "5dim_automation", "5dim_transport", "5dim_mining", "5dim_nuclear",
+				"5dim_battlefield", "5dim_trains", "5dim_logistic", "5dim_resources", "5dim_storage", "5dim_equipment",
+				"5dim_module", "5dim_enemies", "5dim_core", "5dim_infiniteresearch" };
 
 		JSONObject cfgFactorioManager = Config.get().getJSONObject("factorio_manager");
 		JSONObject cfgModPortalApi = cfgFactorioManager.getJSONObject("mod_portal_api");
@@ -120,6 +135,7 @@ public class FBSRModDumperTask {
 		boolean auth = false;
 		String authParams = null;
 
+		Map<String, String> modVersions = new LinkedHashMap<>();
 		Set<String> modZipFilenames = new HashSet<>();
 		for (String mod : allMods) {
 			if (BUILTIN_MODS.contains(mod)) {
@@ -127,6 +143,7 @@ public class FBSRModDumperTask {
 			}
 			JSONObject jsonRelease = FactorioModPortal.findLatestModReleaseInfo(mod);
 			String version = jsonRelease.getString("version");
+			modVersions.put(mod, version);
 			String filename = jsonRelease.getString("file_name");
 			File fileModZip = new File(folderMods, filename);
 			if (!fileModZip.exists()) {
@@ -185,21 +202,67 @@ public class FBSRModDumperTask {
 		factorioData.initialize();
 		DataTable table = factorioData.getTable();
 
-		LOGGER.info("");
+		Map<String, String> modEntityRenderings = new LinkedHashMap<String, String>();
 		table.getEntities().values().stream().filter(e -> isBlueprintable(e))
 				.sorted(Comparator.comparing(e -> e.getName())).forEach(e -> {
 					if (!BASE_ENTITIES.contains(e.getName())) {
-						LOGGER.info(e.getName());
+						String type = e.getType();
+						StringBuilder sb = new StringBuilder();
+						for (String part : type.split("-")) {
+							sb.append(part.substring(0, 1).toUpperCase() + part.substring(1));
+						}
+						sb.append("Rendering");
+						String rendering = sb.toString();
+						if (RENDERING_MAP.containsKey(rendering)) {
+							rendering = RENDERING_MAP.get(rendering);
+						}
+						modEntityRenderings.put(e.getName(), rendering);
 					}
 				});
 
-		LOGGER.info("");
 		table.getTiles().values().stream().filter(t -> isBlueprintable(t))
 				.sorted(Comparator.comparing(t -> t.getName())).forEach(t -> {
 					if (!BASE_TILES.contains(t.getName())) {
-						LOGGER.info(t.getName());
 					}
 				});
+
+		// mod-list
+		try (StringWriter sw = new StringWriter(); PrintWriter pw = new PrintWriter(sw)) {
+			for (String mod : allMods) {
+				JSONObject json = new JSONObject();
+				Utils.terribleHackToHaveOrderedJSONObject(json);
+				json.put("name", mod);
+				json.put("enabled", true);
+				pw.println(json.toString(2));
+				pw.println();
+			}
+			pw.flush();
+			LOGGER.info("mod-list.json additions:\n" + sw.toString());
+		}
+
+		// mod-download
+		try (StringWriter sw = new StringWriter(); PrintWriter pw = new PrintWriter(sw)) {
+			JSONObject json = new JSONObject();
+			Utils.terribleHackToHaveOrderedJSONObject(json);
+			for (String mod : allMods) {
+				json.put(mod, modVersions.get(mod));
+			}
+			pw.println(json.toString(4));
+			pw.flush();
+			LOGGER.info("mod-download.json additions:\n" + sw.toString());
+		}
+
+		// mod-rendering
+		try (StringWriter sw = new StringWriter(); PrintWriter pw = new PrintWriter(sw)) {
+			JSONObject json = new JSONObject();
+			Utils.terribleHackToHaveOrderedJSONObject(json);
+			for (Entry<String, String> entry : modEntityRenderings.entrySet()) {
+				json.put(entry.getKey(), entry.getValue());
+			}
+			pw.println(json.toString(4));
+			pw.flush();
+			LOGGER.info("mod-rendering.json additions:\n" + sw.toString());
+		}
 
 //		table.getItems().values().stream().filter(i -> !i.lua().get("place_result").isnil())
 //				.map(i -> i.lua().get("place_result").tojstring()).sorted()
