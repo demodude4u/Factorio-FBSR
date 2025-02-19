@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,6 +21,7 @@ import com.demod.factorio.Config;
 import com.demod.factorio.FactorioData;
 import com.demod.factorio.ModLoader;
 import com.demod.factorio.fakelua.LuaValue;
+import com.demod.factorio.prototype.DataPrototype;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.factorio.prototype.EquipmentPrototype;
 import com.demod.factorio.prototype.FluidPrototype;
@@ -57,13 +59,19 @@ public class FactorioManager {
 
 	@SuppressWarnings("rawtypes")
 	private static final List<EntityRendererFactory> entityFactories = new ArrayList<>();
+	private static final List<TileRendererFactory> tileFactories = new ArrayList<>();
 	@SuppressWarnings("rawtypes")
 	private static final Map<String, EntityRendererFactory> entityFactoryByName = new HashMap<>();
-
-	private static final List<TileRendererFactory> tileFactories = new ArrayList<>();
 	private static final Map<String, TileRendererFactory> tileFactoryByName = new HashMap<>();
 
-	// TODO prioritize vanilla first
+	private static final List<ItemPrototype> items = new ArrayList<>();
+	private static final List<RecipePrototype> recipes = new ArrayList<>();
+	private static final List<FluidPrototype> fluids = new ArrayList<>();
+	private static final List<TechPrototype> technologies = new ArrayList<>();
+	private static final List<EntityPrototype> entities = new ArrayList<>();
+	private static final List<TilePrototype> tiles = new ArrayList<>();
+	private static final List<EquipmentPrototype> equipments = new ArrayList<>();
+
 	private static final Map<String, ItemPrototype> itemByName = new HashMap<>();
 	private static final Map<String, RecipePrototype> recipeByName = new HashMap<>();
 	private static final Map<String, FluidPrototype> fluidByName = new HashMap<>();
@@ -80,36 +88,36 @@ public class FactorioManager {
 		return baseData;
 	}
 
-	public static Map<String, EntityPrototype> getEntities() {
-		return entityByName;
+	public static List<EntityPrototype> getEntities() {
+		return entities;
 	}
 
 	public static List<EntityRendererFactory> getEntityFactories() {
 		return entityFactories;
 	}
 
-	public static Map<String, EquipmentPrototype> getEquipments() {
-		return equipmentByName;
+	public static List<EquipmentPrototype> getEquipments() {
+		return equipments;
 	}
 
-	public static Map<String, FluidPrototype> getFluids() {
-		return fluidByName;
+	public static List<FluidPrototype> getFluids() {
+		return fluids;
 	}
 
-	public static Map<String, ItemPrototype> getItems() {
-		return itemByName;
+	public static List<ItemPrototype> getItems() {
+		return items;
 	}
 
-	public static Map<String, RecipePrototype> getRecipes() {
-		return recipeByName;
+	public static List<RecipePrototype> getRecipes() {
+		return recipes;
 	}
 
-	public static Map<String, TechPrototype> getTechnologies() {
-		return technologyByName;
+	public static List<TechPrototype> getTechnologies() {
+		return technologies;
 	}
 
-	public static Map<String, TilePrototype> getTiles() {
-		return tileByName;
+	public static List<TilePrototype> getTiles() {
+		return tiles;
 	}
 
 	public static List<TileRendererFactory> getTileFactories() {
@@ -140,8 +148,8 @@ public class FactorioManager {
 		EntityRendererFactory.initFactories(entityFactories);
 		TileRendererFactory.initFactories(tileFactories);
 
-		baseData = entityFactories.stream().filter(e -> e.getGroupName().equals("Base")).map(e -> e.getData())
-				.findAny().orElseThrow(() -> new IOException("No entities for group \"Base\" was found."));
+		baseData = entityFactories.stream().filter(e -> e.getGroupName().equals("Base")).map(e -> e.getData()).findAny()
+				.orElseThrow(() -> new IOException("No entities for group \"Base\" was found."));
 		entityFactories.forEach(e -> dataByGroupName.put(e.getGroupName(), e.getData()));
 
 		// Place vanilla protos again to be the priority
@@ -152,6 +160,15 @@ public class FactorioManager {
 		technologyByName.putAll(baseData.getTable().getTechnologies());
 		tileByName.putAll(baseData.getTable().getTiles());
 		equipmentByName.putAll(baseData.getTable().getEquipments());
+
+		recipeByName.values().stream().sorted(Comparator.comparing(DataPrototype::getName)).forEach(recipes::add);
+		itemByName.values().stream().sorted(Comparator.comparing(DataPrototype::getName)).forEach(items::add);
+		fluidByName.values().stream().sorted(Comparator.comparing(DataPrototype::getName)).forEach(fluids::add);
+		entityByName.values().stream().sorted(Comparator.comparing(DataPrototype::getName)).forEach(entities::add);
+		technologyByName.values().stream().sorted(Comparator.comparing(DataPrototype::getName))
+				.forEach(technologies::add);
+		tileByName.values().stream().sorted(Comparator.comparing(DataPrototype::getName)).forEach(tiles::add);
+		equipmentByName.values().stream().sorted(Comparator.comparing(DataPrototype::getName)).forEach(equipments::add);
 	}
 
 	public static void initializePrototypes() throws JSONException, IOException {
@@ -322,9 +339,7 @@ public class FactorioManager {
 
 			String detailMessage = String.format(
 					"Entity '%s' is already registered in group '%s' from mod '%s'. Attempted re-registration from mod '%s' is not allowed.",
-					name,
-					existingFactory.getGroupName(),
-					existingFactory.getData().folderMods.getName(),
+					name, existingFactory.getGroupName(), existingFactory.getData().folderMods.getName(),
 					factory.getData().folderMods.getName());
 			throw new IllegalArgumentException(detailMessage);
 		}
