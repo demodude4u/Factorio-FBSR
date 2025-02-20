@@ -5,6 +5,7 @@ import java.awt.geom.Point2D.Double;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -282,8 +283,19 @@ public class WorldMap {
 
 	private final List<Entry<RailEdge, RailEdge>> railEdges = new ArrayList<>();
 
+	private final Set<String> unknownEntities = new HashSet<>();
+	private final Set<String> unknownTiles = new HashSet<>();
+
 	private boolean altMode = false;
 	private boolean foundation = false;
+
+	public boolean addUnknownEntity(String name) {
+		return unknownEntities.add(name);
+	}
+
+	public boolean addUnknownTile(String name) {
+		return unknownTiles.add(name);
+	}
 
 	private int flag(Direction facing) {
 		return 1 << facing.cardinal();

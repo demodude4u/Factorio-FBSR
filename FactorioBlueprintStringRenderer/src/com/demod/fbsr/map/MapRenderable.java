@@ -1,15 +1,14 @@
 package com.demod.fbsr.map;
 
 import java.awt.Graphics2D;
-import java.awt.Point;
 
 import com.demod.fbsr.Layer;
 
-public abstract class MapRender {
+public abstract class MapRenderable {
 	protected final Layer layer;
 	protected final MapPosition position;
 
-	public MapRender(Layer layer, MapPosition position) {
+	public MapRenderable(Layer layer, MapPosition position) {
 		this.layer = layer;
 		this.position = position;
 	}

@@ -10,6 +10,10 @@ public final class MapUtils {
 		return Math.round(unit * SCALING_FACTOR);
 	}
 
+	public static int unitToFixedPoint(double unit) {
+		return (int) Math.round(unit * SCALING_FACTOR);
+	}
+
 	public static int fixedPointToPixels(int fp) {
 		return fp >> PIXELS_SHIFT;
 	}

@@ -1,8 +1,8 @@
 package com.demod.fbsr.map;
 
-import java.awt.Rectangle;
+import static com.demod.fbsr.MapUtils.*;
 
-import com.demod.fbsr.MapUtils;
+import java.awt.Rectangle;
 
 public class MapRect {
 	public static final int FRACTIONAL_BITS = 8;
@@ -16,22 +16,43 @@ public class MapRect {
 	private final int width;
 	private final int height;
 
-	public MapRect(float x, float y, float width, float height) {
-		this.x = MapUtils.unitToFixedPoint(x);
-		this.y = MapUtils.unitToFixedPoint(y);
-		this.width = MapUtils.unitToFixedPoint(width);
-		this.height = MapUtils.unitToFixedPoint(height);
+	private MapRect(int x, int y, int width, int height) {
+		this.x = x;
+		this.y = y;
+		this.width = width;
+		this.height = height;
+	}
+
+	public static MapRect byUnit(double x, double y, double width, double height) {
+		return new MapRect(unitToFixedPoint(x), unitToFixedPoint(y), unitToFixedPoint(width), unitToFixedPoint(height));
+	}
+
+	public static MapRect byFixedPoint(int x, int y, int width, int height) {
+		return new MapRect(x, y, width, height);
 	}
 
 	public float getX() {
-		return x / (float) SCALING_FACTOR;
+		return fixedPointToUnit(x);
 	}
 
 	public float getY() {
-		return y / (float) SCALING_FACTOR;
+		return fixedPointToUnit(y);
+	}
+
+	public float getWidth() {
+		return fixedPointToUnit(width);
+	}
+
+	public float getHeight() {
+		return fixedPointToUnit(height);
 	}
 
 	public Rectangle toPixels() {
-		return new Rectangle(x >> PIXELS_SHIFT, y >> PIXELS_SHIFT, width >> PIXELS_SHIFT, height >> PIXELS_SHIFT);
+		return new Rectangle(fixedPointToPixels(x), fixedPointToPixels(y), fixedPointToPixels(width),
+				fixedPointToPixels(height));
+	}
+
+	public MapPosition getTopLeft() {
+		return MapPosition.byFixedPoint(x, y);
 	}
 }

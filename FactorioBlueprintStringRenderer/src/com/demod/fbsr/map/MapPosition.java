@@ -1,8 +1,8 @@
 package com.demod.fbsr.map;
 
-import java.awt.Point;
+import static com.demod.fbsr.MapUtils.*;
 
-import com.demod.fbsr.MapUtils;
+import java.awt.Point;
 
 public class MapPosition {
 
@@ -10,20 +10,33 @@ public class MapPosition {
 	private final int x;
 	private final int y;
 
-	public MapPosition(float x, float y) {
-		this.x = MapUtils.unitToFixedPoint(x);
-		this.y = MapUtils.unitToFixedPoint(y);
+	private MapPosition(int x, int y) {
+		this.x = x;
+		this.y = y;
+	}
+
+	public static MapPosition byUnit(double x, double y) {
+		return new MapPosition(unitToFixedPoint(x), unitToFixedPoint(y));
+	}
+
+	public static MapPosition byFixedPoint(int x, int y) {
+		return new MapPosition(x, y);
 	}
 
 	public float getX() {
-		return MapUtils.fixedPointToUnit(x);
+		return fixedPointToUnit(x);
 	}
 
 	public float getY() {
-		return MapUtils.fixedPointToUnit(y);
+		return fixedPointToUnit(y);
 	}
 
 	public Point toPixels() {
-		return new Point(MapUtils.fixedPointToPixels(x), MapUtils.fixedPointToPixels(y));
+		return new Point(fixedPointToPixels(x), fixedPointToPixels(y));
 	}
+
+	public MapPosition addUnit(double x, double y) {
+		return new MapPosition(unitToFixedPoint(x), unitToFixedPoint(y));
+	}
+
 }

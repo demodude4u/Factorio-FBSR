@@ -39,87 +39,15 @@ import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.fp.FPBoundingBox;
 import com.demod.fbsr.fp.FPVector;
 import com.demod.fbsr.legacy.LegacyBlueprintEntity;
+import com.demod.fbsr.map.MapPosition;
 import com.demod.fbsr.map.MapRect3D;
+import com.demod.fbsr.map.MapRenderable;
 import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.Multiset;
 
 public abstract class EntityRendererFactory<E extends BSEntity> {
 
-	public static final EntityRendererFactory<BSEntity> UNKNOWN = new EntityRendererFactory<BSEntity>() {
-		Set<String> labeledTypes = new HashSet<>();
-
-		@Override
-		public void createModuleIcons(Consumer<Renderer> register, WorldMap map, BSEntity entity) {
-		}
-
-		@Override
-		public void createRenderers(Consumer<Renderer> register, WorldMap map, BSEntity entity) {
-			Point2D.Double pos = entity.position.createPoint();
-			MapRect3D bounds = new MapRect3D(pos.x - 0.5, pos.y - 0.5, pos.x + 0.5, pos.y + 0.5,
-					0);
-			register.accept(new Renderer(Layer.ENTITY_INFO_ICON_ABOVE, bounds, false) {
-				@Override
-				public void render(Graphics2D g) {
-					g.setColor(RenderUtils.withAlpha(getUnknownColor(entity.name), 128));
-					g.fill(new Ellipse2D.Double(bounds.x1, bounds.y1, bounds.x2 - bounds.x1, bounds.y2 - bounds.y1));
-					g.setColor(Color.gray);
-					g.setFont(new Font("Monospaced", Font.BOLD, 1).deriveFont(1f));
-					g.drawString("?", (float) bounds.getCenterX() - 0.25f, (float) bounds.getCenterY() + 0.3f);
-				}
-			});
-			register.accept(new Renderer(Layer.ENTITY_INFO_TEXT, bounds, false) {
-				@Override
-				public void render(Graphics2D g) {
-					if (labeledTypes.add(entity.name)) {
-						g.setFont(new Font("Monospaced", Font.BOLD, 1).deriveFont(0.4f));
-						float textX = (float) bounds.x1;
-						float textY = (float) (bounds.y1
-								+ (bounds.y2 - bounds.y1) * new Random(entity.name.hashCode()).nextFloat());
-						g.setColor(Color.darkGray);
-						g.drawString(entity.name, textX + 0.05f, textY + 0.05f);
-						g.setColor(Color.white);
-						g.drawString(entity.name, textX, textY);
-					}
-				}
-			});
-		}
-
-		@Override
-		public Optional<WirePoint> createWirePoint(Consumer<Renderer> register, Point2D.Double position,
-				double orientation, int connectionId) {
-			return Optional.empty();
-		}
-
-		@Override
-		public FactorioData getData() {
-			return FactorioManager.getBaseData();
-		}
-
-		@Override
-		public void initFromPrototype() {
-		}
-
-		@Override
-		public void populateLogistics(WorldMap map, BSEntity entity) {
-		}
-
-		@Override
-		public void populateWorldMap(WorldMap map, BSEntity entity) {
-			if (!labeledTypes.isEmpty()) {
-				labeledTypes.clear();
-			}
-		}
-
-		@Override
-		public boolean isUnknown() {
-			return true;
-		}
-	};
 	private static final Logger LOGGER = LoggerFactory.getLogger(EntityRendererFactory.class);
-
-	public static Color getUnknownColor(String name) {
-		return Color.getHSBColor(new Random(name.hashCode()).nextFloat(), 0.6f, 0.4f);
-	}
 
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	public static void initFactories(List<EntityRendererFactory> factories) {
@@ -169,7 +97,7 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 		double x2 = Math.max(sb2.x, cb2.x);
 		double y2 = Math.max(sb2.y, cb2.y);
 
-		return new MapRect3D(x1, y1, x2, y2, drawingBoxVerticalExtension);
+		return MapRect3D.byUnit(x1, y1, x2, y2, drawingBoxVerticalExtension);
 	}
 
 	@SuppressWarnings({ "rawtypes" })
@@ -221,7 +149,7 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 		map.getOrCreateLogisticGridCell(cellDir1.offset(gridPos1, 0.25)).addWarp(cellDir2.offset(gridPos2, 0.25));
 	}
 
-	public void createModuleIcons(Consumer<Renderer> register, WorldMap map, E entity) {
+	public void createModuleIcons(Consumer<MapRenderable> register, WorldMap map, E entity) {
 		DataTable table = data.getTable();
 
 		Multiset<String> renderModules = RenderUtils.getModules(entity);
@@ -335,10 +263,10 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 		}
 	}
 
-	public abstract void createRenderers(Consumer<Renderer> register, WorldMap map, E entity);
+	public abstract void createRenderers(Consumer<MapRenderable> register, WorldMap map, E entity);
 
-	public Optional<WirePoint> createWirePoint(Consumer<Renderer> register, Point2D.Double position, double orientation,
-			int connectionId) {
+	public Optional<WirePoint> createWirePoint(Consumer<MapRenderable> register, Point2D.Double position,
+			double orientation, int connectionId) {
 		return Optional.ofNullable(wirePointsById.get(connectionId)).map(wp -> wp.getPoint(position, orientation));
 	}
 
@@ -407,7 +335,7 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 	public abstract void initFromPrototype();
 
 	// Returns orientation if applicable
-	public double initWireConnector(Consumer<Renderer> register, E entity, List<EntityRenderingTuple> wired) {
+	public double initWireConnector(Consumer<MapRenderable> register, E entity, List<EntityRenderingTuple> wired) {
 		return 0;
 	}
 

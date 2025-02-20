@@ -2,23 +2,17 @@ package com.demod.fbsr;
 
 import static com.demod.fbsr.Direction.*;
 
-import java.awt.Color;
-import java.awt.Font;
-import java.awt.Graphics2D;
 import java.awt.Rectangle;
-import java.awt.geom.Ellipse2D;
 import java.awt.geom.Point2D;
-import java.awt.geom.Rectangle2D;
+import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Random;
-import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -27,6 +21,8 @@ import java.util.stream.IntStream;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
@@ -40,14 +36,15 @@ import com.demod.fbsr.fp.FPTileSpriteLayout;
 import com.demod.fbsr.fp.FPTileSpriteLayoutVariant;
 import com.demod.fbsr.fp.FPTileTransitionVariantLayout;
 import com.demod.fbsr.fp.FPTileTransitions;
-import com.demod.fbsr.map.MapRect3D;
+import com.demod.fbsr.map.MapPosition;
+import com.demod.fbsr.map.MapRect;
+import com.demod.fbsr.map.MapRenderable;
+import com.demod.fbsr.map.MapSprite;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Table;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class TileRendererFactory {
 
@@ -131,9 +128,9 @@ public class TileRendererFactory {
 	public abstract class TileRenderProcess {
 
 		// TODO
-		public abstract void tileCenter(Random rand, Consumer<Renderer> register, BSTile tile);
+		public abstract void tileCenter(Random rand, Consumer<MapRenderable> register, BSTile tile);
 
-		public abstract void tileEdge(Random rand, Consumer<Renderer> register, Point2D.Double pos,
+		public abstract void tileEdge(Random rand, Consumer<MapRenderable> register, Point2D.Double pos,
 				List<TileEdgeRuleParam> params);
 	}
 
@@ -155,24 +152,20 @@ public class TileRendererFactory {
 		// TODO
 		// Figure out how to work in probabilities and covering multiple tile sizes
 		@Override
-		public void tileCenter(Random rand, Consumer<Renderer> register, BSTile tile) {
+		public void tileCenter(Random rand, Consumer<MapRenderable> register, BSTile tile) {
 			FPTileMainPictures main = protoVariantsMainSize1.get();
 
 			int frame = rand.nextInt(main.count);
 
 			int sourceSize = (int) Math.round(main.size * 64 / main.scale);
 
-			Sprite sprite = new Sprite();
-			sprite.bounds = new Rectangle2D.Double(tile.position.x, tile.position.y, main.size, main.size);
-			sprite.image = data.getModImage(main.picture);
-			sprite.source = new Rectangle(0, 0, sourceSize, sourceSize);
-			sprite.source.x = frame * sprite.source.width;
-			register.accept(
-					RenderUtils.spriteRenderer(Layer.DECALS, sprite, new MapRect3D(sprite.bounds, 0)));
+			register.accept(new MapSprite(Layer.DECALS, data.getModImage(main.picture),
+					new Rectangle(frame * sourceSize, 0, sourceSize, sourceSize),
+					MapRect.byUnit(tile.position.x, tile.position.y, main.size, main.size)));
 		}
 
 		@Override
-		public void tileEdge(Random rand, Consumer<Renderer> register, Point2D.Double pos,
+		public void tileEdge(Random rand, Consumer<MapRenderable> register, Point2D.Double pos,
 				List<TileEdgeRuleParam> params) {
 
 			// TODO figure out why some tiles do not have an overlay!
@@ -194,14 +187,9 @@ public class TileRendererFactory {
 						int sourceWidth = (int) Math.round(64 / variant.scale);
 						int sourceHeight = (int) Math.round(variant.tileHeight * 64 / variant.scale);
 
-						Sprite sprite = new Sprite();
-						sprite.bounds = new Rectangle2D.Double(pos.x, pos.y, 1, variant.tileHeight);
-						sprite.image = data.getModImage(variant.spritesheet);
-						sprite.source = new Rectangle(0, 0, sourceWidth, sourceHeight);
-						sprite.source.x = frame * sprite.source.width;
-						sprite.source.y = param.variant * sprite.source.height;
-						register.accept(RenderUtils.spriteRenderer(Layer.DECALS, sprite,
-								new MapRect3D(pos.x, pos.y, pos.x + 1, pos.y + 1, 0)));
+						register.accept(new MapSprite(Layer.DECALS, data.getModImage(variant.spritesheet),
+								new Rectangle(frame * sourceWidth, 0, sourceWidth, sourceHeight),
+								MapRect.byUnit(pos.x, pos.y, 1, variant.tileHeight)));
 					}
 				}
 			}
@@ -224,14 +212,10 @@ public class TileRendererFactory {
 						int sourceWidth = (int) Math.round(64 / variant.scale);
 						int sourceHeight = (int) Math.round(variant.tileHeight * 64 / variant.scale);
 
-						Sprite sprite = new Sprite();
-						sprite.bounds = new Rectangle2D.Double(pos.x, pos.y, 1, variant.tileHeight);
-						sprite.image = data.getModImage(variant.spritesheet);
-						sprite.source = new Rectangle(0, 0, sourceWidth, sourceHeight);
-						sprite.source.x = frame * sprite.source.width;
-						sprite.source.y = param.variant * sprite.source.height;
-						register.accept(RenderUtils.spriteRenderer(Layer.UNDER_TILES, sprite,
-								new MapRect3D(pos.x, pos.y, pos.x + 1, pos.y + 1, 0)));
+						register.accept(new MapSprite(Layer.UNDER_TILES, data.getModImage(variant.spritesheet),
+								new Rectangle(frame * sourceWidth, param.variant * sourceHeight, sourceWidth,
+										sourceHeight),
+								MapRect.byUnit(pos.x, pos.y, 1, variant.tileHeight)));
 					}
 				}
 			}
@@ -243,31 +227,28 @@ public class TileRendererFactory {
 		// TODO
 		// Create masking function to generate edge tiles
 		@Override
-		public void tileCenter(Random rand, Consumer<Renderer> register, BSTile tile) {
+		public void tileCenter(Random rand, Consumer<MapRenderable> register, BSTile tile) {
 			// TODO shuffle the large tiles for variety (512x512 for example)
 
 			FPMaterialTextureParameters material = protoVariantsMaterialBackground.get();
 
 			int sourceSize = (int) Math.round(64 / material.scale);
 
-			Sprite sprite = new Sprite();
-			sprite.bounds = new Rectangle2D.Double(tile.position.x, tile.position.y, 1, 1);
-			sprite.image = data.getModImage(material.picture);
-			sprite.source = new Rectangle(0, 0, sourceSize, sourceSize);
-
+			MapRect bounds = MapRect.byUnit(tile.position.x, tile.position.y, 1, 1);
+			BufferedImage image = data.getModImage(material.picture);
+			Rectangle source = new Rectangle(0, 0, sourceSize, sourceSize);
+			int w = image.getWidth();
+			int h = image.getHeight();
+			MapPosition pos = tile.position.createPoint();
 			// TODO shift across the source image with sourceSize = 1 tile width
-			Point2D.Double pos = tile.position.createPoint();
-			int w = sprite.image.getWidth();
-			int h = sprite.image.getHeight();
-			sprite.source.x = ((int) Math.floor(pos.x * sourceSize) % w + w) % w;
-			sprite.source.y = ((int) Math.floor(pos.y * sourceSize) % h + h) % h;
+			source.x = ((int) Math.floor(pos.getX() * sourceSize) % w + w) % w;
+			source.y = ((int) Math.floor(pos.getY() * sourceSize) % h + h) % h;
 
-			register.accept(
-					RenderUtils.spriteRenderer(Layer.DECALS, sprite, new MapRect3D(sprite.bounds, 0)));
+			register.accept(new MapSprite(Layer.DECALS, image, source, bounds));
 		}
 
 		@Override
-		public void tileEdge(Random rand, Consumer<Renderer> register, Point2D.Double pos,
+		public void tileEdge(Random rand, Consumer<MapRenderable> register, Point2D.Double pos,
 				List<TileEdgeRuleParam> params) {
 
 			FPTileTransitions transitions = protoVariantsTransition.get();
@@ -317,55 +298,7 @@ public class TileRendererFactory {
 		}
 	}
 
-	public static final TileRendererFactory UNKNOWN = new TileRendererFactory() {
-		Set<String> labeledTypes = new HashSet<>();
-
-		@Override
-		public void createRenderers(Consumer<Renderer> register, WorldMap map, BSTile tile) {
-			Point2D.Double pos = tile.position.createPoint();
-			MapRect3D bounds = new MapRect3D(pos.x - 0.25, pos.y - 0.25, pos.x + 0.25,
-					pos.y + 0.25, 0);
-			float randomFactor = new Random(tile.name.hashCode()).nextFloat();
-			register.accept(new Renderer(Layer.ABOVE_TILES, bounds, false) {
-				@Override
-				public void render(Graphics2D g) {
-					g.setColor(RenderUtils.withAlpha(Color.getHSBColor(randomFactor, 0.6f, 0.4f), 128));
-					g.fill(new Ellipse2D.Double(bounds.x1, bounds.y1, bounds.x2 - bounds.x1, bounds.y2 - bounds.y1));
-					g.setColor(Color.gray);
-					g.setFont(new Font("Monospaced", Font.BOLD, 1).deriveFont(0.5f));
-					g.drawString("?", (float) bounds.getCenterX() - 0.125f, (float) bounds.getCenterY() + 0.15f);
-				}
-			});
-			register.accept(new Renderer(Layer.ENTITY_INFO_TEXT, bounds, false) {
-				@Override
-				public void render(Graphics2D g) {
-					if (labeledTypes.add(tile.name)) {
-						g.setFont(g.getFont().deriveFont(0.4f));
-						float textX = (float) bounds.x1;
-						float textY = (float) (bounds.y1 + (bounds.y2 - bounds.y1) * randomFactor);
-						g.setColor(Color.darkGray);
-						g.drawString(tile.name, textX + 0.05f, textY + 0.05f);
-						g.setColor(Color.white);
-						g.drawString(tile.name, textX, textY);
-					}
-				}
-			});
-		}
-
-		@Override
-		public void populateWorldMap(WorldMap map, BSTile tile) {
-			if (!labeledTypes.isEmpty()) {
-				labeledTypes.clear();
-			}
-		}
-
-		@Override
-		public boolean isUnknown() {
-			return true;
-		}
-	};
-
-	public static void createAllRenderers(Consumer<Renderer> register, List<TileRenderingTuple> tiles) {
+	public static void createAllRenderers(Consumer<MapRenderable> register, List<TileRenderingTuple> tiles) {
 
 		// TODO how do I decide which edge factory for matching layers? (example,
 		// hazard-concrete-left/right)
@@ -394,7 +327,7 @@ public class TileRendererFactory {
 		Table<Integer, Integer, TileCell> tileMap = HashBasedTable.create();
 
 		// XXX should I also do render order (left to right, top to bottom)?
-		List<TileRenderingTuple> tileOrder = tiles.stream().filter(t -> t.factory != TileRendererFactory.UNKNOWN)
+		List<TileRenderingTuple> tileOrder = tiles.stream().filter(t -> !t.factory.isUnknown())
 				.sorted(Comparator.comparing(t -> t.factory.protoLayer)).collect(Collectors.toList());
 
 		// <layer, <row, col, cell>>
@@ -509,10 +442,10 @@ public class TileRendererFactory {
 		}
 	}
 
-	private String name;
-	private String groupName;
-	private FactorioData data;
-	private TilePrototype prototype;
+	protected String name;
+	protected String groupName;
+	protected FactorioData data;
+	protected TilePrototype prototype;
 
 	private List<FPTileMainPictures> protoVariantsMain;
 	private Optional<FPTileMainPictures> protoVariantsMainSize1;
@@ -524,7 +457,7 @@ public class TileRendererFactory {
 
 	private TileRenderProcess renderProcess = null;
 
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, BSTile tile) {
+	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, BSTile tile) {
 	}
 
 	public FactorioData getData() {

@@ -6,7 +6,7 @@ import java.awt.Graphics2D;
 
 import com.demod.fbsr.Layer;
 
-public class MapText extends MapRender {
+public class MapText extends MapRenderable {
 
 	protected final Font font;
 	protected final Color color;

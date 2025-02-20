@@ -9,25 +9,23 @@ import java.awt.geom.Point2D;
 
 import com.demod.fbsr.Layer;
 
-public class MapWire extends MapRenderable {
+public class MapWireShadow extends MapRenderable {
 	public static final float DROP = 0.6f;
 
 	private final MapPosition p1;
 	private final MapPosition p2;
-	private final Color color;
 
-	public MapWire(MapPosition p1, MapPosition p2, Color color) {
-		super(Layer.WIRE, p1);
+	public MapWireShadow(MapPosition p1, MapPosition p2) {
+		super(Layer.SHADOW_BUFFER, p1);
 		this.p1 = p1;
 		this.p2 = p2;
-		this.color = color;
 	}
 
 	@Override
 	public void render(Graphics2D g) {
 		Stroke ps = g.getStroke();
-		g.setStroke(new BasicStroke(1f / 32f));
-		g.setColor(color);
+		g.setStroke(new BasicStroke(1f / 48f));
+		g.setColor(Color.black);
 
 		float x1 = p1.getX();
 		float y1 = p1.getY();
@@ -35,7 +33,7 @@ public class MapWire extends MapRenderable {
 		float y2 = p2.getY();
 		Path2D.Float path = new Path2D.Float();
 		path.moveTo(x1, y1);
-		Point2D.Float mid = new Point2D.Float((x1 + x2) / 2, (y1 + y2) / 2 + DROP);
+		Point2D.Float mid = new Point2D.Float((x1 + x2) / 2 - DROP, (y1 + y2) / 2);
 		path.curveTo(mid.x, mid.y, mid.x, mid.y, x2, y2);
 		g.draw(path);
 
