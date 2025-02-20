@@ -18,8 +18,12 @@ public final class MapUtils {
 		return fp >> PIXELS_SHIFT;
 	}
 
-	public static float fixedPointToUnit(int fp) {
-		return fp / (float) SCALING_FACTOR;
+	public static double fixedPointToUnit(int fp) {
+		return fp / (double) SCALING_FACTOR;
+	}
+
+	public static int truncate(int fp) {
+		return fp >> FRACTIONAL_BITS;
 	}
 
 }

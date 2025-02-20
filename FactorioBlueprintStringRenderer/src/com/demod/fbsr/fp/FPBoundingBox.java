@@ -32,7 +32,7 @@ public class FPBoundingBox {
 	}
 
 	public FPBoundingBox rotate(Direction direction) {
-		Rectangle2D rotated = direction.rotateBounds(createRect());
+		Rectangle2D rotated = direction.rotate(createRect());
 		return new FPBoundingBox(rotated.getMinX(), rotated.getMinY(), rotated.getMaxX(), rotated.getMaxY());
 	}
 

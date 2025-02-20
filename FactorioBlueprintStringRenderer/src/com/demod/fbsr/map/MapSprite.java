@@ -20,14 +20,8 @@ public class MapSprite extends MapRenderable {
 		this.bounds = bounds;
 	}
 
-	// TODO change the approach to eliminate transforming on every sprite
-	@Override
-	public void render(Graphics2D g) {
-		AffineTransform pat = g.getTransform();
-		g.translate(bounds.getX(), bounds.getY());
-		g.scale(bounds.getWidth(), bounds.getHeight());
-		g.drawImage(image, 0, 0, 1, 1, source.x, source.y, source.x + source.width, source.y + source.height, null);
-		g.setTransform(pat);
+	public MapRect getBounds() {
+		return bounds;
 	}
 
 	public BufferedImage getImage() {
@@ -38,7 +32,13 @@ public class MapSprite extends MapRenderable {
 		return source;
 	}
 
-	public MapRect getBounds() {
-		return bounds;
+	// TODO change the approach to eliminate transforming on every sprite
+	@Override
+	public void render(Graphics2D g) {
+		AffineTransform pat = g.getTransform();
+		g.translate(bounds.getX(), bounds.getY());
+		g.scale(bounds.getWidth(), bounds.getHeight());
+		g.drawImage(image, 0, 0, 1, 1, source.x, source.y, source.x + source.width, source.y + source.height, null);
+		g.setTransform(pat);
 	}
 }

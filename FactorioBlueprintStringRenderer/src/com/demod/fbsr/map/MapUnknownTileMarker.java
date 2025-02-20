@@ -20,13 +20,13 @@ public class MapUnknownTileMarker extends MapRenderable {
 
 	@Override
 	public void render(Graphics2D g) {
-		float x = position.getX();
-		float y = position.getY();
+		double x = position.getX();
+		double y = position.getY();
 		g.setColor(color);
-		g.fill(new Ellipse2D.Float(x - 0.25f, y - 0.25f, 0.5f, 0.5f));
+		g.fill(new Ellipse2D.Double(x - 0.25, y - 0.25, 0.5, 0.5));
 		g.setColor(Color.gray);
 		g.setFont(FONT);
-		g.drawString("?", x - 0.125f, y + 0.15f);
+		g.drawString("?", (float) x - 0.125f, (float) y + 0.15f);
 	}
 
 }

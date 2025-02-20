@@ -68,56 +68,14 @@ public final class RenderUtils {
 		return ret;
 	}
 
-	public static Renderer createWireRenderer(Point2D.Double p1, Point2D.Double p2, Color color, Point2D.Double shadow1,
-			Point2D.Double shadow2) {
-		Rectangle2D.Double bounds2D = new Rectangle2D.Double();
-		bounds2D.setFrameFromDiagonal(p1, p2);
-		MapRect3D bounds = new MapRect3D(bounds2D, 0);
-
-		return new EntityRenderer(Layer.WIRE, bounds, true) {
-			final double drop = 0.6;
-
-			@Override
-			public void render(Graphics2D g) {
-				Stroke ps = g.getStroke();
-				g.setStroke(new BasicStroke(1f / 32f));
-				g.setColor(color);
-
-				Path2D.Double path = new Path2D.Double();
-				path.moveTo(p1.x, p1.y);
-				Point2D.Double mid = new Point2D.Double((p1.x + p2.x) / 2, (p1.y + p2.y) / 2 + drop);
-				path.curveTo(mid.x, mid.y, mid.x, mid.y, p2.x, p2.y);
-				g.draw(path);
-
-				g.setStroke(ps);
-			}
-
-			@Override
-			public void renderShadows(Graphics2D g) throws Exception {
-				Stroke ps = g.getStroke();
-				g.setStroke(new BasicStroke(1f / 48f));
-				g.setColor(Color.black);
-
-				Path2D.Double path = new Path2D.Double();
-				path.moveTo(shadow1.x, shadow1.y);
-				Point2D.Double mid = new Point2D.Double((shadow1.x + shadow2.x) / 2 - drop,
-						(shadow1.y + shadow2.y) / 2);
-				path.curveTo(mid.x, mid.y, mid.x, mid.y, shadow2.x, shadow2.y);
-				g.draw(path);
-
-				g.setStroke(ps);
-			}
-		};
-	}
-
-	public static void drawImageInBounds(BufferedImage image, Rectangle source, Rectangle2D.Double bounds,
-			Graphics2D g) {
-		AffineTransform pat = g.getTransform();
-		g.translate(bounds.x, bounds.y);
-		g.scale(bounds.width, bounds.height);
-		g.drawImage(image, 0, 0, 1, 1, source.x, source.y, source.x + source.width, source.y + source.height, null);
-		g.setTransform(pat);
-	}
+//	public static void drawImageInBounds(BufferedImage image, Rectangle source, Rectangle2D.Double bounds,
+//			Graphics2D g) {
+//		AffineTransform pat = g.getTransform();
+//		g.translate(bounds.x, bounds.y);
+//		g.scale(bounds.width, bounds.height);
+//		g.drawImage(image, 0, 0, 1, 1, source.x, source.y, source.x + source.width, source.y + source.height, null);
+//		g.setTransform(pat);
+//	}
 
 	public static Renderer drawRotatedString(Layer layer, Point2D.Double position, double angle, Color color,
 			String string) {

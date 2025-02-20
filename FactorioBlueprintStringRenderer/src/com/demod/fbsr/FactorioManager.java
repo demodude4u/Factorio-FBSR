@@ -10,12 +10,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.demod.factorio.Config;
 import com.demod.factorio.FactorioData;
@@ -30,10 +34,11 @@ import com.demod.factorio.prototype.RecipePrototype;
 import com.demod.factorio.prototype.TechPrototype;
 import com.demod.factorio.prototype.TilePrototype;
 import com.demod.fbsr.bs.BSEntity;
+import com.demod.fbsr.entity.UnknownEntityRendering;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class FactorioManager {
 
@@ -79,6 +84,11 @@ public class FactorioManager {
 	private static final Map<String, EntityPrototype> entityByName = new HashMap<>();
 	private static final Map<String, TilePrototype> tileByName = new HashMap<>();
 	private static final Map<String, EquipmentPrototype> equipmentByName = new HashMap<>();
+
+	private static final Cache<String, UnknownEntityRendering> unknownEntityFactories = CacheBuilder.newBuilder()
+			.expireAfterAccess(1, TimeUnit.HOURS).build();
+	private static final Cache<String, UnknownTileRendering> unknownTileFactories = CacheBuilder.newBuilder()
+			.expireAfterAccess(1, TimeUnit.HOURS).build();
 
 	public static List<FactorioData> getDatas() {
 		return datas;
@@ -299,7 +309,15 @@ public class FactorioManager {
 
 	@SuppressWarnings("unchecked")
 	public static <E extends BSEntity> EntityRendererFactory<E> lookupEntityFactoryForName(String name) {
-		return Optional.ofNullable(entityFactoryByName.get(name)).orElse(EntityRendererFactory.UNKNOWN);
+		return Optional.ofNullable(entityFactoryByName.get(name)).orElseGet(() -> {
+			try {
+				return unknownEntityFactories.get(name, () -> new UnknownEntityRendering(name));
+			} catch (ExecutionException e) {
+				e.printStackTrace();
+				System.exit(-1);
+				return null;
+			}
+		});
 	}
 
 	public static Optional<EquipmentPrototype> lookupEquipmentByName(String name) {
@@ -327,7 +345,15 @@ public class FactorioManager {
 	}
 
 	public static TileRendererFactory lookupTileFactoryForName(String name) {
-		return Optional.ofNullable(tileFactoryByName.get(name)).orElse(TileRendererFactory.UNKNOWN);
+		return Optional.ofNullable(tileFactoryByName.get(name)).orElseGet(() -> {
+			try {
+				return unknownTileFactories.get(name, () -> new UnknownTileRendering(name));
+			} catch (ExecutionException e) {
+				e.printStackTrace();
+				System.exit(-1);
+				return null;
+			}
+		});
 	}
 
 	@SuppressWarnings("rawtypes")

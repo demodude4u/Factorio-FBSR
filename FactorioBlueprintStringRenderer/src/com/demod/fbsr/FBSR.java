@@ -61,34 +61,20 @@ import com.demod.fbsr.bs.BSTile;
 import com.demod.fbsr.bs.BSWire;
 import com.demod.fbsr.entity.ErrorRendering;
 import com.demod.fbsr.gui.GUIStyle;
+import com.demod.fbsr.map.MapDebugEntityPlacement;
+import com.demod.fbsr.map.MapEntity;
+import com.demod.fbsr.map.MapRect;
 import com.demod.fbsr.map.MapRect3D;
+import com.demod.fbsr.map.MapRenderable;
+import com.demod.fbsr.map.MapSprite;
+import com.demod.fbsr.map.MapTile;
+import com.demod.fbsr.map.MapWire;
+import com.demod.fbsr.map.MapWireShadow;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Table;
 
 public class FBSR {
-
-	public static class EntityRenderingTuple<E extends BSEntity> {
-		public final E entity;
-		public final EntityRendererFactory<E> factory;
-
-		public EntityRenderingTuple(E entity, EntityRendererFactory<E> factory) {
-			this.entity = entity;
-			this.factory = factory;
-		}
-
-	}
-
-	public static class TileRenderingTuple {
-		public final BSTile tile;
-		public final TileRendererFactory factory;
-
-		public TileRenderingTuple(BSTile tile, TileRendererFactory factory) {
-			this.tile = tile;
-			this.factory = factory;
-		}
-	}
-
 	private static final Logger LOGGER = LoggerFactory.getLogger(FBSR.class);
 
 	private static final long TARGET_FILE_SIZE = 10 << 20; // 10MB
@@ -114,82 +100,62 @@ public class FBSR {
 		items.put(itemName, amount);
 	}
 
-	private static Rectangle2D.Double computeSpriteBounds(List<Renderer> renderers) {
-		if (renderers.isEmpty()) {
-			return new Rectangle2D.Double();
+	private static MapRect computeSpriteBounds(List<MapSprite> sprites) {
+		if (sprites.isEmpty()) {
+			return MapRect.byUnit(0, 0, 0, 0);
 		}
 		boolean first = true;
-		double minX = 0, minY = 0, maxX = 0, maxY = 0;
-		for (Renderer renderer : renderers) {
-			MapRect3D bounds = renderer.bounds;
+		int minXFP = 0, minYFP = 0, maxXFP = 0, maxYFP = 0;
+		for (MapSprite sprite : sprites) {
+			MapRect bounds = sprite.getBounds();
+			int x1 = bounds.getXFP();
+			int y1 = bounds.getYFP();
+			int x2 = x1 + bounds.getWidthFP();
+			int y2 = y1 + bounds.getHeightFP();
 			if (first) {
 				first = false;
-				minX = bounds.x1;
-				minY = bounds.y1 - bounds.height;
-				maxX = bounds.x2;
-				maxY = bounds.y2;
+				minXFP = x1;
+				minYFP = y1;
+				maxXFP = x2;
+				maxYFP = y2;
 			} else {
-				minX = Math.min(minX, bounds.x1);
-				minY = Math.min(minY, bounds.y1 - bounds.height);
-				maxX = Math.max(maxX, bounds.x2);
-				maxY = Math.max(maxY, bounds.y2);
+				minXFP = Math.min(minXFP, x1);
+				minYFP = Math.min(minYFP, y1);
+				maxXFP = Math.max(maxXFP, x2);
+				maxYFP = Math.max(maxYFP, y2);
 			}
 		}
-		return new Rectangle2D.Double(minX, minY, maxX - minX, maxY - minY);
+		return MapRect.byFixedPoint(minXFP, minYFP, maxXFP - minXFP, maxYFP - minYFP);
 	}
 
-	private static Rectangle2D.Double computeDrawBounds(List<Renderer> renderers) {
-		if (renderers.isEmpty()) {
-			return new Rectangle2D.Double();
+	private static MapRect3D computeBounds3D(List<MapRect3D> entityBounds) {
+		if (entityBounds.isEmpty()) {
+			return MapRect3D.byUnit(0, 0, 0, 0, 0);
 		}
 		boolean first = true;
-		double minX = 0, minY = 0, maxX = 0, maxY = 0;
-		for (Renderer renderer : renderers) {
-			if (renderer.ignoreBoundsCalculation()) {
-				continue;
-			}
-			MapRect3D bounds = renderer.bounds;
+		int minXFP = 0, minYFP = 0, maxXFP = 0, maxYFP = 0, maxHeightFP = 0;
+		for (MapRect3D bounds : entityBounds) {
+			int x1 = bounds.getX1FP();
+			int y1 = bounds.getY1FP();
+			int x2 = bounds.getX2FP();
+			int y2 = bounds.getY2FP();
+			int height = bounds.getHeightFP();
 			if (first) {
 				first = false;
-				minX = bounds.x1;
-				minY = bounds.y1 - bounds.height;
-				maxX = bounds.x2;
-				maxY = bounds.y2;
+				minXFP = x1;
+				minYFP = y1;
+				maxXFP = x2;
+				maxYFP = y2;
+				maxHeightFP = height;
 			} else {
-				minX = Math.min(minX, bounds.x1);
-				minY = Math.min(minY, bounds.y1 - bounds.height);
-				maxX = Math.max(maxX, bounds.x2);
-				maxY = Math.max(maxY, bounds.y2);
+				minXFP = Math.min(minXFP, x1);
+				minYFP = Math.min(minYFP, y1);
+				maxXFP = Math.max(maxXFP, x2);
+				maxYFP = Math.max(maxYFP, y2);
+				maxHeightFP = Math.max(maxHeightFP, y2);
 			}
 		}
-		return new Rectangle2D.Double(minX, minY, maxX - minX, maxY - minY);
-	}
-
-	private static Rectangle2D.Double computeGroundBounds(List<Renderer> renderers) {
-		if (renderers.isEmpty()) {
-			return new Rectangle2D.Double();
-		}
-		boolean first = true;
-		double minX = 0, minY = 0, maxX = 0, maxY = 0;
-		for (Renderer renderer : renderers) {
-			if (renderer.ignoreBoundsCalculation()) {
-				continue;
-			}
-			MapRect3D bounds = renderer.bounds;
-			if (first) {
-				first = false;
-				minX = bounds.x1;
-				minY = bounds.y1;
-				maxX = bounds.x2;
-				maxY = bounds.y2;
-			} else {
-				minX = Math.min(minX, bounds.x1);
-				minY = Math.min(minY, bounds.y1);
-				maxX = Math.max(maxX, bounds.x2);
-				maxY = Math.max(maxY, bounds.y2);
-			}
-		}
-		return new Rectangle2D.Double(minX, minY, maxX - minX, maxY - minY);
+		return MapRect3D.byFixedPoint(minXFP, minYFP, maxXFP, maxYFP, maxHeightFP);
 	}
 
 	public static Map<String, Double> generateTotalItems(BSBlueprint blueprint) {
@@ -522,9 +488,9 @@ public class FBSR {
 
 		map.setAltMode(request.show.altMode);
 
-		List<EntityRenderingTuple> entityRenderingTuples = new ArrayList<EntityRenderingTuple>();
-		List<TileRenderingTuple> tileRenderingTuples = new ArrayList<TileRenderingTuple>();
-		Map<Integer, EntityRenderingTuple> entityByNumber = new HashMap<>();
+		List<MapEntity> mapEntities = new ArrayList<MapEntity>();
+		List<MapTile> mapTiles = new ArrayList<MapTile>();
+		Map<Integer, MapEntity> mapEntityByNumber = new HashMap<>();
 
 		for (BSMetaEntity metaEntity : blueprint.entities) {
 			EntityRendererFactory<BSEntity> factory = FactorioManager.lookupEntityFactoryForName(metaEntity.name);
@@ -543,38 +509,38 @@ public class FBSR {
 				factory = new ErrorRendering(factory);
 				reporting.addException(metaEntity.getParseException().get(), entity.name + " " + entity.entityNumber);
 			}
-			EntityRenderingTuple tuple = new EntityRenderingTuple(entity, factory);
-			entityRenderingTuples.add(tuple);
-			entityByNumber.put(entity.entityNumber, tuple);
+			MapEntity mapEntity = new MapEntity(entity, factory);
+			mapEntities.add(mapEntity);
+			mapEntityByNumber.put(entity.entityNumber, mapEntity);
 		}
 		for (BSTile tile : blueprint.tiles) {
 			TileRendererFactory factory = FactorioManager.lookupTileFactoryForName(tile.name);
-			TileRenderingTuple tuple = new TileRenderingTuple(tile, factory);
-			tileRenderingTuples.add(tuple);
+			MapTile mapTile = new MapTile(tile, factory);
+			mapTiles.add(mapTile);
 		}
 
-		map.setFoundation(tileRenderingTuples.stream().anyMatch(t -> t.factory.getPrototype().isFoundation()));
+		map.setFoundation(mapTiles.stream().anyMatch(t -> t.getFactory().getPrototype().isFoundation()));
 
-		entityRenderingTuples.forEach(t -> {
+		mapEntities.forEach(t -> {
 			try {
-				t.factory.populateWorldMap(map, t.entity);
+				t.getFactory().populateWorldMap(map, t.getEntity());
 			} catch (Exception e) {
-				reporting.addException(e, t.factory.getClass().getSimpleName() + ", " + t.entity.name);
+				reporting.addException(e, t.getFactory().getClass().getSimpleName() + ", " + t.getEntity().name);
 			}
 		});
-		tileRenderingTuples.forEach(t -> {
+		mapTiles.forEach(t -> {
 			try {
-				t.factory.populateWorldMap(map, t.tile);
+				t.getFactory().populateWorldMap(map, t.getTile());
 			} catch (Exception e) {
-				reporting.addException(e, t.factory.getClass().getSimpleName() + ", " + t.tile.name);
+				reporting.addException(e, t.getFactory().getClass().getSimpleName() + ", " + t.getTile().name);
 			}
 		});
 
-		entityRenderingTuples.forEach(t -> {
+		mapEntities.forEach(t -> {
 			try {
-				t.factory.populateLogistics(map, t.entity);
+				t.getFactory().populateLogistics(map, t.getEntity());
 			} catch (Exception e) {
-				reporting.addException(e, t.factory.getClass().getSimpleName() + ", " + t.entity.name);
+				reporting.addException(e, t.getFactory().getClass().getSimpleName() + ", " + t.getEntity().name);
 			}
 		});
 
@@ -584,33 +550,34 @@ public class FBSR {
 		populateRailBlocking(map);
 		populateRailStationLogistics(map);
 
-		List<Renderer> renderers = new ArrayList<>();
-		Consumer register = r -> renderers.add((Renderer) r);
+		List<MapRenderable> renderers = new ArrayList<>();
+		// TODO need to refactor the type generics, wildcard hell is a real place
+		Consumer<MapRenderable> register = r -> renderers.add(r);
 
-		TileRendererFactory.createAllRenderers(renderers::add, tileRenderingTuples);
+		TileRendererFactory.createAllRenderers(renderers::add, mapTiles);
 
-		tileRenderingTuples.forEach(t -> {
+		mapTiles.forEach(t -> {
 			try {
-				t.factory.createRenderers(register, map, t.tile);
+				t.getFactory().createRenderers(register, map, t.getTile());
 			} catch (Exception e) {
-				reporting.addException(e, t.factory.getClass().getSimpleName() + ", " + t.tile.name);
+				reporting.addException(e, t.getFactory().getClass().getSimpleName() + ", " + t.getTile().name);
 			}
 		});
 
-		entityRenderingTuples.forEach(t -> {
+		mapEntities.forEach(t -> {
 			try {
-				t.factory.createRenderers(register, map, t.entity);
+				t.getFactory().createRenderers(register, map, t.getEntity());
 			} catch (Exception e) {
-				reporting.addException(e, t.factory.getClass().getSimpleName() + ", " + t.entity.name);
+				reporting.addException(e, t.getFactory().getClass().getSimpleName() + ", " + t.getEntity().name);
 			}
 		});
 
 		if (map.isAltMode()) {
-			entityRenderingTuples.forEach(t -> {
+			mapEntities.forEach(t -> {
 				try {
-					t.factory.createModuleIcons(register, map, t.entity);
+					t.getFactory().createModuleIcons(register, map, t.getBounds(), t.getEntity());
 				} catch (Exception e) {
-					reporting.addException(e, t.factory.getClass().getSimpleName() + ", " + t.entity.name);
+					reporting.addException(e, t.getFactory().getClass().getSimpleName() + ", " + t.getEntity().name);
 				}
 			});
 		}
@@ -619,8 +586,8 @@ public class FBSR {
 		int[] wireEntityNumbers = blueprint.wires.stream()
 				.flatMapToInt(w -> IntStream.of(w.firstEntityNumber, w.secondEntityNumber)).distinct().toArray();
 		for (int entityNumber : wireEntityNumbers) {
-			EntityRenderingTuple tuple = entityByNumber.get(entityNumber);
-			List<EntityRenderingTuple> wired = blueprint.wires.stream().flatMapToInt(w -> {
+			MapEntity mapEntity = mapEntityByNumber.get(entityNumber);
+			List<MapEntity> wired = blueprint.wires.stream().flatMapToInt(w -> {
 				if (w.firstEntityNumber == entityNumber) {
 					return IntStream.of(w.secondEntityNumber);
 				} else if (w.secondEntityNumber == entityNumber) {
@@ -628,32 +595,32 @@ public class FBSR {
 				} else {
 					return IntStream.of();
 				}
-			}).mapToObj(entityByNumber::get).collect(Collectors.toList());
+			}).mapToObj(mapEntityByNumber::get).collect(Collectors.toList());
 
-			double orientation = tuple.factory.initWireConnector(register, tuple.entity, wired);
+			double orientation = mapEntity.getFactory().initWireConnector(register, mapEntity.getEntity(), wired);
 			connectorOrientations.put(entityNumber, orientation);
 		}
 
 		for (BSWire wire : blueprint.wires) {
 			try {
-				EntityRenderingTuple first = entityByNumber.get(wire.firstEntityNumber);
-				EntityRenderingTuple second = entityByNumber.get(wire.secondEntityNumber);
+				MapEntity first = mapEntityByNumber.get(wire.firstEntityNumber);
+				MapEntity second = mapEntityByNumber.get(wire.secondEntityNumber);
 
 				double orientation1 = connectorOrientations.get(wire.firstEntityNumber);
 				double orientation2 = connectorOrientations.get(wire.secondEntityNumber);
 
-				Optional<WirePoint> firstPoint = first.factory.createWirePoint(register,
-						first.entity.position.createPoint(), orientation1, wire.firstWireConnectorId);
-				Optional<WirePoint> secondPoint = second.factory.createWirePoint(register,
-						second.entity.position.createPoint(), orientation2, wire.secondWireConnectorId);
+				Optional<WirePoint> firstPoint = first.getFactory().createWirePoint(register,
+						first.getEntity().position.createPoint(), orientation1, wire.firstWireConnectorId);
+				Optional<WirePoint> secondPoint = second.getFactory().createWirePoint(register,
+						second.getEntity().position.createPoint(), orientation2, wire.secondWireConnectorId);
 
 				if (!firstPoint.isPresent() || !secondPoint.isPresent()) {
 					continue;// Probably something modded
 				}
 
-				renderers.add(RenderUtils.createWireRenderer(firstPoint.get().getPosition(),
-						secondPoint.get().getPosition(), firstPoint.get().getColor().getColor(),
-						firstPoint.get().getShadow(), secondPoint.get().getShadow()));
+				renderers.add(new MapWire(firstPoint.get().getPosition(), secondPoint.get().getPosition(),
+						firstPoint.get().getColor().getColor()));
+				renderers.add(new MapWireShadow(firstPoint.get().getShadow(), secondPoint.get().getShadow()));
 			} catch (Exception e) {
 				reporting.addException(e, "Wire " + wire.firstEntityNumber + ", " + wire.firstWireConnectorId + ", "
 						+ wire.secondEntityNumber + ", " + wire.secondWireConnectorId);
@@ -664,22 +631,18 @@ public class FBSR {
 		showRailLogistics(register, map, request.debug.pathRails);
 
 		if (request.debug.entityPlacement) {
-			entityRenderingTuples.forEach(t -> {
-				Point2D.Double pos = t.entity.position.createPoint();
-				renderers.add(new Renderer(Layer.DEBUG_P, pos, true) {
-					@Override
-					public void render(Graphics2D g) {
-						g.setColor(Color.cyan);
-						g.fill(new Ellipse2D.Double(pos.x - 0.1, pos.y - 0.1, 0.2, 0.2));
-						Stroke ps = g.getStroke();
-						g.setStroke(new BasicStroke(3f / (float) TILE_SIZE));
-						g.setColor(Color.green);
-						g.draw(new Line2D.Double(pos, t.entity.direction.offset(pos, 0.3)));
-						g.setStroke(ps);
-					}
-				});
+			mapEntities.forEach(t -> {
+				t.getBounds();
+				renderers.add(new MapDebugEntityPlacement(null, null, null));
+//				Point2D.Double pos = t.entity.position.createPoint();
+//				renderers.add(new Renderer(Layer.DEBUG_P, pos, true) {
+//					@Override
+//					public void render(Graphics2D g) {
+//
+//					}
+//				});
 			});
-			tileRenderingTuples.forEach(t -> {
+			mapTiles.forEach(t -> {
 				Point2D.Double pos = t.tile.position.createPoint();
 				renderers.add(new Renderer(Layer.DEBUG_P, pos, true) {
 
@@ -816,7 +779,7 @@ public class FBSR {
 						g.setStroke(GRID_STROKE);
 						g.setColor(request.getGridLines().get());
 						Rectangle2D.Double rect = new Rectangle2D.Double(0, 0, 1, 1);
-						for (TileRenderingTuple tuple : tileRenderingTuples) {
+						for (TileRenderingTuple tuple : mapTiles) {
 							BSPosition pos = tuple.tile.position;
 							rect.x = pos.x;
 							rect.y = pos.y;
@@ -864,7 +827,6 @@ public class FBSR {
 			}
 		});
 
-		boolean debugBounds = request.debug.entityPlacement;
 		renderers.stream().sorted((r1, r2) -> {
 			int ret;
 
@@ -891,17 +853,6 @@ public class FBSR {
 		}).forEach(r -> {
 			try {
 				r.render(g);
-
-				if (debugBounds) {
-					g.setStroke(new BasicStroke(1f / (float) TILE_SIZE));
-					g.setColor(r.ignoreBoundsCalculation() ? Color.gray : Color.magenta);
-					MapRect3D b = r.bounds;
-					g.draw(new Rectangle2D.Double(b.x1, b.y1 - b.height, b.x2 - b.x1, b.y2 - b.y1 + b.height));
-					if (b.height > 0) {
-						g.setColor(g.getColor().darker());
-						g.draw(new Line2D.Double(b.x1, b.y1, b.x2, b.y1));
-					}
-				}
 			} catch (Exception e) {
 				reporting.addException(e);
 			}
@@ -943,7 +894,7 @@ public class FBSR {
 		return result;
 	}
 
-	private static void showLogisticGrid(Consumer<Renderer> register, WorldMap map, boolean debug) {
+	private static void showLogisticGrid(Consumer<MapRenderable> register, WorldMap map, boolean debug) {
 		Table<Integer, Integer, LogisticGridCell> logisticGrid = map.getLogisticGrid();
 		logisticGrid.cellSet().forEach(c -> {
 			Point2D.Double pos = new Point2D.Double(c.getRowKey() / 2.0 + 0.25, c.getColumnKey() / 2.0 + 0.25);
@@ -1011,7 +962,7 @@ public class FBSR {
 		});
 	}
 
-	private static void showRailLogistics(Consumer<Renderer> register, WorldMap map, boolean debug) {
+	private static void showRailLogistics(Consumer<MapRenderable> register, WorldMap map, boolean debug) {
 		for (Entry<RailEdge, RailEdge> pair : map.getRailEdges()) {
 			boolean input = pair.getKey().isInput() || pair.getValue().isInput();
 			boolean output = pair.getKey().isOutput() || pair.getValue().isOutput();

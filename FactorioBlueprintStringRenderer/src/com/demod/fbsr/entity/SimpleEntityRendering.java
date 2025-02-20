@@ -566,7 +566,7 @@ public abstract class SimpleEntityRendering<E extends BSEntity> extends EntityRe
 
 					Point2D.Double pos;
 					if (conn.position.isPresent()) {
-						pos = dir.rotatePoint(conn.position.get().createPoint());
+						pos = dir.rotate(conn.position.get().createPoint());
 					} else {
 						pos = conn.positions.get().get(dir.cardinal()).createPoint();
 					}
@@ -654,7 +654,7 @@ public abstract class SimpleEntityRendering<E extends BSEntity> extends EntityRe
 			for (FPPipeConnectionDefinition conn : fluidBox.pipeConnections) {
 				if (conn.direction.isPresent() && conn.position.isPresent()) {
 					Direction facing = conn.direction.get().rotate(dir);
-					Point2D.Double pos = dir.rotatePoint(conn.position.get().createPoint());
+					Point2D.Double pos = dir.rotate(conn.position.get().createPoint());
 					pos.x += entity.position.x;
 					pos.y += entity.position.y;
 					// TODO use flow direction for pipe arrow logistics

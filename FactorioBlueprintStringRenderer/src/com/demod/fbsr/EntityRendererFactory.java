@@ -1,23 +1,16 @@
 package com.demod.fbsr;
 
-import java.awt.Color;
-import java.awt.Font;
-import java.awt.Graphics2D;
-import java.awt.Rectangle;
-import java.awt.geom.Ellipse2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Random;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -32,13 +25,14 @@ import com.demod.factorio.FactorioData;
 import com.demod.factorio.fakelua.LuaTable;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.factorio.prototype.RecipePrototype;
-import com.demod.fbsr.FBSR.EntityRenderingTuple;
 import com.demod.fbsr.WirePoints.WirePoint;
 import com.demod.fbsr.WorldMap.BeaconSource;
 import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.fp.FPBoundingBox;
 import com.demod.fbsr.fp.FPVector;
 import com.demod.fbsr.legacy.LegacyBlueprintEntity;
+import com.demod.fbsr.map.MapEntity;
+import com.demod.fbsr.map.MapIcon;
 import com.demod.fbsr.map.MapPosition;
 import com.demod.fbsr.map.MapRect3D;
 import com.demod.fbsr.map.MapRenderable;
@@ -144,56 +138,32 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 
 	private Class<E> entityClass;
 
-	protected void addLogisticWarp(WorldMap map, Point2D.Double gridPos1, Direction cellDir1, Point2D.Double gridPos2,
+	protected void addLogisticWarp(WorldMap map, MapPosition gridPos1, Direction cellDir1, MapPosition gridPos2,
 			Direction cellDir2) {
 		map.getOrCreateLogisticGridCell(cellDir1.offset(gridPos1, 0.25)).addWarp(cellDir2.offset(gridPos2, 0.25));
 	}
 
-	public void createModuleIcons(Consumer<MapRenderable> register, WorldMap map, E entity) {
-		DataTable table = data.getTable();
+	public void createModuleIcons(Consumer<MapRenderable> register, WorldMap map, MapRect3D bounds, E entity) {
 
 		Multiset<String> renderModules = RenderUtils.getModules(entity);
 		if (!renderModules.isEmpty()) {
-			register.accept(new Renderer(Layer.ENTITY_INFO_ICON_ABOVE, entity.position.createPoint(), true) {
-				final double spacing = 0.7;
-				final double shadow = 0.6;
-				final double size = 0.5;
-				final double vpad = 0.7;
 
-				@Override
-				public void render(Graphics2D g) {
-					Point2D.Double pos = entity.position.createPoint();
-					Rectangle2D.Double box = protoSelectionBox.createRect();
+			double x = entity.position.x - 0.7 * (renderModules.size() / 2.0) + 0.35;
+			double y = entity.position.y + 0.7;
 
-					double startX = pos.x + box.x + box.width / 2.0 - spacing * (renderModules.size() / 2.0)
-							+ spacing / 2.0;
-					double startY = pos.y + box.y + box.height - vpad;
-
-					Rectangle2D.Double shadowBox = new Rectangle2D.Double(startX - shadow / 2.0, startY - shadow / 2.0,
-							shadow, shadow);
-					Rectangle2D.Double spriteBox = new Rectangle2D.Double(startX - size / 2.0, startY - size / 2.0,
-							size, size);
-
-					for (String itemName : renderModules) {
-						g.setColor(new Color(0, 0, 0, 180));
-						g.fill(shadowBox);
-						BufferedImage image = data.getTable().getItem(itemName).map(data::getWikiIcon)
-								.orElse(RenderUtils.EMPTY_IMAGE);
-						RenderUtils.drawImageInBounds(image, new Rectangle(0, 0, image.getWidth(), image.getHeight()),
-								spriteBox, g);
-
-						shadowBox.x += spacing;
-						spriteBox.x += spacing;
-					}
-				}
-			});
+			for (String itemName : renderModules) {
+				BufferedImage image = FactorioManager.lookupItemByName(itemName)
+						.map(i -> i.getTable().getData().getWikiIcon(i)).orElse(RenderUtils.EMPTY_IMAGE);
+				register.accept(new MapIcon(MapPosition.byUnit(x, y), image, 0.5, 0.05));
+				x += 0.7;
+			}
 		}
 
 		if (protoBeaconed) {
-			Point2D.Double pos = entity.position.createPoint();
+			MapPosition pos = entity.position.createPoint();
 			Rectangle2D.Double beaconedBounds = protoSelectionBox.createRect();
-			beaconedBounds.x += pos.x;
-			beaconedBounds.y += pos.y;
+			beaconedBounds.x += pos.getX();
+			beaconedBounds.y += pos.getY();
 			Set<BeaconSource> beacons = new LinkedHashSet<>();
 			map.getBeaconed(new Point2D.Double(beaconedBounds.x + 0.5, beaconedBounds.y + 0.5))
 					.ifPresent(beacons::addAll);
@@ -225,47 +195,22 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 					}
 				}
 
-				register.accept(new Renderer(Layer.ENTITY_INFO_ICON_ABOVE, entity.position.createPoint(), true) {
-					final double spacing = 0.3;
-					final double shadow = 0.3;
-					final double size = 0.25;
-					final double vpad = 0.5;
+				double x = entity.position.x - 0.3 * (renderModules.size() / 2.0) + 0.15;
+				double y = entity.position.y - 1.15;
 
-					@Override
-					public void render(Graphics2D g) {
-						Point2D.Double pos = entity.position.createPoint();
-						Rectangle2D.Double box = protoSelectionBox.createRect();
-
-						double startX = pos.x + box.x + box.width / 2.0 - spacing * (modules.size() / 2.0)
-								+ spacing / 2.0;
-						double startY = pos.y + box.y + vpad;
-
-						Rectangle2D.Double shadowBox = new Rectangle2D.Double(startX - shadow / 2.0,
-								startY - shadow / 2.0, shadow, shadow);
-						Rectangle2D.Double spriteBox = new Rectangle2D.Double(startX - size / 2.0, startY - size / 2.0,
-								size, size);
-
-						for (String itemName : modules) {
-							g.setColor(new Color(0, 0, 0, 180));
-							g.fill(shadowBox);
-							BufferedImage image = table.getItem(itemName).map(data::getWikiIcon)
-									.orElse(RenderUtils.EMPTY_IMAGE);
-							RenderUtils.drawImageInBounds(image,
-									new Rectangle(0, 0, image.getWidth(), image.getHeight()), spriteBox, g);
-
-							shadowBox.x += spacing;
-							spriteBox.x += spacing;
-						}
-					}
-
-				});
+				for (String itemName : renderModules) {
+					BufferedImage image = FactorioManager.lookupItemByName(itemName)
+							.map(i -> i.getTable().getData().getWikiIcon(i)).orElse(RenderUtils.EMPTY_IMAGE);
+					register.accept(new MapIcon(MapPosition.byUnit(x, y), image, 0.25, 0.025));
+					x += 0.3;
+				}
 			}
 		}
 	}
 
 	public abstract void createRenderers(Consumer<MapRenderable> register, WorldMap map, E entity);
 
-	public Optional<WirePoint> createWirePoint(Consumer<MapRenderable> register, Point2D.Double position,
+	public Optional<WirePoint> createWirePoint(Consumer<MapRenderable> register, MapPosition position,
 			double orientation, int connectionId) {
 		return Optional.ofNullable(wirePointsById.get(connectionId)).map(wp -> wp.getPoint(position, orientation));
 	}
@@ -282,8 +227,8 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 		return data;
 	}
 
-	public MapRect3D getDrawBounds() {
-		return drawBounds;
+	public MapRect3D getDrawBounds(E entity) {
+		return entity.direction.rotate(drawBounds).shift(entity.position.x, entity.position.y);
 	}
 
 	public String getGroupName() {
@@ -335,7 +280,7 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 	public abstract void initFromPrototype();
 
 	// Returns orientation if applicable
-	public double initWireConnector(Consumer<MapRenderable> register, E entity, List<EntityRenderingTuple> wired) {
+	public double initWireConnector(Consumer<MapRenderable> register, E entity, List<MapEntity> wired) {
 		return 0;
 	}
 
@@ -378,10 +323,10 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 	}
 
 	protected void setLogisticMachine(WorldMap map, BSEntity entity, RecipePrototype recipe) {
-		Point2D.Double entityPos = entity.position.createPoint();
+		MapPosition entityPos = entity.position.createPoint();
 		Rectangle2D.Double box = protoSelectionBox.createRect();
-		double xStart = entityPos.x + box.x;
-		double yStart = entityPos.y + box.y;
+		double xStart = entityPos.getX() + box.x;
+		double yStart = entityPos.getY() + box.y;
 		double xEnd = xStart + box.width;
 		double yEnd = yStart + box.height;
 

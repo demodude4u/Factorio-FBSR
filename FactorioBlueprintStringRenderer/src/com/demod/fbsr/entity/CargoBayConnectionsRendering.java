@@ -196,7 +196,7 @@ public abstract class CargoBayConnectionsRendering extends SimpleEntityRendering
 			FPLayeredSpriteVariations protoSprites = elementCondition.protoSpritesFunc.apply(protoCargoBayConnections);
 
 			Point2D.Double shift = elementCondition.shift;
-			Point2D.Double rco = direction.rotatePoint(type.cellOffset);
+			Point2D.Double rco = direction.rotate(type.cellOffset);
 			Point2D.Double point = entity.position.createPoint(shift);
 			Point2D.Double cellPoint = new Point2D.Double(point.x + rco.x, point.y + rco.y);
 

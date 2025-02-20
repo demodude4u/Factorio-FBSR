@@ -1,7 +1,5 @@
 package com.demod.fbsr;
 
-import java.awt.geom.Point2D;
-import java.awt.geom.Point2D.Double;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -15,6 +13,7 @@ import java.util.Set;
 import java.util.function.Function;
 
 import com.demod.fbsr.bs.BSEntity;
+import com.demod.fbsr.map.MapPosition;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -97,9 +96,9 @@ public class WorldMap {
 	}
 
 	public static class RailEdge {
-		private final Point2D.Double startPos;
+		private final MapPosition startPos;
 		private final Direction startDir;
-		private final Point2D.Double endPos;
+		private final MapPosition endPos;
 		private final Direction endDir;
 		private final boolean curved;
 
@@ -107,7 +106,7 @@ public class WorldMap {
 		private boolean input = false;
 		private boolean output = false;
 
-		public RailEdge(Point2D.Double startPos, Direction startDir, Point2D.Double endPos, Direction endDir,
+		public RailEdge(MapPosition startPos, Direction startDir, MapPosition endPos, Direction endDir,
 				boolean curved) {
 			this.startPos = startPos;
 			this.startDir = startDir;
@@ -120,7 +119,7 @@ public class WorldMap {
 			return endDir;
 		}
 
-		public Point2D.Double getEndPos() {
+		public MapPosition getEndPos() {
 			return endPos;
 		}
 
@@ -128,7 +127,7 @@ public class WorldMap {
 			return startDir;
 		}
 
-		public Point2D.Double getStartPos() {
+		public MapPosition getStartPos() {
 			return startPos;
 		}
 
@@ -301,25 +300,21 @@ public class WorldMap {
 		return 1 << facing.cardinal();
 	}
 
-	public Optional<List<BeaconSource>> getBeaconed(Point2D.Double pos) {
-		int kr = (int) Math.floor(pos.x);
-		int kc = (int) Math.floor(pos.y);
-		return Optional.ofNullable(beaconed.get(kr, kc));
+	public Optional<List<BeaconSource>> getBeaconed(MapPosition pos) {
+		return Optional.ofNullable(beaconed.get(pos.getXCell(), pos.getYCell()));
 	}
 
-	public Optional<BeltCell> getBelt(Point2D.Double pos) {
-		int kr = (int) Math.floor(pos.x);
-		int kc = (int) Math.floor(pos.y);
-		return Optional.ofNullable(belts.get(kr, kc));
+	public Optional<BeltCell> getBelt(MapPosition pos) {
+		return Optional.ofNullable(belts.get(pos.getXCell(), pos.getYCell()));
 	}
 
-	public Optional<BeltBend> getBeltBend(Point2D.Double pos) {
+	public Optional<BeltBend> getBeltBend(MapPosition pos) {
 		return getBelt(pos).map(b -> {
 			return getBeltBend(pos, b);
 		});
 	}
 
-	public BeltBend getBeltBend(Point2D.Double pos, BeltCell belt) {
+	public BeltBend getBeltBend(MapPosition pos, BeltCell belt) {
 		if (!belt.bendable) {
 			return BeltBend.NONE;
 		}
@@ -339,29 +334,25 @@ public class WorldMap {
 		}
 	}
 
-	public Optional<Direction> getBeltFacing(Point2D.Double pos) {
-		int kr = (int) Math.floor(pos.x);
-		int kc = (int) Math.floor(pos.y);
-		return Optional.ofNullable(belts.get(kr, kc)).map(BeltCell::getFacing);
+	public Optional<Direction> getBeltFacing(MapPosition pos) {
+		return Optional.ofNullable(belts.get(pos.getXCell(), pos.getYCell())).map(BeltCell::getFacing);
 	}
 
-	public Point2D.Double getLogisticCellPosition(Cell<Integer, Integer, LogisticGridCell> c) {
-		return new Point2D.Double(c.getRowKey() / 2.0 + 0.25, c.getColumnKey() / 2.0 + 0.25);
+	public MapPosition getLogisticCellPosition(Cell<Integer, Integer, LogisticGridCell> c) {
+		return MapPosition.byUnit(c.getRowKey() / 2.0 + 0.25, c.getColumnKey() / 2.0 + 0.25);
 	}
 
 	public Table<Integer, Integer, LogisticGridCell> getLogisticGrid() {
 		return logisticGrid;
 	}
 
-	public Optional<LogisticGridCell> getLogisticGridCell(Point2D.Double pos) {
-		int kr = (int) Math.floor(pos.x * 2);
-		int kc = (int) Math.floor(pos.y * 2);
-		return Optional.ofNullable(logisticGrid.get(kr, kc));
+	public Optional<LogisticGridCell> getLogisticGridCell(MapPosition pos) {
+		return Optional.ofNullable(logisticGrid.get(pos.getXCell() * 2, pos.getYCell() * 2));
 	}
 
-	public LogisticGridCell getOrCreateLogisticGridCell(Point2D.Double pos) {
-		int kr = (int) Math.floor(pos.x * 2);
-		int kc = (int) Math.floor(pos.y * 2);
+	public LogisticGridCell getOrCreateLogisticGridCell(MapPosition pos) {
+		int kr = pos.getXCell() * 2;
+		int kc = pos.getYCell() * 2;
 		LogisticGridCell ret = logisticGrid.get(kr, kc);
 		if (ret == null) {
 			logisticGrid.put(kr, kc, ret = new LogisticGridCell());
@@ -369,9 +360,9 @@ public class WorldMap {
 		return ret;
 	}
 
-	public RailNode getOrCreateRailNode(Point2D.Double pos) {
-		int kr = (int) Math.round(pos.x * 2);
-		int kc = (int) Math.round(pos.y * 2);
+	public RailNode getOrCreateRailNode(MapPosition pos) {
+		int kr = pos.getXCell() * 2;
+		int kc = pos.getYCell() * 2;
 		RailNode ret = railNodes.get(kr, kc);
 		if (ret == null) {
 			railNodes.put(kr, kc, ret = new RailNode());
@@ -383,10 +374,8 @@ public class WorldMap {
 		return railEdges;
 	}
 
-	public Optional<RailNode> getRailNode(Point2D.Double pos) {
-		int kr = (int) Math.round(pos.x * 2);
-		int kc = (int) Math.round(pos.y * 2);
-		return Optional.ofNullable(railNodes.get(kr, kc));
+	public Optional<RailNode> getRailNode(MapPosition pos) {
+		return Optional.ofNullable(railNodes.get(pos.getXCell() * 2, pos.getYCell() * 2));
 	}
 
 	public Table<Integer, Integer, RailNode> getRailNodes() {
@@ -397,39 +386,39 @@ public class WorldMap {
 		return altMode;
 	}
 
-	public boolean isBeltFacingMeFrom(Point2D.Double pos, Direction dir) {
-		return getBelt(dir.offset(pos)).filter(b -> b.bendOthers).map(b -> b.facing)
-				.map(d -> pos.distance(d.offset(dir.offset(pos))) < 0.1).orElse(false);
+	public boolean isBeltFacingMeFrom(MapPosition pos, Direction dir) {
+		Optional<BeltCell> optAdjBelt = getBelt(dir.offset(pos));
+		if (optAdjBelt.isEmpty()) {
+			return false;
+		}
+		BeltCell adjBelt = optAdjBelt.get();
+		return adjBelt.bendOthers && (dir.back() == adjBelt.facing);
 	}
 
-	public boolean isCargoBayConnectable(Point2D.Double pos) {
-		int kr = (int) Math.floor(pos.x);
-		int kc = (int) Math.floor(pos.y);
-		return cargoBayConnectables.contains(kr, kc);
+	public boolean isCargoBayConnectable(MapPosition pos) {
+		return cargoBayConnectables.contains(pos.getXCell(), pos.getYCell());
 	}
 
-	public boolean isHeatPipe(Point2D.Double pos, Direction facing) {
-		int kr = (int) Math.floor(pos.x);
-		int kc = (int) Math.floor(pos.y);
+	public boolean isHeatPipe(MapPosition pos, Direction facing) {
+		int kr = pos.getXCell();
+		int kc = pos.getYCell();
 		return heatPipes.contains(kr, kc) && (heatPipes.get(kr, kc) & flag(facing)) > 0;
 	}
 
-	public boolean isHorizontalGate(Point2D.Double pos) {
-		int kr = (int) Math.floor(pos.x);
-		int kc = (int) Math.floor(pos.y);
+	public boolean isHorizontalGate(MapPosition pos) {
+		int kr = pos.getXCell();
+		int kc = pos.getYCell();
 		return gates.contains(kr, kc) && (gates.get(kr, kc) == false);
 	}
 
-	public boolean isMatchingUndergroundBeltEnding(String name, Point2D.Double pos, Direction dir) {
-		int kr = (int) Math.floor(pos.x);
-		int kc = (int) Math.floor(pos.y);
-		return Optional.ofNullable(undergroundBeltEndings.get(kr, kc))
+	public boolean isMatchingUndergroundBeltEnding(String name, MapPosition pos, Direction dir) {
+		return Optional.ofNullable(undergroundBeltEndings.get(pos.getXCell(), pos.getYCell()))
 				.filter(p -> p.getKey().equals(name) && p.getValue().ordinal() == dir.ordinal()).isPresent();
 	}
 
-	public boolean isPipe(Point2D.Double pos, Direction facing) {
-		int kr = (int) Math.floor(pos.x);
-		int kc = (int) Math.floor(pos.y);
+	public boolean isPipe(MapPosition pos, Direction facing) {
+		int kr = pos.getXCell();
+		int kc = pos.getYCell();
 		return pipes.contains(kr, kc) && (pipes.get(kr, kc) & flag(facing)) > 0;
 	}
 
@@ -437,25 +426,23 @@ public class WorldMap {
 		return foundation;
 	}
 
-	public boolean isVerticalGate(Point2D.Double pos) {
-		int kr = (int) Math.floor(pos.x);
-		int kc = (int) Math.floor(pos.y);
+	public boolean isVerticalGate(MapPosition pos) {
+		int kr = pos.getXCell();
+		int kc = pos.getYCell();
 		return gates.contains(kr, kc) && (gates.get(kr, kc) == true);
 	}
 
-	public boolean isWall(Point2D.Double pos) {
-		int kr = (int) Math.floor(pos.x);
-		int kc = (int) Math.floor(pos.y);
-		return walls.contains(kr, kc);
+	public boolean isWall(MapPosition pos) {
+		return walls.contains(pos.getXCell(), pos.getYCell());
 	}
 
 	public void setAltMode(boolean altMode) {
 		this.altMode = altMode;
 	}
 
-	public void setBeaconed(Point2D.Double pos, BSEntity beacon, double distributionEffectivity) {
-		int kr = (int) Math.floor(pos.x);
-		int kc = (int) Math.floor(pos.y);
+	public void setBeaconed(MapPosition pos, BSEntity beacon, double distributionEffectivity) {
+		int kr = pos.getXCell();
+		int kc = pos.getYCell();
 		List<BeaconSource> list = beaconed.get(kr, kc);
 		if (list == null) {
 			beaconed.put(kr, kc, list = new LinkedList<>());
@@ -463,21 +450,15 @@ public class WorldMap {
 		list.add(new BeaconSource(kr, kc, beacon, distributionEffectivity));
 	}
 
-	public void setBelt(Point2D.Double pos, Direction facing, boolean bendable, boolean bendOthers) {
-		int kr = (int) Math.floor(pos.x);
-		int kc = (int) Math.floor(pos.y);
-		belts.put(kr, kc, new BeltCell(facing, bendable, bendOthers));
+	public void setBelt(MapPosition pos, Direction facing, boolean bendable, boolean bendOthers) {
+		belts.put(pos.getXCell(), pos.getYCell(), new BeltCell(facing, bendable, bendOthers));
 	}
 
-	public void setCargoBayConnectable(Point2D.Double pos, BSEntity entity) {
-		int kr = (int) Math.floor(pos.x);
-		int kc = (int) Math.floor(pos.y);
-		cargoBayConnectables.put(kr, kc, entity);
+	public void setCargoBayConnectable(MapPosition pos, BSEntity entity) {
+		cargoBayConnectables.put(pos.getXCell(), pos.getYCell(), entity);
 	}
 
-	public void setHeatPipe(Point2D.Double pos, Direction... facings) {
-		int kr = (int) Math.floor(pos.x);
-		int kc = (int) Math.floor(pos.y);
+	public void setHeatPipe(MapPosition pos, Direction... facings) {
 		int flags = 0;
 		if (facings.length == 0) {
 			flags = 0b1111;
@@ -486,18 +467,14 @@ public class WorldMap {
 				flags |= flag(facing);
 			}
 		}
-		heatPipes.put(kr, kc, flags);
+		heatPipes.put(pos.getXCell(), pos.getYCell(), flags);
 	}
 
-	public void setHorizontalGate(Point2D.Double pos) {
-		int kr = (int) Math.floor(pos.x);
-		int kc = (int) Math.floor(pos.y);
-		gates.put(kr, kc, false);
+	public void setHorizontalGate(MapPosition pos) {
+		gates.put(pos.getXCell(), pos.getYCell(), false);
 	}
 
-	public void setPipe(Point2D.Double pos, Direction... facings) {
-		int kr = (int) Math.floor(pos.x);
-		int kc = (int) Math.floor(pos.y);
+	public void setPipe(MapPosition pos, Direction... facings) {
 		int flags = 0;
 		if (facings.length == 0) {
 			flags = 0b1111;
@@ -506,10 +483,10 @@ public class WorldMap {
 				flags |= flag(facing);
 			}
 		}
-		pipes.put(kr, kc, flags);
+		pipes.put(pos.getXCell(), pos.getYCell(), flags);
 	}
 
-	public void setRailEdge(Double p1, Direction d1, Double p2, Direction d2, boolean curved) {
+	public void setRailEdge(MapPosition p1, Direction d1, MapPosition p2, Direction d2, boolean curved) {
 		RailNode node1 = getOrCreateRailNode(p1);
 		RailNode node2 = getOrCreateRailNode(p2);
 		RailEdge edge1 = new RailEdge(p1, d1, p2, d2, curved);
@@ -525,21 +502,15 @@ public class WorldMap {
 		this.foundation = foundation;
 	}
 
-	public void setUndergroundBeltEnding(String name, Point2D.Double pos, Direction dir) {
-		int kr = (int) Math.floor(pos.x);
-		int kc = (int) Math.floor(pos.y);
-		undergroundBeltEndings.put(kr, kc, new SimpleEntry<>(name, dir));
+	public void setUndergroundBeltEnding(String name, MapPosition pos, Direction dir) {
+		undergroundBeltEndings.put(pos.getXCell(), pos.getYCell(), new SimpleEntry<>(name, dir));
 	}
 
-	public void setVerticalGate(Point2D.Double pos) {
-		int kr = (int) Math.floor(pos.x);
-		int kc = (int) Math.floor(pos.y);
-		gates.put(kr, kc, true);
+	public void setVerticalGate(MapPosition pos) {
+		gates.put(pos.getXCell(), pos.getYCell(), true);
 	}
 
-	public void setWall(Point2D.Double pos) {
-		int kr = (int) Math.floor(pos.x);
-		int kc = (int) Math.floor(pos.y);
-		walls.put(kr, kc, pos);
+	public void setWall(MapPosition pos) {
+		walls.put(pos.getXCell(), pos.getYCell(), pos);
 	}
 }

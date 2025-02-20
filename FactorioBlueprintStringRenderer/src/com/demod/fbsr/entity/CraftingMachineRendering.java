@@ -109,7 +109,7 @@ public abstract class CraftingMachineRendering extends SimpleEntityRendering<BSC
 					}
 
 					Direction facing = conn.direction.get().rotate(dir);
-					Point2D.Double pos = dir.rotatePoint(conn.position.get().createPoint());
+					Point2D.Double pos = dir.rotate(conn.position.get().createPoint());
 					pos = facing.offset(pos, 1.0);
 					if (entity.mirror) {
 						pos.x = -pos.x;
@@ -237,7 +237,7 @@ public abstract class CraftingMachineRendering extends SimpleEntityRendering<BSC
 					for (FPPipeConnectionDefinition conn : fluidBox.pipeConnections) {
 						if (conn.direction.isPresent() && conn.position.isPresent()) {
 							Direction facing = conn.direction.get().rotate(dir);
-							Point2D.Double pos = dir.rotatePoint(conn.position.get().createPoint());
+							Point2D.Double pos = dir.rotate(conn.position.get().createPoint());
 							pos.x += entity.position.x;
 							pos.y += entity.position.y;
 							map.setPipe(pos, facing);

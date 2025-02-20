@@ -13,8 +13,6 @@ public abstract class MapRenderable {
 		this.position = position;
 	}
 
-	public abstract void render(Graphics2D g);
-
 	public Layer getLayer() {
 		return layer;
 	}
@@ -22,4 +20,6 @@ public abstract class MapRenderable {
 	public MapPosition getPosition() {
 		return position;
 	}
+
+	public abstract void render(Graphics2D g);
 }

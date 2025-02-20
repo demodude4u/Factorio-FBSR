@@ -10,7 +10,7 @@ import java.awt.geom.Point2D;
 import com.demod.fbsr.Layer;
 
 public class MapWireShadow extends MapRenderable {
-	public static final float DROP = 0.6f;
+	public static final double DROP = 0.6;
 
 	private final MapPosition p1;
 	private final MapPosition p2;
@@ -27,13 +27,13 @@ public class MapWireShadow extends MapRenderable {
 		g.setStroke(new BasicStroke(1f / 48f));
 		g.setColor(Color.black);
 
-		float x1 = p1.getX();
-		float y1 = p1.getY();
-		float x2 = p2.getX();
-		float y2 = p2.getY();
-		Path2D.Float path = new Path2D.Float();
+		double x1 = p1.getX();
+		double y1 = p1.getY();
+		double x2 = p2.getX();
+		double y2 = p2.getY();
+		Path2D.Double path = new Path2D.Double();
 		path.moveTo(x1, y1);
-		Point2D.Float mid = new Point2D.Float((x1 + x2) / 2 - DROP, (y1 + y2) / 2);
+		Point2D.Double mid = new Point2D.Double((x1 + x2) / 2.0 - DROP, (y1 + y2) / 2.0);
 		path.curveTo(mid.x, mid.y, mid.x, mid.y, x2, y2);
 		g.draw(path);
 

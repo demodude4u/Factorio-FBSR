@@ -42,4 +42,8 @@ public class BSPosition {
 	public MapPosition createPoint(MapPosition shift) {
 		return shift.addUnit(x, y);
 	}
+
+	public MapPosition createPoint(double x, double y) {
+		return MapPosition.byUnit(this.x + x, this.y + y);
+	}
 }

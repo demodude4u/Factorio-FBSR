@@ -20,13 +20,13 @@ public class MapUnknownEntityMarker extends MapRenderable {
 
 	@Override
 	public void render(Graphics2D g) {
-		float x = position.getX();
-		float y = position.getY();
+		double x = position.getX();
+		double y = position.getY();
 		g.setColor(color);
-		g.fill(new Ellipse2D.Float(x - 0.5f, y - 0.5f, 1f, 1f));
+		g.fill(new Ellipse2D.Double(x - 0.5, y - 0.5, 1, 1));
 		g.setColor(Color.gray);
 		g.setFont(FONT);
-		g.drawString("?", x - 0.25f, y + 0.3f);
+		g.drawString("?", (float) x - 0.25f, (float) y + 0.3f);
 	}
 
 }

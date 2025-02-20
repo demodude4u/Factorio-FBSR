@@ -28,7 +28,6 @@ import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.factorio.prototype.TilePrototype;
-import com.demod.fbsr.FBSR.TileRenderingTuple;
 import com.demod.fbsr.bs.BSPosition;
 import com.demod.fbsr.bs.BSTile;
 import com.demod.fbsr.fp.FPMaterialTextureParameters;
@@ -40,6 +39,7 @@ import com.demod.fbsr.map.MapPosition;
 import com.demod.fbsr.map.MapRect;
 import com.demod.fbsr.map.MapRenderable;
 import com.demod.fbsr.map.MapSprite;
+import com.demod.fbsr.map.MapTile;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ImmutableList;
@@ -298,7 +298,7 @@ public class TileRendererFactory {
 		}
 	}
 
-	public static void createAllRenderers(Consumer<MapRenderable> register, List<TileRenderingTuple> tiles) {
+	public static void createAllRenderers(Consumer<MapRenderable> register, List<MapTile> tiles) {
 
 		// TODO how do I decide which edge factory for matching layers? (example,
 		// hazard-concrete-left/right)
@@ -327,8 +327,8 @@ public class TileRendererFactory {
 		Table<Integer, Integer, TileCell> tileMap = HashBasedTable.create();
 
 		// XXX should I also do render order (left to right, top to bottom)?
-		List<TileRenderingTuple> tileOrder = tiles.stream().filter(t -> !t.factory.isUnknown())
-				.sorted(Comparator.comparing(t -> t.factory.protoLayer)).collect(Collectors.toList());
+		List<MapTile> tileOrder = tiles.stream().filter(t -> !t.getFactory().isUnknown())
+				.sorted(Comparator.comparing(t -> t.getFactory().protoLayer)).collect(Collectors.toList());
 
 		// <layer, <row, col, cell>>
 		LinkedHashMap<Integer, Table<Integer, Integer, TileEdgeCell>> tileEdgeMaps = new LinkedHashMap<>();
@@ -338,24 +338,24 @@ public class TileRendererFactory {
 		Multimap<Integer, TileEdgeCell> edgeCellLayers = ArrayListMultimap.create();
 
 		// Populate tile map
-		for (TileRenderingTuple tuple : tileOrder) {
+		for (MapTile mapTile : tileOrder) {
 			TileCell cell = new TileCell();
-			BSPosition pos = tuple.tile.position;
+			BSPosition pos = mapTile.getTile().position;
 			cell.row = (int) pos.y;
 			cell.col = (int) pos.x;
-			cell.layer = tuple.factory.protoLayer;
-			cell.mergeFactory = tuple.factory.protoTransitionMergesWithTile;
+			cell.layer = mapTile.getFactory().protoLayer;
+			cell.mergeFactory = mapTile.getFactory().protoTransitionMergesWithTile;
 			cell.mergeLayer = cell.mergeFactory.map(f -> OptionalInt.of(f.protoLayer)).orElse(OptionalInt.empty());
-			cell.tile = tuple.tile;
-			cell.factory = tuple.factory;
+			cell.tile = mapTile.getTile();
+			cell.factory = mapTile.getFactory();
 			tileMap.put(cell.row, cell.col, cell);
 			activeLayers.add(cell.layer);
 			cellLayers.put(cell.layer, cell);
 		}
 
 		// Populate edge maps
-		for (TileRenderingTuple tuple : tileOrder) {
-			BSPosition pos = tuple.tile.position;
+		for (MapTile mapTile : tileOrder) {
+			BSPosition pos = mapTile.getTile().position;
 			int row = (int) pos.y;
 			int col = (int) pos.x;
 			TileCell cell = tileMap.get(row, col);

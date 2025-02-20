@@ -22,8 +22,8 @@ public class MapText extends MapRenderable {
 	@Override
 	public void render(Graphics2D g) {
 		g.setFont(new Font("Monospaced", Font.BOLD, 1).deriveFont(0.4f));
-		float textX = position.getX();
-		float textY = position.getY();
+		float textX = (float) position.getX();
+		float textY = (float) position.getY();
 		g.setColor(Color.darkGray);
 		g.drawString(string, textX + 0.05f, textY + 0.05f);
 		g.setColor(color);

@@ -1,7 +1,6 @@
 package com.demod.fbsr;
 
 import java.awt.Color;
-import java.awt.geom.Point2D;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -11,6 +10,7 @@ import java.util.function.Function;
 import com.demod.fbsr.fp.FPVector;
 import com.demod.fbsr.fp.FPWireConnectionPoint;
 import com.demod.fbsr.fp.FPWirePosition;
+import com.demod.fbsr.map.MapPosition;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 
@@ -34,10 +34,10 @@ public class WirePoints {
 
 	public static class WirePoint {
 		private final WireColor color;
-		private final Point2D.Double position;
-		private final Point2D.Double shadow;
+		private final MapPosition position;
+		private final MapPosition shadow;
 
-		public WirePoint(WireColor color, Point2D.Double position, Point2D.Double shadow) {
+		public WirePoint(WireColor color, MapPosition position, MapPosition shadow) {
 			this.color = color;
 			this.position = position;
 			this.shadow = shadow;
@@ -47,11 +47,11 @@ public class WirePoints {
 			return color;
 		}
 
-		public Point2D.Double getPosition() {
+		public MapPosition getPosition() {
 			return position;
 		}
 
-		public Point2D.Double getShadow() {
+		public MapPosition getShadow() {
 			return shadow;
 		}
 	}
@@ -100,7 +100,7 @@ public class WirePoints {
 		return color;
 	}
 
-	public WirePoint getPoint(Point2D.Double position, double orientation) {
+	public WirePoint getPoint(MapPosition position, double orientation) {
 		int index;
 		if (backEqualsFront) {
 			index = ((int) Math.round(orientation * dirOffsets.size() * 2)) % dirOffsets.size();
@@ -109,9 +109,7 @@ public class WirePoints {
 		}
 		FPVector offset = dirOffsets.get(index);
 		FPVector shadowOffset = dirShadowOffsets.get(index);
-		Point2D.Double pos = new Point2D.Double(position.x + offset.x, position.y + offset.y);
-		Point2D.Double shadowPos = new Point2D.Double(position.x + shadowOffset.x, position.y + shadowOffset.y);
-		return new WirePoint(color, pos, shadowPos);
+		return new WirePoint(color, position.addUnit(offset), position.addUnit(shadowOffset));
 	}
 
 }
