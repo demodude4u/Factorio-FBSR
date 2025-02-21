@@ -13,6 +13,7 @@ import java.util.Set;
 import java.util.function.Function;
 
 import com.demod.fbsr.bs.BSEntity;
+import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapPosition;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ImmutableList;
@@ -27,17 +28,17 @@ public class WorldMap {
 	public static class BeaconSource {
 		private final int row;
 		private final int col;
-		private final BSEntity beacon;
+		private final MapEntity beacon;
 		private final double distributionEffectivity;
 
-		public BeaconSource(int row, int col, BSEntity beacon, double distributionEffectivity) {
+		public BeaconSource(int row, int col, MapEntity beacon, double distributionEffectivity) {
 			this.row = row;
 			this.col = col;
 			this.beacon = beacon;
 			this.distributionEffectivity = distributionEffectivity;
 		}
 
-		public BSEntity getBeacon() {
+		public MapEntity getBeacon() {
 			return beacon;
 		}
 
@@ -440,7 +441,7 @@ public class WorldMap {
 		this.altMode = altMode;
 	}
 
-	public void setBeaconed(MapPosition pos, BSEntity beacon, double distributionEffectivity) {
+	public void setBeaconed(MapPosition pos, MapEntity beacon, double distributionEffectivity) {
 		int kr = pos.getXCell();
 		int kc = pos.getYCell();
 		List<BeaconSource> list = beaconed.get(kr, kc);

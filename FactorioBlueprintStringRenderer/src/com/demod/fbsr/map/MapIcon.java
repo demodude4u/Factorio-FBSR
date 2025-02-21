@@ -5,12 +5,8 @@ import java.awt.Graphics2D;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
-import java.util.Collection;
-import java.util.List;
 
-import com.demod.fbsr.FactorioManager;
 import com.demod.fbsr.Layer;
-import com.demod.fbsr.RenderUtils;
 
 public class MapIcon extends MapRenderable {
 	private static final Color SHADOW = new Color(0, 0, 0, 180);

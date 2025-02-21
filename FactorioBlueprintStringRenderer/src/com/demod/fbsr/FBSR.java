@@ -34,6 +34,8 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import javax.swing.Renderer;
+
 import org.json.JSONException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,7 +64,11 @@ import com.demod.fbsr.bs.BSWire;
 import com.demod.fbsr.entity.ErrorRendering;
 import com.demod.fbsr.gui.GUIStyle;
 import com.demod.fbsr.map.MapDebugEntityPlacement;
+import com.demod.fbsr.map.MapDebugTilePlacement;
 import com.demod.fbsr.map.MapEntity;
+import com.demod.fbsr.map.MapFoundationGrid;
+import com.demod.fbsr.map.MapGrid;
+import com.demod.fbsr.map.MapPosition;
 import com.demod.fbsr.map.MapRect;
 import com.demod.fbsr.map.MapRect3D;
 import com.demod.fbsr.map.MapRenderable;
@@ -84,8 +90,6 @@ public class FBSR {
 	public static final Color GROUND_COLOR = new Color(40, 40, 40);
 	public static final Color GRID_COLOR = new Color(0xffe6c0);
 
-	private static final BasicStroke GRID_STROKE = new BasicStroke((float) (3 / FBSR.TILE_SIZE));
-
 	private static volatile String version = null;
 
 	private static final Map<String, Color> itemColorCache = new HashMap<>();
@@ -100,70 +104,12 @@ public class FBSR {
 		items.put(itemName, amount);
 	}
 
-	private static MapRect computeSpriteBounds(List<MapSprite> sprites) {
-		if (sprites.isEmpty()) {
-			return MapRect.byUnit(0, 0, 0, 0);
-		}
-		boolean first = true;
-		int minXFP = 0, minYFP = 0, maxXFP = 0, maxYFP = 0;
-		for (MapSprite sprite : sprites) {
-			MapRect bounds = sprite.getBounds();
-			int x1 = bounds.getXFP();
-			int y1 = bounds.getYFP();
-			int x2 = x1 + bounds.getWidthFP();
-			int y2 = y1 + bounds.getHeightFP();
-			if (first) {
-				first = false;
-				minXFP = x1;
-				minYFP = y1;
-				maxXFP = x2;
-				maxYFP = y2;
-			} else {
-				minXFP = Math.min(minXFP, x1);
-				minYFP = Math.min(minYFP, y1);
-				maxXFP = Math.max(maxXFP, x2);
-				maxYFP = Math.max(maxYFP, y2);
-			}
-		}
-		return MapRect.byFixedPoint(minXFP, minYFP, maxXFP - minXFP, maxYFP - minYFP);
-	}
-
-	private static MapRect3D computeBounds3D(List<MapRect3D> entityBounds) {
-		if (entityBounds.isEmpty()) {
-			return MapRect3D.byUnit(0, 0, 0, 0, 0);
-		}
-		boolean first = true;
-		int minXFP = 0, minYFP = 0, maxXFP = 0, maxYFP = 0, maxHeightFP = 0;
-		for (MapRect3D bounds : entityBounds) {
-			int x1 = bounds.getX1FP();
-			int y1 = bounds.getY1FP();
-			int x2 = bounds.getX2FP();
-			int y2 = bounds.getY2FP();
-			int height = bounds.getHeightFP();
-			if (first) {
-				first = false;
-				minXFP = x1;
-				minYFP = y1;
-				maxXFP = x2;
-				maxYFP = y2;
-				maxHeightFP = height;
-			} else {
-				minXFP = Math.min(minXFP, x1);
-				minYFP = Math.min(minYFP, y1);
-				maxXFP = Math.max(maxXFP, x2);
-				maxYFP = Math.max(maxYFP, y2);
-				maxHeightFP = Math.max(maxHeightFP, y2);
-			}
-		}
-		return MapRect3D.byFixedPoint(minXFP, minYFP, maxXFP, maxYFP, maxHeightFP);
-	}
-
 	public static Map<String, Double> generateTotalItems(BSBlueprint blueprint) {
 
 		Map<String, Double> ret = new LinkedHashMap<>();
 		for (BSEntity entity : blueprint.entities) {
 			String entityName = entity.name;
-			EntityRendererFactory<BSEntity> entityFactory = FactorioManager.lookupEntityFactoryForName(entityName);
+			EntityRendererFactory entityFactory = FactorioManager.lookupEntityFactoryForName(entityName);
 			if (entityFactory.isUnknown()) {
 				continue;
 			}
@@ -178,7 +124,7 @@ public class FBSR {
 
 			addToItemAmount(ret, primaryItem.get().getItem(), primaryItem.get().getCount());
 
-			Multiset<String> modules = RenderUtils.getModules(entity);
+			Multiset<String> modules = MapEntity.findModules(entity);
 			for (Multiset.Entry<String> entry : modules.entrySet()) {
 				addToItemAmount(ret, entry.getElement(), entry.getCount());
 			}
@@ -394,14 +340,15 @@ public class FBSR {
 	private static void populateReverseLogistics(WorldMap map) {
 		Table<Integer, Integer, LogisticGridCell> logisticGrid = map.getLogisticGrid();
 		logisticGrid.cellSet().forEach(c -> {
-			Point2D.Double pos = new Point2D.Double(c.getRowKey() / 2.0 + 0.25, c.getColumnKey() / 2.0 + 0.25);
+			// TODO fixed-point math
+			MapPosition pos = MapPosition.byUnit(c.getRowKey() / 2.0 + 0.25, c.getColumnKey() / 2.0 + 0.25);
 			LogisticGridCell cell = c.getValue();
 			cell.getMove().ifPresent(d -> {
 				map.getLogisticGridCell(d.offset(pos, 0.5)).filter(mc -> mc.acceptMoveFrom(d))
 						.ifPresent(mc -> mc.addMovedFrom(d.back()));
 			});
 			cell.getWarps().ifPresent(l -> {
-				for (Point2D.Double p : l) {
+				for (MapPosition p : l) {
 					map.getLogisticGridCell(p).ifPresent(mc -> mc.addWarpedFrom(pos));
 				}
 			});
@@ -410,7 +357,7 @@ public class FBSR {
 
 	private static void populateTransitLogistics(WorldMap map, boolean populateInputs, boolean populateOutputs) {
 		Table<Integer, Integer, LogisticGridCell> logisticGrid = map.getLogisticGrid();
-		ArrayDeque<Entry<Point2D.Double, LogisticGridCell>> work = new ArrayDeque<>();
+		ArrayDeque<Entry<MapPosition, LogisticGridCell>> work = new ArrayDeque<>();
 
 		if (populateOutputs) {
 			logisticGrid.cellSet().stream().filter(c -> c.getValue().isTransitStart()).forEach(c -> {
@@ -418,18 +365,18 @@ public class FBSR {
 				for (String item : outputs) {
 					work.add(new SimpleEntry<>(map.getLogisticCellPosition(c), c.getValue()));
 					while (!work.isEmpty()) {
-						Entry<Point2D.Double, LogisticGridCell> pair = work.pop();
-						Point2D.Double cellPos = pair.getKey();
+						Entry<MapPosition, LogisticGridCell> pair = work.pop();
+						MapPosition cellPos = pair.getKey();
 						LogisticGridCell cell = pair.getValue();
 						if (cell.addTransit(item) && !cell.isBannedOutput(item)) {
 							cell.getMove().ifPresent(d -> {
-								Point2D.Double nextCellPos = d.offset(cellPos, 0.5);
+								MapPosition nextCellPos = d.offset(cellPos, 0.5);
 								map.getLogisticGridCell(nextCellPos)
 										.filter(nc -> !nc.isBlockTransit() && nc.acceptMoveFrom(d))
 										.ifPresent(next -> work.add(new SimpleEntry<>(nextCellPos, next)));
 							});
 							cell.getWarps().ifPresent(l -> {
-								for (Point2D.Double p : l) {
+								for (MapPosition p : l) {
 									map.getLogisticGridCell(p)
 											.filter(nc -> !nc.isBlockTransit()
 													&& !(nc.getMove().isPresent() && cell.isBlockWarpFromIfMove())
@@ -449,19 +396,19 @@ public class FBSR {
 				for (String item : inputs) {
 					work.add(new SimpleEntry<>(map.getLogisticCellPosition(c), c.getValue()));
 					while (!work.isEmpty()) {
-						Entry<Point2D.Double, LogisticGridCell> pair = work.pop();
-						Point2D.Double cellPos = pair.getKey();
+						Entry<MapPosition, LogisticGridCell> pair = work.pop();
+						MapPosition cellPos = pair.getKey();
 						LogisticGridCell cell = pair.getValue();
 						if (cell.addTransit(item)) {
 							cell.getMovedFrom().ifPresent(l -> {
 								for (Direction d : l) {
-									Point2D.Double nextCellPos = d.offset(cellPos, 0.5);
+									MapPosition nextCellPos = d.offset(cellPos, 0.5);
 									map.getLogisticGridCell(nextCellPos).filter(nc -> !nc.isBlockTransit())
 											.ifPresent(next -> work.add(new SimpleEntry<>(nextCellPos, next)));
 								}
 							});
 							cell.getWarpedFrom().ifPresent(l -> {
-								for (Point2D.Double p : l) {
+								for (MapPosition p : l) {
 									map.getLogisticGridCell(p).filter(nc -> !nc.isBlockTransit())
 											.ifPresent(next -> work.add(new SimpleEntry<>(p, next)));
 								}
@@ -493,11 +440,11 @@ public class FBSR {
 		Map<Integer, MapEntity> mapEntityByNumber = new HashMap<>();
 
 		for (BSMetaEntity metaEntity : blueprint.entities) {
-			EntityRendererFactory<BSEntity> factory = FactorioManager.lookupEntityFactoryForName(metaEntity.name);
+			EntityRendererFactory factory = FactorioManager.lookupEntityFactoryForName(metaEntity.name);
 			BSEntity entity;
 			try {
 				if (metaEntity.isLegacy()) {
-					entity = factory.parseEntity(metaEntity.getLegacy());
+					entity = factory.parseEntityLegacy(metaEntity.getLegacy());
 				} else {
 					entity = factory.parseEntity(metaEntity.getJson());
 				}
@@ -506,7 +453,7 @@ public class FBSR {
 				entity = metaEntity;
 			}
 			if (metaEntity.getParseException().isPresent()) {
-				factory = new ErrorRendering(factory);
+				factory = new ErrorRendering();
 				reporting.addException(metaEntity.getParseException().get(), entity.name + " " + entity.entityNumber);
 			}
 			MapEntity mapEntity = new MapEntity(entity, factory);
@@ -523,24 +470,24 @@ public class FBSR {
 
 		mapEntities.forEach(t -> {
 			try {
-				t.getFactory().populateWorldMap(map, t.getEntity());
+				t.getFactory().populateWorldMap(map, t);
 			} catch (Exception e) {
-				reporting.addException(e, t.getFactory().getClass().getSimpleName() + ", " + t.getEntity().name);
+				reporting.addException(e, t.getFactory().getClass().getSimpleName() + ", " + t.fromBlueprint().name);
 			}
 		});
 		mapTiles.forEach(t -> {
 			try {
-				t.getFactory().populateWorldMap(map, t.getTile());
+				t.getFactory().populateWorldMap(map, t);
 			} catch (Exception e) {
-				reporting.addException(e, t.getFactory().getClass().getSimpleName() + ", " + t.getTile().name);
+				reporting.addException(e, t.getFactory().getClass().getSimpleName() + ", " + t.fromBlueprint().name);
 			}
 		});
 
 		mapEntities.forEach(t -> {
 			try {
-				t.getFactory().populateLogistics(map, t.getEntity());
+				t.getFactory().populateLogistics(map, t);
 			} catch (Exception e) {
-				reporting.addException(e, t.getFactory().getClass().getSimpleName() + ", " + t.getEntity().name);
+				reporting.addException(e, t.getFactory().getClass().getSimpleName() + ", " + t.fromBlueprint().name);
 			}
 		});
 
@@ -551,33 +498,33 @@ public class FBSR {
 		populateRailStationLogistics(map);
 
 		List<MapRenderable> renderers = new ArrayList<>();
-		// TODO need to refactor the type generics, wildcard hell is a real place
 		Consumer<MapRenderable> register = r -> renderers.add(r);
 
 		TileRendererFactory.createAllRenderers(renderers::add, mapTiles);
 
 		mapTiles.forEach(t -> {
 			try {
-				t.getFactory().createRenderers(register, map, t.getTile());
+				t.getFactory().createRenderers(register, map, t);
 			} catch (Exception e) {
-				reporting.addException(e, t.getFactory().getClass().getSimpleName() + ", " + t.getTile().name);
+				reporting.addException(e, t.getFactory().getClass().getSimpleName() + ", " + t.fromBlueprint().name);
 			}
 		});
 
 		mapEntities.forEach(t -> {
 			try {
-				t.getFactory().createRenderers(register, map, t.getEntity());
+				t.getFactory().createRenderers(register, map, t);
 			} catch (Exception e) {
-				reporting.addException(e, t.getFactory().getClass().getSimpleName() + ", " + t.getEntity().name);
+				reporting.addException(e, t.getFactory().getClass().getSimpleName() + ", " + t.fromBlueprint().name);
 			}
 		});
 
 		if (map.isAltMode()) {
 			mapEntities.forEach(t -> {
 				try {
-					t.getFactory().createModuleIcons(register, map, t.getBounds(), t.getEntity());
+					t.getFactory().createModuleIcons(register, map, t);
 				} catch (Exception e) {
-					reporting.addException(e, t.getFactory().getClass().getSimpleName() + ", " + t.getEntity().name);
+					reporting.addException(e,
+							t.getFactory().getClass().getSimpleName() + ", " + t.fromBlueprint().name);
 				}
 			});
 		}
@@ -597,7 +544,7 @@ public class FBSR {
 				}
 			}).mapToObj(mapEntityByNumber::get).collect(Collectors.toList());
 
-			double orientation = mapEntity.getFactory().initWireConnector(register, mapEntity.getEntity(), wired);
+			double orientation = mapEntity.getFactory().initWireConnector(register, mapEntity, wired);
 			connectorOrientations.put(entityNumber, orientation);
 		}
 
@@ -610,9 +557,9 @@ public class FBSR {
 				double orientation2 = connectorOrientations.get(wire.secondEntityNumber);
 
 				Optional<WirePoint> firstPoint = first.getFactory().createWirePoint(register,
-						first.getEntity().position.createPoint(), orientation1, wire.firstWireConnectorId);
+						first.fromBlueprint().position.createPoint(), orientation1, wire.firstWireConnectorId);
 				Optional<WirePoint> secondPoint = second.getFactory().createWirePoint(register,
-						second.getEntity().position.createPoint(), orientation2, wire.secondWireConnectorId);
+						second.fromBlueprint().position.createPoint(), orientation2, wire.secondWireConnectorId);
 
 				if (!firstPoint.isPresent() || !secondPoint.isPresent()) {
 					continue;// Probably something modded
@@ -631,54 +578,44 @@ public class FBSR {
 		showRailLogistics(register, map, request.debug.pathRails);
 
 		if (request.debug.entityPlacement) {
-			mapEntities.forEach(t -> {
-				t.getBounds();
-				renderers.add(new MapDebugEntityPlacement(null, null, null));
-//				Point2D.Double pos = t.entity.position.createPoint();
-//				renderers.add(new Renderer(Layer.DEBUG_P, pos, true) {
-//					@Override
-//					public void render(Graphics2D g) {
-//
-//					}
-//				});
+			mapEntities.forEach(e -> {
+				renderers.add(new MapDebugEntityPlacement(e));
 			});
 			mapTiles.forEach(t -> {
-				Point2D.Double pos = t.tile.position.createPoint();
-				renderers.add(new Renderer(Layer.DEBUG_P, pos, true) {
-
-					@Override
-					public void render(Graphics2D g) {
-						g.setColor(Color.cyan);
-						g.fill(new Ellipse2D.Double(pos.x - 0.1, pos.y - 0.1, 0.2, 0.2));
-					}
-				});
+				renderers.add(new MapDebugTilePlacement(t));
 			});
 		}
 
-		double gridPadding = (!request.getGridLines().isEmpty() && request.show.gridNumbers) ? 1 : 0;
-		double gridRound = (!request.getGridLines().isEmpty() && request.show.gridNumbers) ? 0.6 : 0.2;
-		double worldPadding = 0.5;
+		boolean showGrid = !request.getGridLines().isEmpty();
+		boolean gridFoundationMode = map.isFoundation() && !request.show.gridNumbers;
+		boolean gridShowNumbers = !gridFoundationMode && request.show.gridNumbers;
+		boolean gridAboveBelts = request.show.gridAboveBelts;
 
-		Rectangle2D.Double visualBounds = computeDrawBounds(renderers);
-		visualBounds.setFrameFromDiagonal(Math.floor(visualBounds.getMinX() + 0.4),
-				Math.floor(visualBounds.getMinY() + 0.4), Math.ceil(visualBounds.getMaxX() - 0.4),
-				Math.ceil(visualBounds.getMaxY() - 0.4));
-		Rectangle2D.Double gridBounds = computeGroundBounds(renderers);
-		gridBounds.setFrameFromDiagonal(Math.floor(gridBounds.getMinX() + 0.4) - gridPadding,
-				Math.floor(gridBounds.getMinY() + 0.4) - gridPadding,
-				Math.ceil(gridBounds.getMaxX() - 0.4) + gridPadding,
-				Math.ceil(gridBounds.getMaxY() - 0.4) + gridPadding);
+		double gridPadding = (showGrid && gridShowNumbers) ? 1 : 0;
+		double worldPadding = 0.1;
 
-		Rectangle2D.Double worldBounds = new Rectangle2D.Double();
-		worldBounds.setFrameFromDiagonal(//
-				Math.min(visualBounds.getMinX(), gridBounds.getMinX()) - worldPadding, //
-				Math.min(visualBounds.getMinY(), gridBounds.getMinY()) - worldPadding, //
-				Math.max(visualBounds.getMaxX(), gridBounds.getMaxX()) + worldPadding, //
-				Math.max(visualBounds.getMaxY(), gridBounds.getMaxY()) + worldPadding);//
+		MapRect3D gridBounds = calculateGridBounds(mapEntities, mapTiles);
+
+		Rectangle2D.Double screenBounds = new Rectangle2D.Double();
+		screenBounds.setFrameFromDiagonal(gridBounds.getX1() - worldPadding - gridPadding,
+				gridBounds.getY1() - gridBounds.getHeight() - worldPadding - gridPadding,
+				gridBounds.getX2() + worldPadding + gridPadding, gridBounds.getY2() + worldPadding + gridPadding);
+
+		if (request.isDontClipSprites()) {
+			MapRect spriteBounds = MapRect.combineAll(renderers.stream().filter(r -> r instanceof MapSprite)
+					.map(r -> ((MapSprite) r).getBounds()).collect(Collectors.toList()));
+
+			double x1 = spriteBounds.getX();
+			double y1 = spriteBounds.getY();
+			double x2 = x1 + spriteBounds.getWidth();
+			double y2 = y1 + spriteBounds.getHeight();
+
+			screenBounds.setFrameFromDiagonal(Math.min(screenBounds.getMinX(), x1),
+					Math.min(screenBounds.getMinY(), y1), Math.max(screenBounds.getMaxX(), x2),
+					Math.max(screenBounds.getMaxY(), y2));
+		}
 
 		double worldRenderScale = 1;
-
-		boolean gridPlatformMode = map.isFoundation() && !request.show.gridNumbers;
 
 		// Max scale limit
 		if (request.getMaxScale().isPresent()) {
@@ -690,43 +627,39 @@ public class FBSR {
 		int maxHeightPixels = request.getMaxHeight().orElse(Integer.MAX_VALUE);
 		long maxPixels = Math.min(MAX_WORLD_RENDER_PIXELS, (long) maxWidthPixels * (long) maxHeightPixels);
 
-		if ((worldBounds.getWidth() * worldRenderScale * TILE_SIZE) > maxWidthPixels) {
-			worldRenderScale *= (maxWidthPixels / (worldBounds.getWidth() * worldRenderScale * TILE_SIZE));
+		if ((screenBounds.getWidth() * worldRenderScale * TILE_SIZE) > maxWidthPixels) {
+			worldRenderScale *= (maxWidthPixels / (screenBounds.getWidth() * worldRenderScale * TILE_SIZE));
 		}
-		if ((worldBounds.getHeight() * worldRenderScale * TILE_SIZE) > maxHeightPixels) {
-			worldRenderScale *= (maxHeightPixels / (worldBounds.getHeight() * worldRenderScale * TILE_SIZE));
+		if ((screenBounds.getHeight() * worldRenderScale * TILE_SIZE) > maxHeightPixels) {
+			worldRenderScale *= (maxHeightPixels / (screenBounds.getHeight() * worldRenderScale * TILE_SIZE));
 		}
-		if ((worldBounds.getWidth() * worldRenderScale * TILE_SIZE)
-				* (worldBounds.getHeight() * worldRenderScale * TILE_SIZE) > maxPixels) {
-			worldRenderScale *= Math.sqrt(maxPixels / ((worldBounds.getWidth() * worldRenderScale * TILE_SIZE)
-					* (worldBounds.getHeight() * worldRenderScale * TILE_SIZE)));
+		if ((screenBounds.getWidth() * worldRenderScale * TILE_SIZE)
+				* (screenBounds.getHeight() * worldRenderScale * TILE_SIZE) > maxPixels) {
+			worldRenderScale *= Math.sqrt(maxPixels / ((screenBounds.getWidth() * worldRenderScale * TILE_SIZE)
+					* (screenBounds.getHeight() * worldRenderScale * TILE_SIZE)));
 		}
 
 		// Expand the world to fit the min requirements
 		int minWidthPixels = request.getMinWidth().orElse(0);
 		int minHeightPixels = request.getMinHeight().orElse(0);
 
-		if ((worldBounds.getWidth() * worldRenderScale * TILE_SIZE) < minWidthPixels) {
-			double padding = (minWidthPixels - (worldBounds.getWidth() * worldRenderScale * TILE_SIZE))
+		if ((screenBounds.getWidth() * worldRenderScale * TILE_SIZE) < minWidthPixels) {
+			double padding = (minWidthPixels - (screenBounds.getWidth() * worldRenderScale * TILE_SIZE))
 					/ (worldRenderScale * TILE_SIZE);
-			worldBounds.x -= padding / 2.0;
-			worldBounds.width += padding;
+			screenBounds.x -= padding / 2.0;
+			screenBounds.width += padding;
 		}
-		if ((worldBounds.getHeight() * worldRenderScale * TILE_SIZE) < minHeightPixels) {
-			double padding = (minHeightPixels - (worldBounds.getHeight() * worldRenderScale * TILE_SIZE))
+		if ((screenBounds.getHeight() * worldRenderScale * TILE_SIZE) < minHeightPixels) {
+			double padding = (minHeightPixels - (screenBounds.getHeight() * worldRenderScale * TILE_SIZE))
 					/ (worldRenderScale * TILE_SIZE);
-			worldBounds.y -= padding / 2.0;
-			worldBounds.height += padding;
+			screenBounds.y -= padding / 2.0;
+			screenBounds.height += padding;
 		}
 
-//		int imageWidth = Math.max(minWidthPixels,
-//				Math.min(maxWidthPixels, (int) (worldBounds.getWidth() * worldRenderScale * TILE_SIZE)));
-//		int imageHeight = Math.max(minHeightPixels,
-//				Math.min(maxHeightPixels, (int) (worldBounds.getHeight() * worldRenderScale * TILE_SIZE)));
 		int imageWidth = Math.max(minWidthPixels,
-				Math.min(maxWidthPixels, (int) Math.round(worldBounds.getWidth() * worldRenderScale * TILE_SIZE)));
+				Math.min(maxWidthPixels, (int) Math.round(screenBounds.getWidth() * worldRenderScale * TILE_SIZE)));
 		int imageHeight = Math.max(minHeightPixels,
-				Math.min(maxHeightPixels, (int) Math.round(worldBounds.getHeight() * worldRenderScale * TILE_SIZE)));
+				Math.min(maxHeightPixels, (int) Math.round(screenBounds.getHeight() * worldRenderScale * TILE_SIZE)));
 		LOGGER.info("\t{}x{} ({})", imageWidth, imageHeight, worldRenderScale);
 
 		BufferedImage image = new BufferedImage(imageWidth, imageHeight, BufferedImage.TYPE_INT_ARGB);
@@ -743,8 +676,8 @@ public class FBSR {
 		g.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
 		g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
 
-		g.scale(image.getWidth() / worldBounds.getWidth(), image.getHeight() / worldBounds.getHeight());
-		g.translate(-worldBounds.getX(), -worldBounds.getY());
+		g.scale(image.getWidth() / screenBounds.getWidth(), image.getHeight() / screenBounds.getHeight());
+		g.translate(-screenBounds.getX(), -screenBounds.getY());
 		AffineTransform worldXform = g.getTransform();
 
 		shadowG.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -758,10 +691,13 @@ public class FBSR {
 		// Background
 		if (request.getBackground().isPresent()) {
 			g.setColor(request.getBackground().get());
-			g.fill(worldBounds);
+			g.fill(screenBounds);
 		}
 
 		boolean gridTooSmall = (1 / worldRenderScale) > 5;
+		if (gridTooSmall) {
+			showGrid = false;
+		}
 
 		Layer gridLayer;
 		if (request.show.gridAboveBelts) {
@@ -770,45 +706,17 @@ public class FBSR {
 			gridLayer = Layer.GRID;
 		}
 
-		// Grid Lines
-		if (request.getGridLines().isPresent() && !gridTooSmall) {
-			if (gridPlatformMode) {
-				renderers.add(new Renderer(gridLayer, new MapRect3D(gridBounds, 0), true) {
-					@Override
-					public void render(Graphics2D g) throws Exception {
-						g.setStroke(GRID_STROKE);
-						g.setColor(request.getGridLines().get());
-						Rectangle2D.Double rect = new Rectangle2D.Double(0, 0, 1, 1);
-						for (TileRenderingTuple tuple : mapTiles) {
-							BSPosition pos = tuple.tile.position;
-							rect.x = pos.x;
-							rect.y = pos.y;
-							g.draw(rect);
-						}
-					}
-				});
+		if (showGrid) {
+			if (gridFoundationMode) {
+				renderers.add(new MapFoundationGrid(mapTiles, request.getGridLines().get(), gridAboveBelts));
 			} else {
-				renderers.add(new Renderer(gridLayer, new MapRect3D(gridBounds, 0), true) {
-					@Override
-					public void render(Graphics2D g) throws Exception {
-						g.setStroke(GRID_STROKE);
-						g.setColor(request.getGridLines().get());
-						for (double x = Math.round(gridBounds.getMinX()) + 1; x <= gridBounds.getMaxX() - 1; x++) {
-							g.draw(new Line2D.Double(x, gridBounds.getMinY(), x, gridBounds.getMaxY()));
-						}
-						for (double y = Math.round(gridBounds.getMinY()) + 1; y <= gridBounds.getMaxY() - 1; y++) {
-							g.draw(new Line2D.Double(gridBounds.getMinX(), y, gridBounds.getMaxX(), y));
-						}
-						g.draw(new RoundRectangle2D.Double(gridBounds.x, gridBounds.y, gridBounds.width,
-								gridBounds.height, gridRound, gridRound));
-					}
-				});
+				renderers.add(new MapGrid(gridBounds, request.getGridLines().get(), gridAboveBelts, gridShowNumbers));
 			}
 		}
 
-		renderers.stream().filter(r -> r instanceof EntityRenderer).map(r -> (EntityRenderer) r).forEach(r -> {
+		renderers.stream().filter(r -> r.getLayer() == Layer.SHADOW_BUFFER).forEach(r -> {
 			try {
-				r.renderShadows(shadowG);
+				r.render(shadowG);
 			} catch (Exception e) {
 				reporting.addException(e);
 			}
@@ -816,7 +724,7 @@ public class FBSR {
 		shadowG.dispose();
 		RenderUtils.halveAlpha(shadowImage);
 
-		renderers.add(new Renderer(Layer.SHADOW_BUFFER, new MapRect3D(worldBounds, 0), true) {
+		renderers.add(new Renderer(Layer.SHADOW_BUFFER, new MapRect3D(screenBounds, 0), true) {
 			@Override
 			public void render(Graphics2D g) throws Exception {
 				AffineTransform tempXform = g.getTransform();
@@ -859,32 +767,6 @@ public class FBSR {
 		});
 		g.setTransform(worldXform);
 
-		// Grid Numbers
-		if (request.getGridLines().isPresent() && request.show.gridNumbers && !gridTooSmall) {
-			g.setColor(request.getGridLines().get());
-			g.setFont(GUIStyle.FONT_BP_REGULAR.deriveFont(0.6f));
-			float tx = 0.18f;
-			float ty = 0.68f;
-			Color gridColor = request.getGridLines().get();
-			g.setColor(gridColor);
-			for (double x = Math.round(gridBounds.getMinX()) + 1, i = 1; x <= gridBounds.getMaxX() - 2; x++, i++) {
-				String strNum = String.format("%02d", (int) Math.round(i) % 100);
-				float x1 = (float) x + tx;
-				float y1 = (float) (gridBounds.getMaxY() - 1 + ty);
-				float y2 = (float) (gridBounds.getMinY() + ty);
-				g.drawString(strNum, x1, y1);
-				g.drawString(strNum, x1, y2);
-			}
-			for (double y = Math.round(gridBounds.getMinY()) + 1, i = 1; y <= gridBounds.getMaxY() - 2; y++, i++) {
-				String strNum = String.format("%02d", (int) Math.round(i) % 100);
-				float x1 = (float) (gridBounds.getMaxX() - 1 + tx);
-				float y1 = (float) y + ty;
-				float x2 = (float) (gridBounds.getMinX() + tx);
-				g.drawString(strNum, x1, y1);
-				g.drawString(strNum, x2, y1);
-			}
-		}
-
 		g.dispose();
 
 		long endMillis = System.currentTimeMillis();
@@ -892,6 +774,49 @@ public class FBSR {
 
 		RenderResult result = new RenderResult(image, endMillis - startMillis, worldRenderScale);
 		return result;
+	}
+
+	private static MapRect3D calculateGridBounds(List<MapEntity> mapEntities, List<MapTile> mapTiles) {
+
+		int x1fp = 0, x2fp = 0, y1fp = 0, y2fp = 0, heightfp = 0;
+		boolean first = true;
+
+		if (!mapEntities.isEmpty()) {
+			MapRect3D combined = MapRect3D
+					.combineAll(mapEntities.stream().map(e -> e.getBounds()).collect(Collectors.toList()));
+
+			x1fp = combined.getX1FP();
+			y1fp = combined.getY1FP();
+			x2fp = combined.getX2FP();
+			y2fp = combined.getY2FP();
+			heightfp = combined.getHeightFP();
+			first = false;
+		}
+
+		if (!mapTiles.isEmpty()) {
+			MapRect bounds = MapPosition
+					.enclosingBounds(mapTiles.stream().map(t -> t.getPosition()).collect(Collectors.toList()));
+
+			int xfp = bounds.getXFP();
+			int yfp = bounds.getYFP();
+			int wfp = bounds.getWidthFP();
+			int hfp = bounds.getHeightFP();
+			if (first) {
+				x1fp = xfp;
+				y1fp = yfp;
+				x2fp = xfp + wfp;
+				y2fp = yfp + hfp;
+				first = false;
+
+			} else {
+				x1fp = Math.min(x1fp, xfp);
+				y1fp = Math.min(y1fp, yfp);
+				x2fp = Math.max(x2fp, xfp + wfp);
+				y2fp = Math.max(y2fp, yfp + hfp);
+			}
+		}
+
+		return MapRect3D.byFixedPoint(x1fp, x2fp, y1fp, y2fp, heightfp);
 	}
 
 	private static void showLogisticGrid(Consumer<MapRenderable> register, WorldMap map, boolean debug) {

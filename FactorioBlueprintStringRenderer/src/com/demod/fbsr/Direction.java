@@ -1,9 +1,5 @@
 package com.demod.fbsr;
 
-import java.awt.geom.AffineTransform;
-import java.awt.geom.Point2D;
-import java.awt.geom.Rectangle2D;
-
 import com.demod.fbsr.map.MapPosition;
 import com.demod.fbsr.map.MapRect;
 import com.demod.fbsr.map.MapRect3D;
@@ -112,7 +108,7 @@ public enum Direction {
 	}
 
 	public MapPosition offset(double distance) {
-		return offset.multiply(distance);
+		return offset.multiplyUnit(distance);
 	}
 
 	public MapPosition offset(MapPosition pos) {
@@ -120,7 +116,7 @@ public enum Direction {
 	}
 
 	public MapPosition offset(MapPosition pos, double distance) {
-		return offset.multiplyAdd(distance, pos);
+		return offset.multiplyUnitAdd(distance, pos);
 	}
 
 //	public MapPosition offset(MapPosition pos, MapPosition offset) {

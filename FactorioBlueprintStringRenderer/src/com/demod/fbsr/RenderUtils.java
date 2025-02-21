@@ -158,21 +158,6 @@ public final class RenderUtils {
 		return new Color(sumR / sumA, sumG / sumA, sumB / sumA);
 	}
 
-	public static Multiset<String> getModules(BSEntity entity) {
-
-		Multiset<String> modules = LinkedHashMultiset.create();
-
-		for (BSItemStack itemStack : entity.items) {
-			String itemName = itemStack.id.name;
-			Optional<ItemPrototype> item = FactorioManager.lookupItemByName(itemName);
-			if (item.isPresent() && item.get().getType().equals("module")) {
-				modules.add(itemName, itemStack.itemsInInventory.size());
-			}
-		}
-
-		return modules;
-	}
-
 	public static void halveAlpha(BufferedImage image) {
 		int w = image.getWidth();
 		int h = image.getHeight();
@@ -280,7 +265,7 @@ public final class RenderUtils {
 		Map<Boolean, List<Sprite>> groupedSprites = sprites.stream()
 				.collect(Collectors.partitioningBy(sprite -> sprite.layer == Layer.SHADOW_BUFFER));
 
-		bounds = bounds.shift(pos.x, pos.y);
+		bounds = bounds.shiftUnit(pos.x, pos.y);
 
 		return new EntityRenderer(layer, bounds, false) {
 			@Override

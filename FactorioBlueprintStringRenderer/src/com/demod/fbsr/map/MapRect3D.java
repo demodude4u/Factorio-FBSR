@@ -3,6 +3,7 @@ package com.demod.fbsr.map;
 import static com.demod.fbsr.MapUtils.*;
 
 import java.awt.geom.Rectangle2D;
+import java.util.Collection;
 
 import com.demod.fbsr.fp.FPBoundingBox;
 
@@ -26,13 +27,43 @@ public class MapRect3D {
 				groundBounds.x + groundBounds.height, height);
 	}
 
+	public static MapRect3D combineAll(Collection<MapRect3D> rects) {
+		if (rects.isEmpty()) {
+			return new MapRect3D(0, 0, 0, 0, 0);
+		}
+		boolean first = true;
+		int minX = 0, minY = 0, maxX = 0, maxY = 0, maxHeight = 0;
+		for (MapRect3D rect : rects) {
+			int x1 = rect.x1;
+			int y1 = rect.y1;
+			int x2 = rect.x2;
+			int y2 = rect.y2;
+			int height = rect.height;
+			if (first) {
+				first = false;
+				minX = x1;
+				minY = y1;
+				maxX = x2;
+				maxY = y2;
+				maxHeight = height;
+			} else {
+				minX = Math.min(minX, x1);
+				minY = Math.min(minY, y1);
+				maxX = Math.max(maxX, x2);
+				maxY = Math.max(maxY, y2);
+				maxHeight = Math.max(maxHeight, y2);
+			}
+		}
+		return new MapRect3D(minX, minY, maxX, maxY, maxHeight);
+	}
+
 	final int x1;
 	final int y1;
 	final int x2;
 	final int y2;
 	final int height;
 
-	private MapRect3D(int x1, int y1, int x2, int y2, int height) {
+	MapRect3D(int x1, int y1, int x2, int y2, int height) {
 		this.x1 = x1;
 		this.y1 = y1;
 		this.x2 = x2;
@@ -88,13 +119,13 @@ public class MapRect3D {
 		return y2;
 	}
 
-	public MapRect3D shift(double x, double y) {
+	public MapRect3D shiftUnit(double x, double y) {
 		int fpX = unitToFixedPoint(x);
 		int fpY = unitToFixedPoint(y);
 		return new MapRect3D(x1 + fpX, y1 + fpY, x2 + fpX, y2 + fpY, height);
 	}
 
-	public MapRect3D shiftHeight(double height) {
+	public MapRect3D shiftHeightUnit(double height) {
 		return new MapRect3D(x1, y1, x2, y2, this.height + unitToFixedPoint(height));
 	}
 
@@ -121,5 +152,25 @@ public class MapRect3D {
 		int maxX = Math.max(dx1, dx2);
 		int maxY = Math.max(dy1, dy2);
 		return new MapRect3D(minX, minY, maxX, maxY, height);
+	}
+
+	public MapPosition getTopLeft() {
+		return new MapPosition(x1, y1);
+	}
+
+	public MapPosition getTopRight() {
+		return new MapPosition(x2, y1);
+	}
+
+	public MapPosition getBottomLeft() {
+		return new MapPosition(x1, y2);
+	}
+
+	public MapPosition getBottomRight() {
+		return new MapPosition(x2, y2);
+	}
+
+	public MapRect3D shift(MapPosition position) {
+		return new MapRect3D(x1 + position.x, y1 + position.y, x2 + position.x, y2 + position.y, height);
 	}
 }

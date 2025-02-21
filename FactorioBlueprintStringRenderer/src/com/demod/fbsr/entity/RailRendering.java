@@ -125,7 +125,7 @@ public abstract class RailRendering extends EntityRendererFactory<BSEntity> {
 	protected MapRect3D computeBounds() {
 		MapRect3D ret = super.computeBounds();
 		if (elevated) {
-			ret = ret.shiftHeight(3);
+			ret = ret.shiftHeightUnit(3);
 		}
 		return ret;
 	}

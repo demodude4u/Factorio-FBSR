@@ -4,6 +4,7 @@ import static com.demod.fbsr.MapUtils.*;
 
 import java.awt.Point;
 import java.awt.geom.Point2D;
+import java.util.Collection;
 
 import com.demod.fbsr.fp.FPVector;
 
@@ -17,11 +18,36 @@ public class MapPosition {
 		return new MapPosition(unitToFixedPoint(x), unitToFixedPoint(y));
 	}
 
+	public static MapRect enclosingBounds(Collection<MapPosition> points) {
+		if (points.isEmpty()) {
+			return new MapRect(0, 0, 0, 0);
+		}
+		boolean first = true;
+		int minX = 0, minY = 0, maxX = 0, maxY = 0;
+		for (MapPosition point : points) {
+			int x = point.x;
+			int y = point.y;
+			if (first) {
+				first = false;
+				minX = x;
+				minY = y;
+				maxX = x;
+				maxY = y;
+			} else {
+				minX = Math.min(minX, x);
+				minY = Math.min(minY, y);
+				maxX = Math.max(maxX, x);
+				maxY = Math.max(maxY, y);
+			}
+		}
+		return new MapRect(minX, minY, maxX - minX, maxY - minY);
+	}
+
 	// Fixed-point, 8-bit precision
 	final int x;
 	final int y;
 
-	private MapPosition(int x, int y) {
+	MapPosition(int x, int y) {
 		this.x = x;
 		this.y = y;
 	}
@@ -46,31 +72,31 @@ public class MapPosition {
 		return fixedPointToUnit(x);
 	}
 
-	public int getXFP() {
-		return x;
-	}
-
 	public int getXCell() {
 		return truncate(x);
+	}
+
+	public int getXFP() {
+		return x;
 	}
 
 	public double getY() {
 		return fixedPointToUnit(y);
 	}
 
-	public int getYFP() {
-		return y;
-	}
-
 	public int getYCell() {
 		return truncate(y);
 	}
 
-	public MapPosition multiply(double value) {
+	public int getYFP() {
+		return y;
+	}
+
+	public MapPosition multiplyUnit(double value) {
 		return new MapPosition((int) (x * value), (int) (y * value));
 	}
 
-	public MapPosition multiplyAdd(double value, MapPosition position) {
+	public MapPosition multiplyUnitAdd(double value, MapPosition position) {
 		return new MapPosition((int) (x * value) + position.x, (int) (y * value) + position.y);
 	}
 

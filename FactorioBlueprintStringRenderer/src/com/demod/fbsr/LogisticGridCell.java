@@ -1,6 +1,5 @@
 package com.demod.fbsr;
 
-import java.awt.geom.Point2D;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -9,10 +8,12 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import com.demod.fbsr.map.MapPosition;
+
 public class LogisticGridCell {
 	private Optional<Direction> move = Optional.empty();
 	private Optional<Direction> acceptFilter = Optional.empty();
-	private Optional<List<Point2D.Double>> warps = Optional.empty();
+	private Optional<List<MapPosition>> warps = Optional.empty();
 	private Optional<Set<String>> inputs = Optional.empty();
 	private Optional<Set<String>> outputs = Optional.empty();
 	private Optional<Set<String>> bannedOutputs = Optional.empty();
@@ -24,7 +25,7 @@ public class LogisticGridCell {
 	// Not implemented in FBSR::populateReverseLogistics
 	private boolean blockWarpFromIfMove = false; // dont warp from here if destination has a "move".
 	private Optional<List<Direction>> movedFrom = Optional.empty();
-	private Optional<List<Point2D.Double>> warpedFrom = Optional.empty();
+	private Optional<List<MapPosition>> warpedFrom = Optional.empty();
 
 	public boolean acceptMoveFrom(Direction move) {
 		if (acceptFilter.isPresent()) {
@@ -68,14 +69,14 @@ public class LogisticGridCell {
 		return transits.get().add(itemName);
 	}
 
-	public void addWarp(Point2D.Double warp) {
+	public void addWarp(MapPosition warp) {
 		if (!warps.isPresent()) {
 			warps = Optional.of(new ArrayList<>());
 		}
 		this.warps.get().add(warp);
 	}
 
-	public void addWarpedFrom(Point2D.Double pos) {
+	public void addWarpedFrom(MapPosition pos) {
 		if (!warpedFrom.isPresent()) {
 			warpedFrom = Optional.of(new ArrayList<>());
 		}
@@ -110,11 +111,11 @@ public class LogisticGridCell {
 		return transits;
 	}
 
-	public Optional<List<Point2D.Double>> getWarpedFrom() {
+	public Optional<List<MapPosition>> getWarpedFrom() {
 		return warpedFrom;
 	}
 
-	public Optional<List<Point2D.Double>> getWarps() {
+	public Optional<List<MapPosition>> getWarps() {
 		return warps;
 	}
 

@@ -1,11 +1,8 @@
 package com.demod.fbsr;
 
 import java.awt.geom.Point2D;
-import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.lang.reflect.Constructor;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -39,11 +36,10 @@ import com.demod.fbsr.map.MapRenderable;
 import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.Multiset;
 
-public abstract class EntityRendererFactory<E extends BSEntity> {
+public abstract class EntityRendererFactory {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(EntityRendererFactory.class);
 
-	@SuppressWarnings({ "rawtypes", "unchecked" })
 	public static void initFactories(List<EntityRendererFactory> factories) {
 		for (EntityRendererFactory factory : factories) {
 			EntityPrototype prototype = factory.getPrototype();
@@ -94,7 +90,6 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 		return MapRect3D.byUnit(x1, y1, x2, y2, drawingBoxVerticalExtension);
 	}
 
-	@SuppressWarnings({ "rawtypes" })
 	public static void registerFactories(Consumer<EntityRendererFactory> register, FactorioData data, JSONObject json) {
 		DataTable table = data.getTable();
 		for (String groupName : json.keySet().stream().sorted().collect(Collectors.toList())) {
@@ -129,27 +124,30 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 	protected String groupName = null;
 	protected FactorioData data = null;
 	protected EntityPrototype prototype = null;
-	protected FPBoundingBox protoSelectionBox;
+
 	protected boolean protoBeaconed;
-
 	protected MapRect3D drawBounds;
-
 	protected Map<Integer, WirePoints> wirePointsById;
 
-	private Class<E> entityClass;
+	private Class<? extends BSEntity> entityClass;
+	private Constructor<? extends BSEntity> entityConstructorByJSON;
+	private Constructor<? extends BSEntity> entityConstructorByLegacy;
 
 	protected void addLogisticWarp(WorldMap map, MapPosition gridPos1, Direction cellDir1, MapPosition gridPos2,
 			Direction cellDir2) {
 		map.getOrCreateLogisticGridCell(cellDir1.offset(gridPos1, 0.25)).addWarp(cellDir2.offset(gridPos2, 0.25));
 	}
 
-	public void createModuleIcons(Consumer<MapRenderable> register, WorldMap map, MapRect3D bounds, E entity) {
+	public void createModuleIcons(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
 
-		Multiset<String> renderModules = RenderUtils.getModules(entity);
+		MapPosition position = entity.getPosition();
+		MapRect3D bounds = entity.getBounds();
+
+		Multiset<String> renderModules = entity.getModules();
 		if (!renderModules.isEmpty()) {
 
-			double x = entity.position.x - 0.7 * (renderModules.size() / 2.0) + 0.35;
-			double y = entity.position.y + 0.7;
+			double x = position.getX() - 0.7 * (renderModules.size() / 2.0) + 0.35;
+			double y = position.getY() + 0.7;
 
 			for (String itemName : renderModules) {
 				BufferedImage image = FactorioManager.lookupItemByName(itemName)
@@ -160,27 +158,19 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 		}
 
 		if (protoBeaconed) {
-			MapPosition pos = entity.position.createPoint();
-			Rectangle2D.Double beaconedBounds = protoSelectionBox.createRect();
-			beaconedBounds.x += pos.getX();
-			beaconedBounds.y += pos.getY();
 			Set<BeaconSource> beacons = new LinkedHashSet<>();
-			map.getBeaconed(new Point2D.Double(beaconedBounds.x + 0.5, beaconedBounds.y + 0.5))
-					.ifPresent(beacons::addAll);
-			map.getBeaconed(new Point2D.Double(beaconedBounds.x + 0.5, beaconedBounds.y + beaconedBounds.height - 0.5))
-					.ifPresent(beacons::addAll);
-			map.getBeaconed(new Point2D.Double(beaconedBounds.x + beaconedBounds.width - 0.5,
-					beaconedBounds.y + beaconedBounds.height - 0.5)).ifPresent(beacons::addAll);
-			map.getBeaconed(new Point2D.Double(beaconedBounds.x + beaconedBounds.width - 0.5, beaconedBounds.y + 0.5))
-					.ifPresent(beacons::addAll);
+			map.getBeaconed(Direction.SOUTHEAST.offset(bounds.getTopLeft(), 0.5)).ifPresent(beacons::addAll);
+			map.getBeaconed(Direction.SOUTHWEST.offset(bounds.getTopRight(), 0.5)).ifPresent(beacons::addAll);
+			map.getBeaconed(Direction.NORTHEAST.offset(bounds.getBottomLeft(), 0.5)).ifPresent(beacons::addAll);
+			map.getBeaconed(Direction.NORTHWEST.offset(bounds.getBottomRight(), 0.5)).ifPresent(beacons::addAll);
 
 			if (!beacons.isEmpty()) {
 				Map<String, Double> beaconModules = new LinkedHashMap<>();
 				for (BeaconSource bs : beacons) {
-					BSEntity beacon = bs.getBeacon();
+					MapEntity beacon = bs.getBeacon();
 					double distributionEffectivity = bs.getDistributionEffectivity();
 
-					Multiset<String> modules2 = RenderUtils.getModules(beacon);
+					Multiset<String> modules2 = beacon.getModules();
 					for (Multiset.Entry<String> entry : modules2.entrySet()) {
 						double amount = beaconModules.getOrDefault(entry.getElement(), 0.0);
 						amount += distributionEffectivity * entry.getCount();
@@ -195,8 +185,8 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 					}
 				}
 
-				double x = entity.position.x - 0.3 * (renderModules.size() / 2.0) + 0.15;
-				double y = entity.position.y - 1.15;
+				double x = position.getX() - 0.3 * (renderModules.size() / 2.0) + 0.15;
+				double y = position.getY() - 1.15;
 
 				for (String itemName : renderModules) {
 					BufferedImage image = FactorioManager.lookupItemByName(itemName)
@@ -208,7 +198,7 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 		}
 	}
 
-	public abstract void createRenderers(Consumer<MapRenderable> register, WorldMap map, E entity);
+	public abstract void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity);
 
 	public Optional<WirePoint> createWirePoint(Consumer<MapRenderable> register, MapPosition position,
 			double orientation, int connectionId) {
@@ -219,16 +209,12 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 
 	}
 
-	public FPBoundingBox getSelectionBox() {
-		return protoSelectionBox;
-	}
-
 	public FactorioData getData() {
 		return data;
 	}
 
-	public MapRect3D getDrawBounds(E entity) {
-		return entity.direction.rotate(drawBounds).shift(entity.position.x, entity.position.y);
+	public MapRect3D getDrawBounds(MapEntity entity) {
+		return entity.getDirection().rotate(drawBounds).shift(entity.getPosition());
 	}
 
 	public String getGroupName() {
@@ -243,44 +229,22 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 		return prototype;
 	}
 
-	@SuppressWarnings("unchecked")
 	private void initEntityClass() {
-		// Looks for the subclass that specifies the E class explicitly
-
-		if (entityClass == null) {
-			Class<?> clazz = this.getClass();
-			Type type = null;
-
-			while (clazz != null && clazz != Object.class) {
-				Type superclass = clazz.getGenericSuperclass();
-
-				if (superclass instanceof ParameterizedType) {
-					ParameterizedType parameterizedType = (ParameterizedType) superclass;
-					Type rawType = parameterizedType.getRawType();
-
-					if (rawType instanceof Class<?>
-							&& EntityRendererFactory.class.isAssignableFrom((Class<?>) rawType)) {
-						type = parameterizedType.getActualTypeArguments()[0];
-						break;
-					}
-				}
-				clazz = clazz.getSuperclass();
-			}
-
-			if (type instanceof Class<?>) {
-				entityClass = (Class<E>) type;
-			} else if (type instanceof ParameterizedType) {
-				entityClass = (Class<E>) ((ParameterizedType) type).getRawType();
-			} else {
-				throw new RuntimeException("Unable to determine entity class for " + this.getClass().getSimpleName());
-			}
+		entityClass = getEntityClass();
+		try {
+			entityConstructorByJSON = entityClass.getConstructor(JSONObject.class);
+			entityConstructorByLegacy = entityClass.getConstructor(LegacyBlueprintEntity.class);
+		} catch (NoSuchMethodException | SecurityException e) {
+			LOGGER.error("ENTITY CLASS: {}", entityClass.getSimpleName());
+			e.printStackTrace();
+			System.exit(-1);
 		}
 	}
 
 	public abstract void initFromPrototype();
 
 	// Returns orientation if applicable
-	public double initWireConnector(Consumer<MapRenderable> register, E entity, List<MapEntity> wired) {
+	public double initWireConnector(Consumer<MapRenderable> register, MapEntity entity, List<MapEntity> wired) {
 		return 0;
 	}
 
@@ -288,23 +252,23 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 		return false;
 	}
 
-	public E parseEntity(JSONObject json) throws Exception {
-		initEntityClass();
-		Constructor<E> constructor = entityClass.getConstructor(JSONObject.class);
-		return constructor.newInstance(json);
+	public Class<? extends BSEntity> getEntityClass() {
+		return BSEntity.class;
 	}
 
-	public E parseEntity(LegacyBlueprintEntity legacy) throws Exception {
-		initEntityClass();
-		Constructor<E> constructor = entityClass.getConstructor(LegacyBlueprintEntity.class);
-		return constructor.newInstance(legacy);
+	public BSEntity parseEntity(JSONObject json) throws Exception {
+		return entityConstructorByJSON.newInstance(json);
 	}
 
-	public void populateLogistics(WorldMap map, E entity) {
+	public BSEntity parseEntityLegacy(LegacyBlueprintEntity legacy) throws Exception {
+		return entityConstructorByLegacy.newInstance(legacy);
+	}
+
+	public void populateLogistics(WorldMap map, MapEntity entity) {
 		// default do nothing
 	}
 
-	public void populateWorldMap(WorldMap map, E entity) {
+	public void populateWorldMap(WorldMap map, MapEntity entity) {
 		// default do nothing
 	}
 
@@ -316,19 +280,18 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 		this.groupName = groupName;
 	}
 
-	protected void setLogisticAcceptFilter(WorldMap map, Point2D.Double gridPos, Direction cellDir,
+	protected void setLogisticAcceptFilter(WorldMap map, MapPosition gridPos, Direction cellDir,
 			Direction acceptFilter) {
 		LogisticGridCell cell = map.getOrCreateLogisticGridCell(cellDir.offset(gridPos, 0.25));
 		cell.setAcceptFilter(Optional.of(acceptFilter));
 	}
 
-	protected void setLogisticMachine(WorldMap map, BSEntity entity, RecipePrototype recipe) {
-		MapPosition entityPos = entity.position.createPoint();
-		Rectangle2D.Double box = protoSelectionBox.createRect();
-		double xStart = entityPos.getX() + box.x;
-		double yStart = entityPos.getY() + box.y;
-		double xEnd = xStart + box.width;
-		double yEnd = yStart + box.height;
+	// TODO convert to fixed point maths
+	protected void setLogisticMachine(WorldMap map, MapRect3D bounds, RecipePrototype recipe) {
+		double xStart = bounds.getX1();
+		double yStart = bounds.getY1();
+		double xEnd = bounds.getX2();
+		double yEnd = bounds.getY2();
 
 		DataTable table = data.getTable();
 
@@ -340,7 +303,7 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 		Point2D.Double cellPos = new Point2D.Double();
 		for (cellPos.x = xStart + 0.25; cellPos.x < xEnd; cellPos.x += 0.5) {
 			for (cellPos.y = yStart + 0.25; cellPos.y < yEnd; cellPos.y += 0.5) {
-				LogisticGridCell cell = map.getOrCreateLogisticGridCell(cellPos);
+				LogisticGridCell cell = map.getOrCreateLogisticGridCell(MapPosition.byUnit(cellPos.x, cellPos.y));
 				cell.setInputs(Optional.of(inputs));
 				cell.setOutputs(Optional.of(outputs));
 				cell.setBlockTransit(true);
@@ -348,11 +311,11 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 		}
 	}
 
-	protected void setLogisticMove(WorldMap map, Point2D.Double gridPos, Direction cellDir, Direction moveDir) {
+	protected void setLogisticMove(WorldMap map, MapPosition gridPos, Direction cellDir, Direction moveDir) {
 		map.getOrCreateLogisticGridCell(cellDir.offset(gridPos, 0.25)).setMove(Optional.of(moveDir));
 	}
 
-	protected void setLogisticMoveAndAcceptFilter(WorldMap map, Point2D.Double gridPos, Direction cellDir,
+	protected void setLogisticMoveAndAcceptFilter(WorldMap map, MapPosition gridPos, Direction cellDir,
 			Direction moveDir, Direction acceptFilter) {
 		LogisticGridCell cell = map.getOrCreateLogisticGridCell(cellDir.offset(gridPos, 0.25));
 		cell.setMove(Optional.of(moveDir));
@@ -366,11 +329,7 @@ public abstract class EntityRendererFactory<E extends BSEntity> {
 	public void setPrototype(EntityPrototype prototype) {
 		this.prototype = prototype;
 
-		// FIXME ideally there shouldn't be a need for selection box and beaconed check
-
-		// TODO should move FPBoundingBox to data wrapper repo
-		Rectangle2D.Double sb = prototype.getSelectionBox();
-		protoSelectionBox = new FPBoundingBox(sb.getMinX(), sb.getMinY(), sb.getMaxX(), sb.getMaxY());
+		initEntityClass();
 
 		// FIXME Hard-coding
 		protoBeaconed = (!prototype.lua().get("module_specification").isnil()

@@ -3,6 +3,7 @@ package com.demod.fbsr.map;
 import static com.demod.fbsr.MapUtils.*;
 
 import java.awt.Rectangle;
+import java.util.Collection;
 
 public class MapRect {
 
@@ -14,13 +15,44 @@ public class MapRect {
 		return new MapRect(unitToFixedPoint(x), unitToFixedPoint(y), unitToFixedPoint(width), unitToFixedPoint(height));
 	}
 
+	public static MapRect byUnit(MapPosition pos, double width, double height) {
+		return new MapRect(pos.x, pos.y, unitToFixedPoint(width), unitToFixedPoint(height));
+	}
+
+	public static MapRect combineAll(Collection<MapRect> rects) {
+		if (rects.isEmpty()) {
+			return new MapRect(0, 0, 0, 0);
+		}
+		boolean first = true;
+		int minX = 0, minY = 0, maxX = 0, maxY = 0;
+		for (MapRect rect : rects) {
+			int x1 = rect.x;
+			int y1 = rect.y;
+			int x2 = rect.x + rect.width;
+			int y2 = rect.y + rect.height;
+			if (first) {
+				first = false;
+				minX = x1;
+				minY = y1;
+				maxX = x2;
+				maxY = y2;
+			} else {
+				minX = Math.min(minX, x1);
+				minY = Math.min(minY, y1);
+				maxX = Math.max(maxX, x2);
+				maxY = Math.max(maxY, y2);
+			}
+		}
+		return new MapRect(minX, minY, maxX, maxY);
+	}
+
 	// Fixed-point, 8-bit precision
 	final int x;
 	final int y;
 	final int width;
 	final int height;
 
-	private MapRect(int x, int y, int width, int height) {
+	MapRect(int x, int y, int width, int height) {
 		this.x = x;
 		this.y = y;
 		this.width = width;

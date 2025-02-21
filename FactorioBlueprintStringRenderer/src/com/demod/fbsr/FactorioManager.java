@@ -33,7 +33,6 @@ import com.demod.factorio.prototype.ItemPrototype;
 import com.demod.factorio.prototype.RecipePrototype;
 import com.demod.factorio.prototype.TechPrototype;
 import com.demod.factorio.prototype.TilePrototype;
-import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.entity.UnknownEntityRendering;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
@@ -62,10 +61,8 @@ public class FactorioManager {
 	private static final ListMultimap<String, FactorioData> dataByModName = ArrayListMultimap.create();
 	private static final Map<String, FactorioData> dataByGroupName = new HashMap<>();
 
-	@SuppressWarnings("rawtypes")
 	private static final List<EntityRendererFactory> entityFactories = new ArrayList<>();
 	private static final List<TileRendererFactory> tileFactories = new ArrayList<>();
-	@SuppressWarnings("rawtypes")
 	private static final Map<String, EntityRendererFactory> entityFactoryByName = new HashMap<>();
 	private static final Map<String, TileRendererFactory> tileFactoryByName = new HashMap<>();
 
@@ -307,8 +304,7 @@ public class FactorioManager {
 		return Optional.ofNullable(entityByName.get(name));
 	}
 
-	@SuppressWarnings("unchecked")
-	public static <E extends BSEntity> EntityRendererFactory<E> lookupEntityFactoryForName(String name) {
+	public static EntityRendererFactory lookupEntityFactoryForName(String name) {
 		return Optional.ofNullable(entityFactoryByName.get(name)).orElseGet(() -> {
 			try {
 				return unknownEntityFactories.get(name, () -> new UnknownEntityRendering(name));
@@ -356,7 +352,6 @@ public class FactorioManager {
 		});
 	}
 
-	@SuppressWarnings("rawtypes")
 	private static synchronized void registerEntityFactory(EntityRendererFactory factory) {
 		String name = factory.getPrototype().getName();
 

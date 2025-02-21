@@ -14,17 +14,18 @@ import com.demod.fbsr.Layer;
 
 public class MapDebugEntityPlacement extends MapRenderable {
 
-	private final Direction direction;
-	private final MapRect3D bounds;
+	private final MapEntity entity;
 
-	public MapDebugEntityPlacement(MapPosition position, Direction direction, MapRect3D bounds) {
-		super(Layer.DEBUG_P, position);
-		this.direction = direction;
-		this.bounds = bounds;
+	public MapDebugEntityPlacement(MapEntity entity) {
+		super(Layer.DEBUG_P, entity.getPosition());
+		this.entity = entity;
 	}
 
 	@Override
 	public void render(Graphics2D g) {
+		MapRect3D bounds = entity.getBounds();
+		Direction direction = entity.getDirection();
+
 		Stroke ps = g.getStroke();
 
 		double x = position.getX();

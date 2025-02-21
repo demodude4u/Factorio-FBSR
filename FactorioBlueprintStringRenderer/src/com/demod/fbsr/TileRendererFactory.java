@@ -3,7 +3,6 @@ package com.demod.fbsr;
 import static com.demod.fbsr.Direction.*;
 
 import java.awt.Rectangle;
-import java.awt.geom.Point2D;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -130,7 +129,7 @@ public class TileRendererFactory {
 		// TODO
 		public abstract void tileCenter(Random rand, Consumer<MapRenderable> register, BSTile tile);
 
-		public abstract void tileEdge(Random rand, Consumer<MapRenderable> register, Point2D.Double pos,
+		public abstract void tileEdge(Random rand, Consumer<MapRenderable> register, MapPosition pos,
 				List<TileEdgeRuleParam> params);
 	}
 
@@ -165,7 +164,7 @@ public class TileRendererFactory {
 		}
 
 		@Override
-		public void tileEdge(Random rand, Consumer<MapRenderable> register, Point2D.Double pos,
+		public void tileEdge(Random rand, Consumer<MapRenderable> register, MapPosition pos,
 				List<TileEdgeRuleParam> params) {
 
 			// TODO figure out why some tiles do not have an overlay!
@@ -189,7 +188,7 @@ public class TileRendererFactory {
 
 						register.accept(new MapSprite(Layer.DECALS, data.getModImage(variant.spritesheet),
 								new Rectangle(frame * sourceWidth, 0, sourceWidth, sourceHeight),
-								MapRect.byUnit(pos.x, pos.y, 1, variant.tileHeight)));
+								MapRect.byUnit(pos, 1, variant.tileHeight)));
 					}
 				}
 			}
@@ -215,7 +214,7 @@ public class TileRendererFactory {
 						register.accept(new MapSprite(Layer.UNDER_TILES, data.getModImage(variant.spritesheet),
 								new Rectangle(frame * sourceWidth, param.variant * sourceHeight, sourceWidth,
 										sourceHeight),
-								MapRect.byUnit(pos.x, pos.y, 1, variant.tileHeight)));
+								MapRect.byUnit(pos, 1, variant.tileHeight)));
 					}
 				}
 			}
@@ -248,7 +247,7 @@ public class TileRendererFactory {
 		}
 
 		@Override
-		public void tileEdge(Random rand, Consumer<MapRenderable> register, Point2D.Double pos,
+		public void tileEdge(Random rand, Consumer<MapRenderable> register, MapPosition pos,
 				List<TileEdgeRuleParam> params) {
 
 			FPTileTransitions transitions = protoVariantsTransition.get();
@@ -340,13 +339,13 @@ public class TileRendererFactory {
 		// Populate tile map
 		for (MapTile mapTile : tileOrder) {
 			TileCell cell = new TileCell();
-			BSPosition pos = mapTile.getTile().position;
+			BSPosition pos = mapTile.fromBlueprint().position;
 			cell.row = (int) pos.y;
 			cell.col = (int) pos.x;
 			cell.layer = mapTile.getFactory().protoLayer;
 			cell.mergeFactory = mapTile.getFactory().protoTransitionMergesWithTile;
 			cell.mergeLayer = cell.mergeFactory.map(f -> OptionalInt.of(f.protoLayer)).orElse(OptionalInt.empty());
-			cell.tile = mapTile.getTile();
+			cell.tile = mapTile.fromBlueprint();
 			cell.factory = mapTile.getFactory();
 			tileMap.put(cell.row, cell.col, cell);
 			activeLayers.add(cell.layer);
@@ -355,7 +354,7 @@ public class TileRendererFactory {
 
 		// Populate edge maps
 		for (MapTile mapTile : tileOrder) {
-			BSPosition pos = mapTile.getTile().position;
+			BSPosition pos = mapTile.fromBlueprint().position;
 			int row = (int) pos.y;
 			int col = (int) pos.x;
 			TileCell cell = tileMap.get(row, col);
@@ -399,7 +398,7 @@ public class TileRendererFactory {
 
 			// Render tile edges
 			for (TileEdgeCell edgeCell : edgeCellLayers.get(layer)) {
-				Point2D.Double pos = new Point2D.Double(edgeCell.col, edgeCell.row);
+				MapPosition pos = MapPosition.byUnit(edgeCell.col, edgeCell.row);
 				List<TileEdgeRuleParam> params = tileRules.get(edgeCell.adjCode);
 				rand.setSeed(getRandomSeed(edgeCell.row, edgeCell.col, edgeCell.layer, edgeCell.adjCode));
 
@@ -457,7 +456,7 @@ public class TileRendererFactory {
 
 	private TileRenderProcess renderProcess = null;
 
-	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, BSTile tile) {
+	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapTile tile) {
 	}
 
 	public FactorioData getData() {
@@ -500,7 +499,7 @@ public class TileRendererFactory {
 	}
 
 	// TODO fix UNKNOWN so we don't need this
-	public void populateWorldMap(WorldMap map, BSTile tile) {
+	public void populateWorldMap(WorldMap map, MapTile tile) {
 	}
 
 	public void setData(FactorioData data) {
