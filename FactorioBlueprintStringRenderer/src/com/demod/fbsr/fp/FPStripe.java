@@ -12,8 +12,6 @@ public class FPStripe {
 	public final int x;
 	public final int y;
 
-	// TODO what is the X and Y for?
-
 	public FPStripe(LuaValue lua, OptionalInt defaultHeightInFrames) {
 		widthInFrames = lua.get("width_in_frames").checkint();
 		if (defaultHeightInFrames.isPresent()) {

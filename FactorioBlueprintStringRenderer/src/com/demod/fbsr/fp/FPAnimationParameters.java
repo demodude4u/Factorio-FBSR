@@ -1,9 +1,11 @@
 package com.demod.fbsr.fp;
 
-import com.demod.factorio.FactorioData;
+import java.awt.Rectangle;
+
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.RenderUtils;
-import com.demod.fbsr.Sprite;
+import com.demod.fbsr.SpriteDef;
+import com.demod.fbsr.map.MapRect;
 
 public class FPAnimationParameters extends FPSpriteParameters {
 
@@ -21,13 +23,14 @@ public class FPAnimationParameters extends FPSpriteParameters {
 		this.lineLength = lineLength;
 	}
 
-	protected Sprite createSprite(FactorioData data, int frame) {
+	protected SpriteDef defineSprite(int frame) {
 
 		int x = this.x + width * (frame % lineLength);
 		int y = this.y + height * (frame / lineLength);
 
-		return RenderUtils.createSprite(data, filename.get(), drawAsShadow, blendMode, getEffectiveTint(), x, y, width,
-				height, shift.x, shift.y, scale);
+		Rectangle source = new Rectangle(x, y, width, height);
+		MapRect bounds = RenderUtils.boundsBySizeShiftScale(width, height, shift.x, shift.y, scale);
+		return new SpriteDef(filename.get(), drawAsShadow, blendMode, getEffectiveTint(), source, bounds);
 	}
 
 	public int getFrameCount() {

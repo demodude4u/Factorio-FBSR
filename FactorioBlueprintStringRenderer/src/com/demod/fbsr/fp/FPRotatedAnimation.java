@@ -7,11 +7,11 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.function.Consumer;
 
-import com.demod.factorio.FactorioData;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.FPUtils;
+import com.demod.fbsr.FactorioManager;
 import com.demod.fbsr.RenderUtils;
-import com.demod.fbsr.Sprite;
+import com.demod.fbsr.SpriteDef;
 
 public class FPRotatedAnimation extends FPAnimationParameters {
 
@@ -37,15 +37,15 @@ public class FPRotatedAnimation extends FPAnimationParameters {
 		counterclockwise = lua.get("counterclockwise").optboolean(false);
 	}
 
-	public void createSprites(Consumer<Sprite> consumer, FactorioData data, double orientation, int frame) {
+	public void defineSprites(Consumer<SpriteDef> consumer, double orientation, int frame) {
 		int index = getIndex(orientation);
-		createSprites(consumer, data, index, frame);
+		defineSprites(consumer, index, frame);
 	}
 
-	public void createSprites(Consumer<Sprite> consumer, FactorioData data, int index, int frame) {
+	public void defineSprites(Consumer<SpriteDef> consumer, int index, int frame) {
 		if (layers.isPresent()) {
 			for (FPRotatedAnimation animation : layers.get()) {
-				animation.createSprites(consumer, data, index, frame);
+				animation.defineSprites(consumer, index, frame);
 			}
 			return;
 		}
@@ -65,7 +65,9 @@ public class FPRotatedAnimation extends FPAnimationParameters {
 				int stripeIndex = index - stripeStartIndex;
 
 				// XXX at least it is cached
-				BufferedImage image = data.getModImage(stripe.filename);
+				String firstSegment = stripe.filename.split("\\/")[0];
+				String modName = firstSegment.substring(2, firstSegment.length() - 2);
+				BufferedImage image = FactorioManager.lookupDataByModName(modName).get(0).getModImage(stripe.filename);
 
 				int width = image.getWidth() / stripe.widthInFrames;
 				int height = image.getHeight() / stripe.heightInFrames;
@@ -73,8 +75,8 @@ public class FPRotatedAnimation extends FPAnimationParameters {
 				int x = stripe.x + width * frame;
 				int y = stripe.y + height * stripeIndex;
 
-				consumer.accept(RenderUtils.createSprite(data, stripe.filename, drawAsShadow, blendMode,
-						getEffectiveTint(), x, y, width, height, shift.x, shift.y, scale));
+				consumer.accept(RenderUtils.defineSprite(stripe.filename, drawAsShadow, blendMode, getEffectiveTint(),
+						x, y, width, height, shift.x, shift.y, scale));
 
 				break;
 			}
@@ -89,22 +91,22 @@ public class FPRotatedAnimation extends FPAnimationParameters {
 			int x = this.x + width * (fileFrame % lineLength);
 			int y = this.y + height * (fileFrame / lineLength);
 
-			consumer.accept(RenderUtils.createSprite(data, filenames.get().get(fileIndex), drawAsShadow, blendMode,
+			consumer.accept(RenderUtils.defineSprite(filenames.get().get(fileIndex), drawAsShadow, blendMode,
 					getEffectiveTint(), x, y, width, height, shift.x, shift.y, scale));
 			return;
 		}
 
-		consumer.accept(createSprite(data, frame));
+		consumer.accept(defineSprite(frame));
 	}
 
-	public List<Sprite> createSprites(FactorioData data, double orientation, int frame) {
+	public List<SpriteDef> defineSprites(double orientation, int frame) {
 		int index = getIndex(orientation);
-		return createSprites(data, index, frame);
+		return defineSprites(index, frame);
 	}
 
-	public List<Sprite> createSprites(FactorioData data, int index, int frame) {
-		List<Sprite> ret = new ArrayList<>();
-		createSprites(ret::add, data, index, frame);
+	public List<SpriteDef> defineSprites(int index, int frame) {
+		List<SpriteDef> ret = new ArrayList<>();
+		defineSprites(ret::add, index, frame);
 		return ret;
 	}
 

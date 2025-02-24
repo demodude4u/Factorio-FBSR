@@ -5,10 +5,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 
-import com.demod.factorio.FactorioData;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.FPUtils;
-import com.demod.fbsr.Sprite;
+import com.demod.fbsr.SpriteDef;
 import com.google.common.collect.ImmutableList;
 
 public class FPAnimationVariations {
@@ -38,18 +37,18 @@ public class FPAnimationVariations {
 		}
 	}
 
-	public void createSprites(Consumer<Sprite> consumer, FactorioData data, int variation, int frame) {
+	public void defineSprites(Consumer<SpriteDef> consumer, int variation, int frame) {
 		if (sheets.isPresent()) {
 			// Not sure if variation per sheet or acting as layers
-			sheets.get().forEach(s -> s.createSprites(consumer, data, variation, frame));
+			sheets.get().forEach(s -> s.defineSprites(consumer, variation, frame));
 		} else if (animations.isPresent()) {
-			animations.get().get(variation).createSprites(consumer, data, frame);
+			animations.get().get(variation).defineSprites(consumer, frame);
 		}
 	}
 
-	public List<Sprite> createSprites(FactorioData data, int variation, int frame) {
-		List<Sprite> ret = new ArrayList<>();
-		createSprites(ret::add, data, variation, frame);
+	public List<SpriteDef> defineSprites(int variation, int frame) {
+		List<SpriteDef> ret = new ArrayList<>();
+		defineSprites(ret::add, variation, frame);
 		return ret;
 	}
 }

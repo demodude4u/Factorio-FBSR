@@ -5,11 +5,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 
-import com.demod.factorio.FactorioData;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.FPUtils;
-import com.demod.fbsr.Sprite;
+import com.demod.fbsr.SpriteDef;
 import com.google.common.collect.ImmutableList;
 
 public class FPAnimation4Way {
@@ -43,19 +42,19 @@ public class FPAnimation4Way {
 		}
 	}
 
-	public void createSprites(Consumer<Sprite> consumer, FactorioData data, Direction direction, int frame) {
+	public void defineSprites(Consumer<SpriteDef> consumer, Direction direction, int frame) {
 		if (animation.isPresent()) {
-			animation.get().createSprites(consumer, data, frame);
+			animation.get().defineSprites(consumer, frame);
 		} else {
 			List<Optional<FPAnimation>> directional = ImmutableList.of(north, northEast, east, southEast, south,
 					southWest, west, northWest);
-			directional.get(direction.ordinal()).get().createSprites(consumer, data, frame);
+			directional.get(direction.ordinal()).get().defineSprites(consumer, frame);
 		}
 	}
 
-	public List<Sprite> createSprites(FactorioData data, Direction direction, int frame) {
-		List<Sprite> ret = new ArrayList<>();
-		createSprites(ret::add, data, direction, frame);
+	public List<SpriteDef> defineSprites(Direction direction, int frame) {
+		List<SpriteDef> ret = new ArrayList<>();
+		defineSprites(ret::add, direction, frame);
 		return ret;
 	}
 

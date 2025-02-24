@@ -7,11 +7,11 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.function.Consumer;
 
-import com.demod.factorio.FactorioData;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.FPUtils;
+import com.demod.fbsr.FactorioManager;
 import com.demod.fbsr.RenderUtils;
-import com.demod.fbsr.Sprite;
+import com.demod.fbsr.SpriteDef;
 
 public class FPAnimation extends FPAnimationParameters {
 
@@ -31,10 +31,11 @@ public class FPAnimation extends FPAnimationParameters {
 		linesPerFile = lua.get("lines_per_file").optint(1);
 	}
 
-	public void createSprites(Consumer<Sprite> consumer, FactorioData data, int frame) {
+	// TODO stripes are a troublesome structure, we need a better way
+	public void defineSprites(Consumer<SpriteDef> consumer, int frame) {
 		if (layers.isPresent()) {
 			for (FPAnimation animation : layers.get()) {
-				animation.createSprites(consumer, data, frame);
+				animation.defineSprites(consumer, frame);
 			}
 			return;
 
@@ -42,7 +43,9 @@ public class FPAnimation extends FPAnimationParameters {
 			for (FPStripe stripe : stripes.get()) {
 
 				// XXX at least it is cached
-				BufferedImage image = data.getModImage(stripe.filename);
+				String firstSegment = stripe.filename.split("\\/")[0];
+				String modName = firstSegment.substring(2, firstSegment.length() - 2);
+				BufferedImage image = FactorioManager.lookupDataByModName(modName).get(0).getModImage(stripe.filename);
 
 				// TODO do I ignore width/height in Animation proto?
 				int width = image.getWidth() / stripe.widthInFrames;
@@ -51,8 +54,8 @@ public class FPAnimation extends FPAnimationParameters {
 				int x = stripe.x + width * (frame % stripe.widthInFrames);
 				int y = stripe.y + height * (frame / stripe.heightInFrames);
 
-				consumer.accept(RenderUtils.createSprite(data, stripe.filename, drawAsShadow, blendMode,
-						getEffectiveTint(), x, y, width, height, shift.x, shift.y, scale));
+				consumer.accept(RenderUtils.defineSprite(stripe.filename, drawAsShadow, blendMode, getEffectiveTint(),
+						x, y, width, height, shift.x, shift.y, scale));
 			}
 
 			return;
@@ -67,17 +70,17 @@ public class FPAnimation extends FPAnimationParameters {
 			int x = this.x + width * (fileFrame % lineLength);
 			int y = this.y + height * (fileFrame / lineLength);
 
-			consumer.accept(RenderUtils.createSprite(data, filenames.get().get(fileIndex), drawAsShadow, blendMode,
+			consumer.accept(RenderUtils.defineSprite(filenames.get().get(fileIndex), drawAsShadow, blendMode,
 					getEffectiveTint(), x, y, width, height, shift.x, shift.y, scale));
 			return;
 		}
 
-		consumer.accept(createSprite(data, frame));
+		consumer.accept(defineSprite(frame));
 	}
 
-	public List<Sprite> createSprites(FactorioData data, int frame) {
-		List<Sprite> ret = new ArrayList<>();
-		createSprites(ret::add, data, frame);
+	public List<SpriteDef> defineSprites(int frame) {
+		List<SpriteDef> ret = new ArrayList<>();
+		defineSprites(ret::add, frame);
 		return ret;
 	}
 }

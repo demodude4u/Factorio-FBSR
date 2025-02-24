@@ -1,23 +1,15 @@
 package com.demod.fbsr;
 
-import java.awt.BasicStroke;
 import java.awt.Color;
-import java.awt.Font;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
-import java.awt.Stroke;
-import java.awt.geom.AffineTransform;
-import java.awt.geom.Path2D;
-import java.awt.geom.Point2D;
-import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.lang.reflect.Field;
 import java.text.DecimalFormat;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
+import java.util.Random;
 
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -25,13 +17,9 @@ import org.slf4j.LoggerFactory;
 
 import com.demod.factorio.FactorioData;
 import com.demod.factorio.Utils;
-import com.demod.factorio.prototype.ItemPrototype;
 import com.demod.fbsr.bs.BSEntity;
-import com.demod.fbsr.bs.BSItemStack;
-import com.demod.fbsr.map.MapRect3D;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.LinkedHashMultiset;
-import com.google.common.collect.Multiset;
+import com.demod.fbsr.map.MapRect;
+import com.demod.fbsr.map.MapSprite;
 
 public final class RenderUtils {
 
@@ -44,80 +32,33 @@ public final class RenderUtils {
 
 	private static final DecimalFormat DECIMAL_FORMAT_2_PLACES = new DecimalFormat("#,##0.##");
 
-	public static Sprite createSprite(FactorioData data, String filename, Layer layer, String blendMode, Color tint,
-			int srcX, int srcY, int srcWidth, int srcHeight, double dstX, double dstY, double dstScale) {
+	public static MapRect boundsBySizeShiftScale(int srcWidth, int srcHeight, double shiftX, double shiftY,
+			double scale) {
+		double scaledWidth = scale * srcWidth / FBSR.TILE_SIZE;
+		double scaledHeight = scale * srcHeight / FBSR.TILE_SIZE;
+		return MapRect.byUnit(shiftX - scaledWidth / 2.0, shiftY - scaledHeight / 2.0, scaledWidth, scaledHeight);
+	}
 
-		Sprite ret = new Sprite();
-		ret.image = data.getModImage(filename);
-		ret.layer = layer;
+	public static SpriteDef defineSprite(String filename, boolean shadow, String blendMode, Color tint, int srcX,
+			int srcY, int srcWidth, int srcHeight, double dstX, double dstY, double dstScale) {
+		Rectangle source = new Rectangle(srcX, srcY, srcWidth, srcHeight);
+		MapRect bounds = boundsBySizeShiftScale(srcWidth, srcHeight, dstX, dstY, dstScale);
+		return new SpriteDef(filename, shadow, blendMode, tint, source, bounds);
+	}
 
-		if (!blendMode.equals("normal")) { // FIXME blending will take effort
-			ret.image = RenderUtils.EMPTY_IMAGE;
+	public static MapSprite createSprite(FactorioData data, Layer layer, SpriteDef spriteDef) {
+
+		BufferedImage image = data.getModImage(spriteDef.getPath());
+
+		if (!spriteDef.getBlendMode().equals("normal")) { // FIXME blending will take effort
+			image = RenderUtils.EMPTY_IMAGE;
 		}
 
-		if (!tint.equals(Color.white)) {
-			ret.image = Utils.tintImage(ret.image, tint);
+		if (!spriteDef.getTint().equals(Color.white)) {
+			image = Utils.tintImage(image, spriteDef.getTint());
 		}
 
-		double scaledWidth = dstScale * srcWidth / FBSR.TILE_SIZE;
-		double scaledHeight = dstScale * srcHeight / FBSR.TILE_SIZE;
-		ret.source = new Rectangle(srcX, srcY, srcWidth, srcHeight);
-		ret.bounds = new Rectangle2D.Double(dstX - scaledWidth / 2.0, dstY - scaledHeight / 2.0, scaledWidth,
-				scaledHeight);
-
-		return ret;
-	}
-
-//	public static void drawImageInBounds(BufferedImage image, Rectangle source, Rectangle2D.Double bounds,
-//			Graphics2D g) {
-//		AffineTransform pat = g.getTransform();
-//		g.translate(bounds.x, bounds.y);
-//		g.scale(bounds.width, bounds.height);
-//		g.drawImage(image, 0, 0, 1, 1, source.x, source.y, source.x + source.width, source.y + source.height, null);
-//		g.setTransform(pat);
-//	}
-
-	public static Renderer drawRotatedString(Layer layer, Point2D.Double position, double angle, Color color,
-			String string) {
-		return new Renderer(layer, position, true) {
-			@Override
-			public void render(Graphics2D g) {
-				AffineTransform pat = g.getTransform();
-
-				g.setFont(new Font("Monospaced", Font.BOLD, 1).deriveFont(0.4f));
-				float textX = (float) position.x;
-				float textY = (float) position.y;
-
-				g.translate(textX, textY);
-				g.rotate(angle);
-
-				g.setColor(Color.darkGray);
-				g.drawString(string, 0.05f, 0.05f);
-				g.setColor(color);
-				g.drawString(string, 0f, 0f);
-
-				g.setTransform(pat);
-			}
-		};
-	}
-
-	public static void drawSprite(Sprite sprite, Graphics2D g) {
-		drawImageInBounds(sprite.image, sprite.source, sprite.bounds, g);
-	}
-
-	public static Renderer drawString(Layer layer, Point2D.Double position, Color color, String string) {
-		return new Renderer(layer, position, true) {
-			@Override
-			public void render(Graphics2D g) {
-				g.setFont(new Font("Monospaced", Font.BOLD, 1).deriveFont(0.4f));
-				float textX = (float) position.getX();
-				float textY = (float) position.getY();
-				g.setColor(Color.darkGray);
-				g.drawString(string, textX + 0.05f, textY + 0.05f);
-				g.setColor(color);
-				g.drawString(string, textX, textY);
-			}
-		};
+		return new MapSprite(layer, EMPTY_IMAGE, spriteDef.getSource(), spriteDef.getBounds());
 	}
 
 	public static String fmtDouble(double value) {
@@ -158,18 +99,14 @@ public final class RenderUtils {
 		return new Color(sumR / sumA, sumG / sumA, sumB / sumA);
 	}
 
-	public static void halveAlpha(BufferedImage image) {
-		int w = image.getWidth();
-		int h = image.getHeight();
-		int[] pixels = new int[w * h];
-		image.getRGB(0, 0, w, h, pixels, 0, w);
-		for (int i = 0; i < pixels.length; i++) {
-			int argb = pixels[i];
-			int a = ((argb >> 24) & 0xFF);
+	public static Color getUnknownColor(String name) {
+		Random random = new Random(name.hashCode());
+		return RenderUtils.withAlpha(Color.getHSBColor(random.nextFloat(), 0.6f, 0.4f), 128);
+	}
 
-			pixels[i] = ((a / 2) << 24) | (argb & 0xFFFFFF);
-		}
-		image.setRGB(0, 0, w, h, pixels, 0, w);
+	public static float getUnknownTextOffset(String name) {
+		Random random = new Random(name.hashCode());
+		return random.nextFloat();
 	}
 
 	public static Color parseColor(JSONObject json) {
@@ -246,83 +183,6 @@ public final class RenderUtils {
 		g.drawImage(image, 0, 0, width, height, null);
 		g.dispose();
 		return ret;
-	}
-
-	public static void shiftSprites(List<Sprite> sprites, Point2D.Double shift) {
-		for (Sprite sprite : sprites) {
-			sprite.bounds.x += shift.x;
-			sprite.bounds.y += shift.y;
-		}
-	}
-
-	public static EntityRenderer spriteRenderer(List<Sprite> sprites, BSEntity entity, MapRect3D bounds) {
-		return spriteRenderer(sprites, entity.position.createPoint(), bounds.rotate(entity.direction));
-	}
-
-	public static EntityRenderer spriteRenderer(List<Sprite> sprites, Point2D.Double pos, MapRect3D bounds) {
-		RenderUtils.shiftSprites(sprites, pos);
-
-		Map<Boolean, List<Sprite>> groupedSprites = sprites.stream()
-				.collect(Collectors.partitioningBy(sprite -> sprite.layer == Layer.SHADOW_BUFFER));
-
-		bounds = bounds.shiftUnit(pos.x, pos.y);
-
-		return new EntityRenderer(layer, bounds, false) {
-			@Override
-			public void render(Graphics2D g) {
-				for (Sprite sprite : groupedSprites.get(false)) {
-					drawSprite(sprite, g);
-				}
-			}
-
-			@Override
-			public void renderShadows(Graphics2D g) {
-				for (Sprite sprite : groupedSprites.get(true)) {
-					drawSprite(sprite, g);
-				}
-			}
-		};
-	}
-
-	public static EntityRenderer spriteRenderer(Sprite sprite, BSEntity entity, MapRect3D bounds) {
-		return spriteRenderer(ImmutableList.of(sprite), entity, bounds);
-	}
-
-	public static EntityRenderer spriteRenderer(Sprite sprite, Point2D.Double pos, MapRect3D bounds) {
-		return spriteRenderer(ImmutableList.of(sprite), pos, bounds);
-	}
-
-	public static Renderer spriteRenderer(Sprite sprite, MapRect3D bounds) {
-		return new Renderer(sprite.layer, bounds, false) {
-			@SuppressWarnings("unused")
-			private void debugShowBounds(Rectangle2D.Double groundBounds, Graphics2D g) {
-				long x = Math.round(groundBounds.getCenterX() * 2);
-				long y = Math.round(groundBounds.getCenterY() * 2);
-				long w = Math.round(groundBounds.width * 2);
-				long h = Math.round(groundBounds.height * 2);
-
-				// System.out.println("x=" + x + " y=" + y + " w=" + w + "
-				// h=" + h);
-
-				g.setColor(new Color(255, 255, 255, 64));
-				g.draw(groundBounds);
-
-				if (((w / 2) % 2) == (x % 2)) {
-					g.setColor(new Color(255, 0, 0, 64));
-					g.fill(groundBounds);
-				}
-				if (((h / 2) % 2) == (y % 2)) {
-					g.setColor(new Color(0, 255, 0, 64));
-					g.fill(groundBounds);
-				}
-			}
-
-			@Override
-			public void render(Graphics2D g) {
-				drawSprite(sprite, g);
-				// debugShowBounds(groundBounds, g);
-			}
-		};
 	}
 
 	public static Color withAlpha(Color color, int alpha) {

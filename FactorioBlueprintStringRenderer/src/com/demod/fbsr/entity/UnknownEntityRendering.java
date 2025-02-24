@@ -3,7 +3,6 @@ package com.demod.fbsr.entity;
 import java.awt.Color;
 import java.awt.Font;
 import java.util.Optional;
-import java.util.Random;
 import java.util.function.Consumer;
 
 import com.demod.factorio.FactorioData;
@@ -28,9 +27,8 @@ public class UnknownEntityRendering extends EntityRendererFactory {
 
 	public UnknownEntityRendering(String name) {
 		this.name = name;
-		Random random = new Random(name.hashCode());
-		color = RenderUtils.withAlpha(Color.getHSBColor(random.nextFloat(), 0.6f, 0.4f), 128);
-		offset = random.nextFloat();
+		color = RenderUtils.getUnknownColor(name);
+		offset = RenderUtils.getUnknownTextOffset(name);
 	}
 
 	@Override
@@ -42,7 +40,8 @@ public class UnknownEntityRendering extends EntityRendererFactory {
 		MapPosition pos = entity.getPosition();
 		register.accept(new MapUnknownEntityMarker(pos, color));
 		if (map.addUnknownEntity(name)) {
-			register.accept(new MapText(Layer.ENTITY_INFO_TEXT, pos.addUnit(-0.5, -0.5 + offset), null, color, name));
+			register.accept(
+					new MapText(Layer.ENTITY_INFO_TEXT, pos.addUnit(-0.5, -0.5 + offset), 0, FONT, Color.white, name));
 		}
 	}
 

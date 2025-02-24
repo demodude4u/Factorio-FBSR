@@ -3,14 +3,13 @@ package com.demod.fbsr.fp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
-import com.demod.factorio.FactorioData;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.Layer;
-import com.demod.fbsr.Sprite;
-import com.demod.fbsr.SpriteWithLayer;
+import com.demod.fbsr.LayeredSpriteDef;
+import com.demod.fbsr.SpriteDef;
 
 public class FPLayeredSprite extends FPSprite {
 	public final Optional<Layer> renderLayer;
@@ -28,21 +27,33 @@ public class FPLayeredSprite extends FPSprite {
 		}
 	}
 
-	public void createSprites(BiConsumer<Layer, Sprite> consumer, FactorioData data) {
+	public void defineLayeredSprites(Consumer<LayeredSpriteDef> consumer) {
 		if (array.isPresent()) {
 			for (FPLayeredSprite item : array.get()) {
-				item.createSprites(consumer, data);
+				item.defineLayeredSprites(consumer);
 			}
 			return;
 		}
 
-		super.createSprites(s -> consumer.accept(renderLayer.get(), s), data);
+		super.defineSprites(s -> consumer.accept(s.withLayer(renderLayer.get())));
 	}
 
-	public List<SpriteWithLayer> createSpritesWithLayers(FactorioData data) {
-		List<SpriteWithLayer> ret = new ArrayList<>();
-		createSprites((l, s) -> ret.add(new SpriteWithLayer(l, s)), data);
+	public List<LayeredSpriteDef> defineLayeredSprites() {
+		List<LayeredSpriteDef> ret = new ArrayList<>();
+		defineLayeredSprites(ret::add);
 		return ret;
+	}
+
+	@Override
+	@Deprecated
+	public List<SpriteDef> defineSprites() {
+		throw new InternalError();
+	}
+
+	@Override
+	@Deprecated
+	public void defineSprites(Consumer<SpriteDef> consumer) {
+		throw new InternalError();
 	}
 
 }

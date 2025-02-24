@@ -241,7 +241,7 @@ public class GUILayoutBlueprint {
 									false);
 							imgIcon.render(g);
 						} else {
-							g.setColor(EntityRendererFactory.getUnknownColor(item));
+							g.setColor(RenderUtils.getUnknownColor(item));
 							g.fillOval(cellBounds.x, cellBounds.y, cellBounds.width, cellBounds.height);
 						}
 
@@ -318,7 +318,7 @@ public class GUILayoutBlueprint {
 							GUIImage imgIcon = new GUIImage(cellBounds, image.get(), scale, false);
 							imgIcon.render(g);
 						} else {
-							g.setColor(EntityRendererFactory.getUnknownColor(item));
+							g.setColor(RenderUtils.getUnknownColor(item));
 							g.fillOval(cellBounds.x, cellBounds.y, cellBounds.width, cellBounds.height);
 						}
 
@@ -338,7 +338,7 @@ public class GUILayoutBlueprint {
 			cutY += subPanelHeight;
 		}
 
-		// Grid Settings
+		// TODO Grid Settings
 		{
 
 		}

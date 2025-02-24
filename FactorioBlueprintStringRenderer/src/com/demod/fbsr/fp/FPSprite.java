@@ -5,10 +5,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 
-import com.demod.factorio.FactorioData;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.FPUtils;
-import com.demod.fbsr.Sprite;
+import com.demod.fbsr.SpriteDef;
 
 public class FPSprite extends FPSpriteParameters {
 
@@ -21,20 +20,20 @@ public class FPSprite extends FPSpriteParameters {
 
 	}
 
-	public void createSprites(Consumer<Sprite> consumer, FactorioData data) {
+	public void defineSprites(Consumer<SpriteDef> consumer) {
 		if (layers.isPresent()) {
 			for (FPSprite layer : layers.get()) {
-				layer.createSprites(consumer, data);
+				layer.defineSprites(consumer);
 			}
 			return;
 		}
 
-		consumer.accept(super.createSprite(data));
+		consumer.accept(super.defineSprite());
 	}
 
-	public List<Sprite> createSprites(FactorioData data) {
-		List<Sprite> ret = new ArrayList<>();
-		createSprites(ret::add, data);
+	public List<SpriteDef> defineSprites() {
+		List<SpriteDef> ret = new ArrayList<>();
+		defineSprites(ret::add);
 		return ret;
 	}
 

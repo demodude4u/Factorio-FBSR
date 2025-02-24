@@ -5,11 +5,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 
-import com.demod.factorio.FactorioData;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.FPUtils;
-import com.demod.fbsr.Sprite;
+import com.demod.fbsr.SpriteDef;
 
 public class FPSprite4Way {
 
@@ -38,13 +37,13 @@ public class FPSprite4Way {
 		}
 	}
 
-	public void createSprites(Consumer<Sprite> consumer, FactorioData data, Direction direction) {
+	public void defineSprites(Consumer<SpriteDef> consumer, Direction direction) {
 		if (sprite.isPresent()) {
-			sprite.get().createSprites(consumer, data);
+			sprite.get().defineSprites(consumer);
 		} else if (sheets.isPresent()) {
-			sheets.get().stream().forEach(s -> consumer.accept(s.createSprite(data, direction)));
+			sheets.get().stream().forEach(s -> consumer.accept(s.defineSprite(direction)));
 		} else if (sheet.isPresent()) {
-			consumer.accept(sheet.get().createSprite(data, direction));
+			consumer.accept(sheet.get().defineSprite(direction));
 		} else {
 			FPSprite dirSprite;
 			if (direction == Direction.EAST) {
@@ -58,13 +57,13 @@ public class FPSprite4Way {
 			} else {
 				return;
 			}
-			dirSprite.createSprites(consumer, data);
+			dirSprite.defineSprites(consumer);
 		}
 	}
 
-	public List<Sprite> createSprites(FactorioData data, Direction direction) {
-		List<Sprite> ret = new ArrayList<>();
-		createSprites(ret::add, data, direction);
+	public List<SpriteDef> defineSprites(Direction direction) {
+		List<SpriteDef> ret = new ArrayList<>();
+		defineSprites(ret::add, direction);
 		return ret;
 	}
 

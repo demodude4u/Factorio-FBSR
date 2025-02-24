@@ -1,19 +1,10 @@
 package com.demod.fbsr;
 
-import java.awt.BasicStroke;
 import java.awt.Color;
-import java.awt.Font;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
-import java.awt.Shape;
-import java.awt.Stroke;
 import java.awt.geom.AffineTransform;
-import java.awt.geom.CubicCurve2D;
-import java.awt.geom.Ellipse2D;
-import java.awt.geom.Line2D;
-import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
-import java.awt.geom.RoundRectangle2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileInputStream;
@@ -21,7 +12,7 @@ import java.io.IOException;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -34,8 +25,6 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import javax.swing.Renderer;
-
 import org.json.JSONException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,9 +36,7 @@ import com.demod.factorio.ItemToPlace;
 import com.demod.factorio.ModInfo;
 import com.demod.factorio.TotalRawCalculator;
 import com.demod.factorio.Utils;
-import com.demod.factorio.prototype.DataPrototype;
 import com.demod.factorio.prototype.EntityPrototype;
-import com.demod.factorio.prototype.ItemPrototype;
 import com.demod.factorio.prototype.RecipePrototype;
 import com.demod.factorio.prototype.TilePrototype;
 import com.demod.fbsr.WirePoints.WirePoint;
@@ -58,17 +45,16 @@ import com.demod.fbsr.WorldMap.RailNode;
 import com.demod.fbsr.bs.BSBlueprint;
 import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.bs.BSMetaEntity;
-import com.demod.fbsr.bs.BSPosition;
 import com.demod.fbsr.bs.BSTile;
 import com.demod.fbsr.bs.BSWire;
 import com.demod.fbsr.entity.ErrorRendering;
-import com.demod.fbsr.gui.GUIStyle;
-import com.demod.fbsr.map.MapDebugEntityPlacement;
-import com.demod.fbsr.map.MapDebugTilePlacement;
+import com.demod.fbsr.map.MapDebug;
 import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapFoundationGrid;
 import com.demod.fbsr.map.MapGrid;
+import com.demod.fbsr.map.MapItemLogistics;
 import com.demod.fbsr.map.MapPosition;
+import com.demod.fbsr.map.MapRailLogistics;
 import com.demod.fbsr.map.MapRect;
 import com.demod.fbsr.map.MapRect3D;
 import com.demod.fbsr.map.MapRenderable;
@@ -76,7 +62,9 @@ import com.demod.fbsr.map.MapSprite;
 import com.demod.fbsr.map.MapTile;
 import com.demod.fbsr.map.MapWire;
 import com.demod.fbsr.map.MapWireShadow;
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ListMultimap;
+import com.google.common.collect.MultimapBuilder;
+import com.google.common.collect.Multimaps;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Table;
 
@@ -91,8 +79,6 @@ public class FBSR {
 	public static final Color GRID_COLOR = new Color(0xffe6c0);
 
 	private static volatile String version = null;
-
-	private static final Map<String, Color> itemColorCache = new HashMap<>();
 
 	public static final double TILE_SIZE = 64.0;
 
@@ -164,26 +150,6 @@ public class FBSR {
 			});
 		}
 		return ret;
-	}
-
-	private static Color getItemLogisticColor(String itemName) {
-
-		return itemColorCache.computeIfAbsent(itemName, k -> {
-			Optional<ItemPrototype> optProto = FactorioManager.lookupItemByName(k);
-			if (!optProto.isPresent()) {
-				LOGGER.warn("ITEM MISSING FOR LOGISTICS: {}", k);
-				return Color.MAGENTA;
-			}
-			DataPrototype prototype = optProto.get();
-			BufferedImage image = prototype.getTable().getData().getWikiIcon(prototype);
-			Color color = RenderUtils.getAverageColor(image);
-			// return new Color(color.getRGB() | 0xA0A0A0);
-			// return color.brighter().brighter();
-			float[] hsb = Color.RGBtoHSB(color.getRed(), color.getGreen(), color.getBlue(), null);
-			return Color.getHSBColor(hsb[0], Math.max(0.25f, hsb[1]), Math.max(0.5f, hsb[2]));
-			// return Color.getHSBColor(hsb[0], Math.max(1f, hsb[1]),
-			// Math.max(0.75f, hsb[2]));
-		});
 	}
 
 	public static String getVersion() {
@@ -574,17 +540,10 @@ public class FBSR {
 			}
 		}
 
-		showLogisticGrid(register, map, request.debug.pathItems);
-		showRailLogistics(register, map, request.debug.pathRails);
+		register.accept(new MapDebug(request.debug, map, mapEntities, mapTiles));
 
-		if (request.debug.entityPlacement) {
-			mapEntities.forEach(e -> {
-				renderers.add(new MapDebugEntityPlacement(e));
-			});
-			mapTiles.forEach(t -> {
-				renderers.add(new MapDebugTilePlacement(t));
-			});
-		}
+		register.accept(new MapItemLogistics(map));
+		register.accept(new MapRailLogistics(map));
 
 		boolean showGrid = !request.getGridLines().isEmpty();
 		boolean gridFoundationMode = map.isFoundation() && !request.show.gridNumbers;
@@ -665,8 +624,6 @@ public class FBSR {
 		BufferedImage image = new BufferedImage(imageWidth, imageHeight, BufferedImage.TYPE_INT_ARGB);
 		Graphics2D g = image.createGraphics();
 
-		BufferedImage shadowImage = new BufferedImage(imageWidth, imageHeight, BufferedImage.TYPE_INT_ARGB);
-		Graphics2D shadowG = shadowImage.createGraphics();
 		AffineTransform noXform = g.getTransform();
 
 		g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -680,14 +637,6 @@ public class FBSR {
 		g.translate(-screenBounds.getX(), -screenBounds.getY());
 		AffineTransform worldXform = g.getTransform();
 
-		shadowG.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-		shadowG.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-		shadowG.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-		shadowG.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-		shadowG.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
-		shadowG.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
-		shadowG.setTransform(worldXform);
-
 		// Background
 		if (request.getBackground().isPresent()) {
 			g.setColor(request.getBackground().get());
@@ -699,13 +648,6 @@ public class FBSR {
 			showGrid = false;
 		}
 
-		Layer gridLayer;
-		if (request.show.gridAboveBelts) {
-			gridLayer = Layer.GRID_ABOVE_BELTS;
-		} else {
-			gridLayer = Layer.GRID;
-		}
-
 		if (showGrid) {
 			if (gridFoundationMode) {
 				renderers.add(new MapFoundationGrid(mapTiles, request.getGridLines().get(), gridAboveBelts));
@@ -714,59 +656,56 @@ public class FBSR {
 			}
 		}
 
-		renderers.stream().filter(r -> r.getLayer() == Layer.SHADOW_BUFFER).forEach(r -> {
-			try {
-				r.render(shadowG);
-			} catch (Exception e) {
-				reporting.addException(e);
-			}
-		});
-		shadowG.dispose();
-		RenderUtils.halveAlpha(shadowImage);
+		ListMultimap<Layer, MapRenderable> layerBuckets = MultimapBuilder.enumKeys(Layer.class).arrayListValues()
+				.build();
+		renderers.forEach(r -> layerBuckets.put(r.getLayer(), r));
 
-		renderers.add(new Renderer(Layer.SHADOW_BUFFER, new MapRect3D(screenBounds, 0), true) {
-			@Override
-			public void render(Graphics2D g) throws Exception {
+		Comparator<MapRenderable> comparator = Comparator.comparing((MapRenderable r) -> r.getPosition().getYFP())
+				.thenComparing(r -> r.getPosition().getXFP());
+		for (Entry<Layer, List<MapRenderable>> entry : Multimaps.asMap(layerBuckets).entrySet()) {
+			Layer layer = entry.getKey();
+			List<MapRenderable> layerRenderers = entry.getValue();
+
+			if (layer == Layer.SHADOW_BUFFER) {
+
+				BufferedImage shadowImage = new BufferedImage(imageWidth, imageHeight, BufferedImage.TYPE_INT_ARGB);
+				Graphics2D shadowG = shadowImage.createGraphics();
+				shadowG.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+				shadowG.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+				shadowG.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+				shadowG.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+				shadowG.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS,
+						RenderingHints.VALUE_FRACTIONALMETRICS_ON);
+				shadowG.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+				shadowG.setTransform(worldXform);
+
+				for (MapRenderable renderer : layerRenderers) {
+					try {
+						renderer.render(shadowG);
+					} catch (Exception e) {
+						reporting.addException(e);
+					}
+				}
+
+				shadowG.dispose();
+
 				AffineTransform tempXform = g.getTransform();
 				g.setTransform(noXform);
 				g.drawImage(shadowImage, 0, 0, null);
-
 				g.setTransform(tempXform);
+
+			} else {
+				layerRenderers.sort(comparator);
+
+				for (MapRenderable renderer : layerRenderers) {
+					try {
+						renderer.render(g);
+					} catch (Exception e) {
+						reporting.addException(e);
+					}
+				}
 			}
-		});
-
-		renderers.stream().sorted((r1, r2) -> {
-			int ret;
-
-			ret = r1.getLayer().compareTo(r2.getLayer());
-			if (ret != 0) {
-				return ret;
-			}
-
-			MapRect3D b1 = r1.getBounds();
-			MapRect3D b2 = r2.getBounds();
-
-			ret = Double.compare(b1.y1, b2.y1);
-			if (ret != 0) {
-				return ret;
-			}
-
-			ret = Double.compare(b1.x1, b2.x1);
-			if (ret != 0) {
-				return ret;
-			}
-
-			ret = r1.getLayer().compareTo(r2.getLayer());
-			return ret;
-		}).forEach(r -> {
-			try {
-				r.render(g);
-			} catch (Exception e) {
-				reporting.addException(e);
-			}
-		});
-		g.setTransform(worldXform);
-
+		}
 		g.dispose();
 
 		long endMillis = System.currentTimeMillis();
@@ -817,191 +756,5 @@ public class FBSR {
 		}
 
 		return MapRect3D.byFixedPoint(x1fp, x2fp, y1fp, y2fp, heightfp);
-	}
-
-	private static void showLogisticGrid(Consumer<MapRenderable> register, WorldMap map, boolean debug) {
-		Table<Integer, Integer, LogisticGridCell> logisticGrid = map.getLogisticGrid();
-		logisticGrid.cellSet().forEach(c -> {
-			Point2D.Double pos = new Point2D.Double(c.getRowKey() / 2.0 + 0.25, c.getColumnKey() / 2.0 + 0.25);
-			LogisticGridCell cell = c.getValue();
-			cell.getTransits().ifPresent(s -> {
-				if (s.isEmpty()) {
-					return;
-				}
-				int i = 0;
-				float width = 0.3f / s.size();
-				for (String itemName : s) {
-					double shift = ((i + 1) / (double) (s.size() + 1) - 0.5) / 3.0; // -0.25..0.25
-					cell.getMove().filter(d -> map.getLogisticGridCell(d.offset(pos, 0.5))
-							.map(LogisticGridCell::isAccepting).orElse(false)).ifPresent(d -> {
-								register.accept(new Renderer(Layer.LOGISTICS_MOVE, pos, true) {
-									@Override
-									public void render(Graphics2D g) {
-										Stroke ps = g.getStroke();
-										g.setStroke(
-												new BasicStroke(width, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-										g.setColor(RenderUtils.withAlpha(getItemLogisticColor(itemName),
-												255 - 127 / s.size()));
-										g.draw(new Line2D.Double(d.right().offset(pos, shift),
-												d.right().offset(d.offset(pos, 0.5), shift)));
-										g.setStroke(ps);
-									}
-								});
-							});
-					i++;
-				}
-
-			});
-
-			if (debug) {
-				cell.getMovedFrom().ifPresent(l -> {
-					for (Direction d : l) {
-						Point2D.Double p = d.offset(pos, 0.5);
-						register.accept(new Renderer(Layer.DEBUG_LA1, p, true) {
-
-							@Override
-							public void render(Graphics2D g) {
-								Stroke ps = g.getStroke();
-								g.setStroke(new BasicStroke(2 / (float) TILE_SIZE, BasicStroke.CAP_ROUND,
-										BasicStroke.JOIN_ROUND));
-								g.setColor(Color.cyan);
-								g.draw(new Line2D.Double(pos, p));
-								g.setStroke(ps);
-							}
-
-						});
-					}
-				});
-				// TODO need shadows
-//				cell.getWarpedFrom().ifPresent(l -> {
-//					for (Point2D.Double p : l) {
-//						if (cell.isBlockWarpToIfMove())
-//							register.accept(RenderUtils.createWireRenderer(p, pos, Color.RED));
-//						else if (map.getOrCreateLogisticGridCell(p).isBlockWarpFromIfMove())
-//							register.accept(RenderUtils.createWireRenderer(p, pos, Color.MAGENTA));
-//						else
-//							register.accept(RenderUtils.createWireRenderer(p, pos, Color.GREEN));
-//					}
-//				});
-			}
-		});
-	}
-
-	private static void showRailLogistics(Consumer<MapRenderable> register, WorldMap map, boolean debug) {
-		for (Entry<RailEdge, RailEdge> pair : map.getRailEdges()) {
-			boolean input = pair.getKey().isInput() || pair.getValue().isInput();
-			boolean output = pair.getKey().isOutput() || pair.getValue().isOutput();
-
-			if (input || output) {
-				RailEdge edge = pair.getKey();
-				Point2D.Double p1 = edge.getStartPos();
-				Direction d1 = edge.getStartDir();
-				Point2D.Double p2 = edge.getEndPos();
-				Direction d2 = edge.getEndDir();
-
-				register.accept(new Renderer(Layer.LOGISTICS_RAIL_IO, edge.getStartPos(), true) {
-					@Override
-					public void render(Graphics2D g) {
-						Shape path;
-						if (edge.isCurved()) {
-							double control = 1.7;
-							Point2D.Double cc1 = d1.offset(p1, control);
-							Point2D.Double cc2 = d2.offset(p2, control);
-							path = new CubicCurve2D.Double(p1.x, p1.y, cc1.x, cc1.y, cc2.x, cc2.y, p2.x, p2.y);
-						} else {
-							path = new Line2D.Double(p1, p2);
-						}
-
-						Color color = (input && output) ? Color.yellow : input ? Color.green : Color.red;
-
-						Stroke ps = g.getStroke();
-						g.setStroke(new BasicStroke(1f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_ROUND));
-						g.setColor(RenderUtils.withAlpha(color, 32));
-						g.draw(path);
-						g.setStroke(ps);
-					}
-				});
-			}
-
-			if (debug) {
-				for (RailEdge edge : ImmutableList.of(pair.getKey(), pair.getValue())) {
-					if (edge.isBlocked()) {
-						continue;
-					}
-
-					Point2D.Double p1 = edge.getStartPos();
-					Direction d1 = edge.getStartDir();
-					Point2D.Double p2 = edge.getEndPos();
-					Direction d2 = edge.getEndDir();
-
-					register.accept(new Renderer(Layer.LOGISTICS_RAIL_IO, edge.getStartPos(), true) {
-
-						@Override
-						public void render(Graphics2D g) {
-							Stroke ps = g.getStroke();
-							g.setStroke(new BasicStroke(2 / (float) TILE_SIZE, BasicStroke.CAP_BUTT,
-									BasicStroke.JOIN_ROUND));
-							g.setColor(RenderUtils.withAlpha(Color.green, 92));
-							g.draw(new Line2D.Double(d1.right().offset(p1), d2.left().offset(p2)));
-							g.setStroke(ps);
-						}
-					});
-				}
-			}
-		}
-
-		if (debug) {
-			map.getRailNodes().cellSet().forEach(c -> {
-				Point2D.Double pos = new Point2D.Double(c.getRowKey() / 2.0, c.getColumnKey() / 2.0);
-				RailNode node = c.getValue();
-
-				register.accept(new Renderer(Layer.DEBUG_RAIL1, pos, true) {
-					@Override
-					public void render(Graphics2D g) {
-						Stroke ps = g.getStroke();
-						g.setStroke(
-								new BasicStroke(1 / (float) TILE_SIZE, BasicStroke.CAP_BUTT, BasicStroke.JOIN_ROUND));
-
-						g.setColor(Color.cyan);
-						g.setFont(new Font("Courier New", Font.PLAIN, 1));
-						for (Direction dir : Direction.values()) {
-							Collection<RailEdge> edges = node.getIncomingEdges(dir);
-							if (!edges.isEmpty()) {
-								Point2D.Double p1 = dir.right().offset(pos, 0.25);
-								Point2D.Double p2 = dir.offset(p1, 0.5);
-								g.draw(new Line2D.Double(p1, p2));
-								g.drawString("" + edges.size(), (float) p2.x - 0.1f, (float) p2.y - 0.2f);
-							}
-						}
-
-						g.setStroke(ps);
-					}
-				});
-
-				register.accept(new Renderer(Layer.DEBUG_RAIL2, pos, true) {
-					@Override
-					public void render(Graphics2D g) {
-						Stroke ps = g.getStroke();
-						g.setStroke(
-								new BasicStroke(1 / (float) TILE_SIZE, BasicStroke.CAP_BUTT, BasicStroke.JOIN_ROUND));
-
-						g.setColor(Color.magenta);
-						g.setFont(new Font("Courier New", Font.PLAIN, 1));
-						for (Direction dir : Direction.values()) {
-							Collection<RailEdge> edges = node.getOutgoingEdges(dir);
-							if (!edges.isEmpty()) {
-								Point2D.Double p1 = dir.left().offset(pos, 0.25);
-								Point2D.Double p2 = dir.offset(p1, 0.5);
-								g.draw(new Line2D.Double(p1, p2));
-								g.drawString("" + edges.size(), (float) p2.x - 0.1f, (float) p2.y - 0.2f);
-							}
-						}
-
-						g.setStroke(ps);
-					}
-				});
-
-			});
-		}
 	}
 }

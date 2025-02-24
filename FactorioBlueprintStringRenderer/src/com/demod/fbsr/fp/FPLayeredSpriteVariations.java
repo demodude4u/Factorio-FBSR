@@ -2,10 +2,9 @@ package com.demod.fbsr.fp;
 
 import java.util.List;
 
-import com.demod.factorio.FactorioData;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.FPUtils;
-import com.demod.fbsr.SpriteWithLayer;
+import com.demod.fbsr.LayeredSpriteDef;
 
 public class FPLayeredSpriteVariations {
 	private final List<FPLayeredSprite> layeredSprites;
@@ -14,8 +13,8 @@ public class FPLayeredSpriteVariations {
 		layeredSprites = FPUtils.list(lua, FPLayeredSprite::new);
 	}
 
-	public List<SpriteWithLayer> createSpritesWithLayers(FactorioData data, int variation) {
-		return layeredSprites.get(variation).createSpritesWithLayers(data);
+	public List<LayeredSpriteDef> defineLayeredSprites(int variation) {
+		return layeredSprites.get(variation).defineLayeredSprites();
 	}
 
 	public int getVariationCount() {

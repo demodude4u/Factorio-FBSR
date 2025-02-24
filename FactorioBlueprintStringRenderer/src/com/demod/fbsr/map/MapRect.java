@@ -5,6 +5,8 @@ import static com.demod.fbsr.MapUtils.*;
 import java.awt.Rectangle;
 import java.util.Collection;
 
+import com.demod.fbsr.fp.FPVector;
+
 public class MapRect {
 
 	public static MapRect byFixedPoint(int x, int y, int width, int height) {
