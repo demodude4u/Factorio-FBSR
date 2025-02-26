@@ -5,25 +5,18 @@ import java.awt.Rectangle;
 
 import com.demod.fbsr.map.MapRect;
 
-public class SpriteDef {
-	private final String path;
-	private final boolean shadow;
-	private final String blendMode;
-	private final Color tint;
-	private final Rectangle source;
-	private final MapRect bounds;
+public class SpriteDef extends ImageDef {
+	protected final boolean shadow;
+	protected final String blendMode;
+	protected final Color tint;
+	protected final MapRect bounds;
 
 	public SpriteDef(String path, boolean shadow, String blendMode, Color tint, Rectangle source, MapRect bounds) {
-		this.path = path;
+		super(path, source);
 		this.shadow = shadow;
 		this.blendMode = blendMode;
 		this.tint = tint;
-		this.source = source;
 		this.bounds = bounds;
-	}
-
-	public String getPath() {
-		return path;
 	}
 
 	public boolean isShadow() {
@@ -36,10 +29,6 @@ public class SpriteDef {
 
 	public Color getTint() {
 		return tint;
-	}
-
-	public Rectangle getSource() {
-		return source;
 	}
 
 	public MapRect getBounds() {

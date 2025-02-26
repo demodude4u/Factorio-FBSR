@@ -387,8 +387,6 @@ public class FBSR {
 
 	}
 
-	// FIXME the generic type checking is all screwed up
-	@SuppressWarnings({ "rawtypes", "unchecked" })
 	public static RenderResult renderBlueprint(RenderRequest request) {
 
 		BSBlueprint blueprint = request.getBlueprint();
