@@ -75,11 +75,8 @@ public class GUILayoutBlueprint {
 
 	private int itemColumns;
 	private int itemCellSize;
-
 	private double itemIconScale;
-
 	private float itemFontSize;
-
 	private int itemFontOffset;
 
 	private void drawFrame(Graphics2D g, GUIBox bounds) {

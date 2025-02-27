@@ -32,20 +32,6 @@ public final class RenderUtils {
 
 	private static final DecimalFormat DECIMAL_FORMAT_2_PLACES = new DecimalFormat("#,##0.##");
 
-	public static MapRect boundsBySizeShiftScale(int srcWidth, int srcHeight, double shiftX, double shiftY,
-			double scale) {
-		double scaledWidth = scale * srcWidth / FBSR.TILE_SIZE;
-		double scaledHeight = scale * srcHeight / FBSR.TILE_SIZE;
-		return MapRect.byUnit(shiftX - scaledWidth / 2.0, shiftY - scaledHeight / 2.0, scaledWidth, scaledHeight);
-	}
-
-	public static SpriteDef defineSprite(String filename, boolean shadow, String blendMode, Color tint, int srcX,
-			int srcY, int srcWidth, int srcHeight, double dstX, double dstY, double dstScale) {
-		Rectangle source = new Rectangle(srcX, srcY, srcWidth, srcHeight);
-		MapRect bounds = boundsBySizeShiftScale(srcWidth, srcHeight, dstX, dstY, dstScale);
-		return new SpriteDef(filename, shadow, blendMode, tint, source, bounds);
-	}
-
 	public static MapSprite createSprite(FactorioData data, Layer layer, SpriteDef spriteDef) {
 
 		BufferedImage image = data.getModImage(spriteDef.getPath());

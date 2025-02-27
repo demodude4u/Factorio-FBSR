@@ -173,7 +173,9 @@ public class FBSR {
 		}
 		initialized = true;
 		FactorioManager.initializePrototypes();
+		TagManager.initialize();
 		FactorioManager.initializeFactories();
+		AtlasManager.initialize();
 	}
 
 	private static void populateRailBlocking(WorldMap map) {

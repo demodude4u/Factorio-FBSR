@@ -10,7 +10,6 @@ import org.slf4j.LoggerFactory;
 
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.FPUtils;
-import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.SpriteDef;
 import com.google.common.collect.ImmutableList;
 
@@ -26,6 +25,8 @@ public class FPRotatedSprite extends FPSpriteParameters {
 	public final boolean counterclockwise;
 	public final int lineLength;
 	public final Optional<List<FPRotatedSpriteFrame>> frames;
+
+	private final List<SpriteDef> defs;
 
 	public FPRotatedSprite(LuaValue lua) {
 		this(lua, Optional.empty());
@@ -52,6 +53,61 @@ public class FPRotatedSprite extends FPSpriteParameters {
 		counterclockwise = lua.get("counterclockwise").optboolean(false);
 		lineLength = lua.get("line_length").optint(0);
 		frames = FPUtils.optList(lua.get("frames"), l -> new FPRotatedSpriteFrame(lua, width, height));
+
+		defs = createDefs();
+	}
+
+	private List<SpriteDef> createDefs() {
+		if (layers.isPresent()) {
+			return ImmutableList.of();
+		}
+
+		List<SpriteDef> defs = new ArrayList<>();
+
+		for (int index = 0; index < directionCount; index++) {
+
+			int x = this.x;
+			int y = this.y;
+			int fileIndex;
+			int tileIndex;
+			if (lineLength == 0 || linesPerFile == 0) {
+				fileIndex = 0;
+				tileIndex = index;
+			} else {
+				int fileLength = lineLength * linesPerFile;
+				fileIndex = index / fileLength;
+				tileIndex = index % fileLength;
+			}
+			if (fileIndex >= filenames.get().size()) {
+				LOGGER.warn("Warning: Trying to access sprite {} in {} files", index, filenames.get().size());
+			}
+			String filename = filenames.get().get(fileIndex);
+			if (lineLength > 0) {
+				x += (tileIndex % lineLength) * width;
+				y += (tileIndex / lineLength) * height;
+			} else {
+				x += tileIndex * width;
+			}
+
+			int width = this.width;
+			int height = this.height;
+			double shiftX = shift.x;
+			double shiftY = shift.y;
+			if (frames.isPresent()) {
+				FPRotatedSpriteFrame frame = frames.get().get(index);
+				x += frame.x;
+				y += frame.y;
+				width = frame.width;
+				height = frame.height;
+				shiftX += frame.shift.x;
+				shiftY += frame.shift.y;
+			}
+
+			defs.add(SpriteDef.fromFP(filename, drawAsShadow, blendMode, getEffectiveTint(), x, y, width, height,
+					shiftX, shiftY, scale));
+		}
+
+		return defs;
 	}
 
 	public void defineSprites(Consumer<SpriteDef> consumer, double orientation) {
@@ -63,47 +119,7 @@ public class FPRotatedSprite extends FPSpriteParameters {
 		}
 
 		int index = getIndex(orientation);
-
-		int x = this.x;
-		int y = this.y;
-		int fileIndex;
-		int tileIndex;
-		if (lineLength == 0 || linesPerFile == 0) {
-			fileIndex = 0;
-			tileIndex = index;
-		} else {
-			int fileLength = lineLength * linesPerFile;
-			fileIndex = index / fileLength;
-			tileIndex = index % fileLength;
-		}
-		if (fileIndex >= filenames.get().size()) {
-			LOGGER.warn("Warning: Trying to access sprite " + index + " in " + filenames.get().size() + " files");
-		}
-		String filename = filenames.get().get(fileIndex);
-		if (lineLength > 0) {
-			x += (tileIndex % lineLength) * width;
-			y += (tileIndex / lineLength) * height;
-		} else {
-			x += tileIndex * width;
-		}
-
-		int width = this.width;
-		int height = this.height;
-		double shiftX = shift.x;
-		double shiftY = shift.y;
-		if (frames.isPresent()) {
-			FPRotatedSpriteFrame frame = frames.get().get(index);
-			x += frame.x;
-			y += frame.y;
-			width = frame.width;
-			height = frame.height;
-			shiftX += frame.shift.x;
-			shiftY += frame.shift.y;
-		}
-
-		SpriteDef sprite = RenderUtils.defineSprite(filename, drawAsShadow, blendMode, getEffectiveTint(), x, y, width,
-				height, shiftX, shiftY, scale);
-		consumer.accept(sprite);
+		consumer.accept(defs.get(index));
 	}
 
 	public List<SpriteDef> defineSprites(double orientation) {

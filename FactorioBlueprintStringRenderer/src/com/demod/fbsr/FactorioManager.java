@@ -1,5 +1,6 @@
 package com.demod.fbsr;
 
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -24,7 +25,6 @@ import org.slf4j.LoggerFactory;
 import com.demod.factorio.Config;
 import com.demod.factorio.FactorioData;
 import com.demod.factorio.ModLoader;
-import com.demod.factorio.fakelua.LuaValue;
 import com.demod.factorio.prototype.DataPrototype;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.factorio.prototype.EquipmentPrototype;
@@ -42,16 +42,6 @@ import com.google.common.collect.ListMultimap;
 public class FactorioManager {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(FactorioManager.class);
-
-	public static class LookupDataRawResult {
-		public final FactorioData data;
-		public final LuaValue value;
-
-		public LookupDataRawResult(FactorioData data, LuaValue value) {
-			this.data = data;
-			this.value = value;
-		}
-	}
 
 	private static volatile boolean initializedPrototypes = false;
 	private static volatile boolean initializedFactories = false;
@@ -87,12 +77,15 @@ public class FactorioManager {
 	private static final Cache<String, UnknownTileRendering> unknownTileFactories = CacheBuilder.newBuilder()
 			.expireAfterAccess(1, TimeUnit.HOURS).build();
 
-	public static List<FactorioData> getDatas() {
-		return datas;
-	}
+	private static File folderModsRoot;
+	private static File folderDataRoot;
 
 	public static FactorioData getBaseData() {
 		return baseData;
+	}
+
+	public static List<FactorioData> getDatas() {
+		return datas;
 	}
 
 	public static List<EntityPrototype> getEntities() {
@@ -111,6 +104,14 @@ public class FactorioManager {
 		return fluids;
 	}
 
+	public static File getFolderDataRoot() {
+		return folderDataRoot;
+	}
+
+	public static File getFolderModsRoot() {
+		return folderModsRoot;
+	}
+
 	public static List<ItemPrototype> getItems() {
 		return items;
 	}
@@ -123,12 +124,12 @@ public class FactorioManager {
 		return technologies;
 	}
 
-	public static List<TilePrototype> getTiles() {
-		return tiles;
-	}
-
 	public static List<TileRendererFactory> getTileFactories() {
 		return tileFactories;
+	}
+
+	public static List<TilePrototype> getTiles() {
+		return tiles;
 	}
 
 	public static void initializeFactories() throws JSONException, IOException {
@@ -188,13 +189,13 @@ public class FactorioManager {
 
 		String factorio = json.getString("install");
 
-		File folderModsRoot = new File(json.optString("mods", "mods"));
+		folderModsRoot = new File(json.optString("mods", "mods"));
 		if (folderModsRoot.mkdirs()) {
 			File folderModsVanilla = new File(folderModsRoot, "mods-vanilla");
 			folderModsVanilla.mkdir();
 		}
 
-		File folderDataRoot = new File(json.optString("data", "data"));
+		folderDataRoot = new File(json.optString("data", "data"));
 		folderDataRoot.mkdirs();
 
 		boolean modPortalApi;
@@ -285,21 +286,6 @@ public class FactorioManager {
 		return dataByModName.get(modName);
 	}
 
-	public static Optional<LookupDataRawResult> lookupDataRaw(String[] path, String key) {
-		for (FactorioData data : datas) {
-			Optional<LuaValue> luaParent = data.getTable().getRaw(path);
-			if (!luaParent.isPresent() || luaParent.get().isnil()) {
-				continue;
-			}
-			LuaValue luaValue = luaParent.get().get(key);
-			if (luaValue.isnil()) {
-				continue;
-			}
-			return Optional.of(new LookupDataRawResult(data, luaValue));
-		}
-		return Optional.empty();
-	}
-
 	public static Optional<EntityPrototype> lookupEntityByName(String name) {
 		return Optional.ofNullable(entityByName.get(name));
 	}
@@ -326,6 +312,12 @@ public class FactorioManager {
 
 	public static Optional<ItemPrototype> lookupItemByName(String name) {
 		return Optional.ofNullable(itemByName.get(name));
+	}
+
+	public static BufferedImage lookupModImage(String filename) {
+		String firstSegment = filename.split("\\/")[0];
+		String modName = firstSegment.substring(2, firstSegment.length() - 2);
+		return dataByModName.get(modName).get(0).getModImage(filename);
 	}
 
 	public static Optional<RecipePrototype> lookupRecipeByName(String name) {

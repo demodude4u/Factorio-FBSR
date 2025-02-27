@@ -5,7 +5,6 @@ import java.util.Optional;
 
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.FPUtils;
-import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.SpriteDef;
 
 public class FPSpriteParameters extends FPSpriteSource {
@@ -15,6 +14,8 @@ public class FPSpriteParameters extends FPSpriteSource {
 	public final FPVector shift;
 	public final FPColor tint;
 	public final boolean applyRuntimeTint;
+
+	private final SpriteDef def;
 
 	// XXX hacky, violates immutability
 	public Optional<Color> runtimeTint = Optional.empty();
@@ -28,11 +29,13 @@ public class FPSpriteParameters extends FPSpriteSource {
 		shift = FPUtils.opt(lua.get("shift"), FPVector::new).orElseGet(() -> new FPVector(0, 0));
 		tint = FPUtils.opt(lua.get("tint"), FPColor::new).orElseGet(() -> new FPColor(1, 1, 1, 1));
 		applyRuntimeTint = lua.get("apply_runtime_tint").optboolean(false);
+
+		def = SpriteDef.fromFP(filename.get(), drawAsShadow, blendMode, getEffectiveTint(), x, y, width, height,
+				shift.x, shift.y, scale);
 	}
 
 	protected SpriteDef defineSprite() {
-		return RenderUtils.defineSprite(filename.get(), drawAsShadow, blendMode, getEffectiveTint(), x, y, width,
-				height, shift.x, shift.y, scale);
+		return def;
 	}
 
 	public Color getEffectiveTint() {

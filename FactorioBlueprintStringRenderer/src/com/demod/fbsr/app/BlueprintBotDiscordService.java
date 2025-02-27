@@ -58,7 +58,6 @@ import com.demod.fbsr.bs.BSBlueprint;
 import com.demod.fbsr.bs.BSBlueprintBook;
 import com.demod.fbsr.bs.BSBlueprintString;
 import com.demod.fbsr.bs.BSDeconstructionPlanner;
-import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.bs.BSUpgradePlanner;
 import com.demod.fbsr.gui.layout.GUILayoutBlueprint;
 import com.demod.fbsr.gui.layout.GUILayoutBook;
@@ -783,7 +782,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		String entityName = event.getParamString("entity");
 		boolean debug = event.optParamBoolean("debug").orElse(false);
 
-		EntityRendererFactory<BSEntity> factory = FactorioManager.lookupEntityFactoryForName(entityName);
+		EntityRendererFactory factory = FactorioManager.lookupEntityFactoryForName(entityName);
 		if (factory.isUnknown()) {
 			event.reply("I could not find a way to display a `" + entityName);
 			return;
@@ -815,7 +814,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 		List<String> nameStartsWith = new ArrayList<>();
 		List<String> nameContains = new ArrayList<>();
-		for (EntityRendererFactory<?> factory : FactorioManager.getEntityFactories()) {
+		for (EntityRendererFactory factory : FactorioManager.getEntityFactories()) {
 			String name = factory.getName();
 			String lowerCase = name.toLowerCase();
 			if (lowerCase.startsWith(search)) {

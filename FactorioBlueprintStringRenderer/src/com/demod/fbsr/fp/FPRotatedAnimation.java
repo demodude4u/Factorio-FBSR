@@ -10,8 +10,8 @@ import java.util.function.Consumer;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.FactorioManager;
-import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.SpriteDef;
+import com.google.common.collect.ImmutableList;
 
 public class FPRotatedAnimation extends FPAnimationParameters {
 
@@ -24,6 +24,8 @@ public class FPRotatedAnimation extends FPAnimationParameters {
 	public final boolean applyProjection;
 	public final boolean counterclockwise;
 
+	private final List<SpriteDef> defs;
+
 	public FPRotatedAnimation(LuaValue lua) {
 		super(lua);
 
@@ -35,6 +37,71 @@ public class FPRotatedAnimation extends FPAnimationParameters {
 		linesPerFile = lua.get("lines_per_file").optint(0);
 		applyProjection = lua.get("apply_projection").optboolean(true);
 		counterclockwise = lua.get("counterclockwise").optboolean(false);
+
+		defs = createDefs();
+	}
+
+	private List<SpriteDef> createDefs() {
+		if (layers.isPresent()) {
+			return ImmutableList.of();
+		}
+
+		int frameCount = directionCount * lineLength;
+
+		if (stripes.isPresent()) {
+
+			List<SpriteDef> defs = new ArrayList<>();
+			for (int frame = 0; frame < frameCount; frame++) {
+				int index = frame / lineLength;
+
+				int stripeStartIndex = 0;
+				for (FPStripe stripe : stripes.get()) {
+
+					if (stripeStartIndex + stripe.heightInFrames < index) {
+						stripeStartIndex += stripe.heightInFrames;
+						continue;
+					}
+
+					int stripeIndex = index - stripeStartIndex;
+
+					// XXX bad hack to get image width and height
+					BufferedImage image = FactorioManager.lookupModImage(stripe.filename);
+
+					int width = image.getWidth() / stripe.widthInFrames;
+					int height = image.getHeight() / stripe.heightInFrames;
+
+					int x = stripe.x + width * frame;
+					int y = stripe.y + height * stripeIndex;
+
+					defs.add(SpriteDef.fromFP(stripe.filename, drawAsShadow, blendMode, getEffectiveTint(), x, y, width,
+							height, shift.x, shift.y, scale));
+
+					break;
+				}
+
+			}
+
+			return defs;
+
+		} else if (filenames.isPresent()) {
+
+			List<SpriteDef> defs = new ArrayList<>();
+			for (int frame = 0; frame < frameCount; frame++) {
+
+				int fileFrameCount = (linesPerFile * lineLength);
+				int fileFrame = frame % fileFrameCount;
+				int fileIndex = frame / fileFrameCount;
+				int x = this.x + width * (fileFrame % lineLength);
+				int y = this.y + height * (fileFrame / lineLength);
+
+				defs.add(SpriteDef.fromFP(filenames.get().get(fileIndex), drawAsShadow, blendMode, getEffectiveTint(),
+						x, y, width, height, shift.x, shift.y, scale));
+
+			}
+			return defs;
+		}
+
+		return ImmutableList.of();
 	}
 
 	public void defineSprites(Consumer<SpriteDef> consumer, double orientation, int frame) {
@@ -52,47 +119,8 @@ public class FPRotatedAnimation extends FPAnimationParameters {
 
 		frame = index * lineLength + frame;
 
-		if (stripes.isPresent()) {
-
-			int stripeStartIndex = 0;
-			for (FPStripe stripe : stripes.get()) {
-
-				if (stripeStartIndex + stripe.heightInFrames < index) {
-					stripeStartIndex += stripe.heightInFrames;
-					continue;
-				}
-
-				int stripeIndex = index - stripeStartIndex;
-
-				// XXX at least it is cached
-				String firstSegment = stripe.filename.split("\\/")[0];
-				String modName = firstSegment.substring(2, firstSegment.length() - 2);
-				BufferedImage image = FactorioManager.lookupDataByModName(modName).get(0).getModImage(stripe.filename);
-
-				int width = image.getWidth() / stripe.widthInFrames;
-				int height = image.getHeight() / stripe.heightInFrames;
-
-				int x = stripe.x + width * frame;
-				int y = stripe.y + height * stripeIndex;
-
-				consumer.accept(RenderUtils.defineSprite(stripe.filename, drawAsShadow, blendMode, getEffectiveTint(),
-						x, y, width, height, shift.x, shift.y, scale));
-
-				break;
-			}
-
-			return;
-
-		} else if (filenames.isPresent()) {
-
-			int fileFrameCount = (linesPerFile * lineLength);
-			int fileFrame = frame % fileFrameCount;
-			int fileIndex = frame / fileFrameCount;
-			int x = this.x + width * (fileFrame % lineLength);
-			int y = this.y + height * (fileFrame / lineLength);
-
-			consumer.accept(RenderUtils.defineSprite(filenames.get().get(fileIndex), drawAsShadow, blendMode,
-					getEffectiveTint(), x, y, width, height, shift.x, shift.y, scale));
+		if (stripes.isPresent() || filenames.isPresent()) {
+			consumer.accept(defs.get(frame));
 			return;
 		}
 

@@ -10,8 +10,8 @@ import java.util.function.Consumer;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.FactorioManager;
-import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.SpriteDef;
+import com.google.common.collect.ImmutableList;
 
 public class FPAnimation extends FPAnimationParameters {
 
@@ -21,6 +21,8 @@ public class FPAnimation extends FPAnimationParameters {
 	public final int slice;
 	public final int linesPerFile;
 
+	private final List<List<SpriteDef>> defs;
+
 	public FPAnimation(LuaValue lua) {
 		super(lua);
 
@@ -29,9 +31,58 @@ public class FPAnimation extends FPAnimationParameters {
 		filenames = FPUtils.optList(lua.get("filenames"), LuaValue::toString);
 		slice = lua.get("slice").optint(frameCount);
 		linesPerFile = lua.get("lines_per_file").optint(1);
+
+		defs = createDefs();
 	}
 
-	// TODO stripes are a troublesome structure, we need a better way
+	private List<List<SpriteDef>> createDefs() {
+		if (layers.isPresent()) {
+			return ImmutableList.of();
+
+		} else if (stripes.isPresent()) {
+
+			List<List<SpriteDef>> defs = new ArrayList<>();
+			for (int frame = 0; frame < frameCount; frame++) {
+
+				List<SpriteDef> stripeDefs = new ArrayList<>();
+				for (FPStripe stripe : stripes.get()) {
+
+					// XXX at least it is cached
+					BufferedImage image = FactorioManager.lookupModImage(stripe.filename);
+
+					int width = image.getWidth() / stripe.widthInFrames;
+					int height = image.getHeight() / stripe.heightInFrames;
+
+					int x = stripe.x + width * (frame % stripe.widthInFrames);
+					int y = stripe.y + height * (frame / stripe.widthInFrames);
+
+					stripeDefs.add(SpriteDef.fromFP(stripe.filename, drawAsShadow, blendMode, getEffectiveTint(), x, y,
+							width, height, shift.x, shift.y, scale));
+				}
+				defs.add(stripeDefs);
+			}
+
+			return defs;
+
+		} else if (filenames.isPresent()) {
+
+			List<List<SpriteDef>> defs = new ArrayList<>();
+			for (int frame = 0; frame < frameCount; frame++) {
+				int fileFrameCount = (linesPerFile * lineLength);
+				int fileFrame = frame % fileFrameCount;
+				int fileIndex = frame / fileFrameCount;
+				int x = this.x + width * (fileFrame % lineLength);
+				int y = this.y + height * (fileFrame / lineLength);
+
+				defs.add(ImmutableList.of(SpriteDef.fromFP(filenames.get().get(fileIndex), drawAsShadow, blendMode,
+						getEffectiveTint(), x, y, width, height, shift.x, shift.y, scale)));
+			}
+			return defs;
+		}
+
+		return ImmutableList.of();
+	}
+
 	public void defineSprites(Consumer<SpriteDef> consumer, int frame) {
 		if (layers.isPresent()) {
 			for (FPAnimation animation : layers.get()) {
@@ -39,39 +90,8 @@ public class FPAnimation extends FPAnimationParameters {
 			}
 			return;
 
-		} else if (stripes.isPresent()) {
-			for (FPStripe stripe : stripes.get()) {
-
-				// XXX at least it is cached
-				String firstSegment = stripe.filename.split("\\/")[0];
-				String modName = firstSegment.substring(2, firstSegment.length() - 2);
-				BufferedImage image = FactorioManager.lookupDataByModName(modName).get(0).getModImage(stripe.filename);
-
-				// TODO do I ignore width/height in Animation proto?
-				int width = image.getWidth() / stripe.widthInFrames;
-				int height = image.getHeight() / stripe.heightInFrames;
-
-				int x = stripe.x + width * (frame % stripe.widthInFrames);
-				int y = stripe.y + height * (frame / stripe.heightInFrames);
-
-				consumer.accept(RenderUtils.defineSprite(stripe.filename, drawAsShadow, blendMode, getEffectiveTint(),
-						x, y, width, height, shift.x, shift.y, scale));
-			}
-
-			return;
-
-		} else if (filenames.isPresent()) {
-
-			// TODO how do I use slice?
-
-			int fileFrameCount = (linesPerFile * lineLength);
-			int fileFrame = frame % fileFrameCount;
-			int fileIndex = frame / fileFrameCount;
-			int x = this.x + width * (fileFrame % lineLength);
-			int y = this.y + height * (fileFrame / lineLength);
-
-			consumer.accept(RenderUtils.defineSprite(filenames.get().get(fileIndex), drawAsShadow, blendMode,
-					getEffectiveTint(), x, y, width, height, shift.x, shift.y, scale));
+		} else if (stripes.isPresent() || filenames.isPresent()) {
+			defs.get(frame).forEach(consumer);
 			return;
 		}
 
