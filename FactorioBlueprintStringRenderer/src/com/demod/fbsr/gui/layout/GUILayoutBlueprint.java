@@ -28,6 +28,7 @@ import com.demod.factorio.TotalRawCalculator;
 import com.demod.factorio.prototype.DataPrototype;
 import com.demod.factorio.prototype.ItemPrototype;
 import com.demod.factorio.prototype.TilePrototype;
+import com.demod.fbsr.AtlasManager.AtlasRef;
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.FBSR;
 import com.demod.fbsr.FactorioManager;
@@ -54,17 +55,7 @@ public class GUILayoutBlueprint {
 	public static final GUISize DISCORD_IMAGE_SIZE = new GUISize(1100, 700);
 	private static final Logger LOGGER = LoggerFactory.getLogger(GUILayoutBlueprint.class);
 
-	// XXX this is a bad hack
-	private static BufferedImage timeIcon;
-	static {
-		try {
-			FactorioData data = FactorioManager.getBaseData();
-			timeIcon = new FPSprite(data.getTable().getRaw("utility-sprites", "default", "clock").get())
-					.createSprites(data).get(0).image;
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
+	private static BufferedImage timeIcon = null;
 
 	private BSBlueprint blueprint;
 	private CommandReporting reporting;
@@ -285,6 +276,11 @@ public class GUILayoutBlueprint {
 					List<Entry<String, Double>> itemOrder = totalRawItems.entrySet().stream()
 							.sorted(Comparator.comparing((Entry<String, Double> e) -> e.getValue()).reversed())
 							.collect(Collectors.toList());
+
+					if (timeIcon == null) {
+						AtlasRef ref = GUIStyle.CLOCK_ICON.def.getAtlasRef();
+						timeIcon = ref.getAtlas().getBufferedImage().getSubimage(0, 0, 32, 32);
+					}
 
 					for (int i = 0; i < itemOrder.size(); i++) {
 						Entry<String, Double> entry = itemOrder.get(i);

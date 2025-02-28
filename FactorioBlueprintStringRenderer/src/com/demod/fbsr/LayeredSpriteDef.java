@@ -15,6 +15,11 @@ public class LayeredSpriteDef extends SpriteDef {
 		this.layer = layer;
 	}
 
+	public LayeredSpriteDef(SpriteDef shared, Layer layer) {
+		super(shared);
+		this.layer = layer;
+	}
+
 	public Layer getLayer() {
 		return layer;
 	}

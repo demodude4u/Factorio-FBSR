@@ -67,6 +67,10 @@ public final class GUIStyle {
 
 	public static GUIStaticFeature ITEM_SLOT = new GUIStaticFeature(DEFAULT_TILESET, new GUIBox(0, 736, 80, 80));
 
+	// XXX need a better way to access these special resources
+	public static GUIStaticFeature CLOCK_ICON = new GUIStaticFeature("__core__/graphics/clock-icon.png",
+			new GUIBox(0, 0, 32, 32));
+
 	public static Font createFont(String path) {
 		try {
 			return Font.createFont(Font.TRUETYPE_FONT, FactorioManager.getBaseData().getModResource(path).get());

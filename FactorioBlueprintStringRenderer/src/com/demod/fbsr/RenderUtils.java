@@ -2,7 +2,6 @@ package com.demod.fbsr;
 
 import java.awt.Color;
 import java.awt.Graphics2D;
-import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 import java.lang.reflect.Field;
 import java.text.DecimalFormat;
@@ -15,37 +14,12 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.demod.factorio.FactorioData;
-import com.demod.factorio.Utils;
-import com.demod.fbsr.bs.BSEntity;
-import com.demod.fbsr.map.MapRect;
-import com.demod.fbsr.map.MapSprite;
+import com.demod.fbsr.map.MapEntity;
 
 public final class RenderUtils {
-
-	public static final BufferedImage EMPTY_IMAGE = new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
 	private static final Logger LOGGER = LoggerFactory.getLogger(RenderUtils.class);
 
-	static {
-		EMPTY_IMAGE.setRGB(0, 0, 0x00000000);
-	}
-
 	private static final DecimalFormat DECIMAL_FORMAT_2_PLACES = new DecimalFormat("#,##0.##");
-
-	public static MapSprite createSprite(FactorioData data, Layer layer, SpriteDef spriteDef) {
-
-		BufferedImage image = data.getModImage(spriteDef.getPath());
-
-		if (!spriteDef.getBlendMode().equals("normal")) { // FIXME blending will take effort
-			image = RenderUtils.EMPTY_IMAGE;
-		}
-
-		if (!spriteDef.getTint().equals(Color.white)) {
-			image = Utils.tintImage(image, spriteDef.getTint());
-		}
-
-		return new MapSprite(layer, EMPTY_IMAGE, spriteDef.getSource(), spriteDef.getBounds());
-	}
 
 	public static String fmtDouble(double value) {
 		if (value == (long) value) {
@@ -100,16 +74,16 @@ public final class RenderUtils {
 				(float) json.getDouble("a"));
 	}
 
-	public static <T> T pickDirectional(List<T> list, BSEntity entity) {
+	public static <T> T pickDirectional(List<T> list, MapEntity entity) {
 		switch (list.size()) {
 		case 1:
 			return list.get(0);
 		case 4:
-			return list.get(entity.direction.cardinal());
+			return list.get(entity.getDirection().cardinal());
 		case 8:
-			return list.get(entity.direction.ordinal());
+			return list.get(entity.getDirection().ordinal());
 		case 16:
-			return list.get(entity.directionRaw);
+			return list.get(entity.fromBlueprint().directionRaw);
 		}
 		return null;// XXX should I do something?
 	}

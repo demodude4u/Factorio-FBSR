@@ -120,4 +120,8 @@ public class MapPosition {
 		return new MapPosition((int) (x * mx1 + y * mx2), (int) (x * my1 + y * my2));
 	}
 
+	public static MapPosition convert(FPVector v) {
+		return byUnit(v.x, v.y);
+	}
+
 }

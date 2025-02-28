@@ -2,7 +2,6 @@ package com.demod.fbsr;
 
 import java.awt.Color;
 import java.awt.Graphics2D;
-import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.geom.AffineTransform;
@@ -15,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.demod.factorio.Utils;
+import com.demod.factorio.fakelua.LuaTable;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.AtlasManager.AtlasRef;
 import com.demod.fbsr.fp.FPColor;
@@ -62,7 +62,7 @@ public class IconLayerDef extends ImageDef {
 		return drawBackground;
 	}
 
-	public static List<IconLayerDef> fromPrototype(LuaValue lua) {
+	public static List<IconLayerDef> fromPrototype(LuaTable lua) {
 		String name = lua.get("name").tojstring();
 		String type = lua.get("type").tojstring();
 

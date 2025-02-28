@@ -62,11 +62,14 @@ import com.demod.fbsr.map.MapSprite;
 import com.demod.fbsr.map.MapTile;
 import com.demod.fbsr.map.MapWire;
 import com.demod.fbsr.map.MapWireShadow;
+import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Table;
+
+import net.dv8tion.jda.api.entities.MessageEmbed.Field;
 
 public class FBSR {
 	private static final Logger LOGGER = LoggerFactory.getLogger(FBSR.class);
@@ -404,6 +407,7 @@ public class FBSR {
 		List<MapEntity> mapEntities = new ArrayList<MapEntity>();
 		List<MapTile> mapTiles = new ArrayList<MapTile>();
 		Map<Integer, MapEntity> mapEntityByNumber = new HashMap<>();
+		Multiset<String> unknownNames = LinkedHashMultiset.create();
 
 		for (BSMetaEntity metaEntity : blueprint.entities) {
 			EntityRendererFactory factory = FactorioManager.lookupEntityFactoryForName(metaEntity.name);
@@ -425,11 +429,17 @@ public class FBSR {
 			MapEntity mapEntity = new MapEntity(entity, factory);
 			mapEntities.add(mapEntity);
 			mapEntityByNumber.put(entity.entityNumber, mapEntity);
+			if (factory.isUnknown()) {
+				unknownNames.add(metaEntity.name);
+			}
 		}
 		for (BSTile tile : blueprint.tiles) {
 			TileRendererFactory factory = FactorioManager.lookupTileFactoryForName(tile.name);
 			MapTile mapTile = new MapTile(tile, factory);
 			mapTiles.add(mapTile);
+			if (factory.isUnknown()) {
+				unknownNames.add(tile.name);
+			}
 		}
 
 		map.setFoundation(mapTiles.stream().anyMatch(t -> t.getFactory().getPrototype().isFoundation()));
@@ -711,7 +721,7 @@ public class FBSR {
 		long endMillis = System.currentTimeMillis();
 		LOGGER.info("\tRender Time {} ms", endMillis - startMillis);
 
-		RenderResult result = new RenderResult(image, endMillis - startMillis, worldRenderScale);
+		RenderResult result = new RenderResult(image, endMillis - startMillis, worldRenderScale, unknownNames);
 		return result;
 	}
 

@@ -35,7 +35,8 @@ public class FPLayeredSprite extends FPSprite {
 			return;
 		}
 
-		super.defineSprites(s -> consumer.accept(s.withLayer(renderLayer.get())));
+		Layer layer = renderLayer.get();
+		super.defineSprites(s -> consumer.accept(new LayeredSpriteDef(s, layer)));
 	}
 
 	public List<LayeredSpriteDef> defineLayeredSprites() {

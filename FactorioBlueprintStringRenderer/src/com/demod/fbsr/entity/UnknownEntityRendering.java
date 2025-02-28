@@ -8,6 +8,7 @@ import java.util.function.Consumer;
 import com.demod.factorio.FactorioData;
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.FactorioManager;
+import com.demod.fbsr.ImageDef;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.WirePoints.WirePoint;
@@ -71,6 +72,10 @@ public class UnknownEntityRendering extends EntityRendererFactory {
 	@Override
 	public boolean isUnknown() {
 		return true;
+	}
+
+	@Override
+	public void initAtlas(Consumer<ImageDef> register) {
 	}
 
 }

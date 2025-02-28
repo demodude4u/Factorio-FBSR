@@ -45,7 +45,7 @@ public class PipeRendering extends EntityRendererFactory<BSEntity> {
 		adjCode |= ((pipeFacingMeFrom(Direction.EAST, map, entity) ? 1 : 0) << 1);
 		adjCode |= ((pipeFacingMeFrom(Direction.SOUTH, map, entity) ? 1 : 0) << 2);
 		adjCode |= ((pipeFacingMeFrom(Direction.WEST, map, entity) ? 1 : 0) << 3);
-		register.accept(RenderUtils.spriteRenderer(protoPipeSprites.get(adjCode).createSprites(data), entity,
+		register.accept(RenderUtils.spriteRenderer(protoPipeSprites.get(adjCode).defineSprites(data), entity,
 				drawBounds));
 	}
 

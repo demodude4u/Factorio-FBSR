@@ -8,13 +8,19 @@ public class ImageDef {
 
 	protected final String path;
 	protected final Rectangle source;
-
-	protected AtlasRef atlasRef = null;
+	protected final AtlasRef atlasRef;
 
 	public ImageDef(String path, Rectangle source) {
-		super();
 		this.path = path;
 		this.source = source;
+		atlasRef = new AtlasRef();
+	}
+
+	// Links the atlas ref together
+	protected ImageDef(ImageDef shared) {
+		this.path = shared.path;
+		this.source = shared.source;
+		atlasRef = shared.atlasRef;
 	}
 
 	public AtlasRef getAtlasRef() {
@@ -27,10 +33,6 @@ public class ImageDef {
 
 	public Rectangle getSource() {
 		return source;
-	}
-
-	public void setAtlasRef(AtlasRef atlasRef) {
-		this.atlasRef = atlasRef;
 	}
 
 }

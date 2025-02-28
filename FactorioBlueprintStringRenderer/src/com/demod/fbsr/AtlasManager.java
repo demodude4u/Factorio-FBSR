@@ -90,10 +90,19 @@ public class AtlasManager {
 	}
 
 	public static class AtlasRef {
-		private final Atlas atlas;
-		private final Rectangle rect;
+		private boolean valid = false;
+		private Atlas atlas = null;
+		private Rectangle rect = null;
 
-		public AtlasRef(Atlas atlas, Rectangle rect) {
+		public AtlasRef() {
+		}
+
+		public boolean isValid() {
+			return valid;
+		}
+
+		private void set(Atlas atlas, Rectangle rect) {
+			valid = true;
 			this.atlas = atlas;
 			this.rect = rect;
 		}
@@ -141,20 +150,28 @@ public class AtlasManager {
 		int imageCount = 0;
 		for (ImageDef image : defs) {
 			imageCount++;
+
+			if (image.getAtlasRef().isValid()) {
+				continue;// Shared ref
+			}
+
 			Rectangle source = image.source;
 			String locationKey = image.path + "|" + source.x + "|" + source.y + "|" + source.width + "|"
 					+ source.height;
 
-			AtlasRef ref = locationCheck.get(locationKey);
-			if (ref != null) {
-				image.setAtlasRef(ref);
+			AtlasRef cached = locationCheck.get(locationKey);
+			if (cached != null) {
+				image.getAtlasRef().set(cached.atlas, cached.rect);
 				continue;
 			}
 
+			Atlas atlas;
+			Rectangle rect = new Rectangle(source.width, source.height);
 			nextImage: while (true) {
 				for (int i = atlases.size() - 1; i >= 0; i--) {
-					Atlas atlas = atlases.get(i);
-					Rectangle rect = new Rectangle(source.width, source.height);
+					atlas = atlases.get(i);
+					rect.x = 0;
+					rect.y = 0;
 					// XXX slow - brute-forced
 					for (int y = 0; y < ATLAS_SIZE - source.height; y++) {
 						for (int x = 0; x < ATLAS_SIZE - source.width; x++) {
@@ -164,9 +181,8 @@ public class AtlasManager {
 								Rectangle cr = collision.get();
 								x = cr.x + cr.width;
 							} else {
-								ref = new AtlasRef(atlas, rect);
 								atlas.occupied.add(rect);
-								copyToAtlas(image, ref);
+								copyToAtlas(image, cached);
 								break nextImage;
 							}
 						}
@@ -177,8 +193,8 @@ public class AtlasManager {
 				atlases.add(new Atlas(atlases.size()));
 			}
 
-			image.setAtlasRef(ref);
-			locationCheck.put(locationKey, ref);
+			image.getAtlasRef().set(atlas, rect);
+			locationCheck.put(locationKey, image.getAtlasRef());
 		}
 
 		folderAtlas.mkdirs();
@@ -240,7 +256,12 @@ public class AtlasManager {
 			}
 		}
 
-		Map<String, AtlasRef> locationMap = new HashMap<>();
+		// XXX not an elegant approach
+		class RefValues {
+			Atlas atlas;
+			Rectangle rect;
+		}
+		Map<String, RefValues> locationMap = new HashMap<>();
 		for (int i = 0; i < jsonManifest.length(); i++) {
 			JSONArray jsonEntry = jsonManifest.getJSONArray(i);
 			String path = jsonEntry.getString(0);
@@ -252,7 +273,9 @@ public class AtlasManager {
 			int atlasX = jsonEntry.getInt(6);
 			int atlasY = jsonEntry.getInt(7);
 			String locationKey = path + "|" + srcX + "|" + srcY + "|" + width + "|" + height;
-			AtlasRef ref = new AtlasRef(atlases.get(id), new Rectangle(atlasX, atlasY, width, height));
+			RefValues ref = new RefValues();
+			ref.atlas = atlases.get(id);
+			ref.rect = new Rectangle(atlasX, atlasY, width, height);
 			locationMap.put(locationKey, ref);
 		}
 
@@ -260,11 +283,11 @@ public class AtlasManager {
 			Rectangle source = image.source;
 			String locationKey = image.path + "|" + source.x + "|" + source.y + "|" + source.width + "|"
 					+ source.height;
-			AtlasRef ref = locationMap.get(locationKey);
+			RefValues ref = locationMap.get(locationKey);
 			if (ref == null) {
 				LOGGER.error("MISSING ATLAS ENTRY FOR {}", locationKey);
 			} else {
-				image.setAtlasRef(ref);
+				image.getAtlasRef().set(ref.atlas, ref.rect);
 			}
 		}
 

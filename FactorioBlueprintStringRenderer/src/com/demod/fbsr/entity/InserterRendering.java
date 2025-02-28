@@ -139,7 +139,7 @@ public class InserterRendering extends SimpleEntityRendering<BSInserterEntity> {
 			public void render(Graphics2D g) {
 				AffineTransform pat = g.getTransform();
 
-				for (Sprite sprite : protoHandOpenPicture.createSprites(data)) {
+				for (Sprite sprite : protoHandOpenPicture.defineSprites(data)) {
 					Rectangle2D.Double bounds = sprite.bounds;
 					Rectangle source = sprite.source;
 					BufferedImage image = sprite.image;
@@ -163,7 +163,7 @@ public class InserterRendering extends SimpleEntityRendering<BSInserterEntity> {
 
 					double pickupRotate = Math.atan2(pickupPos.y, pickupPos.x);
 
-					for (Sprite sprite : protoIndicationLine.createSprites(data)) {
+					for (Sprite sprite : protoIndicationLine.defineSprites(data)) {
 						Rectangle2D.Double bounds = sprite.bounds;
 						Rectangle source = sprite.source;
 						BufferedImage image = sprite.image;
@@ -202,7 +202,7 @@ public class InserterRendering extends SimpleEntityRendering<BSInserterEntity> {
 
 					double insertRotate = Math.atan2(insertPos.y, insertPos.x);
 
-					for (Sprite sprite : protoIndicationArrow.createSprites(data)) {
+					for (Sprite sprite : protoIndicationArrow.defineSprites(data)) {
 						Rectangle2D.Double bounds = sprite.bounds;
 						Rectangle source = sprite.source;
 						BufferedImage image = sprite.image;

@@ -34,6 +34,7 @@ import org.slf4j.LoggerFactory;
 import com.demod.dcba.AutoCompleteEvent;
 import com.demod.dcba.AutoCompleteHandler;
 import com.demod.dcba.CommandReporting;
+import com.demod.dcba.CommandReporting.Level;
 import com.demod.dcba.DCBA;
 import com.demod.dcba.DiscordBot;
 import com.demod.dcba.EventReply;
@@ -64,6 +65,8 @@ import com.demod.fbsr.gui.layout.GUILayoutBook;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.LinkedHashMultiset;
+import com.google.common.collect.Multiset;
 import com.google.common.util.concurrent.AbstractIdleService;
 
 import net.dv8tion.jda.api.EmbedBuilder;
@@ -303,6 +306,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		BSBlueprintString blueprintString = optBlueprintString.get();
 		CommandReporting reporting = event.getReporting();
 
+		Multiset<String> unknownNames = LinkedHashMultiset.create();
 		List<Long> renderTimes = new ArrayList<>();
 
 		Optional<MessageEmbed> embed = Optional.empty();
@@ -324,6 +328,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				RenderRequest request = new RenderRequest(blueprint, reporting);
 				RenderResult result = FBSR.renderBlueprint(request);
 				image = result.image;
+				unknownNames.addAll(result.unknownNames);
 				renderTimes.add(result.renderTime);
 
 			} else {
@@ -331,6 +336,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				layout.setBlueprint(blueprint);
 				layout.setReporting(reporting);
 				image = layout.generateDiscordImage();
+				unknownNames.addAll(layout.getResult().unknownNames);
 				renderTimes.add(layout.getResult().renderTime);
 
 				if (layout.getResult().renderScale < 0.501) {
@@ -357,6 +363,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			layout.setBook(book);
 			layout.setReporting(reporting);
 			image = layout.generateDiscordImage();
+			layout.getResults().stream().forEach(r -> unknownNames.addAll(r.unknownNames));
 			renderTimes.add(layout.getResults().stream().mapToLong(r -> r.renderTime).sum());
 
 			List<BSBlueprint> blueprints = book.getAllBlueprints();
@@ -418,6 +425,15 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			actionId = actionId.substring(0, 100);// XXX need a better solution
 		}
 		actionButtonRow.add(Button.secondary(actionId, "Download").withEmoji(emoji));
+
+		if (!unknownNames.isEmpty()) {
+			event.getReporting()
+					.addField(new Field(
+							"Unknown Names", unknownNames.entrySet().stream()
+									.map(e -> e.getElement() + ": " + e.getCount()).collect(Collectors.joining("\n")),
+							true));
+			event.getReporting().setLevel(Level.DEBUG);
+		}
 
 		if (!renderTimes.isEmpty()) {
 			String renderTimesStr = renderTimes.stream().mapToLong(l1 -> l1).sum() + " ms" + (renderTimes.size() > 1
@@ -560,6 +576,15 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		request.debug.entityPlacement = debugEntityPlacement;
 
 		RenderResult result = FBSR.renderBlueprint(request);
+
+		if (!result.unknownNames.isEmpty()) {
+			event.getReporting()
+					.addField(new Field(
+							"Unknown Names", result.unknownNames.entrySet().stream()
+									.map(e -> e.getElement() + ": " + e.getCount()).collect(Collectors.joining("\n")),
+							true));
+			event.getReporting().setLevel(Level.DEBUG);
+		}
 
 		event.getReporting().addField(new Field("Render Time", result.renderTime + " ms", true));
 

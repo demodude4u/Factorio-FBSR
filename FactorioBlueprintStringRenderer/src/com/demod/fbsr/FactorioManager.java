@@ -25,6 +25,7 @@ import org.slf4j.LoggerFactory;
 import com.demod.factorio.Config;
 import com.demod.factorio.FactorioData;
 import com.demod.factorio.ModLoader;
+import com.demod.factorio.prototype.AchievementPrototype;
 import com.demod.factorio.prototype.DataPrototype;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.factorio.prototype.EquipmentPrototype;
@@ -63,6 +64,7 @@ public class FactorioManager {
 	private static final List<EntityPrototype> entities = new ArrayList<>();
 	private static final List<TilePrototype> tiles = new ArrayList<>();
 	private static final List<EquipmentPrototype> equipments = new ArrayList<>();
+	private static final List<AchievementPrototype> achievements = new ArrayList<>();
 
 	private static final Map<String, ItemPrototype> itemByName = new HashMap<>();
 	private static final Map<String, RecipePrototype> recipeByName = new HashMap<>();
@@ -71,6 +73,7 @@ public class FactorioManager {
 	private static final Map<String, EntityPrototype> entityByName = new HashMap<>();
 	private static final Map<String, TilePrototype> tileByName = new HashMap<>();
 	private static final Map<String, EquipmentPrototype> equipmentByName = new HashMap<>();
+	private static final Map<String, AchievementPrototype> achievementByName = new HashMap<>();
 
 	private static final Cache<String, UnknownEntityRendering> unknownEntityFactories = CacheBuilder.newBuilder()
 			.expireAfterAccess(1, TimeUnit.HOURS).build();
@@ -79,6 +82,10 @@ public class FactorioManager {
 
 	private static File folderModsRoot;
 	private static File folderDataRoot;
+
+	public static List<AchievementPrototype> getAchievements() {
+		return achievements;
+	}
 
 	public static FactorioData getBaseData() {
 		return baseData;
@@ -168,6 +175,7 @@ public class FactorioManager {
 		technologyByName.putAll(baseData.getTable().getTechnologies());
 		tileByName.putAll(baseData.getTable().getTiles());
 		equipmentByName.putAll(baseData.getTable().getEquipments());
+		achievementByName.putAll(baseData.getTable().getAchievements());
 
 		recipeByName.values().stream().sorted(Comparator.comparing(DataPrototype::getName)).forEach(recipes::add);
 		itemByName.values().stream().sorted(Comparator.comparing(DataPrototype::getName)).forEach(items::add);
@@ -177,6 +185,8 @@ public class FactorioManager {
 				.forEach(technologies::add);
 		tileByName.values().stream().sorted(Comparator.comparing(DataPrototype::getName)).forEach(tiles::add);
 		equipmentByName.values().stream().sorted(Comparator.comparing(DataPrototype::getName)).forEach(equipments::add);
+		achievementByName.values().stream().sorted(Comparator.comparing(DataPrototype::getName))
+				.forEach(achievements::add);
 	}
 
 	public static void initializePrototypes() throws JSONException, IOException {
@@ -275,7 +285,12 @@ public class FactorioManager {
 			technologyByName.putAll(data.getTable().getTechnologies());
 			tileByName.putAll(data.getTable().getTiles());
 			equipmentByName.putAll(data.getTable().getEquipments());
+			achievementByName.putAll(data.getTable().getAchievements());
 		}
+	}
+
+	public static Optional<AchievementPrototype> lookupAchievementByName(String name) {
+		return Optional.ofNullable(achievementByName.get(name));
 	}
 
 	public static FactorioData lookupDataByGroupName(String groupName) {
