@@ -1,7 +1,10 @@
 package com.demod.fbsr;
 
 import java.awt.Graphics2D;
+import java.awt.GraphicsConfiguration;
+import java.awt.GraphicsEnvironment;
 import java.awt.Rectangle;
+import java.awt.Transparency;
 import java.awt.image.BufferedImage;
 import java.awt.image.VolatileImage;
 import java.io.File;
@@ -28,7 +31,8 @@ public class AtlasManager {
 	public static class Atlas {
 		private final int id;
 		private final BufferedImage bufImage;
-		private final VolatileImage volImage;
+
+		private VolatileImage volImage;
 
 		private final List<Rectangle> occupied = new ArrayList<>();
 
@@ -46,6 +50,42 @@ public class AtlasManager {
 
 		public int getId() {
 			return id;
+		}
+
+		public BufferedImage getBufferedImage() {
+			return bufImage;
+		}
+
+		public void refreshVolatileImage() {
+			GraphicsConfiguration gc = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice()
+					.getDefaultConfiguration();
+
+			if (volImage == null) {
+				volImage = gc.createCompatibleVolatileImage(bufImage.getWidth(), bufImage.getHeight(),
+						Transparency.TRANSLUCENT);
+			}
+
+			while (true) {
+				int validStatus = volImage.validate(gc);
+
+				if (validStatus == VolatileImage.IMAGE_INCOMPATIBLE) {
+					volImage = gc.createCompatibleVolatileImage(bufImage.getWidth(), bufImage.getHeight(),
+							Transparency.TRANSLUCENT);
+				}
+
+				if (volImage.contentsLost() || validStatus == VolatileImage.IMAGE_INCOMPATIBLE) {
+					Graphics2D g = volImage.createGraphics();
+					g.drawImage(bufImage, 0, 0, null);
+					g.dispose();
+					continue;
+				}
+
+				break;
+			}
+		}
+
+		public VolatileImage getVolatileImage() {
+			return volImage;
 		}
 	}
 

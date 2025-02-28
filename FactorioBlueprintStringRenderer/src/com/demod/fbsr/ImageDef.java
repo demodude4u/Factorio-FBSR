@@ -1,9 +1,7 @@
 package com.demod.fbsr;
 
 import java.awt.Rectangle;
-import java.util.Optional;
 
-import com.demod.fbsr.AtlasManager.Atlas;
 import com.demod.fbsr.AtlasManager.AtlasRef;
 
 public class ImageDef {
