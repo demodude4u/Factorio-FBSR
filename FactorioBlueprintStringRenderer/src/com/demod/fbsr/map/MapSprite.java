@@ -33,7 +33,6 @@ public class MapSprite extends MapRenderable {
 		return bounds;
 	}
 
-	// TODO change the approach to eliminate transforming on every sprite
 	@Override
 	public void render(Graphics2D g) {
 		AtlasRef ref = def.getAtlasRef();
@@ -43,6 +42,7 @@ public class MapSprite extends MapRenderable {
 		Image image = ref.getAtlas().getVolatileImage();
 		Rectangle source = ref.getRect();
 
+		// TODO change the approach to eliminate transforming on every sprite
 		AffineTransform pat = g.getTransform();
 		g.translate(bounds.getX(), bounds.getY());
 		g.scale(bounds.getWidth(), bounds.getHeight());

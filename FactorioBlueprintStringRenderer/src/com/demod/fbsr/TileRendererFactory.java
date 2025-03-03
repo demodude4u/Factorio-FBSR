@@ -2,6 +2,7 @@ package com.demod.fbsr;
 
 import static com.demod.fbsr.Direction.*;
 
+import java.awt.Color;
 import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
@@ -30,10 +31,11 @@ import com.demod.factorio.prototype.TilePrototype;
 import com.demod.fbsr.bs.BSPosition;
 import com.demod.fbsr.bs.BSTile;
 import com.demod.fbsr.fp.FPMaterialTextureParameters;
-import com.demod.fbsr.fp.FPTileSpriteLayout;
+import com.demod.fbsr.fp.FPTileMainPictures;
 import com.demod.fbsr.fp.FPTileSpriteLayoutVariant;
 import com.demod.fbsr.fp.FPTileTransitionVariantLayout;
 import com.demod.fbsr.fp.FPTileTransitions;
+import com.demod.fbsr.fp.FPTileTransitionsVariants;
 import com.demod.fbsr.map.MapPosition;
 import com.demod.fbsr.map.MapRect;
 import com.demod.fbsr.map.MapRenderable;
@@ -49,18 +51,7 @@ public class TileRendererFactory {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(TileRendererFactory.class);
 
-	public static class FPTileMainPictures extends FPTileSpriteLayout {
-		public final int size;
-		public final double probability;
-		public final Optional<List<Double>> weights;
-
-		public FPTileMainPictures(LuaValue lua) {
-			super(lua);
-			size = lua.get("size").checkint();
-			probability = lua.get("probability").optdouble(1.0);
-			weights = FPUtils.optList(lua.get("weights"), LuaValue::todouble);
-		}
-	}
+	public static final MapRect TILE_BOUNDS = MapRect.byUnit(0, 0, 1, 1);
 
 	public enum TileEdgeRule {
 		SIDE(NORTH.adjCode(), WEST.adjCode() | EAST.adjCode(), fp -> fp.side), //
@@ -124,16 +115,16 @@ public class TileRendererFactory {
 		}
 	}
 
-	public abstract class TileRenderProcess {
+	public interface TileRenderProcess {
 
-		// TODO
-		public abstract void tileCenter(Random rand, Consumer<MapRenderable> register, BSTile tile);
+		public abstract void initAtlas(Consumer<ImageDef> register);
 
-		public abstract void tileEdge(Random rand, Consumer<MapRenderable> register, MapPosition pos,
-				List<TileEdgeRuleParam> params);
+		void tileCenter(Random rand, Consumer<MapRenderable> register, BSTile tile);
+
+		void tileEdge(Random rand, Consumer<MapRenderable> register, MapPosition pos, List<TileEdgeRuleParam> params);
 	}
 
-	public class TileRenderProcessMain extends TileRenderProcess {
+	public class TileRenderProcessMain implements TileRenderProcess {
 		private List<TileEdgeRuleParam> convertSidesToDoubleSides(List<TileEdgeRuleParam> params) {
 			if (params.size() != 2) {
 				return params;
@@ -155,12 +146,8 @@ public class TileRendererFactory {
 			FPTileMainPictures main = protoVariantsMainSize1.get();
 
 			int frame = rand.nextInt(main.count);
-
-			int sourceSize = (int) Math.round(main.size * 64 / main.scale);
-
-			register.accept(new MapSprite(Layer.DECALS, data.getModImage(main.picture),
-					new Rectangle(frame * sourceSize, 0, sourceSize, sourceSize),
-					MapRect.byUnit(tile.position.x, tile.position.y, main.size, main.size)));
+			register.accept(new MapSprite(new LayeredSpriteDef(main.defineImage(frame), Layer.DECALS, TILE_BOUNDS),
+					tile.position.createPoint()));
 		}
 
 		@Override
@@ -168,8 +155,8 @@ public class TileRendererFactory {
 				List<TileEdgeRuleParam> params) {
 
 			// TODO figure out why some tiles do not have an overlay!
-			if (protoVariantsTransition.get().overlayLayout.isPresent()) {
-				FPTileTransitionVariantLayout overlay = protoVariantsTransition.get().overlayLayout.get();
+			if (protoVariants.transition.get().overlayLayout.isPresent()) {
+				FPTileTransitionVariantLayout overlay = protoVariants.transition.get().overlayLayout.get();
 				List<TileEdgeRuleParam> overlayParams;
 				if (overlay.doubleSide.isPresent()) {
 					overlayParams = convertSidesToDoubleSides(params);
@@ -186,6 +173,8 @@ public class TileRendererFactory {
 						int sourceWidth = (int) Math.round(64 / variant.scale);
 						int sourceHeight = (int) Math.round(variant.tileHeight * 64 / variant.scale);
 
+						register.accept(new MapSprite(new LayeredSpriteDef(variant., null, TILE_BOUNDS), pos))
+						
 						register.accept(new MapSprite(Layer.DECALS, data.getModImage(variant.spritesheet),
 								new Rectangle(frame * sourceWidth, 0, sourceWidth, sourceHeight),
 								MapRect.byUnit(pos, 1, variant.tileHeight)));
@@ -219,9 +208,15 @@ public class TileRendererFactory {
 				}
 			}
 		}
+
+		@Override
+		public void initAtlas(Consumer<ImageDef> register) {
+			// TODO Auto-generated method stub
+
+		}
 	}
 
-	public class TileRenderProcessMaterial extends TileRenderProcess {
+	public class TileRenderProcessMaterial implements TileRenderProcess {
 		// Uses material_background and masks (concrete, etc.)
 		// TODO
 		// Create masking function to generate edge tiles
@@ -239,7 +234,6 @@ public class TileRendererFactory {
 			int w = image.getWidth();
 			int h = image.getHeight();
 			MapPosition pos = tile.position.createPoint();
-			// TODO shift across the source image with sourceSize = 1 tile width
 			source.x = ((int) Math.floor(pos.getX() * sourceSize) % w + w) % w;
 			source.y = ((int) Math.floor(pos.getY() * sourceSize) % h + h) % h;
 
@@ -417,6 +411,10 @@ public class TileRendererFactory {
 		return ((row * 73856093) ^ (col * 19349663) ^ (layer * 83492791) ^ (adjCode * 123456789));
 	}
 
+	public void initAtlas(Consumer<ImageDef> register) {
+		renderProcess.initAtlas(register);
+	}
+
 	public static void initFactories(List<TileRendererFactory> factories) {
 		for (TileRendererFactory factory : factories) {
 			factory.initFromPrototype(factory.getData().getTable());
@@ -446,9 +444,8 @@ public class TileRendererFactory {
 	protected FactorioData data;
 	protected TilePrototype prototype;
 
-	private List<FPTileMainPictures> protoVariantsMain;
+	private FPTileTransitionsVariants protoVariants;
 	private Optional<FPTileMainPictures> protoVariantsMainSize1;
-	private Optional<FPTileTransitions> protoVariantsTransition;
 	private Optional<FPMaterialTextureParameters> protoVariantsMaterialBackground;
 	private int protoLayer;
 	private Optional<String> protoTransitionMergesWithTileID;
@@ -478,16 +475,13 @@ public class TileRendererFactory {
 	public void initFromPrototype(DataTable table) {
 		protoLayer = prototype.lua().get("layer").checkint();
 		LuaValue luaVariants = prototype.lua().get("variants");
-		protoVariantsMain = FPUtils.list(luaVariants.get("main"), FPTileMainPictures::new);
-		protoVariantsMainSize1 = protoVariantsMain.stream().filter(fp -> fp.size == 1).findFirst();
-		protoVariantsTransition = FPUtils.opt(luaVariants.get("transition"), FPTileTransitions::new);
-		protoVariantsMaterialBackground = FPUtils.opt(luaVariants.get("material_background"),
-				FPMaterialTextureParameters::new);
+		protoVariants = new FPTileTransitionsVariants(prototype.lua().get("variants"));
+		protoVariantsMainSize1 = protoVariants.main.stream().filter(fp -> fp.size == 1).findFirst();
 		protoTransitionMergesWithTileID = FPUtils.optString(prototype.lua().get("transition_merges_with_tile"));
 		protoTransitionMergesWithTile = protoTransitionMergesWithTileID
 				.flatMap(k -> Optional.ofNullable(FactorioManager.lookupTileFactoryForName(k)));
 
-		if (!protoVariantsMain.isEmpty())
+		if (!protoVariants.main.isEmpty())
 			renderProcess = new TileRenderProcessMain();
 		else if (protoVariantsMaterialBackground.isPresent()) {
 			renderProcess = new TileRenderProcessMaterial();

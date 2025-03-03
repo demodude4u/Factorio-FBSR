@@ -31,7 +31,6 @@ public enum Direction {
 	private final int dx;
 	private final int dy;
 	private final MapPosition offset;
-	private final MapPosition offsetRight;
 	private final double theta;
 	private final double rotateSin;
 	private final double rotateCos;
@@ -41,7 +40,6 @@ public enum Direction {
 		this.dx = dx;
 		this.dy = dy;
 		offset = MapPosition.byUnit(dx, dy);
-		offsetRight = MapPosition.byUnit(dy, dx);
 		theta = Math.atan2(dy, dx);
 		rotateSin = Math.sin(theta);
 		rotateCos = Math.cos(theta);
@@ -118,16 +116,6 @@ public enum Direction {
 	public MapPosition offset(MapPosition pos, double distance) {
 		return offset.multiplyUnitAdd(distance, pos);
 	}
-
-//	public MapPosition offset(MapPosition pos, MapPosition offset) {
-//		//TODO direct FP math instead of converting
-//		return offset(right().offset(pos, offset.getY()), offset.getX());
-//	}
-
-//	public MapRect offset(MapRect rect, double distance) {
-//		// TODO direct FP math instead of converting
-//		return rect.add(offset(distance));
-//	}
 
 	public Direction right() {
 		return rotate(2);
