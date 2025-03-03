@@ -1,11 +1,15 @@
 package com.demod.fbsr.map;
 
 import java.util.Optional;
+import java.util.function.Consumer;
 
 import com.demod.factorio.prototype.ItemPrototype;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.FactorioManager;
+import com.demod.fbsr.Layer;
+import com.demod.fbsr.LayeredSpriteDef;
+import com.demod.fbsr.SpriteDef;
 import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.bs.BSItemStack;
 import com.google.common.collect.LinkedHashMultiset;
@@ -68,5 +72,13 @@ public class MapEntity {
 		}
 
 		return modules;
+	}
+
+	public Consumer<SpriteDef> spriteRegister(Consumer<MapRenderable> register, Layer layer) {
+		return s -> register.accept(new MapSprite(s, layer, position));
+	}
+
+	public Consumer<LayeredSpriteDef> spriteRegister(Consumer<MapRenderable> register) {
+		return s -> register.accept(new MapSprite(s, position));
 	}
 }

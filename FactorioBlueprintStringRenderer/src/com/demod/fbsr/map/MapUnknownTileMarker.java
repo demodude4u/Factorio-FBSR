@@ -11,10 +11,12 @@ import com.demod.fbsr.gui.GUIStyle;
 public class MapUnknownTileMarker extends MapRenderable {
 	public static final Font FONT = GUIStyle.FONT_BP_BOLD.deriveFont(0.5f);
 
+	private final MapPosition position;
 	private final Color color;
 
 	public MapUnknownTileMarker(MapPosition position, Color color) {
-		super(Layer.ENTITY_INFO_ICON_ABOVE, position);
+		super(Layer.ENTITY_INFO_ICON_ABOVE);
+		this.position = position;
 		this.color = color;
 	}
 

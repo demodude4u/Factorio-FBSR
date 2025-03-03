@@ -26,7 +26,7 @@ public class MapRailLogistics extends MapRenderable {
 	private final WorldMap map;
 
 	public MapRailLogistics(WorldMap map) {
-		super(Layer.LOGISTICS_RAIL_IO, MapPosition.byUnit(0, 0));
+		super(Layer.LOGISTICS_RAIL_IO);
 		this.map = map;
 	}
 

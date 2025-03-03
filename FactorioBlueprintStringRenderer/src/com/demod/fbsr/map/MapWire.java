@@ -17,7 +17,7 @@ public class MapWire extends MapRenderable {
 	private final Color color;
 
 	public MapWire(MapPosition p1, MapPosition p2, Color color) {
-		super(Layer.WIRE, p1);
+		super(Layer.WIRE);
 		this.p1 = p1;
 		this.p2 = p2;
 		this.color = color;

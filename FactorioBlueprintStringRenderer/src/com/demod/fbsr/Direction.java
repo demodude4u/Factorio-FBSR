@@ -14,6 +14,8 @@ public enum Direction {
 	WEST("W", -1, 0), //
 	NORTHWEST("NW", -1, -1);
 
+	private static Direction[] CARDINALS = { NORTH, EAST, SOUTH, WEST };
+
 	public static Direction fromCardinal(int cardinal) {
 		return values()[cardinal * 2];
 	}
@@ -170,5 +172,9 @@ public enum Direction {
 		} else {
 			return point.transformMatrix(rotateCos, -rotateSin, rotateSin, rotateCos);
 		}
+	}
+
+	public static Direction[] cardinals() {
+		return CARDINALS;
 	}
 }

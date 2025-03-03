@@ -20,7 +20,7 @@ public class MapGrid extends MapRenderable {
 	private final boolean showNumbers;
 
 	public MapGrid(MapRect3D bounds, Color color, boolean aboveBelts, boolean showNumbers) {
-		super(aboveBelts ? Layer.GRID_ABOVE_BELTS : Layer.GRID, bounds.getTopLeft());
+		super(aboveBelts ? Layer.GRID_ABOVE_BELTS : Layer.GRID);
 		this.bounds = bounds;
 		this.color = color;
 		this.showNumbers = showNumbers;

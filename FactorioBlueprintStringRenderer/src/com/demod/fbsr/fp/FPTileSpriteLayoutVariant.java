@@ -1,5 +1,7 @@
 package com.demod.fbsr.fp;
 
+import java.awt.Rectangle;
+import java.util.ArrayList;
 import java.util.List;
 
 import com.demod.factorio.fakelua.LuaValue;
@@ -13,8 +15,8 @@ public class FPTileSpriteLayoutVariant {
 	public final int tileHeight;
 	public final int lineLength;
 	public final int count;
-	
-	private List<ImageDef> defs;
+
+	private final List<ImageDef> defs;
 
 	public FPTileSpriteLayoutVariant(LuaValue lua) {
 		spritesheet = lua.get("spritesheet").tojstring();
@@ -24,12 +26,28 @@ public class FPTileSpriteLayoutVariant {
 		tileHeight = lua.get("tile_height").optint(1);
 		lineLength = lua.get("line_length").optint(0);
 		count = lua.get("count").checkint();
-		
+
 		defs = createDefs();
 	}
 
 	private List<ImageDef> createDefs() {
-		// TODO Auto-generated method stub
-		return null;
-	}	
+		List<ImageDef> defs = new ArrayList<>();
+		int width = (int) Math.round(64 / scale);
+		int height = (int) Math.round(tileHeight * 64 / scale);
+		Rectangle source = new Rectangle();
+		for (int i = 0; i < count; i++) {
+			source.x = x + width * (i % lineLength);
+			source.y = y + height * (i / lineLength);
+			defs.add(new ImageDef(spritesheet, source));
+		}
+		return defs;
+	}
+
+	public ImageDef defineImage(int variant) {
+		return defs.get(variant);
+	}
+
+	public List<ImageDef> getDefs() {
+		return defs;
+	}
 }

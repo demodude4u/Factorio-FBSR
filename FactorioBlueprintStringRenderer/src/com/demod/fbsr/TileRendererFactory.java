@@ -2,9 +2,6 @@ package com.demod.fbsr;
 
 import static com.demod.fbsr.Direction.*;
 
-import java.awt.Color;
-import java.awt.Rectangle;
-import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -26,7 +23,6 @@ import org.slf4j.LoggerFactory;
 
 import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
-import com.demod.factorio.fakelua.LuaValue;
 import com.demod.factorio.prototype.TilePrototype;
 import com.demod.fbsr.bs.BSPosition;
 import com.demod.fbsr.bs.BSTile;
@@ -115,13 +111,29 @@ public class TileRendererFactory {
 		}
 	}
 
+	private static class TileCell {
+		int row, col;
+		int layer;
+		Optional<TileRendererFactory> mergeFactory;
+		OptionalInt mergeLayer;
+		BSTile tile;
+		TileRendererFactory factory;
+	}
+
+	private static class TileEdgeCell {
+		int row, col;
+		int layer;
+		TileRendererFactory factory;
+		int adjCode = 0;
+	}
+
 	public interface TileRenderProcess {
+		void tileCenter(Random rand, Consumer<MapRenderable> register, TileCell cell);
 
-		public abstract void initAtlas(Consumer<ImageDef> register);
+		void tileEdge(Random rand, Consumer<MapRenderable> register, TileEdgeCell cell, MapPosition pos,
+				List<TileEdgeRuleParam> params);
 
-		void tileCenter(Random rand, Consumer<MapRenderable> register, BSTile tile);
-
-		void tileEdge(Random rand, Consumer<MapRenderable> register, MapPosition pos, List<TileEdgeRuleParam> params);
+		void initAtlas(Consumer<ImageDef> register);
 	}
 
 	public class TileRenderProcessMain implements TileRenderProcess {
@@ -142,21 +154,27 @@ public class TileRendererFactory {
 		// TODO
 		// Figure out how to work in probabilities and covering multiple tile sizes
 		@Override
-		public void tileCenter(Random rand, Consumer<MapRenderable> register, BSTile tile) {
+		public void tileCenter(Random rand, Consumer<MapRenderable> register, TileCell cell) {
+
 			FPTileMainPictures main = protoVariantsMainSize1.get();
 
+			rand.setSeed(getRandomSeed(cell.row, cell.col, cell.layer, 0));
 			int frame = rand.nextInt(main.count);
+
 			register.accept(new MapSprite(new LayeredSpriteDef(main.defineImage(frame), Layer.DECALS, TILE_BOUNDS),
-					tile.position.createPoint()));
+					cell.tile.position.createPoint()));
 		}
 
 		@Override
-		public void tileEdge(Random rand, Consumer<MapRenderable> register, MapPosition pos,
+		public void tileEdge(Random rand, Consumer<MapRenderable> register, TileEdgeCell cell, MapPosition pos,
 				List<TileEdgeRuleParam> params) {
+			FPTileTransitions transitions = protoVariants.transition.get();
+
+			rand.setSeed(getRandomSeed(cell.row, cell.col, cell.layer, cell.adjCode));
 
 			// TODO figure out why some tiles do not have an overlay!
-			if (protoVariants.transition.get().overlayLayout.isPresent()) {
-				FPTileTransitionVariantLayout overlay = protoVariants.transition.get().overlayLayout.get();
+			if (transitions.overlayLayout.isPresent()) {
+				FPTileTransitionVariantLayout overlay = transitions.overlayLayout.get();
 				List<TileEdgeRuleParam> overlayParams;
 				if (overlay.doubleSide.isPresent()) {
 					overlayParams = convertSidesToDoubleSides(params);
@@ -170,20 +188,14 @@ public class TileRendererFactory {
 
 						int frame = rand.nextInt(variant.count);
 
-						int sourceWidth = (int) Math.round(64 / variant.scale);
-						int sourceHeight = (int) Math.round(variant.tileHeight * 64 / variant.scale);
-
-						register.accept(new MapSprite(new LayeredSpriteDef(variant., null, TILE_BOUNDS), pos))
-						
-						register.accept(new MapSprite(Layer.DECALS, data.getModImage(variant.spritesheet),
-								new Rectangle(frame * sourceWidth, 0, sourceWidth, sourceHeight),
-								MapRect.byUnit(pos, 1, variant.tileHeight)));
+						register.accept(new MapSprite(
+								new LayeredSpriteDef(variant.defineImage(frame), Layer.DECALS, TILE_BOUNDS), pos));
 					}
 				}
 			}
 
-			if (protoVariantsTransition.get().backgroundLayout.isPresent()) {
-				FPTileTransitionVariantLayout background = protoVariantsTransition.get().backgroundLayout.get();
+			if (transitions.backgroundLayout.isPresent()) {
+				FPTileTransitionVariantLayout background = transitions.backgroundLayout.get();
 				List<TileEdgeRuleParam> backgroundParams;
 				if (background.doubleSide.isPresent()) {
 					backgroundParams = convertSidesToDoubleSides(params);
@@ -197,13 +209,8 @@ public class TileRendererFactory {
 
 						int frame = rand.nextInt(variant.count);
 
-						int sourceWidth = (int) Math.round(64 / variant.scale);
-						int sourceHeight = (int) Math.round(variant.tileHeight * 64 / variant.scale);
-
-						register.accept(new MapSprite(Layer.UNDER_TILES, data.getModImage(variant.spritesheet),
-								new Rectangle(frame * sourceWidth, param.variant * sourceHeight, sourceWidth,
-										sourceHeight),
-								MapRect.byUnit(pos, 1, variant.tileHeight)));
+						register.accept(new MapSprite(
+								new LayeredSpriteDef(variant.defineImage(frame), Layer.UNDER_TILES, TILE_BOUNDS), pos));
 					}
 				}
 			}
@@ -211,8 +218,9 @@ public class TileRendererFactory {
 
 		@Override
 		public void initAtlas(Consumer<ImageDef> register) {
-			// TODO Auto-generated method stub
-
+			protoVariantsMainSize1.ifPresent(fp -> fp.getDefs().forEach(register));
+			protoVariants.transition.get().overlayLayout.ifPresent(fp -> fp.getDefs(register));
+			protoVariants.transition.get().backgroundLayout.ifPresent(fp -> fp.getDefs(register));
 		}
 	}
 
@@ -221,35 +229,39 @@ public class TileRendererFactory {
 		// TODO
 		// Create masking function to generate edge tiles
 		@Override
-		public void tileCenter(Random rand, Consumer<MapRenderable> register, BSTile tile) {
-			// TODO shuffle the large tiles for variety (512x512 for example)
+		public void tileCenter(Random rand, Consumer<MapRenderable> register, TileCell cell) {
+			BSTile tile = cell.tile;
 
-			FPMaterialTextureParameters material = protoVariantsMaterialBackground.get();
+			FPMaterialTextureParameters material = protoVariants.materialBackground.get();
+			int tw = material.getTexWidthTiles();
+			int th = material.getTexHeightTiles();
 
-			int sourceSize = (int) Math.round(64 / material.scale);
+			rand.setSeed(getRandomSeed(cell.row / th, cell.col / tw, cell.layer, 0));
+			int frame = rand.nextInt(material.count);
 
-			MapRect bounds = MapRect.byUnit(tile.position.x, tile.position.y, 1, 1);
-			BufferedImage image = data.getModImage(material.picture);
-			Rectangle source = new Rectangle(0, 0, sourceSize, sourceSize);
-			int w = image.getWidth();
-			int h = image.getHeight();
-			MapPosition pos = tile.position.createPoint();
-			source.x = ((int) Math.floor(pos.getX() * sourceSize) % w + w) % w;
-			source.y = ((int) Math.floor(pos.getY() * sourceSize) % h + h) % h;
-
-			register.accept(new MapSprite(Layer.DECALS, image, source, bounds));
+			register.accept(new MapSprite(new LayeredSpriteDef(material.defineImage(frame), Layer.DECALS, TILE_BOUNDS),
+					tile.position.createPoint()));
 		}
 
 		@Override
-		public void tileEdge(Random rand, Consumer<MapRenderable> register, MapPosition pos,
+		public void tileEdge(Random rand, Consumer<MapRenderable> register, TileEdgeCell cell, MapPosition pos,
 				List<TileEdgeRuleParam> params) {
 
-			FPTileTransitions transitions = protoVariantsTransition.get();
+			FPTileTransitions transitions = protoVariants.transition.get();
+
+			rand.setSeed(getRandomSeed(cell.row, cell.col, cell.layer, cell.adjCode));
+
 			// TODO some tiles do not have overlay/mask!
 //			FPTileTransitionVariantLayout overlay = transitions.overlayLayout.get();
 //			FPTileTransitionVariantLayout mask = transitions.maskLayout.get();
 
 			// TODO material edge
+		}
+
+		@Override
+		public void initAtlas(Consumer<ImageDef> register) {
+			protoVariants.materialBackground.get().getDefs().forEach(register);
+			// TODO edge tiles
 		}
 	}
 
@@ -295,22 +307,6 @@ public class TileRendererFactory {
 
 		// TODO how do I decide which edge factory for matching layers? (example,
 		// hazard-concrete-left/right)
-
-		class TileCell {
-			int row, col;
-			int layer;
-			Optional<TileRendererFactory> mergeFactory;
-			OptionalInt mergeLayer;
-			BSTile tile;
-			TileRendererFactory factory;
-		}
-
-		class TileEdgeCell {
-			int row, col;
-			int layer;
-			TileRendererFactory factory;
-			int adjCode = 0;
-		}
 
 		// XXX this is terrible
 		// TODO make a predictable random method consistent for every coordinate
@@ -386,19 +382,17 @@ public class TileRendererFactory {
 
 			// Render tile centers
 			for (TileCell cell : cellLayers.get(layer)) {
-				rand.setSeed(getRandomSeed(cell.row, cell.col, cell.layer, 0));
-				cell.factory.renderProcess.tileCenter(rand, register, cell.tile);
+				cell.factory.renderProcess.tileCenter(rand, register, cell);
 			}
 
 			// Render tile edges
-			for (TileEdgeCell edgeCell : edgeCellLayers.get(layer)) {
-				MapPosition pos = MapPosition.byUnit(edgeCell.col, edgeCell.row);
-				List<TileEdgeRuleParam> params = tileRules.get(edgeCell.adjCode);
-				rand.setSeed(getRandomSeed(edgeCell.row, edgeCell.col, edgeCell.layer, edgeCell.adjCode));
+			for (TileEdgeCell cell : edgeCellLayers.get(layer)) {
+				MapPosition pos = MapPosition.byUnit(cell.col, cell.row);
+				List<TileEdgeRuleParam> params = tileRules.get(cell.adjCode);
 
 				// TODO detect double side scenario and do special rendering
 
-				edgeCell.factory.renderProcess.tileEdge(rand, register, pos, params);
+				cell.factory.renderProcess.tileEdge(rand, register, cell, pos, params);
 			}
 
 			// Render tile blends (TODO)
@@ -418,6 +412,7 @@ public class TileRendererFactory {
 	public static void initFactories(List<TileRendererFactory> factories) {
 		for (TileRendererFactory factory : factories) {
 			factory.initFromPrototype(factory.getData().getTable());
+			factory.initAtlas(AtlasManager::registerDef);
 		}
 		LOGGER.info("Initialized {} tiles.", factories.size());
 	}
@@ -446,7 +441,6 @@ public class TileRendererFactory {
 
 	private FPTileTransitionsVariants protoVariants;
 	private Optional<FPTileMainPictures> protoVariantsMainSize1;
-	private Optional<FPMaterialTextureParameters> protoVariantsMaterialBackground;
 	private int protoLayer;
 	private Optional<String> protoTransitionMergesWithTileID;
 	private Optional<TileRendererFactory> protoTransitionMergesWithTile;
@@ -474,7 +468,6 @@ public class TileRendererFactory {
 
 	public void initFromPrototype(DataTable table) {
 		protoLayer = prototype.lua().get("layer").checkint();
-		LuaValue luaVariants = prototype.lua().get("variants");
 		protoVariants = new FPTileTransitionsVariants(prototype.lua().get("variants"));
 		protoVariantsMainSize1 = protoVariants.main.stream().filter(fp -> fp.size == 1).findFirst();
 		protoTransitionMergesWithTileID = FPUtils.optString(prototype.lua().get("transition_merges_with_tile"));
@@ -483,7 +476,7 @@ public class TileRendererFactory {
 
 		if (!protoVariants.main.isEmpty())
 			renderProcess = new TileRenderProcessMain();
-		else if (protoVariantsMaterialBackground.isPresent()) {
+		else if (protoVariants.materialBackground.isPresent()) {
 			renderProcess = new TileRenderProcessMaterial();
 		}
 	}

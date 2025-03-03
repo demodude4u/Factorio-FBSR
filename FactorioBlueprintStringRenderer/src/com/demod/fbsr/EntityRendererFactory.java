@@ -48,6 +48,7 @@ public abstract class EntityRendererFactory {
 				factory.wirePointsById = new LinkedHashMap<>();
 				factory.defineWirePoints(factory.wirePointsById::put, prototype.lua());
 				factory.drawBounds = factory.computeBounds();
+				factory.initAtlas(AtlasManager::registerDef);
 			} catch (Exception e) {
 				LOGGER.error("ENTITY {} ({})", prototype.getName(), prototype.getType());
 				throw e;
@@ -150,10 +151,11 @@ public abstract class EntityRendererFactory {
 			double y = position.getY() + 0.7;
 
 			for (String itemName : renderModules) {
-				BufferedImage image = FactorioManager.lookupItemByName(itemName)
-						.map(i -> i.getTable().getData().getWikiIcon(i)).orElse(RenderUtils.EMPTY_IMAGE);
-				register.accept(new MapIcon(MapPosition.byUnit(x, y), image, 0.5, 0.05));
-				x += 0.7;
+				Optional<BufferedImage> image = TagManager.lookup("item", itemName);
+				if (image.isPresent()) {
+					register.accept(new MapIcon(MapPosition.byUnit(x, y), image.get(), 0.5, 0.05));
+					x += 0.7;
+				}
 			}
 		}
 
@@ -189,10 +191,11 @@ public abstract class EntityRendererFactory {
 				double y = position.getY() - 1.15;
 
 				for (String itemName : renderModules) {
-					BufferedImage image = FactorioManager.lookupItemByName(itemName)
-							.map(i -> i.getTable().getData().getWikiIcon(i)).orElse(RenderUtils.EMPTY_IMAGE);
-					register.accept(new MapIcon(MapPosition.byUnit(x, y), image, 0.25, 0.025));
-					x += 0.3;
+					Optional<BufferedImage> image = TagManager.lookup("item", itemName);
+					if (image.isPresent()) {
+						register.accept(new MapIcon(MapPosition.byUnit(x, y), image.get(), 0.25, 0.025));
+						x += 0.3;
+					}
 				}
 			}
 		}

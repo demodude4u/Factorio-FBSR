@@ -47,7 +47,7 @@ public class MapDebug extends MapRenderable {
 	private final List<MapTile> tiles;
 
 	public MapDebug(RenderRequest.Debug debug, WorldMap map, List<MapEntity> entities, List<MapTile> tiles) {
-		super(Layer.DEBUG, MapPosition.byUnit(0, 0));
+		super(Layer.DEBUG);
 		this.debug = debug;
 		this.map = map;
 		this.entities = entities;

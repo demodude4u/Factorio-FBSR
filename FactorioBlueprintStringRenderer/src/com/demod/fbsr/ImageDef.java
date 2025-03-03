@@ -12,7 +12,7 @@ public class ImageDef {
 
 	public ImageDef(String path, Rectangle source) {
 		this.path = path;
-		this.source = source;
+		this.source = new Rectangle(source);
 		atlasRef = new AtlasRef();
 	}
 

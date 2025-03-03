@@ -11,12 +11,14 @@ import com.demod.fbsr.Layer;
 public class MapIcon extends MapRenderable {
 	private static final Color SHADOW = new Color(0, 0, 0, 180);
 
+	private final MapPosition position;
 	private final BufferedImage image;
 	private final double size;
 	private final double border;
 
 	public MapIcon(MapPosition position, BufferedImage image, double size, double border) {
-		super(Layer.ENTITY_INFO_ICON_ABOVE, position);
+		super(Layer.ENTITY_INFO_ICON_ABOVE);
+		this.position = position;
 		this.image = image;
 		this.size = size;
 		this.border = border;

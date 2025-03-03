@@ -30,7 +30,7 @@ public class MapItemLogistics extends MapRenderable {
 	private final WorldMap map;
 
 	public MapItemLogistics(WorldMap map) {
-		super(Layer.LOGISTICS_MOVE, MapPosition.byUnit(0, 0));
+		super(Layer.LOGISTICS_MOVE);
 		this.map = map;
 	}
 

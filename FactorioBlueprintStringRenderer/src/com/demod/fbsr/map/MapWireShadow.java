@@ -16,7 +16,7 @@ public class MapWireShadow extends MapRenderable {
 	private final MapPosition p2;
 
 	public MapWireShadow(MapPosition p1, MapPosition p2) {
-		super(Layer.SHADOW_BUFFER, p1);
+		super(Layer.SHADOW_BUFFER);
 		this.p1 = p1;
 		this.p2 = p2;
 	}

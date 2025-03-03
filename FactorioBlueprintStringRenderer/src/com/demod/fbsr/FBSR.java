@@ -69,8 +69,6 @@ import com.google.common.collect.Multimaps;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Table;
 
-import net.dv8tion.jda.api.entities.MessageEmbed.Field;
-
 public class FBSR {
 	private static final Logger LOGGER = LoggerFactory.getLogger(FBSR.class);
 
@@ -442,6 +440,11 @@ public class FBSR {
 			}
 		}
 
+		mapEntities.sort(Comparator.comparing((MapEntity r) -> r.getPosition().getYFP())
+				.thenComparing(r -> r.getPosition().getXFP()));
+		mapTiles.sort(Comparator.comparing((MapTile r) -> r.getPosition().getYFP())
+				.thenComparing(r -> r.getPosition().getXFP()));
+
 		map.setFoundation(mapTiles.stream().anyMatch(t -> t.getFactory().getPrototype().isFoundation()));
 
 		mapEntities.forEach(t -> {
@@ -473,10 +476,11 @@ public class FBSR {
 		populateRailBlocking(map);
 		populateRailStationLogistics(map);
 
-		List<MapRenderable> renderers = new ArrayList<>();
-		Consumer<MapRenderable> register = r -> renderers.add(r);
+		ListMultimap<Layer, MapRenderable> layerRenderables = MultimapBuilder.enumKeys(Layer.class).arrayListValues()
+				.build();
+		Consumer<MapRenderable> register = r -> layerRenderables.put(r.getLayer(), r);
 
-		TileRendererFactory.createAllRenderers(renderers::add, mapTiles);
+		TileRendererFactory.createAllRenderers(register, mapTiles);
 
 		mapTiles.forEach(t -> {
 			try {
@@ -541,9 +545,9 @@ public class FBSR {
 					continue;// Probably something modded
 				}
 
-				renderers.add(new MapWire(firstPoint.get().getPosition(), secondPoint.get().getPosition(),
+				register.accept(new MapWire(firstPoint.get().getPosition(), secondPoint.get().getPosition(),
 						firstPoint.get().getColor().getColor()));
-				renderers.add(new MapWireShadow(firstPoint.get().getShadow(), secondPoint.get().getShadow()));
+				register.accept(new MapWireShadow(firstPoint.get().getShadow(), secondPoint.get().getShadow()));
 			} catch (Exception e) {
 				reporting.addException(e, "Wire " + wire.firstEntityNumber + ", " + wire.firstWireConnectorId + ", "
 						+ wire.secondEntityNumber + ", " + wire.secondWireConnectorId);
@@ -571,8 +575,9 @@ public class FBSR {
 				gridBounds.getX2() + worldPadding + gridPadding, gridBounds.getY2() + worldPadding + gridPadding);
 
 		if (request.isDontClipSprites()) {
-			MapRect spriteBounds = MapRect.combineAll(renderers.stream().filter(r -> r instanceof MapSprite)
-					.map(r -> ((MapSprite) r).getBounds()).collect(Collectors.toList()));
+			MapRect spriteBounds = MapRect
+					.combineAll(layerRenderables.values().stream().filter(r -> r instanceof MapSprite)
+							.map(r -> ((MapSprite) r).getBounds()).collect(Collectors.toList()));
 
 			double x1 = spriteBounds.getX();
 			double y1 = spriteBounds.getY();
@@ -660,19 +665,12 @@ public class FBSR {
 
 		if (showGrid) {
 			if (gridFoundationMode) {
-				renderers.add(new MapFoundationGrid(mapTiles, request.getGridLines().get(), gridAboveBelts));
+				register.accept(new MapFoundationGrid(mapTiles, request.getGridLines().get(), gridAboveBelts));
 			} else {
-				renderers.add(new MapGrid(gridBounds, request.getGridLines().get(), gridAboveBelts, gridShowNumbers));
+				register.accept(new MapGrid(gridBounds, request.getGridLines().get(), gridAboveBelts, gridShowNumbers));
 			}
 		}
-
-		ListMultimap<Layer, MapRenderable> layerBuckets = MultimapBuilder.enumKeys(Layer.class).arrayListValues()
-				.build();
-		renderers.forEach(r -> layerBuckets.put(r.getLayer(), r));
-
-		Comparator<MapRenderable> comparator = Comparator.comparing((MapRenderable r) -> r.getPosition().getYFP())
-				.thenComparing(r -> r.getPosition().getXFP());
-		for (Entry<Layer, List<MapRenderable>> entry : Multimaps.asMap(layerBuckets).entrySet()) {
+		for (Entry<Layer, List<MapRenderable>> entry : Multimaps.asMap(layerRenderables).entrySet()) {
 			Layer layer = entry.getKey();
 			List<MapRenderable> layerRenderers = entry.getValue();
 
@@ -705,8 +703,6 @@ public class FBSR {
 				g.setTransform(tempXform);
 
 			} else {
-				layerRenderers.sort(comparator);
-
 				for (MapRenderable renderer : layerRenderers) {
 					try {
 						renderer.render(g);

@@ -131,4 +131,8 @@ public class TagManager {
 		resolvers.put("space-location", TagResolver.forPath("space-location"));
 		// TODO space-age
 	}
+
+	public static Optional<BufferedImage> lookup(String key, String name) {
+		return resolvers.get(key).lookup(name);
+	}
 }

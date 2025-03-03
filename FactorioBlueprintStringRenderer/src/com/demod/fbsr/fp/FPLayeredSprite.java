@@ -53,7 +53,7 @@ public class FPLayeredSprite extends FPSprite {
 
 	@Override
 	@Deprecated
-	public void defineSprites(Consumer<SpriteDef> consumer) {
+	public void defineSprites(Consumer<? super SpriteDef> consumer) {
 		throw new InternalError();
 	}
 

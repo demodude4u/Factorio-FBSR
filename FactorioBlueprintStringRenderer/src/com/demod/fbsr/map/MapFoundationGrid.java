@@ -19,7 +19,7 @@ public class MapFoundationGrid extends MapRenderable {
 	private final Color color;
 
 	public MapFoundationGrid(List<MapTile> tiles, Color color, boolean aboveBelts) {
-		super(aboveBelts ? Layer.GRID_ABOVE_BELTS : Layer.GRID, tiles.get(0).getPosition());
+		super(aboveBelts ? Layer.GRID_ABOVE_BELTS : Layer.GRID);
 		this.tiles = tiles;
 		this.color = color;
 	}

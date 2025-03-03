@@ -20,7 +20,7 @@ public class MapSprite extends MapRenderable {
 	}
 
 	public MapSprite(LayeredSpriteDef def, MapPosition pos) {
-		super(def.getLayer(), def.getBounds().getTopLeft());
+		super(def.getLayer());
 		this.def = def;
 		this.bounds = def.getBounds().add(pos);
 	}

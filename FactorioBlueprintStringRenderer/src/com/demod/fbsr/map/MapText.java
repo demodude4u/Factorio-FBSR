@@ -9,13 +9,15 @@ import com.demod.fbsr.Layer;
 
 public class MapText extends MapRenderable {
 
+	private final MapPosition position;
 	private final int angle;
 	protected final Font font;
 	protected final Color color;
 	protected final String string;
 
 	public MapText(Layer layer, MapPosition position, int angle, Font font, Color color, String string) {
-		super(layer, position);
+		super(layer);
+		this.position = position;
 		this.angle = angle;
 		this.font = font;
 		this.color = color;

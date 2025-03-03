@@ -7,6 +7,7 @@ import java.util.function.Consumer;
 
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.FPUtils;
+import com.demod.fbsr.LayeredSpriteDef;
 import com.demod.fbsr.SpriteDef;
 
 public class FPSprite extends FPSpriteParameters {
@@ -20,7 +21,7 @@ public class FPSprite extends FPSpriteParameters {
 
 	}
 
-	public void defineSprites(Consumer<SpriteDef> consumer) {
+	public void defineSprites(Consumer<? super SpriteDef> consumer) {
 		if (layers.isPresent()) {
 			for (FPSprite layer : layers.get()) {
 				layer.defineSprites(consumer);
@@ -36,5 +37,4 @@ public class FPSprite extends FPSpriteParameters {
 		defineSprites(ret::add);
 		return ret;
 	}
-
 }

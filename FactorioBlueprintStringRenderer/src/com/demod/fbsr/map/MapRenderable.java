@@ -6,19 +6,13 @@ import com.demod.fbsr.Layer;
 
 public abstract class MapRenderable {
 	protected final Layer layer;
-	protected final MapPosition position;
 
-	public MapRenderable(Layer layer, MapPosition position) {
+	public MapRenderable(Layer layer) {
 		this.layer = layer;
-		this.position = position;
 	}
 
 	public Layer getLayer() {
 		return layer;
-	}
-
-	public MapPosition getPosition() {
-		return position;
 	}
 
 	public abstract void render(Graphics2D g);

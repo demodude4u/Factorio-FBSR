@@ -14,7 +14,7 @@ public class MapEntityError extends MapRenderable {
 	private final MapEntity entity;
 
 	public MapEntityError(MapEntity entity) {
-		super(Layer.ENTITY_INFO_ICON_ABOVE, entity.getPosition());
+		super(Layer.ENTITY_INFO_ICON_ABOVE);
 		this.entity = entity;
 	}
 
