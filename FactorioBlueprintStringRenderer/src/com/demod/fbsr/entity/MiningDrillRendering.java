@@ -3,15 +3,14 @@ package com.demod.fbsr.entity;
 import java.util.Optional;
 import java.util.function.Consumer;
 
-import javax.swing.Renderer;
-
 import com.demod.factorio.fakelua.LuaTable;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.WorldMap;
-import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.fp.FPSprite4Way;
 import com.demod.fbsr.fp.FPWorkingVisualisations;
+import com.demod.fbsr.map.MapEntity;
+import com.demod.fbsr.map.MapRenderable;
 
 public class MiningDrillRendering extends SimpleEntityRendering {
 
@@ -30,7 +29,7 @@ public class MiningDrillRendering extends SimpleEntityRendering {
 	// - graphics_set.animation
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, BSEntity entity) {
+	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
 		super.createRenderers(register, map, entity);
 
 		if (protoBasePicture.isPresent()) {

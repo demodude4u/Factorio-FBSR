@@ -1,4 +1,4 @@
-package com.demod.fbsr;
+package com.demod.fbsr.map;
 
 import java.util.Objects;
 

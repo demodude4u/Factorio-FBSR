@@ -16,8 +16,8 @@ public class MapIcon extends MapRenderable {
 	private final double size;
 	private final double border;
 
-	public MapIcon(MapPosition position, BufferedImage image, double size, double border) {
-		super(Layer.ENTITY_INFO_ICON_ABOVE);
+	public MapIcon(MapPosition position, BufferedImage image, double size, double border, boolean above) {
+		super(above ? Layer.ENTITY_INFO_ICON_ABOVE : Layer.ENTITY_INFO_ICON);
 		this.position = position;
 		this.image = image;
 		this.size = size;

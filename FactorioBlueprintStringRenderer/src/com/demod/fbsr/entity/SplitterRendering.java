@@ -14,10 +14,7 @@ import java.util.function.Consumer;
 
 import javax.swing.Renderer;
 
-import org.json.JSONObject;
-
 import com.demod.factorio.prototype.ItemPrototype;
-import com.demod.fbsr.BSUtils;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.FactorioManager;
@@ -26,35 +23,10 @@ import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Sprite;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.WorldMap.BeltBend;
-import com.demod.fbsr.bs.BSEntity;
-import com.demod.fbsr.bs.BSFilter;
-import com.demod.fbsr.entity.SplitterRendering.BSSplitterEntity;
+import com.demod.fbsr.bs.entity.BSSplitterEntity;
 import com.demod.fbsr.fp.FPAnimation4Way;
-import com.demod.fbsr.legacy.LegacyBlueprintEntity;
 
 public class SplitterRendering extends TransportBeltConnectableRendering<BSSplitterEntity> {
-
-	public static class BSSplitterEntity extends BSEntity {
-		public final Optional<String> inputPriority;
-		public final Optional<String> outputPriority;
-		public final Optional<BSFilter> filter;
-
-		public BSSplitterEntity(JSONObject json) {
-			super(json);
-
-			inputPriority = BSUtils.optString(json, "input_priority");
-			outputPriority = BSUtils.optString(json, "output_priority");
-			filter = BSUtils.opt(json, "filter", BSFilter::new);
-		}
-
-		public BSSplitterEntity(LegacyBlueprintEntity legacy) {
-			super(legacy);
-
-			inputPriority = BSUtils.optString(legacy.json(), "input_priority");
-			outputPriority = BSUtils.optString(legacy.json(), "output_priority");
-			filter = BSUtils.optString(legacy.json(), "filter").map(s -> new BSFilter(s));
-		}
-	}
 
 	private static final Path2D.Double markerShape = new Path2D.Double();
 	static {

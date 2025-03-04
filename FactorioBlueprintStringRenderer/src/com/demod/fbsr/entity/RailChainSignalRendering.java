@@ -4,6 +4,7 @@ import java.awt.geom.Point2D;
 
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.WorldMap;
+import com.demod.fbsr.bs.entity.BSRailSignalBaseEntity;
 
 public class RailChainSignalRendering extends RailSignalBaseRendering {
 	// TODO elevated versions

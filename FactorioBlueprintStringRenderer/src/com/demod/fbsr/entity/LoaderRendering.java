@@ -14,11 +14,8 @@ import java.util.stream.Collectors;
 
 import javax.swing.Renderer;
 
-import org.json.JSONObject;
-
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.factorio.prototype.ItemPrototype;
-import com.demod.fbsr.BSUtils;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.FactorioManager;
 import com.demod.fbsr.Layer;
@@ -26,33 +23,10 @@ import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Sprite;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.WorldMap.BeltBend;
-import com.demod.fbsr.bs.BSEntity;
-import com.demod.fbsr.bs.BSFilter;
-import com.demod.fbsr.entity.LoaderRendering.BSLoaderEntity;
+import com.demod.fbsr.bs.entity.BSLoaderEntity;
 import com.demod.fbsr.fp.FPSprite4Way;
-import com.demod.fbsr.legacy.LegacyBlueprintEntity;
 
 public abstract class LoaderRendering extends TransportBeltConnectableRendering<BSLoaderEntity> {
-
-	public static class BSLoaderEntity extends BSEntity {
-		public final Optional<String> type;
-		public final List<BSFilter> filters;
-
-		public BSLoaderEntity(JSONObject json) {
-			super(json);
-
-			type = BSUtils.optString(json, "type");
-			filters = BSUtils.list(json, "filters", BSFilter::new);
-		}
-
-		public BSLoaderEntity(LegacyBlueprintEntity legacy) {
-			super(legacy);
-
-			type = BSUtils.optString(legacy.json(), "type");
-			filters = BSUtils.list(legacy.json(), "filters", j -> new BSFilter(j.getString("name")));
-		}
-
-	}
 
 	private final double beltDistance;
 

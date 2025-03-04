@@ -1,17 +1,17 @@
 package com.demod.fbsr.entity;
 
-import java.awt.geom.Point2D;
-import java.util.List;
+import java.util.function.Consumer;
 
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.EntityRendererFactory;
-import com.demod.fbsr.Sprite;
+import com.demod.fbsr.ImageDef;
+import com.demod.fbsr.SpriteDef;
 import com.demod.fbsr.WorldMap.BeltBend;
-import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.fp.FPRotatedAnimation;
-import com.google.common.collect.ImmutableList;
+import com.demod.fbsr.map.MapPosition;
 
-public abstract class TransportBeltConnectableRendering<E extends BSEntity> extends EntityRendererFactory<E> {
+public abstract class TransportBeltConnectableRendering extends EntityRendererFactory {
+	private static final int FRAME = 0;
 
 	public static final String[][] indexNames = //
 			new String[/* Cardinal */][/* Bend */] { //
@@ -74,36 +74,30 @@ public abstract class TransportBeltConnectableRendering<E extends BSEntity> exte
 	private int[] protoBeltEndingIndices;
 	private boolean protoBeltAlternate;
 
-	protected List<Sprite> createBeltEndingSprites(int cardinal, int frame) {
+	protected void defineBeltEndingSprites(Consumer<SpriteDef> consumer, int cardinal, int frame) {
 		if (protoHasBeltAnimationSet) {
-			return protoBeltAnimationSet.createSprites(data, protoBeltEndingIndices[cardinal], frame);
-		} else {
-			return ImmutableList.of();
+			protoBeltAnimationSet.defineSprites(consumer, protoBeltEndingIndices[cardinal], frame);
 		}
 	}
 
-	protected List<Sprite> createBeltSprites(int cardinal, int bend, int frame) {
+	protected void defineBeltSprites(Consumer<SpriteDef> consumer, int cardinal, int bend, int frame) {
 		if (protoHasBeltAnimationSet) {
-			return protoBeltAnimationSet.createSprites(data, protoBeltIndices[cardinal][bend], frame);
-		} else {
-			return ImmutableList.of();
+			protoBeltAnimationSet.defineSprites(consumer, protoBeltIndices[cardinal][bend], frame);
 		}
 	}
 
-	protected List<Sprite> createBeltStartingSprites(int cardinal, int frame) {
+	protected void defineBeltStartingSprites(Consumer<SpriteDef> consumer, int cardinal, int frame) {
 		if (protoHasBeltAnimationSet) {
-			return protoBeltAnimationSet.createSprites(data, protoBeltStartingIndices[cardinal], frame);
-		} else {
-			return ImmutableList.of();
+			protoBeltAnimationSet.defineSprites(consumer, protoBeltStartingIndices[cardinal], frame);
 		}
 	}
 
-	protected int getAlternatingFrame(Point2D.Double pos, int frame) {
-		if (protoBeltAlternate && ((((int) pos.x + (int) pos.y) % 2) == 0)) {
+	protected int getAlternatingFrame(MapPosition pos) {
+		if (protoBeltAlternate && (((pos.getXCell() + pos.getYCell()) % 2) == 0)) {
 			int frameCount = protoBeltAnimationSet.getFrameCount();
-			return (frame + frameCount / 2) % frameCount;
+			return (FRAME + frameCount / 2) % frameCount;
 		} else {
-			return frame;
+			return FRAME;
 		}
 	}
 
@@ -141,6 +135,18 @@ public abstract class TransportBeltConnectableRendering<E extends BSEntity> exte
 			}
 
 			protoBeltAlternate = luaBeltAnimationSet.get("alternate").optboolean(false);
+		}
+	}
+
+	@Override
+	public void initAtlas(Consumer<ImageDef> register) {
+		if (protoHasBeltAnimationSet) {
+			protoBeltAnimationSet.getDefs(register, FRAME);
+			if (protoBeltAlternate) {
+				int frameCount = protoBeltAnimationSet.getFrameCount();
+				int altFrame = (FRAME + frameCount / 2) % frameCount;
+				protoBeltAnimationSet.getDefs(register, altFrame);
+			}
 		}
 	}
 

@@ -2,29 +2,30 @@ package com.demod.fbsr.entity;
 
 import java.util.function.Consumer;
 
-import javax.swing.Renderer;
-
 import com.demod.factorio.fakelua.LuaTable;
-import com.demod.fbsr.RenderUtils;
+import com.demod.fbsr.ImageDef;
+import com.demod.fbsr.Layer;
+import com.demod.fbsr.SpriteDef;
 import com.demod.fbsr.WorldMap;
-import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.fp.FPAnimation;
+import com.demod.fbsr.map.MapEntity;
+import com.demod.fbsr.map.MapRenderable;
 
 public class GeneratorRendering extends SimpleEntityRendering {
+	private static final int FRAME = 0;
 
 	private FPAnimation protoVerticalAnimation;
 	private FPAnimation protoHorizontalAnimation;
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, BSEntity entity) {
+	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
 		super.createRenderers(register, map, entity);
 
+		Consumer<SpriteDef> entityRegister = entity.spriteRegister(register, Layer.OBJECT);
 		if (isVertical(entity)) {
-			register.accept(RenderUtils.spriteRenderer(protoVerticalAnimation.createSprites(data, 0), entity,
-					drawBounds));
+			protoVerticalAnimation.defineSprites(entityRegister, FRAME);
 		} else {
-			register.accept(RenderUtils.spriteRenderer(protoHorizontalAnimation.createSprites(data, 0), entity,
-					drawBounds));
+			protoHorizontalAnimation.defineSprites(entityRegister, FRAME);
 		}
 	}
 
@@ -41,7 +42,15 @@ public class GeneratorRendering extends SimpleEntityRendering {
 		protoHorizontalAnimation = new FPAnimation(prototype.lua().get("horizontal_animation"));
 	}
 
-	private boolean isVertical(BSEntity entity) {
-		return entity.direction.cardinal() % 2 == 0;
+	private boolean isVertical(MapEntity entity) {
+		return entity.getDirection().cardinal() % 2 == 0;
+	}
+
+	@Override
+	public void initAtlas(Consumer<ImageDef> register) {
+		super.initAtlas(register);
+
+		protoVerticalAnimation.defineSprites(register, FRAME);
+		protoHorizontalAnimation.defineSprites(register, FRAME);
 	}
 }

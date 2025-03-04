@@ -1,62 +1,44 @@
 package com.demod.fbsr.entity;
 
-import java.awt.geom.Point2D;
-import java.awt.geom.Rectangle2D;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 
-import javax.swing.Renderer;
-
-import com.demod.factorio.FactorioData;
-import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.FPUtils;
-import com.demod.fbsr.RenderUtils;
-import com.demod.fbsr.Sprite;
+import com.demod.fbsr.ImageDef;
+import com.demod.fbsr.Layer;
+import com.demod.fbsr.MapUtils;
+import com.demod.fbsr.SpriteDef;
 import com.demod.fbsr.WorldMap;
-import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.fp.FPAnimation;
-import com.demod.fbsr.fp.FPAnimationElement;
+import com.demod.fbsr.fp.FPBeaconGraphicsSet;
+import com.demod.fbsr.fp.FPBoundingBox;
+import com.demod.fbsr.map.MapEntity;
+import com.demod.fbsr.map.MapPosition;
+import com.demod.fbsr.map.MapRect;
+import com.demod.fbsr.map.MapRenderable;
 
-public class BeaconRendering extends EntityRendererFactory<BSEntity> {
+public class BeaconRendering extends EntityRendererFactory {
 
-	public static class FPBeaconGraphicsSet {
-		public final List<FPAnimationElement> animationList;
-
-		public FPBeaconGraphicsSet(LuaValue lua) {
-			animationList = FPUtils.list(lua.get("animation_list"), FPAnimationElement::new);
-		}
-
-		public List<Sprite> createSprites(FactorioData data, int frame) {
-			List<Sprite> ret = new ArrayList<>();
-			for (FPAnimationElement element : animationList) {
-				element.animation.createSprites(ret::add, data, frame);
-			}
-			return ret;
-		}
-	}
-
+	private FPBoundingBox protoSelectionBox;
 	private Optional<FPBeaconGraphicsSet> protoGraphicsSet;
 	private Optional<FPAnimation> protoBasePicture;
 	private double protoSupplyAreaDistance;
 	private double protoDistributionEffectivity;
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, BSEntity entity) {
+	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
+		Consumer<SpriteDef> spriteRegister = entity.spriteRegister(register, Layer.OBJECT);
 		if (protoGraphicsSet.isPresent()) {
-			register.accept(RenderUtils.spriteRenderer(protoGraphicsSet.get().createSprites(data, 0), entity,
-					drawBounds));
+			protoGraphicsSet.get().defineSprites(spriteRegister, 0);
 		} else {
-			register.accept(RenderUtils.spriteRenderer(protoBasePicture.get().createSprites(data, 0), entity,
-					drawBounds));
+			protoBasePicture.get().defineSprites(spriteRegister, 0);
 		}
 	}
 
 	@Override
 	public void initFromPrototype() {
-
+		protoSelectionBox = new FPBoundingBox(prototype.lua().get("selection_box"));
 		protoGraphicsSet = FPUtils.opt(prototype.lua().get("graphics_set"), FPBeaconGraphicsSet::new);
 		protoBasePicture = FPUtils.opt(prototype.lua().get("base_picture"), FPAnimation::new);
 		protoSupplyAreaDistance = prototype.lua().get("supply_area_distance").todouble();
@@ -64,22 +46,28 @@ public class BeaconRendering extends EntityRendererFactory<BSEntity> {
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, BSEntity entity) {
-		Point2D.Double pos = entity.position.createPoint();
+	public void populateWorldMap(WorldMap map, MapEntity entity) {
+		MapPosition pos = entity.getPosition();
+		MapRect supplyBounds = protoSelectionBox.createRect().expandUnit(protoSupplyAreaDistance).add(pos);
 
-		Rectangle2D.Double supplyBounds = protoSelectionBox.createRect();
-		supplyBounds.x += pos.x - protoSupplyAreaDistance;
-		supplyBounds.y += pos.y - protoSupplyAreaDistance;
-		supplyBounds.width += protoSupplyAreaDistance * 2;
-		supplyBounds.height += protoSupplyAreaDistance * 2;
+		int halfFP = MapUtils.unitToFixedPoint(0.5);
+		int tileFP = MapUtils.unitToFixedPoint(1.0);
 
-		double x2 = supplyBounds.x + supplyBounds.width;
-		double y2 = supplyBounds.y + supplyBounds.height;
-		Point2D.Double bPos = new Point2D.Double();
-		for (bPos.x = supplyBounds.x + 0.5; bPos.x < x2; bPos.x++) {
-			for (bPos.y = supplyBounds.y + 0.5; bPos.y < y2; bPos.y++) {
-				map.setBeaconed(bPos, entity, protoDistributionEffectivity);
+		int x2FP = supplyBounds.getXFP() + supplyBounds.getWidthFP();
+		int y2FP = supplyBounds.getYFP() + supplyBounds.getHeightFP();
+		for (int xFP = supplyBounds.getXFP() + halfFP; xFP < x2FP; xFP += tileFP) {
+			for (int yFP = supplyBounds.getYFP() + halfFP; yFP < y2FP; yFP += tileFP) {
+				map.setBeaconed(MapPosition.byFixedPoint(xFP, yFP), entity, protoDistributionEffectivity);
 			}
+		}
+	}
+
+	@Override
+	public void initAtlas(Consumer<ImageDef> register) {
+		if (protoGraphicsSet.isPresent()) {
+			protoGraphicsSet.get().defineSprites(register, 0);
+		} else {
+			protoBasePicture.get().defineSprites(register, 0);
 		}
 	}
 

@@ -1,69 +1,20 @@
 package com.demod.fbsr.entity;
 
-import java.util.Optional;
 import java.util.function.Consumer;
 
-import javax.swing.Renderer;
-
-import com.demod.factorio.fakelua.LuaValue;
-import com.demod.fbsr.Direction;
 import com.demod.fbsr.EntityRendererFactory;
-import com.demod.fbsr.FPUtils;
+import com.demod.fbsr.ImageDef;
 import com.demod.fbsr.Layer;
-import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.WorldMap;
-import com.demod.fbsr.bs.BSEntity;
-import com.demod.fbsr.fp.FPSpriteVariations;
+import com.demod.fbsr.fp.FPRailPictureSet;
+import com.demod.fbsr.fp.FPRailPieceLayers;
+import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapRect3D;
-import com.google.common.collect.ImmutableList;
+import com.demod.fbsr.map.MapRenderable;
 
-public abstract class RailRendering extends EntityRendererFactory<BSEntity> {
-
-	public static class FPRailPictureSet {
-		public final FPRailPieceLayers north;
-		public final FPRailPieceLayers northeast;
-		public final FPRailPieceLayers east;
-		public final FPRailPieceLayers southeast;
-		public final FPRailPieceLayers south;
-		public final FPRailPieceLayers southwest;
-		public final FPRailPieceLayers west;
-		public final FPRailPieceLayers northwest;
-
-		private final ImmutableList<FPRailPieceLayers> dirs;
-
-		public FPRailPictureSet(LuaValue lua) {
-			north = new FPRailPieceLayers(lua.get("north"));
-			northeast = new FPRailPieceLayers(lua.get("northeast"));
-			east = new FPRailPieceLayers(lua.get("east"));
-			southeast = new FPRailPieceLayers(lua.get("southeast"));
-			south = new FPRailPieceLayers(lua.get("south"));
-			southwest = new FPRailPieceLayers(lua.get("southwest"));
-			west = new FPRailPieceLayers(lua.get("west"));
-			northwest = new FPRailPieceLayers(lua.get("northwest"));
-
-			dirs = ImmutableList.of(north, northeast, east, southeast, south, southwest, west, northwest);
-		}
-
-		public FPRailPieceLayers get(Direction direction) {
-			return dirs.get(direction.ordinal());
-		}
-	}
-
-	public static class FPRailPieceLayers {
-		public final Optional<FPSpriteVariations> stonePathBackground;
-		public final Optional<FPSpriteVariations> stonePath;
-		public final Optional<FPSpriteVariations> ties;
-		public final Optional<FPSpriteVariations> backplates;
-		public final Optional<FPSpriteVariations> metals;
-
-		public FPRailPieceLayers(LuaValue lua) {
-			stonePathBackground = FPUtils.opt(lua.get("stone_path_background"), FPSpriteVariations::new);
-			stonePath = FPUtils.opt(lua.get("stone_path"), FPSpriteVariations::new);
-			ties = FPUtils.opt(lua.get("ties"), FPSpriteVariations::new);
-			backplates = FPUtils.opt(lua.get("backplates"), FPSpriteVariations::new);
-			metals = FPUtils.opt(lua.get("metals"), FPSpriteVariations::new);
-		}
-	}
+public abstract class RailRendering extends EntityRendererFactory {
+	private static final int VARIATION = 0;
+	// TODO add variation (or should we ignore variations to save atlas space?)
 
 	private final boolean elevated;
 
@@ -92,28 +43,24 @@ public abstract class RailRendering extends EntityRendererFactory<BSEntity> {
 	}
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, BSEntity entity) {
-
-		FPRailPieceLayers railPieceLayers = protoPictures.get(entity.direction);
+	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
+		FPRailPieceLayers railPieceLayers = protoPictures.get(entity.getDirection());
 		if (railPieceLayers.stonePathBackground.isPresent()) {
-			register.accept(RenderUtils.spriteRenderer(layerRailStoneBackground,
-					railPieceLayers.stonePathBackground.get().createSprites(data, 0), entity, drawBounds));
+			railPieceLayers.stonePathBackground.get()
+					.defineSprites(entity.spriteRegister(register, layerRailStoneBackground), VARIATION);
 		}
 		if (railPieceLayers.stonePath.isPresent()) {
-			register.accept(RenderUtils.spriteRenderer(layerRailStone,
-					railPieceLayers.stonePath.get().createSprites(data, 0), entity, drawBounds));
+			railPieceLayers.stonePath.get().defineSprites(entity.spriteRegister(register, layerRailStone), VARIATION);
 		}
 		if (railPieceLayers.ties.isPresent()) {
-			register.accept(RenderUtils.spriteRenderer(layerRailTies, railPieceLayers.ties.get().createSprites(data, 0),
-					entity, drawBounds));
+			railPieceLayers.ties.get().defineSprites(entity.spriteRegister(register, layerRailTies), VARIATION);
 		}
 		if (railPieceLayers.backplates.isPresent()) {
-			register.accept(RenderUtils.spriteRenderer(layerRailBackplates,
-					railPieceLayers.backplates.get().createSprites(data, 0), entity, drawBounds));
+			railPieceLayers.backplates.get().defineSprites(entity.spriteRegister(register, layerRailBackplates),
+					VARIATION);
 		}
 		if (railPieceLayers.metals.isPresent()) {
-			register.accept(RenderUtils.spriteRenderer(layerRailMetals,
-					railPieceLayers.metals.get().createSprites(data, 0), entity, drawBounds));
+			railPieceLayers.metals.get().defineSprites(entity.spriteRegister(register, layerRailMetals), VARIATION);
 		}
 	}
 
@@ -129,6 +76,11 @@ public abstract class RailRendering extends EntityRendererFactory<BSEntity> {
 			ret = ret.shiftHeightUnit(3);
 		}
 		return ret;
+	}
+
+	@Override
+	public void initAtlas(Consumer<ImageDef> register) {
+		protoPictures.getDefs(register, VARIATION);
 	}
 
 }

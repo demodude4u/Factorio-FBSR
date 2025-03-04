@@ -5,14 +5,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
-import javax.swing.Renderer;
-
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.Layer;
-import com.demod.fbsr.RenderUtils;
-import com.demod.fbsr.Sprite;
+import com.demod.fbsr.SpriteDef;
 import com.demod.fbsr.WorldMap;
-import com.demod.fbsr.bs.BSEntity;
+import com.demod.fbsr.fp.FPRollingStockRotatedSlopedGraphics;
+import com.demod.fbsr.map.MapEntity;
+import com.demod.fbsr.map.MapPosition;
+import com.demod.fbsr.map.MapRenderable;
+import com.demod.fbsr.map.MapSprite;
 
 public class ArtilleryWagonRendering extends RollingStockRendering {
 
@@ -90,26 +91,23 @@ public class ArtilleryWagonRendering extends RollingStockRendering {
 	private double protoCannonBaseShiftWhenHorizontal;
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, BSEntity entity) {
+	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
 		super.createRenderers(register, map, entity);
 
-		double orientation = entity.orientation.getAsDouble();
+		double orientation = entity.fromBlueprint().orientation.getAsDouble();
 
 		// TODO sloped
 
-		List<Sprite> cannonBaseSprites = protoCannonBasePictures.rotated.createSprites(data, orientation);
-		List<Sprite> cannonBarrelSprites = protoCannonBarrelPictures.rotated.createSprites(data, orientation);
-
+		// TODO figure out new way of calculating cannon shift
 		// Old way
 		int shiftIndex = (int) (FPUtils.projectedOrientation(orientation) * protoCannonBaseShifts.size());
-		Point2D.Double cannonBaseShift = protoCannonBaseShifts.get(shiftIndex);
-		RenderUtils.shiftSprites(cannonBaseSprites, cannonBaseShift);
-		RenderUtils.shiftSprites(cannonBarrelSprites, cannonBaseShift);
+		MapPosition cannonBasePos = entity.getPosition()
+				.add(MapPosition.convert(protoCannonBaseShifts.get(shiftIndex)));
 
-		// TODO figure out new way of calculating cannon shift
-
-		register.accept(RenderUtils.spriteRenderer(Layer.HIGHER_OBJECT_UNDER, cannonBarrelSprites, entity, drawBounds));
-		register.accept(RenderUtils.spriteRenderer(Layer.HIGHER_OBJECT_UNDER, cannonBaseSprites, entity, drawBounds));
+		Consumer<? super SpriteDef> cannonRegister = s -> register
+				.accept(new MapSprite(s, Layer.HIGHER_OBJECT_UNDER, cannonBasePos));
+		protoCannonBasePictures.rotated.defineSprites(cannonRegister, orientation);
+		protoCannonBarrelPictures.rotated.defineSprites(cannonRegister, orientation);
 	}
 
 	@Override

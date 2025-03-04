@@ -5,8 +5,6 @@ import static com.demod.fbsr.MapUtils.*;
 import java.awt.Rectangle;
 import java.util.Collection;
 
-import com.demod.fbsr.fp.FPVector;
-
 public class MapRect {
 
 	public static MapRect byFixedPoint(int x, int y, int width, int height) {
@@ -18,7 +16,7 @@ public class MapRect {
 	}
 
 	public static MapRect byUnit(MapPosition pos, double width, double height) {
-		return new MapRect(pos.x, pos.y, unitToFixedPoint(width), unitToFixedPoint(height));
+		return new MapRect(pos.xfp, pos.yfp, unitToFixedPoint(width), unitToFixedPoint(height));
 	}
 
 	public static MapRect combineAll(Collection<MapRect> rects) {
@@ -28,10 +26,10 @@ public class MapRect {
 		boolean first = true;
 		int minX = 0, minY = 0, maxX = 0, maxY = 0;
 		for (MapRect rect : rects) {
-			int x1 = rect.x;
-			int y1 = rect.y;
-			int x2 = rect.x + rect.width;
-			int y2 = rect.y + rect.height;
+			int x1 = rect.xfp;
+			int y1 = rect.yfp;
+			int x2 = rect.xfp + rect.widthfp;
+			int y2 = rect.yfp + rect.heightfp;
 			if (first) {
 				first = false;
 				minX = x1;
@@ -49,80 +47,80 @@ public class MapRect {
 	}
 
 	// Fixed-point, 8-bit precision
-	final int x;
-	final int y;
-	final int width;
-	final int height;
+	final int xfp;
+	final int yfp;
+	final int widthfp;
+	final int heightfp;
 
 	MapRect(int x, int y, int width, int height) {
-		this.x = x;
-		this.y = y;
-		this.width = width;
-		this.height = height;
+		this.xfp = x;
+		this.yfp = y;
+		this.widthfp = width;
+		this.heightfp = height;
 	}
 
 	public double getHeight() {
-		return fixedPointToUnit(height);
+		return fixedPointToUnit(heightfp);
 	}
 
 	public int getHeightFP() {
-		return height;
+		return heightfp;
 	}
 
 	public MapPosition getTopLeft() {
-		return MapPosition.byFixedPoint(x, y);
+		return MapPosition.byFixedPoint(xfp, yfp);
 	}
 
 	public double getWidth() {
-		return fixedPointToUnit(width);
+		return fixedPointToUnit(widthfp);
 	}
 
 	public int getWidthFP() {
-		return width;
+		return widthfp;
 	}
 
 	public double getX() {
-		return fixedPointToUnit(x);
+		return fixedPointToUnit(xfp);
 	}
 
 	public int getXFP() {
-		return x;
+		return xfp;
 	}
 
 	public double getY() {
-		return fixedPointToUnit(y);
+		return fixedPointToUnit(yfp);
 	}
 
 	public int getYFP() {
-		return y;
+		return yfp;
 	}
 
 	public Rectangle toPixels() {
-		return new Rectangle(fixedPointToPixels(x), fixedPointToPixels(y), fixedPointToPixels(width),
-				fixedPointToPixels(height));
+		return new Rectangle(fixedPointToPixels(xfp), fixedPointToPixels(yfp), fixedPointToPixels(widthfp),
+				fixedPointToPixels(heightfp));
 	}
 
 	public MapRect add(MapPosition position) {
-		return new MapRect(x + position.x, y + position.y, width, height);
+		return new MapRect(xfp + position.xfp, yfp + position.yfp, widthfp, heightfp);
 	}
 
 	public MapRect rotate90() {
-		return new MapRect(-height - y, x, height, width);
+		return new MapRect(-heightfp - yfp, xfp, heightfp, widthfp);
 	}
 
 	public MapRect rotate180() {
-		return new MapRect(-width - x, -height - y, width, height);
+		return new MapRect(-widthfp - xfp, -heightfp - yfp, widthfp, heightfp);
 	}
 
 	public MapRect rotate270() {
-		return new MapRect(y, -width - x, height, width);
+		return new MapRect(yfp, -widthfp - xfp, heightfp, widthfp);
 	}
 
 	public MapRect transformMatrix(double mx1, double mx2, double my1, double my2) {
-		int sx1 = x;
-		int sy1 = y;
-		int sx2 = x + width;
-		int sy2 = y + height;
+		int sx1 = xfp;
+		int sy1 = yfp;
+		int sx2 = xfp + widthfp;
+		int sy2 = yfp + heightfp;
 
 		int dx1 = (int) (sx1 * mx1 + sy1 * mx2);
 		int dy1 = (int) (sx1 * my1 + sy1 * my2);
@@ -134,5 +132,10 @@ public class MapRect {
 		int width = Math.max(dx1, dx2) - x;
 		int height = Math.max(dy1, dy2) - y;
 		return new MapRect(x, y, width, height);
+	}
+
+	public MapRect expandUnit(double distance) {
+		int distFP = unitToFixedPoint(distance);
+		return new MapRect(xfp - distFP, yfp - distFP, widthfp + distFP * 2, heightfp + distFP * 2);
 	}
 }

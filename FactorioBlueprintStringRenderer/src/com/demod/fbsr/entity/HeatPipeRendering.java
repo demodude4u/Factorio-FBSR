@@ -5,16 +5,17 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-import javax.swing.Renderer;
-
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.EntityRendererFactory;
-import com.demod.fbsr.RenderUtils;
+import com.demod.fbsr.ImageDef;
+import com.demod.fbsr.Layer;
 import com.demod.fbsr.WorldMap;
-import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.fp.FPSpriteVariations;
+import com.demod.fbsr.map.MapEntity;
+import com.demod.fbsr.map.MapRenderable;
 
-public class HeatPipeRendering extends EntityRendererFactory<BSEntity> {
+public class HeatPipeRendering extends EntityRendererFactory {
+	private static final int VARIATION = 0;
 
 	public static final String[] heatPipeSpriteNameMapping = //
 			new String[/* bits WSEN */] { //
@@ -39,19 +40,18 @@ public class HeatPipeRendering extends EntityRendererFactory<BSEntity> {
 	private List<FPSpriteVariations> protoConnectionSprites;
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, BSEntity entity) {
+	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
 		int adjCode = 0;
 		adjCode |= ((heatPipeFacingMeFrom(Direction.NORTH, map, entity) ? 1 : 0) << 0);
 		adjCode |= ((heatPipeFacingMeFrom(Direction.EAST, map, entity) ? 1 : 0) << 1);
 		adjCode |= ((heatPipeFacingMeFrom(Direction.SOUTH, map, entity) ? 1 : 0) << 2);
 		adjCode |= ((heatPipeFacingMeFrom(Direction.WEST, map, entity) ? 1 : 0) << 3);
 
-		register.accept(RenderUtils.spriteRenderer(protoConnectionSprites.get(adjCode).createSprites(data, 0), entity,
-				drawBounds));
+		protoConnectionSprites.get(adjCode).defineSprites(entity.spriteRegister(register, Layer.OBJECT), VARIATION);
 	}
 
-	public boolean heatPipeFacingMeFrom(Direction direction, WorldMap map, BSEntity entity) {
-		return map.isHeatPipe(direction.offset(entity.position.createPoint()), direction.back());
+	public boolean heatPipeFacingMeFrom(Direction direction, WorldMap map, MapEntity entity) {
+		return map.isHeatPipe(direction.offset(entity.getPosition()), direction.back());
 	}
 
 	@Override
@@ -62,7 +62,12 @@ public class HeatPipeRendering extends EntityRendererFactory<BSEntity> {
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, BSEntity entity) {
-		map.setHeatPipe(entity.position.createPoint());
+	public void populateWorldMap(WorldMap map, MapEntity entity) {
+		map.setHeatPipe(entity.getPosition());
+	}
+
+	@Override
+	public void initAtlas(Consumer<ImageDef> register) {
+		protoConnectionSprites.forEach(fp -> fp.defineSprites(register, VARIATION));
 	}
 }

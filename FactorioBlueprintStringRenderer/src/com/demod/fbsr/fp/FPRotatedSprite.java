@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.FPUtils;
+import com.demod.fbsr.ImageDef;
 import com.demod.fbsr.SpriteDef;
 import com.google.common.collect.ImmutableList;
 
@@ -151,8 +152,8 @@ public class FPRotatedSprite extends FPSpriteParameters {
 		return index;
 	}
 
-	public List<SpriteDef> getDefs() {
-		return defs;
+	public void getDefs(Consumer<ImageDef> register) {
+		defs.forEach(register);
 	}
 
 }

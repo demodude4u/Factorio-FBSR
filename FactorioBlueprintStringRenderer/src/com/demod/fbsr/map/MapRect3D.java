@@ -34,11 +34,11 @@ public class MapRect3D {
 		boolean first = true;
 		int minX = 0, minY = 0, maxX = 0, maxY = 0, maxHeight = 0;
 		for (MapRect3D rect : rects) {
-			int x1 = rect.x1;
-			int y1 = rect.y1;
-			int x2 = rect.x2;
-			int y2 = rect.y2;
-			int height = rect.height;
+			int x1 = rect.x1fp;
+			int y1 = rect.y1fp;
+			int x2 = rect.x2fp;
+			int y2 = rect.y2fp;
+			int height = rect.heightfp;
 			if (first) {
 				first = false;
 				minX = x1;
@@ -57,120 +57,120 @@ public class MapRect3D {
 		return new MapRect3D(minX, minY, maxX, maxY, maxHeight);
 	}
 
-	final int x1;
-	final int y1;
-	final int x2;
-	final int y2;
-	final int height;
+	final int x1fp;
+	final int y1fp;
+	final int x2fp;
+	final int y2fp;
+	final int heightfp;
 
 	MapRect3D(int x1, int y1, int x2, int y2, int height) {
-		this.x1 = x1;
-		this.y1 = y1;
-		this.x2 = x2;
-		this.y2 = y2;
-		this.height = height;
+		this.x1fp = x1;
+		this.y1fp = y1;
+		this.x2fp = x2;
+		this.y2fp = y2;
+		this.heightfp = height;
 	}
 
 	public double getCenterX() {
-		return fixedPointToUnit((x1 + x2) / 2);
+		return fixedPointToUnit((x1fp + x2fp) / 2);
 	}
 
 	public double getCenterY() {
-		return fixedPointToUnit((y1 + y2) / 2);
+		return fixedPointToUnit((y1fp + y2fp) / 2);
 	}
 
 	public double getHeight() {
-		return fixedPointToUnit(height);
+		return fixedPointToUnit(heightfp);
 	}
 
 	public int getHeightFP() {
-		return height;
+		return heightfp;
 	}
 
 	public double getX1() {
-		return fixedPointToUnit(x1);
+		return fixedPointToUnit(x1fp);
 	}
 
 	public int getX1FP() {
-		return x1;
+		return x1fp;
 	}
 
 	public double getX2() {
-		return fixedPointToUnit(x2);
+		return fixedPointToUnit(x2fp);
 	}
 
 	public int getX2FP() {
-		return x2;
+		return x2fp;
 	}
 
 	public double getY1() {
-		return fixedPointToUnit(y1);
+		return fixedPointToUnit(y1fp);
 	}
 
 	public int getY1FP() {
-		return y1;
+		return y1fp;
 	}
 
 	public double getY2() {
-		return fixedPointToUnit(y2);
+		return fixedPointToUnit(y2fp);
 	}
 
 	public int getY2FP() {
-		return y2;
+		return y2fp;
 	}
 
 	public MapRect3D shiftUnit(double x, double y) {
 		int fpX = unitToFixedPoint(x);
 		int fpY = unitToFixedPoint(y);
-		return new MapRect3D(x1 + fpX, y1 + fpY, x2 + fpX, y2 + fpY, height);
+		return new MapRect3D(x1fp + fpX, y1fp + fpY, x2fp + fpX, y2fp + fpY, heightfp);
 	}
 
 	public MapRect3D shiftHeightUnit(double height) {
-		return new MapRect3D(x1, y1, x2, y2, this.height + unitToFixedPoint(height));
+		return new MapRect3D(x1fp, y1fp, x2fp, y2fp, this.heightfp + unitToFixedPoint(height));
 	}
 
 	public MapRect3D rotate90() {
-		return new MapRect3D(-y2, x1, -y1, x2, height);
+		return new MapRect3D(-y2fp, x1fp, -y1fp, x2fp, heightfp);
 	}
 
 	public MapRect3D rotate180() {
-		return new MapRect3D(-x2, -y2, -x1, -y1, height);
+		return new MapRect3D(-x2fp, -y2fp, -x1fp, -y1fp, heightfp);
 	}
 
 	public MapRect3D rotate270() {
-		return new MapRect3D(y1, -x2, y2, -x1, height);
+		return new MapRect3D(y1fp, -x2fp, y2fp, -x1fp, heightfp);
 	}
 
 	public MapRect3D transformMatrix(double mx1, double mx2, double my1, double my2) {
-		int dx1 = (int) (x1 * mx1 + y1 * mx2);
-		int dy1 = (int) (x1 * my1 + y1 * my2);
-		int dx2 = (int) (x2 * mx1 + y2 * mx2);
-		int dy2 = (int) (x2 * my1 + y2 * my2);
+		int dx1 = (int) (x1fp * mx1 + y1fp * mx2);
+		int dy1 = (int) (x1fp * my1 + y1fp * my2);
+		int dx2 = (int) (x2fp * mx1 + y2fp * mx2);
+		int dy2 = (int) (x2fp * my1 + y2fp * my2);
 
 		int minX = Math.min(dx1, dx2);
 		int minY = Math.min(dy1, dy2);
 		int maxX = Math.max(dx1, dx2);
 		int maxY = Math.max(dy1, dy2);
-		return new MapRect3D(minX, minY, maxX, maxY, height);
+		return new MapRect3D(minX, minY, maxX, maxY, heightfp);
 	}
 
 	public MapPosition getTopLeft() {
-		return new MapPosition(x1, y1);
+		return new MapPosition(x1fp, y1fp);
 	}
 
 	public MapPosition getTopRight() {
-		return new MapPosition(x2, y1);
+		return new MapPosition(x2fp, y1fp);
 	}
 
 	public MapPosition getBottomLeft() {
-		return new MapPosition(x1, y2);
+		return new MapPosition(x1fp, y2fp);
 	}
 
 	public MapPosition getBottomRight() {
-		return new MapPosition(x2, y2);
+		return new MapPosition(x2fp, y2fp);
 	}
 
 	public MapRect3D shift(MapPosition position) {
-		return new MapRect3D(x1 + position.x, y1 + position.y, x2 + position.x, y2 + position.y, height);
+		return new MapRect3D(x1fp + position.xfp, y1fp + position.yfp, x2fp + position.xfp, y2fp + position.yfp, heightfp);
 	}
 }

@@ -25,8 +25,8 @@ public class MapPosition {
 		boolean first = true;
 		int minX = 0, minY = 0, maxX = 0, maxY = 0;
 		for (MapPosition point : points) {
-			int x = point.x;
-			int y = point.y;
+			int x = point.xfp;
+			int y = point.yfp;
 			if (first) {
 				first = false;
 				minX = x;
@@ -44,16 +44,16 @@ public class MapPosition {
 	}
 
 	// Fixed-point, 8-bit precision
-	final int x;
-	final int y;
+	final int xfp;
+	final int yfp;
 
 	MapPosition(int x, int y) {
-		this.x = x;
-		this.y = y;
+		this.xfp = x;
+		this.yfp = y;
 	}
 
 	public MapPosition add(MapPosition position) {
-		return new MapPosition(x + position.x, y + position.y);
+		return new MapPosition(xfp + position.xfp, yfp + position.yfp);
 	}
 
 	public MapPosition addUnit(double x, double y) {
@@ -65,63 +65,75 @@ public class MapPosition {
 	}
 
 	public Point2D.Double createPoint2D() {
-		return new Point2D.Double(fixedPointToUnit(x), fixedPointToUnit(y));
+		return new Point2D.Double(fixedPointToUnit(xfp), fixedPointToUnit(yfp));
 	}
 
 	public double getX() {
-		return fixedPointToUnit(x);
+		return fixedPointToUnit(xfp);
 	}
 
 	public int getXCell() {
-		return truncate(x);
+		return truncate(xfp);
 	}
 
 	public int getXFP() {
-		return x;
+		return xfp;
 	}
 
 	public double getY() {
-		return fixedPointToUnit(y);
+		return fixedPointToUnit(yfp);
 	}
 
 	public int getYCell() {
-		return truncate(y);
+		return truncate(yfp);
 	}
 
 	public int getYFP() {
-		return y;
+		return yfp;
 	}
 
 	public MapPosition multiplyUnit(double value) {
-		return new MapPosition((int) (x * value), (int) (y * value));
+		return new MapPosition((int) (xfp * value), (int) (yfp * value));
 	}
 
 	public MapPosition multiplyUnitAdd(double value, MapPosition position) {
-		return new MapPosition((int) (x * value) + position.x, (int) (y * value) + position.y);
+		return new MapPosition((int) (xfp * value) + position.xfp, (int) (yfp * value) + position.yfp);
 	}
 
 	public MapPosition rotate180() {
-		return new MapPosition(-x, -y);
+		return new MapPosition(-xfp, -yfp);
 	}
 
 	public MapPosition rotate270() {
-		return new MapPosition(y, -x);
+		return new MapPosition(yfp, -xfp);
 	}
 
 	public MapPosition rotate90() {
-		return new MapPosition(-y, x);
+		return new MapPosition(-yfp, xfp);
 	}
 
 	public Point toPixels() {
-		return new Point(fixedPointToPixels(x), fixedPointToPixels(y));
+		return new Point(fixedPointToPixels(xfp), fixedPointToPixels(yfp));
 	}
 
 	public MapPosition transformMatrix(double mx1, double mx2, double my1, double my2) {
-		return new MapPosition((int) (x * mx1 + y * mx2), (int) (x * my1 + y * my2));
+		return new MapPosition((int) (xfp * mx1 + yfp * mx2), (int) (xfp * my1 + yfp * my2));
 	}
 
 	public static MapPosition convert(FPVector v) {
 		return byUnit(v.x, v.y);
+	}
+
+	public static MapPosition convert(Point2D.Double p) {
+		return byUnit(p.x, p.y);
+	}
+
+	public MapPosition multiplyUnit(double x, double y) {
+		return new MapPosition((int) (this.xfp * x), (int) (this.yfp * y));
+	}
+
+	public MapPosition sub(MapPosition position) {
+		return new MapPosition(xfp - position.xfp, yfp - position.yfp);
 	}
 
 }

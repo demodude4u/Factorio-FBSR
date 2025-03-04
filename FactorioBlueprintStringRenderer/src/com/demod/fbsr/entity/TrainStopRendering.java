@@ -3,47 +3,21 @@ package com.demod.fbsr.entity;
 import java.awt.Color;
 import java.awt.geom.Point2D;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Consumer;
 
 import javax.swing.Renderer;
 
-import org.json.JSONObject;
-
 import com.demod.factorio.Utils;
 import com.demod.factorio.fakelua.LuaTable;
-import com.demod.fbsr.BSUtils;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Sprite;
 import com.demod.fbsr.WorldMap;
-import com.demod.fbsr.bs.BSColor;
-import com.demod.fbsr.bs.BSEntity;
-import com.demod.fbsr.entity.TrainStopRendering.BSTrainStopEntity;
+import com.demod.fbsr.bs.entity.BSTrainStopEntity;
 import com.demod.fbsr.fp.FPAnimation4Way;
-import com.demod.fbsr.legacy.LegacyBlueprintEntity;
 
 public class TrainStopRendering extends SimpleEntityRendering<BSTrainStopEntity> {
-
-	public static class BSTrainStopEntity extends BSEntity {
-		public final Optional<BSColor> color;
-		public final Optional<String> station;
-
-		public BSTrainStopEntity(JSONObject json) {
-			super(json);
-
-			color = BSUtils.opt(json, "color", BSColor::new);
-			station = BSUtils.optString(json, "station");
-		}
-
-		public BSTrainStopEntity(LegacyBlueprintEntity legacy) {
-			super(legacy);
-
-			color = BSUtils.opt(legacy.json(), "color", BSColor::new);
-			station = BSUtils.optString(legacy.json(), "station");
-		}
-	}
 
 	private FPAnimation4Way protoRailOverlayAnimations;
 	private FPAnimation4Way protoAnimations;

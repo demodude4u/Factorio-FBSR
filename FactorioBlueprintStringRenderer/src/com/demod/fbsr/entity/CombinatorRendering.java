@@ -8,31 +8,32 @@ import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-import javax.swing.Renderer;
-
 import com.demod.factorio.fakelua.LuaTable;
 import com.demod.fbsr.FPUtils;
-import com.demod.fbsr.RenderUtils;
+import com.demod.fbsr.ImageDef;
+import com.demod.fbsr.Layer;
+import com.demod.fbsr.SpriteDef;
 import com.demod.fbsr.WirePoints;
 import com.demod.fbsr.WirePoints.WireColor;
 import com.demod.fbsr.WorldMap;
-import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.fp.FPSprite4Way;
 import com.demod.fbsr.fp.FPWireConnectionPoint;
+import com.demod.fbsr.map.MapEntity;
+import com.demod.fbsr.map.MapRenderable;
 
-public abstract class CombinatorRendering<E extends BSEntity> extends SimpleEntityRendering<E> {
+public abstract class CombinatorRendering extends SimpleEntityRendering {
 
 	private Map<String, FPSprite4Way> protoOperationSprites;
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, E entity) {
+	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
 		super.createRenderers(register, map, entity);
 
 		Optional<String> operation = getOperation(entity);
 		if (operation.isPresent()) {
-			register.accept(RenderUtils.spriteRenderer(
-					protoOperationSprites.get(operation.get()).createSprites(data, entity.direction), entity,
-					drawBounds));
+			Consumer<SpriteDef> spriteRegister = entity.spriteRegister(register, Layer.OBJECT);
+
+			protoOperationSprites.get(operation.get()).defineSprites(spriteRegister, entity.getDirection());
 		}
 	}
 
@@ -56,7 +57,7 @@ public abstract class CombinatorRendering<E extends BSEntity> extends SimpleEnti
 		consumer.accept(4, WirePoints.fromWireConnectionPoints(protoOutputConnectionPoints, WireColor.GREEN, false));
 	}
 
-	public abstract Optional<String> getOperation(E entity);
+	public abstract Optional<String> getOperation(MapEntity entity);
 
 	@Override
 	public void initFromPrototype() {
@@ -68,6 +69,13 @@ public abstract class CombinatorRendering<E extends BSEntity> extends SimpleEnti
 		for (Entry<String, String> entry : operations.entrySet()) {
 			protoOperationSprites.put(entry.getKey(), new FPSprite4Way(prototype.lua().get(entry.getValue())));
 		}
+	}
+
+	@Override
+	public void initAtlas(Consumer<ImageDef> register) {
+		super.initAtlas(register);
+
+		protoOperationSprites.values().forEach(fp -> fp.getDefs().forEach(l -> l.forEach(register)));
 	}
 
 }

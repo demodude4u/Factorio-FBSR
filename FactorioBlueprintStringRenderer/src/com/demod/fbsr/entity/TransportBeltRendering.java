@@ -8,10 +8,7 @@ import java.util.function.Consumer;
 
 import javax.swing.Renderer;
 
-import org.json.JSONObject;
-
 import com.demod.factorio.fakelua.LuaValue;
-import com.demod.fbsr.BSUtils;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.RenderUtils;
@@ -19,31 +16,10 @@ import com.demod.fbsr.Sprite;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.WorldMap.BeltBend;
 import com.demod.fbsr.WorldMap.BeltCell;
-import com.demod.fbsr.bs.BSControlBehavior;
-import com.demod.fbsr.bs.BSEntity;
-import com.demod.fbsr.entity.TransportBeltRendering.BSTransportBeltEntity;
+import com.demod.fbsr.bs.entity.BSTransportBeltEntity;
 import com.demod.fbsr.fp.FPAnimationVariations;
-import com.demod.fbsr.legacy.LegacyBlueprintEntity;
 
 public class TransportBeltRendering extends TransportBeltConnectableRendering<BSTransportBeltEntity> {
-
-	public static class BSTransportBeltEntity extends BSEntity {
-		public final Optional<BSControlBehavior> controlBehavior;
-
-		public BSTransportBeltEntity(JSONObject json) {
-			super(json);
-
-			controlBehavior = BSUtils.opt(json, "control_behavior", BSControlBehavior::new);
-		}
-
-		public BSTransportBeltEntity(LegacyBlueprintEntity legacy) {
-			super(legacy);
-
-			// TODO need to figure out what is important here
-			// constructing with empty json object on purpose
-			controlBehavior = BSUtils.opt(legacy.json(), "connections", j -> new BSControlBehavior(new JSONObject()));
-		}
-	}
 
 	private FPAnimationVariations protoConnectorFrameMain;
 	private FPAnimationVariations protoConnectorFrameShadow;

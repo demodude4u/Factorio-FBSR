@@ -3,13 +3,13 @@ package com.demod.fbsr.entity;
 import java.awt.Color;
 import java.util.function.Consumer;
 
-import javax.swing.Renderer;
-
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Sprite;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.bs.BSEntity;
+import com.demod.fbsr.map.MapEntity;
+import com.demod.fbsr.map.MapRenderable;
 
 public class SpiderVehicleRendering extends EntityRendererFactory<BSEntity> {
 
@@ -17,7 +17,7 @@ public class SpiderVehicleRendering extends EntityRendererFactory<BSEntity> {
 	private String protoIcon;
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, BSEntity entity) {
+	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
 
 		// XXX this is hard-coded and wrong
 		Sprite sprite = RenderUtils.createSprite(data, protoIcon, false, "normal", Color.white, 0, 0, 64, 64, -1, -1,

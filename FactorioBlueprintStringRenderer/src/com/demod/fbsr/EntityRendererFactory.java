@@ -153,7 +153,7 @@ public abstract class EntityRendererFactory {
 			for (String itemName : renderModules) {
 				Optional<BufferedImage> image = TagManager.lookup("item", itemName);
 				if (image.isPresent()) {
-					register.accept(new MapIcon(MapPosition.byUnit(x, y), image.get(), 0.5, 0.05));
+					register.accept(new MapIcon(MapPosition.byUnit(x, y), image.get(), 0.5, 0.05, true));
 					x += 0.7;
 				}
 			}
@@ -193,7 +193,7 @@ public abstract class EntityRendererFactory {
 				for (String itemName : renderModules) {
 					Optional<BufferedImage> image = TagManager.lookup("item", itemName);
 					if (image.isPresent()) {
-						register.accept(new MapIcon(MapPosition.byUnit(x, y), image.get(), 0.25, 0.025));
+						register.accept(new MapIcon(MapPosition.byUnit(x, y), image.get(), 0.25, 0.025, true));
 						x += 0.3;
 					}
 				}

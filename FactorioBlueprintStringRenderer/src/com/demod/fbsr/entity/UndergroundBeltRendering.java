@@ -2,43 +2,21 @@ package com.demod.fbsr.entity;
 
 import java.awt.geom.Point2D;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Consumer;
 
 import javax.swing.Renderer;
 
-import org.json.JSONObject;
-
 import com.demod.factorio.fakelua.LuaValue;
-import com.demod.fbsr.BSUtils;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.Sprite;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.WorldMap.BeltBend;
-import com.demod.fbsr.bs.BSEntity;
-import com.demod.fbsr.entity.UndergroundBeltRendering.BSUndergroundBeltEntity;
+import com.demod.fbsr.bs.entity.BSUndergroundBeltEntity;
 import com.demod.fbsr.fp.FPSprite4Way;
-import com.demod.fbsr.legacy.LegacyBlueprintEntity;
 
 public class UndergroundBeltRendering extends TransportBeltConnectableRendering<BSUndergroundBeltEntity> {
-
-	public static class BSUndergroundBeltEntity extends BSEntity {
-		public final Optional<String> type;
-
-		public BSUndergroundBeltEntity(JSONObject json) {
-			super(json);
-
-			type = BSUtils.optString(json, "type");
-		}
-
-		public BSUndergroundBeltEntity(LegacyBlueprintEntity legacy) {
-			super(legacy);
-
-			type = BSUtils.optString(legacy.json(), "type");
-		}
-	}
 
 	private FPSprite4Way protoStructureDirectionIn;
 	private FPSprite4Way protoStructureDirectionOut;

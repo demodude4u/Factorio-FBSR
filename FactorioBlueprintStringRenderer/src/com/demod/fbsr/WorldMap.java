@@ -12,7 +12,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 
-import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapPosition;
 import com.google.common.collect.HashBasedTable;
@@ -274,7 +273,7 @@ public class WorldMap {
 	private final Table<Integer, Integer, Boolean> gates = HashBasedTable.create();
 	private final Table<Integer, Integer, Entry<String, Direction>> undergroundBeltEndings = HashBasedTable.create();
 	private final Table<Integer, Integer, List<BeaconSource>> beaconed = HashBasedTable.create();
-	private final Table<Integer, Integer, BSEntity> cargoBayConnectables = HashBasedTable.create();
+	private final Table<Integer, Integer, MapEntity> cargoBayConnectables = HashBasedTable.create();
 
 	// Row: X*2
 	// Column: Y*2
@@ -455,7 +454,7 @@ public class WorldMap {
 		belts.put(pos.getXCell(), pos.getYCell(), new BeltCell(facing, bendable, bendOthers));
 	}
 
-	public void setCargoBayConnectable(MapPosition pos, BSEntity entity) {
+	public void setCargoBayConnectable(MapPosition pos, MapEntity entity) {
 		cargoBayConnectables.put(pos.getXCell(), pos.getYCell(), entity);
 	}
 

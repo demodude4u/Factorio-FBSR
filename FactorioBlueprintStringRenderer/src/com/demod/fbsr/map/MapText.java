@@ -30,8 +30,8 @@ public class MapText extends MapRenderable {
 			AffineTransform pat = g.getTransform();
 
 			g.setFont(font);
-			float textX = position.x;
-			float textY = position.y;
+			float textX = position.xfp;
+			float textY = position.yfp;
 
 			g.translate(textX, textY);
 			g.rotate(angle);

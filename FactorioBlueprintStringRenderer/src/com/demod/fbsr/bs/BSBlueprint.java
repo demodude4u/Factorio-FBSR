@@ -9,8 +9,8 @@ import org.json.JSONObject;
 
 import com.demod.factorio.Utils;
 import com.demod.fbsr.BSUtils;
-import com.demod.fbsr.MapVersion;
 import com.demod.fbsr.legacy.LegacyBlueprint;
+import com.demod.fbsr.map.MapVersion;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 

@@ -4,6 +4,7 @@ import java.util.Optional;
 import java.util.function.Consumer;
 
 import com.demod.fbsr.EntityRendererFactory;
+import com.demod.fbsr.ImageDef;
 import com.demod.fbsr.WirePoints.WirePoint;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.map.MapEntity;
@@ -38,6 +39,10 @@ public class ErrorRendering extends EntityRendererFactory {
 
 	@Override
 	public void populateWorldMap(WorldMap map, MapEntity entity) {
+	}
+
+	@Override
+	public void initAtlas(Consumer<ImageDef> register) {
 	}
 
 }
