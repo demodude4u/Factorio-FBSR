@@ -3,8 +3,6 @@ package com.demod.fbsr.fp;
 import java.awt.Rectangle;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Consumer;
-import java.util.stream.IntStream;
 
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.ImageDef;

@@ -4,7 +4,7 @@ import com.demod.factorio.fakelua.LuaTable;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.bs.BSEntity;
 
-public class PipeToGroundRendering extends SimpleEntityRendering<BSEntity> {
+public class PipeToGroundRendering extends SimpleEntityRendering {
 	@Override
 	public void defineEntity(Bindings bind, LuaTable lua) {
 		bind.sprite4Way(lua.get("pictures"));

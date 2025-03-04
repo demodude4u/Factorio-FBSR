@@ -3,9 +3,10 @@ package com.demod.fbsr.entity;
 import java.awt.Color;
 import java.util.function.Consumer;
 
+import javax.swing.Renderer;
+
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.RenderUtils;
-import com.demod.fbsr.Renderer;
 import com.demod.fbsr.Sprite;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.bs.BSEntity;

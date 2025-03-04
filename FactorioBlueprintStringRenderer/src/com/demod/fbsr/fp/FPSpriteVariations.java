@@ -7,6 +7,7 @@ import java.util.function.Consumer;
 
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.FPUtils;
+import com.demod.fbsr.ImageDef;
 import com.demod.fbsr.SpriteDef;
 
 public class FPSpriteVariations {
@@ -28,7 +29,7 @@ public class FPSpriteVariations {
 		}
 	}
 
-	public void defineSprites(Consumer<SpriteDef> consumer, int variation) {
+	public void defineSprites(Consumer<? super SpriteDef> consumer, int variation) {
 		if (sheet.isPresent()) {
 			sheet.get().defineSprites(consumer, variation);
 
@@ -52,5 +53,12 @@ public class FPSpriteVariations {
 		}
 
 		return 0;
+	}
+
+	public void getDefs(Consumer<ImageDef> register) {
+		int variationCount = getVariationCount();
+		for (int variation = 0; variation < variationCount; variation++) {
+			defineSprites(register, variation);
+		}
 	}
 }

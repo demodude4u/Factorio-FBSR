@@ -1,9 +1,8 @@
 package com.demod.fbsr.entity;
 
 import com.demod.factorio.fakelua.LuaTable;
-import com.demod.fbsr.bs.BSEntity;
 
-public class OffshorePumpRendering extends SimpleEntityRendering<BSEntity> {
+public class OffshorePumpRendering extends SimpleEntityRendering {
 	@Override
 	public void defineEntity(Bindings bind, LuaTable lua) {
 		bind.animation4Way(lua.get("graphics_set").get("animation"));

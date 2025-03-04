@@ -7,7 +7,6 @@ import java.util.function.Consumer;
 
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.FPUtils;
-import com.demod.fbsr.LayeredSpriteDef;
 import com.demod.fbsr.SpriteDef;
 
 public class FPSprite extends FPSpriteParameters {

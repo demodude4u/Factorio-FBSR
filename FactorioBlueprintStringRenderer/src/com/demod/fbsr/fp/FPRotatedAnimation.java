@@ -10,6 +10,7 @@ import java.util.function.Consumer;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.FactorioManager;
+import com.demod.fbsr.ImageDef;
 import com.demod.fbsr.SpriteDef;
 import com.google.common.collect.ImmutableList;
 
@@ -104,12 +105,12 @@ public class FPRotatedAnimation extends FPAnimationParameters {
 		return ImmutableList.of();
 	}
 
-	public void defineSprites(Consumer<SpriteDef> consumer, double orientation, int frame) {
+	public void defineSprites(Consumer<? super SpriteDef> consumer, double orientation, int frame) {
 		int index = getIndex(orientation);
 		defineSprites(consumer, index, frame);
 	}
 
-	public void defineSprites(Consumer<SpriteDef> consumer, int index, int frame) {
+	public void defineSprites(Consumer<? super SpriteDef> consumer, int index, int frame) {
 		if (layers.isPresent()) {
 			for (FPRotatedAnimation animation : layers.get()) {
 				animation.defineSprites(consumer, index, frame);
@@ -162,4 +163,9 @@ public class FPRotatedAnimation extends FPAnimationParameters {
 		return index;
 	}
 
+	public void getDefs(Consumer<ImageDef> consumer, int frame) {
+		for (int index = 0; index < directionCount; index++) {
+			defineSprites(consumer, index, frame);
+		}
+	}
 }

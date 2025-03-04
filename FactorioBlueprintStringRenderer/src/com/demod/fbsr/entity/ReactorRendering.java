@@ -6,7 +6,7 @@ import com.demod.fbsr.Direction;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.bs.BSEntity;
 
-public class ReactorRendering extends SimpleEntityRendering<BSEntity> {
+public class ReactorRendering extends SimpleEntityRendering {
 	@Override
 	public void defineEntity(Bindings bind, LuaTable lua) {
 		LuaValue luaLowerLayerPicture = lua.get("lower_layer_picture");

@@ -37,7 +37,7 @@ public class FPAnimationVariations {
 		}
 	}
 
-	public void defineSprites(Consumer<SpriteDef> consumer, int variation, int frame) {
+	public void defineSprites(Consumer<? super SpriteDef> consumer, int variation, int frame) {
 		if (sheets.isPresent()) {
 			// Not sure if variation per sheet or acting as layers
 			sheets.get().forEach(s -> s.defineSprites(consumer, variation, frame));

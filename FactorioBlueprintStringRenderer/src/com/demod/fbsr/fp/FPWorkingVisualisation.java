@@ -29,7 +29,7 @@ public class FPWorkingVisualisation {
 		westAnimation = FPUtils.opt(lua.get("west_animation"), FPAnimation::new).or(() -> animation);
 	}
 
-	public void defineSprites(Consumer<SpriteDef> consumer, Direction direction, int frame) {
+	public void defineSprites(Consumer<? super SpriteDef> consumer, Direction direction, int frame) {
 		ImmutableList.of(northAnimation, eastAnimation, southAnimation, westAnimation).get(direction.cardinal())
 				.ifPresent(animation -> {
 					animation.defineSprites(consumer, frame);

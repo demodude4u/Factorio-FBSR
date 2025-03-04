@@ -2,9 +2,8 @@ package com.demod.fbsr.entity;
 
 import com.demod.factorio.fakelua.LuaTable;
 import com.demod.fbsr.Layer;
-import com.demod.fbsr.bs.BSEntity;
 
-public class RocketSiloRendering extends SimpleEntityRendering<BSEntity> {
+public class RocketSiloRendering extends SimpleEntityRendering {
 	@Override
 	public void defineEntity(Bindings bind, LuaTable lua) {
 		bind.animation(lua.get("satellite_animation"));

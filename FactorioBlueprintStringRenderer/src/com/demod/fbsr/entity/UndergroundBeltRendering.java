@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 
+import javax.swing.Renderer;
+
 import org.json.JSONObject;
 
 import com.demod.factorio.fakelua.LuaValue;
@@ -12,7 +14,6 @@ import com.demod.fbsr.BSUtils;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.RenderUtils;
-import com.demod.fbsr.Renderer;
 import com.demod.fbsr.Sprite;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.WorldMap.BeltBend;

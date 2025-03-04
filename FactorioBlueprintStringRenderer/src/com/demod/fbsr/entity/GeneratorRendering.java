@@ -2,14 +2,15 @@ package com.demod.fbsr.entity;
 
 import java.util.function.Consumer;
 
+import javax.swing.Renderer;
+
 import com.demod.factorio.fakelua.LuaTable;
 import com.demod.fbsr.RenderUtils;
-import com.demod.fbsr.Renderer;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.fp.FPAnimation;
 
-public class GeneratorRendering extends SimpleEntityRendering<BSEntity> {
+public class GeneratorRendering extends SimpleEntityRendering {
 
 	private FPAnimation protoVerticalAnimation;
 	private FPAnimation protoHorizontalAnimation;
@@ -28,7 +29,7 @@ public class GeneratorRendering extends SimpleEntityRendering<BSEntity> {
 	}
 
 	@Override
-	public void defineEntity(SimpleEntityRendering<BSEntity>.Bindings bind, LuaTable lua) {
+	public void defineEntity(SimpleEntityRendering.Bindings bind, LuaTable lua) {
 		bind.fluidBox(lua.get("fluid_box"));
 	}
 

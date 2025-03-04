@@ -58,7 +58,7 @@ public class FPAnimationSheet extends FPAnimationParameters {
 		return defs;
 	}
 
-	public void defineSprites(Consumer<SpriteDef> consumer, int variation, int frame) {
+	public void defineSprites(Consumer<? super SpriteDef> consumer, int variation, int frame) {
 		frame = variation * lineLength + frame;
 		consumer.accept(defs.get(frame));
 	}

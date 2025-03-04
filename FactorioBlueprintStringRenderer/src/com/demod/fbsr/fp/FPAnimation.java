@@ -83,7 +83,7 @@ public class FPAnimation extends FPAnimationParameters {
 		return ImmutableList.of();
 	}
 
-	public void defineSprites(Consumer<SpriteDef> consumer, int frame) {
+	public void defineSprites(Consumer<? super SpriteDef> consumer, int frame) {
 		if (layers.isPresent()) {
 			for (FPAnimation animation : layers.get()) {
 				animation.defineSprites(consumer, frame);
@@ -102,5 +102,9 @@ public class FPAnimation extends FPAnimationParameters {
 		List<SpriteDef> ret = new ArrayList<>();
 		defineSprites(ret::add, frame);
 		return ret;
+	}
+
+	public List<List<SpriteDef>> getDefs() {
+		return defs;
 	}
 }

@@ -10,26 +10,26 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import javax.swing.Renderer;
+
 import com.demod.factorio.Utils;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.RenderUtils;
-import com.demod.fbsr.Renderer;
 import com.demod.fbsr.SpriteWithLayer;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.bs.BSPosition;
 import com.demod.fbsr.fp.FPAnimation;
-import com.demod.fbsr.fp.FPBoundingBox;
 import com.demod.fbsr.fp.FPLayeredSprite;
 import com.demod.fbsr.fp.FPLayeredSpriteVariations;
 import com.demod.fbsr.fp.FPVector;
 import com.demod.fbsr.map.MapRect3D;
 
 //Not a real prototype, but to render cargo bay connection tilings
-public abstract class CargoBayConnectionsRendering extends SimpleEntityRendering<BSEntity> {
+public abstract class CargoBayConnectionsRendering extends SimpleEntityRendering {
 
 	private static class ElCon {
 		public final ElType type;

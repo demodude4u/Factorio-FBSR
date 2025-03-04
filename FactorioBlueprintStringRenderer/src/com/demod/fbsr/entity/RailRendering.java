@@ -3,13 +3,14 @@ package com.demod.fbsr.entity;
 import java.util.Optional;
 import java.util.function.Consumer;
 
+import javax.swing.Renderer;
+
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.RenderUtils;
-import com.demod.fbsr.Renderer;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.fp.FPSpriteVariations;

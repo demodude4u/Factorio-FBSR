@@ -8,6 +8,7 @@ import java.util.function.Consumer;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.FPUtils;
+import com.demod.fbsr.ImageDef;
 import com.demod.fbsr.SpriteDef;
 import com.google.common.collect.ImmutableList;
 
@@ -24,6 +25,8 @@ public class FPRotatedAnimation8Way {
 	public final Optional<FPRotatedAnimation> northWest;
 
 	public final Optional<FPRotatedAnimation> animation;
+
+	private List<Optional<FPRotatedAnimation>> directional;
 
 	public FPRotatedAnimation8Way(LuaValue lua) {
 		north = FPUtils.opt(lua.get("north"), FPRotatedAnimation::new);
@@ -48,16 +51,16 @@ public class FPRotatedAnimation8Way {
 			animation = FPUtils.opt(lua, FPRotatedAnimation::new);
 		} else {
 			animation = Optional.empty();
+			directional = ImmutableList.of(this.north, this.northEast, this.east, this.southEast, this.south,
+					this.southWest, this.west, this.northWest);
 		}
 	}
 
-	public void defineSprites(Consumer<SpriteDef> consumer, Direction direction, double orientation,
+	public void defineSprites(Consumer<? super SpriteDef> consumer, Direction direction, double orientation,
 			int frame) {
 		if (animation.isPresent()) {
 			animation.get().defineSprites(consumer, orientation, frame);
 		} else {
-			List<Optional<FPRotatedAnimation>> directional = ImmutableList.of(north, northEast, east, southEast, south,
-					southWest, west, northWest);
 			directional.get(direction.ordinal()).get().defineSprites(consumer, orientation, frame);
 		}
 	}
@@ -66,6 +69,30 @@ public class FPRotatedAnimation8Way {
 		List<SpriteDef> ret = new ArrayList<>();
 		defineSprites(ret::add, direction, orientation, frame);
 		return ret;
+	}
+
+	public void getDefs(Consumer<ImageDef> register, Direction direction, int frame) {
+		if (animation.isPresent()) {
+			animation.get().getDefs(register, frame);
+		} else {
+			directional.get(direction.ordinal()).get().getDefs(register, frame);
+		}
+	}
+
+	public void getDefs(Consumer<ImageDef> register, double orientation, int frame) {
+		if (animation.isPresent()) {
+			animation.get().defineSprites(register, orientation, frame);
+		} else {
+			directional.forEach(fp -> fp.get().defineSprites(register, orientation, frame));
+		}
+	}
+
+	public void getDefs(Consumer<ImageDef> register, int frame) {
+		if (animation.isPresent()) {
+			animation.get().getDefs(register, frame);
+		} else {
+			directional.forEach(fp -> fp.get().getDefs(register, frame));
+		}
 	}
 
 }

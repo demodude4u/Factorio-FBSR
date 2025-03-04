@@ -8,6 +8,7 @@ import java.util.function.Consumer;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.FPUtils;
+import com.demod.fbsr.ImageDef;
 import com.demod.fbsr.SpriteDef;
 import com.google.common.collect.ImmutableList;
 
@@ -42,7 +43,7 @@ public class FPAnimation4Way {
 		}
 	}
 
-	public void defineSprites(Consumer<SpriteDef> consumer, Direction direction, int frame) {
+	public void defineSprites(Consumer<? super SpriteDef> consumer, Direction direction, int frame) {
 		if (animation.isPresent()) {
 			animation.get().defineSprites(consumer, frame);
 		} else {
@@ -58,4 +59,9 @@ public class FPAnimation4Way {
 		return ret;
 	}
 
+	public void getDefs(Consumer<ImageDef> register, int frame) {
+		for (Direction direction : Direction.values()) {
+			defineSprites(register, direction, frame);
+		}
+	}
 }

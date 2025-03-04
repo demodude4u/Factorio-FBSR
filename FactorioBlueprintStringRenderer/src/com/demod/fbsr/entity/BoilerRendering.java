@@ -4,19 +4,20 @@ import java.awt.geom.Point2D;
 import java.util.List;
 import java.util.function.Consumer;
 
+import javax.swing.Renderer;
+
 import com.demod.factorio.FactorioData;
 import com.demod.factorio.fakelua.LuaTable;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.RenderUtils;
-import com.demod.fbsr.Renderer;
 import com.demod.fbsr.Sprite;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.fp.FPAnimation;
 import com.google.common.collect.ImmutableList;
 
-public class BoilerRendering extends SimpleEntityRendering<BSEntity> {
+public class BoilerRendering extends SimpleEntityRendering {
 
 	public static class FPBoilerPictures {
 		public final FPAnimation structure;

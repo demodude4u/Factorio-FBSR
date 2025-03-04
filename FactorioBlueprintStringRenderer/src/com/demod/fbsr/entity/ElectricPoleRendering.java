@@ -7,13 +7,14 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+import javax.swing.Renderer;
+
 import com.demod.factorio.fakelua.LuaTable;
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.FBSR.EntityRenderingTuple;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.RenderUtils;
-import com.demod.fbsr.Renderer;
 import com.demod.fbsr.WirePoints;
 import com.demod.fbsr.WirePoints.WireColor;
 import com.demod.fbsr.WorldMap;

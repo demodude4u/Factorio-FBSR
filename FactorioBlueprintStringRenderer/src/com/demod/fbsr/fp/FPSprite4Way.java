@@ -70,7 +70,7 @@ public class FPSprite4Way {
 		return defs;
 	}
 
-	public void defineSprites(Consumer<SpriteDef> consumer, Direction direction) {
+	public void defineSprites(Consumer<? super SpriteDef> consumer, Direction direction) {
 		defs.get((defs.size() == 1) ? 0 : direction.cardinal()).forEach(consumer);
 	}
 

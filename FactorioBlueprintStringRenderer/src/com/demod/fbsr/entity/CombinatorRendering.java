@@ -8,10 +8,11 @@ import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
+import javax.swing.Renderer;
+
 import com.demod.factorio.fakelua.LuaTable;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.RenderUtils;
-import com.demod.fbsr.Renderer;
 import com.demod.fbsr.WirePoints;
 import com.demod.fbsr.WirePoints.WireColor;
 import com.demod.fbsr.WorldMap;

@@ -27,7 +27,7 @@ public class FPLayeredSprite extends FPSprite {
 		}
 	}
 
-	public void defineLayeredSprites(Consumer<LayeredSpriteDef> consumer) {
+	public void defineLayeredSprites(Consumer<? super LayeredSpriteDef> consumer) {
 		if (array.isPresent()) {
 			for (FPLayeredSprite item : array.get()) {
 				item.defineLayeredSprites(consumer);

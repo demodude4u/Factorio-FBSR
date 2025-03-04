@@ -71,7 +71,7 @@ public class FPSpriteSheet extends FPSpriteParameters {
 		return defs;
 	}
 
-	public void defineSprites(Consumer<SpriteDef> consumer, int frame) {
+	public void defineSprites(Consumer<? super SpriteDef> consumer, int frame) {
 		if (layers.isPresent()) {
 			for (FPSpriteSheet animation : layers.get()) {
 				animation.defineSprites(consumer, frame);

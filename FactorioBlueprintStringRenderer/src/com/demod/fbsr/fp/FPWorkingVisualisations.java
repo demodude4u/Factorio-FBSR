@@ -10,6 +10,7 @@ import org.json.JSONObject;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.FPUtils;
+import com.demod.fbsr.ImageDef;
 import com.demod.fbsr.SpriteDef;
 import com.google.common.collect.ImmutableList;
 
@@ -55,7 +56,7 @@ public class FPWorkingVisualisations {
 		});
 	}
 
-	public void defineSprites(Consumer<SpriteDef> consumer, Direction direction, int frame) {
+	public void defineSprites(Consumer<? super SpriteDef> consumer, Direction direction, int frame) {
 		animation.ifPresent(animation -> animation.defineSprites(consumer, direction, frame));
 		workingVisualisations.ifPresent(list -> {
 			for (Optional<FPWorkingVisualisation> workingVisualisation : list) {
@@ -74,5 +75,11 @@ public class FPWorkingVisualisations {
 		List<SpriteDef> ret = new ArrayList<>();
 		defineSprites(ret::add, direction, frame);
 		return ret;
+	}
+
+	public void getDefs(Consumer<ImageDef> register, int frame) {
+		for (Direction direction : Direction.cardinals()) {
+			defineSprites(register, direction, frame);
+		}
 	}
 }

@@ -2,13 +2,9 @@ package com.demod.fbsr.fp;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Consumer;
 
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.FPUtils;
-import com.demod.fbsr.ImageDef;
-import com.demod.fbsr.TileRendererFactory.TileRenderProcessMain;
-import com.demod.fbsr.TileRendererFactory.TileRenderProcessMaterial;
 
 public class FPTileTransitionsVariants {
 	public final List<FPTileMainPictures> main;
