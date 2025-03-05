@@ -42,8 +42,8 @@ public class FPAnimationSheet extends FPAnimationParameters {
 				int x = width * (fileFrame % lineLength);
 				int y = height * (fileFrame / lineLength);
 
-				defs.add(SpriteDef.fromFP(filenames.get().get(fileIndex), drawAsShadow, blendMode, getEffectiveTint(),
-						x, y, width, height, shift.x, shift.y, scale));
+				defs.add(SpriteDef.fromFP(filenames.get().get(fileIndex), drawAsShadow, blendMode, tint, x, y, width,
+						height, shift.x, shift.y, scale));
 			}
 			return defs;
 		}
@@ -52,8 +52,8 @@ public class FPAnimationSheet extends FPAnimationParameters {
 			int x = width * (frame % lineLength);
 			int y = height * (frame / lineLength);
 
-			defs.add(SpriteDef.fromFP(filename.get(), drawAsShadow, blendMode, getEffectiveTint(), x, y, width, height,
-					shift.x, shift.y, scale));
+			defs.add(SpriteDef.fromFP(filename.get(), drawAsShadow, blendMode, tint, x, y, width, height, shift.x,
+					shift.y, scale));
 		}
 		return defs;
 	}

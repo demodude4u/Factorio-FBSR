@@ -1,27 +1,13 @@
 package com.demod.fbsr.entity;
 
-import java.awt.Color;
-import java.awt.Graphics2D;
-import java.awt.Rectangle;
-import java.awt.geom.AffineTransform;
-import java.awt.geom.Path2D;
-import java.awt.geom.Point2D;
-import java.awt.geom.Point2D.Double;
-import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
-import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 
-import javax.swing.Renderer;
-
-import com.demod.factorio.prototype.ItemPrototype;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.FPUtils;
-import com.demod.fbsr.FactorioManager;
+import com.demod.fbsr.ImageDef;
 import com.demod.fbsr.Layer;
-import com.demod.fbsr.RenderUtils;
-import com.demod.fbsr.Sprite;
 import com.demod.fbsr.SpriteDef;
 import com.demod.fbsr.TagManager;
 import com.demod.fbsr.WorldMap;
@@ -100,54 +86,45 @@ public class LaneSplitterRendering extends TransportBeltConnectableRendering {
 	public void populateLogistics(WorldMap map, MapEntity entity) {
 		Direction dir = entity.getDirection();
 		MapPosition pos = entity.getPosition();
-		MapPosition leftPos = dir.left().offset(pos, 0.5);
-		MapPosition rightPos = dir.right().offset(pos, 0.5);
+		BSSplitterEntity bsEntity = entity.<BSSplitterEntity>fromBlueprint();
 
-		setLogisticMoveAndAcceptFilter(map, leftPos, dir.frontLeft(), dir, dir);
-		setLogisticMoveAndAcceptFilter(map, leftPos, dir.frontRight(), dir, dir);
-		setLogisticMoveAndAcceptFilter(map, rightPos, dir.frontLeft(), dir, dir);
-		setLogisticMoveAndAcceptFilter(map, rightPos, dir.frontRight(), dir, dir);
+		MapPosition leftPos = dir.left().offset(pos, 0.25);
+		MapPosition rightPos = dir.right().offset(pos, 0.25);
 
-		if (entity.outputPriority.isPresent() && entity.filter.isPresent()) {
-			boolean right = entity.outputPriority.get().equals("right");
-			Point2D.Double outPos = right ? rightPos : leftPos;
-			Point2D.Double notOutPos = !right ? rightPos : leftPos;
-			String itemName = entity.filter.get().name;
+		setLogisticMoveAndAcceptFilter(map, pos, dir.frontLeft(), dir, dir);
+		setLogisticMoveAndAcceptFilter(map, pos, dir.frontRight(), dir, dir);
 
-			map.getOrCreateLogisticGridCell(dir.frontLeft().offset(outPos, 0.25)).addOutput(itemName);
-			map.getOrCreateLogisticGridCell(dir.frontRight().offset(outPos, 0.25)).addOutput(itemName);
-			map.getOrCreateLogisticGridCell(dir.frontLeft().offset(notOutPos, 0.25)).addBannedOutput(itemName);
-			map.getOrCreateLogisticGridCell(dir.frontRight().offset(notOutPos, 0.25)).addBannedOutput(itemName);
+		if (bsEntity.outputPriority.isPresent() && bsEntity.filter.isPresent()) {
+			boolean right = bsEntity.outputPriority.get().equals("right");
+			MapPosition outPos = right ? rightPos : leftPos;
+			MapPosition notOutPos = !right ? rightPos : leftPos;
+			String itemName = bsEntity.filter.get().name;
 
-			setLogisticMoveAndAcceptFilter(map, notOutPos, dir.backLeft(), dir, dir);
-			setLogisticMoveAndAcceptFilter(map, notOutPos, dir.backRight(), dir, dir);
+			map.getOrCreateLogisticGridCell(dir.offset(outPos, 0.25)).addOutput(itemName);
+			map.getOrCreateLogisticGridCell(dir.offset(notOutPos, 0.25)).addBannedOutput(itemName);
 
-			addLogisticWarp(map, outPos, dir.backLeft(), notOutPos, dir.frontLeft());
-			addLogisticWarp(map, outPos, dir.backRight(), notOutPos, dir.frontRight());
+			setLogisticMoveAndAcceptFilter(map, notOutPos, dir.back(), dir, dir);
+
+			addLogisticWarp(map, outPos, dir.back(), notOutPos, dir);
 
 			// no sideloading
-			setLogisticAcceptFilter(map, outPos, dir.backLeft(), dir);
-			setLogisticAcceptFilter(map, outPos, dir.backRight(), dir);
+			setLogisticAcceptFilter(map, outPos, dir.back(), dir);
 
 		} else {
-			setLogisticMoveAndAcceptFilter(map, leftPos, dir.backLeft(), dir, dir);
-			setLogisticMoveAndAcceptFilter(map, leftPos, dir.backRight(), dir, dir);
-			setLogisticMoveAndAcceptFilter(map, rightPos, dir.backLeft(), dir, dir);
-			setLogisticMoveAndAcceptFilter(map, rightPos, dir.backRight(), dir, dir);
+			setLogisticMoveAndAcceptFilter(map, leftPos, dir.back(), dir, dir);
+			setLogisticMoveAndAcceptFilter(map, rightPos, dir.back(), dir, dir);
 
-			addLogisticWarp(map, leftPos, dir.backLeft(), rightPos, dir.frontLeft());
-			addLogisticWarp(map, leftPos, dir.backRight(), rightPos, dir.frontRight());
-			addLogisticWarp(map, rightPos, dir.backLeft(), leftPos, dir.frontLeft());
-			addLogisticWarp(map, rightPos, dir.backRight(), leftPos, dir.frontRight());
+			addLogisticWarp(map, leftPos, dir.back(), rightPos, dir);
+			addLogisticWarp(map, rightPos, dir.back(), leftPos, dir);
 		}
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, BSSplitterEntity entity) {
-		Direction direction = entity.direction;
-		Point2D.Double pos = entity.position.createPoint();
-		Point2D.Double belt1Pos = direction.left().offset(pos, 0.5);
-		Point2D.Double belt2Pos = direction.right().offset(pos, 0.5);
+	public void populateWorldMap(WorldMap map, MapEntity entity) {
+		Direction direction = entity.getDirection();
+		MapPosition pos = entity.getPosition();
+		MapPosition belt1Pos = direction.left().offset(pos, 0.5);
+		MapPosition belt2Pos = direction.right().offset(pos, 0.5);
 		map.setBelt(belt1Pos, direction, false, true);
 		map.setBelt(belt2Pos, direction, false, true);
 	}
@@ -155,5 +132,13 @@ public class LaneSplitterRendering extends TransportBeltConnectableRendering {
 	@Override
 	public Class<? extends BSEntity> getEntityClass() {
 		return BSSplitterEntity.class;
+	}
+
+	@Override
+	public void initAtlas(Consumer<ImageDef> register) {
+		super.initAtlas(register);
+
+		protoStructure.getDefs(register, STRUCTURE_FRAME);
+		protoStructurePatch.ifPresent(fp -> fp.getDefs(register, STRUCTURE_FRAME));
 	}
 }

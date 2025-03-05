@@ -5,7 +5,9 @@ import java.util.function.Consumer;
 
 import com.demod.factorio.fakelua.LuaTable;
 import com.demod.fbsr.FPUtils;
-import com.demod.fbsr.RenderUtils;
+import com.demod.fbsr.ImageDef;
+import com.demod.fbsr.Layer;
+import com.demod.fbsr.SpriteDef;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.fp.FPSprite4Way;
 import com.demod.fbsr.fp.FPWorkingVisualisations;
@@ -13,6 +15,7 @@ import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapRenderable;
 
 public class MiningDrillRendering extends SimpleEntityRendering {
+	private static final int FRAME = 0;
 
 	private Optional<FPSprite4Way> protoBasePicture;
 	private Optional<FPWorkingVisualisations> protoGraphicsSet;
@@ -32,15 +35,10 @@ public class MiningDrillRendering extends SimpleEntityRendering {
 	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
 		super.createRenderers(register, map, entity);
 
-		if (protoBasePicture.isPresent()) {
-			register.accept(RenderUtils.spriteRenderer(protoBasePicture.get().createSprites(data, entity.direction),
-					entity, drawBounds));
-		}
+		Consumer<SpriteDef> entityRegister = entity.spriteRegister(register, Layer.OBJECT);
 
-		if (protoGraphicsSet.isPresent()) {
-			register.accept(RenderUtils.spriteRenderer(protoGraphicsSet.get().createSprites(data, entity.direction, 0),
-					entity, drawBounds));
-		}
+		protoBasePicture.ifPresent(fp -> fp.defineSprites(entityRegister, entity.getDirection()));
+		protoGraphicsSet.ifPresent(fp -> fp.defineSprites(entityRegister, entity.getDirection(), FRAME));
 	}
 
 	@Override
@@ -56,5 +54,13 @@ public class MiningDrillRendering extends SimpleEntityRendering {
 
 		protoBasePicture = FPUtils.opt(prototype.lua().get("base_picture"), FPSprite4Way::new);
 		protoGraphicsSet = FPUtils.opt(prototype.lua().get("graphics_set"), FPWorkingVisualisations::new);
+	}
+
+	@Override
+	public void initAtlas(Consumer<ImageDef> register) {
+		super.initAtlas(register);
+
+		protoBasePicture.ifPresent(fp -> fp.getDefs().forEach(l -> l.forEach(register)));
+		protoGraphicsSet.ifPresent(fp -> fp.getDefs(register, FRAME));
 	}
 }

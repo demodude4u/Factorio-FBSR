@@ -1,23 +1,23 @@
 package com.demod.fbsr.entity;
 
-import java.awt.geom.Point2D;
-import java.util.List;
 import java.util.function.Consumer;
 
-import javax.swing.Renderer;
-
 import com.demod.fbsr.EntityRendererFactory;
+import com.demod.fbsr.ImageDef;
 import com.demod.fbsr.Layer;
-import com.demod.fbsr.RenderUtils;
-import com.demod.fbsr.Sprite;
+import com.demod.fbsr.SpriteDef;
 import com.demod.fbsr.WorldMap;
+import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.bs.entity.BSRailSignalBaseEntity;
-import com.demod.fbsr.fp.FPBoundingBox;
 import com.demod.fbsr.fp.FPRailSignalPictureSet;
 import com.demod.fbsr.fp.FPVector;
+import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapRect3D;
+import com.demod.fbsr.map.MapRenderable;
+import com.demod.fbsr.map.MapSprite;
 
-public abstract class RailSignalBaseRendering extends EntityRendererFactory<BSRailSignalBaseEntity> {
+public abstract class RailSignalBaseRendering extends EntityRendererFactory {
+	private static final int FRAME = 0;
 
 	protected FPRailSignalPictureSet groundPictureSet;
 	protected FPRailSignalPictureSet elevatedPictureSet;
@@ -25,34 +25,28 @@ public abstract class RailSignalBaseRendering extends EntityRendererFactory<BSRa
 	// TODO circuit connectors
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, BSRailSignalBaseEntity entity) {
+	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
+		BSRailSignalBaseEntity bsEntity = entity.<BSRailSignalBaseEntity>fromBlueprint();
 
-		boolean elevated = entity.railLayer.filter(s -> s.equals("elevated")).isPresent();
+		boolean elevated = bsEntity.railLayer.filter(s -> s.equals("elevated")).isPresent();
 		FPRailSignalPictureSet pictureSet = elevated ? elevatedPictureSet : groundPictureSet;
-		Layer layer = elevated ? Layer.ELEVATED_RAIL_OBJECT : Layer.OBJECT;
 
-		// 16 directions
-		int direction = entity.directionRaw;
-
-		int align = direction * 12;
-		FPVector shift = pictureSet.selectionBoxShift.get(align);
-		FPBoundingBox shiftedSelectionBox = protoSelectionBox.shift(shift);
-
-		int railPieceFrame = pictureSet.railPiece.alignToFrameIndex.get(align);
-		List<Sprite> railPieceSprites = pictureSet.railPiece.sprites.createSprites(data, railPieceFrame);
-
-		int structureIndex = pictureSet.structureAlignToAnimationIndex.get(align);
-		List<Sprite> structureSprites = pictureSet.structure.createSprites(data, structureIndex, 0);
-
+		Consumer<SpriteDef> shiftedRegister;
 		if (elevated) {
-			Point2D.Double elevatedShift = new Point2D.Double(0, -3);
-			RenderUtils.shiftSprites(railPieceSprites, elevatedShift);
-			RenderUtils.shiftSprites(structureSprites, elevatedShift);
+			shiftedRegister = s -> register
+					.accept(new MapSprite(s, Layer.ELEVATED_RAIL_OBJECT, entity.getPosition().addUnit(0, -3)));
+		} else {
+			shiftedRegister = s -> register.accept(new MapSprite(s, Layer.OBJECT, entity.getPosition()));
 		}
 
-		MapRect3D drawBounds = new MapRect3D(shiftedSelectionBox, this.drawBounds.heightfp);
-		register.accept(RenderUtils.spriteRenderer(layer, railPieceSprites, entity, drawBounds));
-		register.accept(RenderUtils.spriteRenderer(layer, structureSprites, entity, drawBounds));
+		int direction = entity.fromBlueprint().directionRaw;
+		int align = direction * 12;
+
+		int railPieceFrame = pictureSet.railPiece.alignToFrameIndex.get(align);
+		pictureSet.railPiece.sprites.defineSprites(shiftedRegister, railPieceFrame);
+
+		int structureIndex = pictureSet.structureAlignToAnimationIndex.get(align);
+		pictureSet.structure.defineSprites(shiftedRegister, structureIndex, FRAME);
 	}
 
 	@Override
@@ -61,4 +55,35 @@ public abstract class RailSignalBaseRendering extends EntityRendererFactory<BSRa
 		elevatedPictureSet = new FPRailSignalPictureSet(prototype.lua().get("elevated_picture_set"));
 	}
 
+	@Override
+	public Class<? extends BSEntity> getEntityClass() {
+		return BSRailSignalBaseEntity.class;
+	}
+
+	@Override
+	public void initAtlas(Consumer<ImageDef> register) {
+		groundPictureSet.railPiece.sprites.getDefs().forEach(l -> l.forEach(register));
+		groundPictureSet.structure.getDefs(register, FRAME);
+	}
+
+	@Override
+	public MapRect3D getDrawBounds(MapEntity entity) {
+		MapRect3D ret = super.getDrawBounds(entity);
+
+		BSRailSignalBaseEntity bsEntity = entity.<BSRailSignalBaseEntity>fromBlueprint();
+		boolean elevated = bsEntity.railLayer.filter(s -> s.equals("elevated")).isPresent();
+		FPRailSignalPictureSet pictureSet = elevated ? elevatedPictureSet : groundPictureSet;
+
+		// 16 directions
+		int direction = entity.fromBlueprint().directionRaw;
+		int align = direction * 12;
+		FPVector shift = pictureSet.selectionBoxShift.get(align);
+		ret = ret.shiftUnit(shift.x, shift.y);
+
+		if (elevated) {
+			ret = ret.shiftHeightUnit(3);
+		}
+
+		return ret;
+	}
 }

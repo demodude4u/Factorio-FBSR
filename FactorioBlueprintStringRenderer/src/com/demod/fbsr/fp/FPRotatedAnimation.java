@@ -74,8 +74,8 @@ public class FPRotatedAnimation extends FPAnimationParameters {
 					int x = stripe.x + width * frame;
 					int y = stripe.y + height * stripeIndex;
 
-					defs.add(SpriteDef.fromFP(stripe.filename, drawAsShadow, blendMode, getEffectiveTint(), x, y, width,
-							height, shift.x, shift.y, scale));
+					defs.add(SpriteDef.fromFP(stripe.filename, drawAsShadow, blendMode, tint, x, y, width, height,
+							shift.x, shift.y, scale));
 
 					break;
 				}
@@ -95,8 +95,8 @@ public class FPRotatedAnimation extends FPAnimationParameters {
 				int x = this.x + width * (fileFrame % lineLength);
 				int y = this.y + height * (fileFrame / lineLength);
 
-				defs.add(SpriteDef.fromFP(filenames.get().get(fileIndex), drawAsShadow, blendMode, getEffectiveTint(),
-						x, y, width, height, shift.x, shift.y, scale));
+				defs.add(SpriteDef.fromFP(filenames.get().get(fileIndex), drawAsShadow, blendMode, tint, x, y, width,
+						height, shift.x, shift.y, scale));
 
 			}
 			return defs;

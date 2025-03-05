@@ -17,9 +17,6 @@ public class FPSpriteParameters extends FPSpriteSource {
 
 	private final SpriteDef def;
 
-	// XXX hacky, violates immutability
-	public Optional<Color> runtimeTint = Optional.empty();
-
 	public FPSpriteParameters(LuaValue lua) {
 		super(lua);
 
@@ -30,23 +27,11 @@ public class FPSpriteParameters extends FPSpriteSource {
 		tint = FPUtils.opt(lua.get("tint"), FPColor::new).orElseGet(() -> new FPColor(1, 1, 1, 1));
 		applyRuntimeTint = lua.get("apply_runtime_tint").optboolean(false);
 
-		def = SpriteDef.fromFP(filename.get(), drawAsShadow, blendMode, getEffectiveTint(), x, y, width, height,
-				shift.x, shift.y, scale);
+		def = SpriteDef.fromFP(filename.get(), drawAsShadow, blendMode, tint, x, y, width, height, shift.x, shift.y,
+				scale);
 	}
 
 	protected SpriteDef defineSprite() {
 		return def;
-	}
-
-	public Color getEffectiveTint() {
-		Color tint = this.tint.createColorIgnorePreMultipliedAlpha();
-		if (applyRuntimeTint && runtimeTint.isPresent()) {
-			tint = runtimeTint.get();
-		}
-		return tint;
-	}
-
-	public void setRuntimeTint(Color tint) {
-		runtimeTint = Optional.of(tint);
 	}
 }

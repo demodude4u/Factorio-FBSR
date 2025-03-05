@@ -56,8 +56,8 @@ public class FPAnimation extends FPAnimationParameters {
 					int x = stripe.x + width * (frame % stripe.widthInFrames);
 					int y = stripe.y + height * (frame / stripe.widthInFrames);
 
-					stripeDefs.add(SpriteDef.fromFP(stripe.filename, drawAsShadow, blendMode, getEffectiveTint(), x, y,
-							width, height, shift.x, shift.y, scale));
+					stripeDefs.add(SpriteDef.fromFP(stripe.filename, drawAsShadow, blendMode, tint, x, y, width, height,
+							shift.x, shift.y, scale));
 				}
 				defs.add(stripeDefs);
 			}
@@ -75,7 +75,7 @@ public class FPAnimation extends FPAnimationParameters {
 				int y = this.y + height * (fileFrame / lineLength);
 
 				defs.add(ImmutableList.of(SpriteDef.fromFP(filenames.get().get(fileIndex), drawAsShadow, blendMode,
-						getEffectiveTint(), x, y, width, height, shift.x, shift.y, scale)));
+						tint, x, y, width, height, shift.x, shift.y, scale)));
 			}
 			return defs;
 		}

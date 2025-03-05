@@ -3,9 +3,11 @@ package com.demod.fbsr.entity;
 import java.util.Map;
 import java.util.Optional;
 
+import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.bs.entity.BSSelectorCombinatorEntity;
+import com.demod.fbsr.map.MapEntity;
 
-public class SelectorCombinatorRendering extends CombinatorRendering<BSSelectorCombinatorEntity> {
+public class SelectorCombinatorRendering extends CombinatorRendering {
 
 	@Override
 	public void defineOperations(Map<String, String> operations) {
@@ -19,7 +21,12 @@ public class SelectorCombinatorRendering extends CombinatorRendering<BSSelectorC
 	}
 
 	@Override
-	public Optional<String> getOperation(BSSelectorCombinatorEntity entity) {
-		return entity.operation;
+	public Optional<String> getOperation(MapEntity entity) {
+		return entity.<BSSelectorCombinatorEntity>fromBlueprint().operation;
+	}
+
+	@Override
+	public Class<? extends BSEntity> getEntityClass() {
+		return BSSelectorCombinatorEntity.class;
 	}
 }

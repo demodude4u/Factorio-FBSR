@@ -2,7 +2,7 @@ package com.demod.fbsr.entity;
 
 import com.demod.factorio.fakelua.LuaTable;
 import com.demod.fbsr.WorldMap;
-import com.demod.fbsr.bs.BSEntity;
+import com.demod.fbsr.map.MapEntity;
 
 public class PipeToGroundRendering extends SimpleEntityRendering {
 	@Override
@@ -11,9 +11,9 @@ public class PipeToGroundRendering extends SimpleEntityRendering {
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, BSEntity entity) {
+	public void populateWorldMap(WorldMap map, MapEntity entity) {
 		super.populateWorldMap(map, entity);
 
-		map.setPipe(entity.position.createPoint(), entity.direction);
+		map.setPipe(entity.getPosition(), entity.getDirection());
 	}
 }

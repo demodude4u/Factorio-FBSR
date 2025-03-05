@@ -4,7 +4,7 @@ import com.demod.factorio.fakelua.LuaTable;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.WorldMap;
-import com.demod.fbsr.bs.BSEntity;
+import com.demod.fbsr.map.MapEntity;
 
 public class ReactorRendering extends SimpleEntityRendering {
 	@Override
@@ -18,11 +18,11 @@ public class ReactorRendering extends SimpleEntityRendering {
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, BSEntity entity) {
+	public void populateWorldMap(WorldMap map, MapEntity entity) {
 		super.populateWorldMap(map, entity);
 
 		for (Direction dir : Direction.values()) {
-			map.setHeatPipe(dir.offset(entity.position.createPoint(), 2));
+			map.setHeatPipe(dir.offset(entity.getPosition(), 2));
 		}
 	}
 }

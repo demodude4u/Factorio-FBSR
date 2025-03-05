@@ -82,5 +82,4 @@ public abstract class RailRendering extends EntityRendererFactory {
 	public void initAtlas(Consumer<ImageDef> register) {
 		protoPictures.getDefs(register, VARIATION);
 	}
-
 }

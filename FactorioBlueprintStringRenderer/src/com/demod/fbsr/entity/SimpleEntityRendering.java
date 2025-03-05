@@ -384,7 +384,7 @@ public abstract class SimpleEntityRendering extends EntityRendererFactory {
 					if (orientation.isPresent()) {
 						proto.defineSprites(register, orientation.getAsDouble());
 					} else {
-						proto.getDefs().forEach(register);
+						proto.getDefs(register);
 					}
 				}
 			};

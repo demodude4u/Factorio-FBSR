@@ -91,7 +91,7 @@ public class WallRendering extends SimpleEntityRendering {
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, BSEntity entity) {
+	public void populateWorldMap(WorldMap map, MapEntity entity) {
 		super.populateWorldMap(map, entity);
 
 		map.setWall(entity.position.createPoint());
