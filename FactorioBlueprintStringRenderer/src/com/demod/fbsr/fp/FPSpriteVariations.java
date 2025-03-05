@@ -44,6 +44,13 @@ public class FPSpriteVariations {
 		return ret;
 	}
 
+	public void getDefs(Consumer<ImageDef> register) {
+		int variationCount = getVariationCount();
+		for (int variation = 0; variation < variationCount; variation++) {
+			defineSprites(register, variation);
+		}
+	}
+
 	public int getVariationCount() {
 		if (sheet.isPresent()) {
 			return sheet.get().getVariationCount();
@@ -53,12 +60,5 @@ public class FPSpriteVariations {
 		}
 
 		return 0;
-	}
-
-	public void getDefs(Consumer<ImageDef> register) {
-		int variationCount = getVariationCount();
-		for (int variation = 0; variation < variationCount; variation++) {
-			defineSprites(register, variation);
-		}
 	}
 }

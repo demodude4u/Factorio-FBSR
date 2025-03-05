@@ -33,15 +33,6 @@ public class LinkedBeltRendering extends TransportBeltConnectableRendering {
 	}
 
 	@Override
-	public void initFromPrototype() {
-		super.initFromPrototype();
-
-		LuaValue luaStructure = prototype.lua().get("structure");
-		protoStructureDirectionIn = new FPSprite4Way(luaStructure.get("direction_in"));
-		protoStructureDirectionOut = new FPSprite4Way(luaStructure.get("direction_out"));
-	}
-
-	@Override
 	public Class<? extends BSEntity> getEntityClass() {
 		return BSLinkedBeltEntity.class;
 	}
@@ -52,5 +43,14 @@ public class LinkedBeltRendering extends TransportBeltConnectableRendering {
 
 		protoStructureDirectionIn.getDefs().forEach(l -> l.forEach(register));
 		protoStructureDirectionOut.getDefs().forEach(l -> l.forEach(register));
+	}
+
+	@Override
+	public void initFromPrototype() {
+		super.initFromPrototype();
+
+		LuaValue luaStructure = prototype.lua().get("structure");
+		protoStructureDirectionIn = new FPSprite4Way(luaStructure.get("direction_in"));
+		protoStructureDirectionOut = new FPSprite4Way(luaStructure.get("direction_out"));
 	}
 }

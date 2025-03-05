@@ -21,13 +21,13 @@ public class DeciderCombinatorRendering extends CombinatorRendering {
 	}
 
 	@Override
-	public Optional<String> getOperation(MapEntity entity) {
-		return entity.<BSDeciderCombinatorEntity>fromBlueprint().deciderConditions
-				.flatMap(bs -> bs.conditions.stream().findFirst()).map(bs -> bs.comparator);
+	public Class<? extends BSEntity> getEntityClass() {
+		return BSDeciderCombinatorEntity.class;
 	}
 
 	@Override
-	public Class<? extends BSEntity> getEntityClass() {
-		return BSDeciderCombinatorEntity.class;
+	public Optional<String> getOperation(MapEntity entity) {
+		return entity.<BSDeciderCombinatorEntity>fromBlueprint().deciderConditions
+				.flatMap(bs -> bs.conditions.stream().findFirst()).map(bs -> bs.comparator);
 	}
 }

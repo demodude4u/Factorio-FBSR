@@ -77,6 +77,11 @@ public class ElectricPoleRendering extends EntityRendererFactory {
 	}
 
 	@Override
+	public void initAtlas(Consumer<ImageDef> register) {
+		protoPictures.getDefs(register);
+	}
+
+	@Override
 	public void initFromPrototype() {
 		// XXX strange that I have to force back_equals_front to be true
 		protoPictures = new FPRotatedSprite(prototype.lua().get("pictures"), Optional.of(true));
@@ -94,10 +99,5 @@ public class ElectricPoleRendering extends EntityRendererFactory {
 		protoPictures.defineSprites(entity.spriteRegister(register, Layer.HIGHER_OBJECT_ABOVE), orientation);
 
 		return orientation;
-	}
-
-	@Override
-	public void initAtlas(Consumer<ImageDef> register) {
-		protoPictures.getDefs(register);
 	}
 }

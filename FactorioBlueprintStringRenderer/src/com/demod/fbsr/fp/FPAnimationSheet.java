@@ -7,6 +7,7 @@ import java.util.function.Consumer;
 
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.FPUtils;
+import com.demod.fbsr.ImageDef;
 import com.demod.fbsr.SpriteDef;
 
 public class FPAnimationSheet extends FPAnimationParameters {
@@ -42,8 +43,8 @@ public class FPAnimationSheet extends FPAnimationParameters {
 				int x = width * (fileFrame % lineLength);
 				int y = height * (fileFrame / lineLength);
 
-				defs.add(SpriteDef.fromFP(filenames.get().get(fileIndex), drawAsShadow, blendMode, tint, x, y, width,
-						height, shift.x, shift.y, scale));
+				defs.add(SpriteDef.fromFP(filenames.get().get(fileIndex), drawAsShadow, blendMode, tint,
+						applyRuntimeTint, x, y, width, height, shift.x, shift.y, scale));
 			}
 			return defs;
 		}
@@ -52,8 +53,8 @@ public class FPAnimationSheet extends FPAnimationParameters {
 			int x = width * (frame % lineLength);
 			int y = height * (frame / lineLength);
 
-			defs.add(SpriteDef.fromFP(filename.get(), drawAsShadow, blendMode, tint, x, y, width, height, shift.x,
-					shift.y, scale));
+			defs.add(SpriteDef.fromFP(filename.get(), drawAsShadow, blendMode, tint, applyRuntimeTint, x, y, width,
+					height, shift.x, shift.y, scale));
 		}
 		return defs;
 	}
@@ -67,6 +68,12 @@ public class FPAnimationSheet extends FPAnimationParameters {
 		List<SpriteDef> ret = new ArrayList<>();
 		defineSprites(ret::add, variation, frame);
 		return ret;
+	}
+
+	public void getDefs(Consumer<ImageDef> register, int frame) {
+		for (int variation = 0; variation < variationCount; variation++) {
+			defineSprites(register, variation, frame);
+		}
 	}
 
 }

@@ -75,6 +75,19 @@ public class LaneSplitterRendering extends TransportBeltConnectableRendering {
 	}
 
 	@Override
+	public Class<? extends BSEntity> getEntityClass() {
+		return BSSplitterEntity.class;
+	}
+
+	@Override
+	public void initAtlas(Consumer<ImageDef> register) {
+		super.initAtlas(register);
+
+		protoStructure.getDefs(register, STRUCTURE_FRAME);
+		protoStructurePatch.ifPresent(fp -> fp.getDefs(register, STRUCTURE_FRAME));
+	}
+
+	@Override
 	public void initFromPrototype() {
 		super.initFromPrototype();
 
@@ -127,18 +140,5 @@ public class LaneSplitterRendering extends TransportBeltConnectableRendering {
 		MapPosition belt2Pos = direction.right().offset(pos, 0.5);
 		map.setBelt(belt1Pos, direction, false, true);
 		map.setBelt(belt2Pos, direction, false, true);
-	}
-
-	@Override
-	public Class<? extends BSEntity> getEntityClass() {
-		return BSSplitterEntity.class;
-	}
-
-	@Override
-	public void initAtlas(Consumer<ImageDef> register) {
-		super.initAtlas(register);
-
-		protoStructure.getDefs(register, STRUCTURE_FRAME);
-		protoStructurePatch.ifPresent(fp -> fp.getDefs(register, STRUCTURE_FRAME));
 	}
 }

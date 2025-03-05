@@ -35,6 +35,14 @@ public class GeneratorRendering extends SimpleEntityRendering {
 	}
 
 	@Override
+	public void initAtlas(Consumer<ImageDef> register) {
+		super.initAtlas(register);
+
+		protoVerticalAnimation.defineSprites(register, FRAME);
+		protoHorizontalAnimation.defineSprites(register, FRAME);
+	}
+
+	@Override
 	public void initFromPrototype() {
 		super.initFromPrototype();
 
@@ -44,13 +52,5 @@ public class GeneratorRendering extends SimpleEntityRendering {
 
 	private boolean isVertical(MapEntity entity) {
 		return entity.getDirection().cardinal() % 2 == 0;
-	}
-
-	@Override
-	public void initAtlas(Consumer<ImageDef> register) {
-		super.initAtlas(register);
-
-		protoVerticalAnimation.defineSprites(register, FRAME);
-		protoHorizontalAnimation.defineSprites(register, FRAME);
 	}
 }

@@ -1,24 +1,23 @@
 package com.demod.fbsr.map;
 
+import java.awt.Color;
+import java.awt.Composite;
 import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.Rectangle;
 import java.awt.geom.AffineTransform;
+import java.util.Optional;
 
-import com.demod.factorio.Utils;
 import com.demod.fbsr.AtlasManager.AtlasRef;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.LayeredSpriteDef;
 import com.demod.fbsr.SpriteDef;
+import com.demod.fbsr.TintComposite;
 
 public class MapSprite extends MapRenderable {
 
 	protected final LayeredSpriteDef def;
 	protected final MapRect bounds;
-
-	public MapSprite(SpriteDef def, Layer layer, MapPosition pos) {
-		this(new LayeredSpriteDef(def, layer), pos);
-	}
 
 	public MapSprite(LayeredSpriteDef def, MapPosition pos) {
 		super(def.getLayer());
@@ -26,12 +25,16 @@ public class MapSprite extends MapRenderable {
 		this.bounds = def.getBounds().add(pos);
 	}
 
-	public SpriteDef getDef() {
-		return def;
+	public MapSprite(SpriteDef def, Layer layer, MapPosition pos) {
+		this(new LayeredSpriteDef(def, layer), pos);
 	}
 
 	public MapRect getBounds() {
 		return bounds;
+	}
+
+	public SpriteDef getDef() {
+		return def;
 	}
 
 	@Override
@@ -42,15 +45,29 @@ public class MapSprite extends MapRenderable {
 		}
 		Image image = ref.getAtlas().getVolatileImage();
 		Rectangle source = ref.getRect();
-		
-		//TODO blend modes and tint color, also runtime tint color!
-		Utils.tintImage(null, null)
+
+		Composite pc = g.getComposite();
+		AffineTransform pat = g.getTransform();
+
+		Optional<Color> tint = def.getTint().map(this::tintOverride);
+		// TODO tint with blending
+		if (tint.isPresent()) {
+			g.setComposite(new TintComposite(tint.get()));
+
+		} else {
+			g.setComposite(def.getBlendMode().getComposite());
+		}
 
 		// TODO change the approach to eliminate transforming on every sprite
-		AffineTransform pat = g.getTransform();
 		g.translate(bounds.getX(), bounds.getY());
 		g.scale(bounds.getWidth(), bounds.getHeight());
 		g.drawImage(image, 0, 0, 1, 1, source.x, source.y, source.x + source.width, source.y + source.height, null);
+
 		g.setTransform(pat);
+		g.setComposite(pc);
+	}
+
+	protected Color tintOverride(Color tint) {
+		return tint;
 	}
 }

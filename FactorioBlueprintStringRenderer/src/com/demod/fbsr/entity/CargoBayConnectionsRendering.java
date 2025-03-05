@@ -182,6 +182,25 @@ public abstract class CargoBayConnectionsRendering extends SimpleEntityRendering
 	}
 
 	@Override
+	public void initAtlas(Consumer<ImageDef> register) {
+		super.initAtlas(register);
+
+		if (protoPlatformGraphicsSet.isPresent()) {
+			FPCargoBayConnectableGraphicsSet graphicsSet = protoPlatformGraphicsSet.get();
+			if (graphicsSet.picture.isPresent()) {
+				graphicsSet.picture.get().defineLayeredSprites(register);
+			}
+			graphicsSet.connections.get().getDefs(register);
+		}
+
+		if (protoGraphicsSet.picture.isPresent()) {
+			protoGraphicsSet.picture.get().defineLayeredSprites(register);
+		}
+		protoGraphicsSet.connections.get().getDefs(register);
+
+	}
+
+	@Override
 	public void initFromPrototype() {
 		super.initFromPrototype();
 
@@ -283,25 +302,6 @@ public abstract class CargoBayConnectionsRendering extends SimpleEntityRendering
 		for (MapPosition dcp : protoConnectionPoints) {
 			map.setCargoBayConnectable(pos.add(dcp), entity);
 		}
-	}
-
-	@Override
-	public void initAtlas(Consumer<ImageDef> register) {
-		super.initAtlas(register);
-
-		if (protoPlatformGraphicsSet.isPresent()) {
-			FPCargoBayConnectableGraphicsSet graphicsSet = protoPlatformGraphicsSet.get();
-			if (graphicsSet.picture.isPresent()) {
-				graphicsSet.picture.get().defineLayeredSprites(register);
-			}
-			graphicsSet.connections.get().getDefs(register);
-		}
-
-		if (protoGraphicsSet.picture.isPresent()) {
-			protoGraphicsSet.picture.get().defineLayeredSprites(register);
-		}
-		protoGraphicsSet.connections.get().getDefs(register);
-
 	}
 
 }

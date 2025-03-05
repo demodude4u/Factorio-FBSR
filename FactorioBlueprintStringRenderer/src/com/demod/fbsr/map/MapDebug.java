@@ -78,6 +78,45 @@ public class MapDebug extends MapRenderable {
 		g.setStroke(ps);
 	}
 
+	private void renderEntityPlacement(Graphics2D g, MapEntity entity) {
+		MapPosition position = entity.getPosition();
+		MapRect3D bounds = entity.getBounds();
+		Direction direction = entity.getDirection();
+		double x = position.getX();
+		double y = position.getY();
+
+		g.setStroke(STROKE_THIN);
+		g.setColor(COLOR_ENTITY_PLACEMENT);
+		g.draw(new Rectangle2D.Double(bounds.getX1(), bounds.getY1() - bounds.getHeight(),
+				bounds.getX2() - bounds.getX1(), bounds.getY2() - bounds.getY1() + bounds.getHeight()));
+		if (bounds.getHeight() > 0) {
+			g.setColor(g.getColor().darker());
+			g.draw(new Line2D.Double(bounds.getX1(), bounds.getY1(), bounds.getX2(), bounds.getY1()));
+		}
+		g.fill(new Ellipse2D.Double(x - 0.1, y - 0.1, 0.2, 0.2));
+
+		g.setStroke(STROKE_BOLD);
+		g.setColor(COLOR_ENTITY_DIRECTION);
+		MapPosition offset = direction.offset(position, 0.3);
+		g.draw(new Line2D.Double(x, y, offset.getX(), offset.getY()));
+	}
+
+	private void renderPathItems(Graphics2D g) {
+		g.setStroke(STROKE_BOLD);
+		g.setColor(COLOR_PATH_ITEM);
+		Table<Integer, Integer, LogisticGridCell> logisticGrid = map.getLogisticGrid();
+		logisticGrid.cellSet().forEach(c -> {
+			MapPosition pos = MapPosition.byUnit(c.getRowKey() / 2.0 + 0.25, c.getColumnKey() / 2.0 + 0.25);
+			LogisticGridCell cell = c.getValue();
+			cell.getMovedFrom().ifPresent(l -> {
+				for (Direction d : l) {
+					MapPosition p = d.offset(pos, 0.5);
+					g.draw(new Line2D.Double(pos.createPoint2D(), p.createPoint2D()));
+				}
+			});
+		});
+	}
+
 	private void renderPathRails(Graphics2D g) {
 		g.setColor(COLOR_PATH_RAIL_END_POINTS);
 		g.setStroke(STROKE_BOLD);
@@ -127,22 +166,6 @@ public class MapDebug extends MapRenderable {
 		});
 	}
 
-	private void renderPathItems(Graphics2D g) {
-		g.setStroke(STROKE_BOLD);
-		g.setColor(COLOR_PATH_ITEM);
-		Table<Integer, Integer, LogisticGridCell> logisticGrid = map.getLogisticGrid();
-		logisticGrid.cellSet().forEach(c -> {
-			MapPosition pos = MapPosition.byUnit(c.getRowKey() / 2.0 + 0.25, c.getColumnKey() / 2.0 + 0.25);
-			LogisticGridCell cell = c.getValue();
-			cell.getMovedFrom().ifPresent(l -> {
-				for (Direction d : l) {
-					MapPosition p = d.offset(pos, 0.5);
-					g.draw(new Line2D.Double(pos.createPoint2D(), p.createPoint2D()));
-				}
-			});
-		});
-	}
-
 	private void renderTilePlacement(Graphics2D g, MapTile tile) {
 		MapPosition position = tile.getPosition();
 		double x = position.getX();
@@ -152,29 +175,6 @@ public class MapDebug extends MapRenderable {
 		g.setColor(COLOR_TILE_PLACEMENT);
 		g.draw(new Rectangle2D.Double(x - 0.5, y - 0.5, 1.0, 1.0));
 		g.fill(new Ellipse2D.Double(x - 0.1, y - 0.1, 0.2, 0.2));
-	}
-
-	private void renderEntityPlacement(Graphics2D g, MapEntity entity) {
-		MapPosition position = entity.getPosition();
-		MapRect3D bounds = entity.getBounds();
-		Direction direction = entity.getDirection();
-		double x = position.getX();
-		double y = position.getY();
-
-		g.setStroke(STROKE_THIN);
-		g.setColor(COLOR_ENTITY_PLACEMENT);
-		g.draw(new Rectangle2D.Double(bounds.getX1(), bounds.getY1() - bounds.getHeight(),
-				bounds.getX2() - bounds.getX1(), bounds.getY2() - bounds.getY1() + bounds.getHeight()));
-		if (bounds.getHeight() > 0) {
-			g.setColor(g.getColor().darker());
-			g.draw(new Line2D.Double(bounds.getX1(), bounds.getY1(), bounds.getX2(), bounds.getY1()));
-		}
-		g.fill(new Ellipse2D.Double(x - 0.1, y - 0.1, 0.2, 0.2));
-
-		g.setStroke(STROKE_BOLD);
-		g.setColor(COLOR_ENTITY_DIRECTION);
-		MapPosition offset = direction.offset(position, 0.3);
-		g.draw(new Line2D.Double(x, y, offset.getX(), offset.getY()));
 	}
 
 }

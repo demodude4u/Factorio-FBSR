@@ -58,15 +58,11 @@ public class UnknownEntityRendering extends EntityRendererFactory {
 	}
 
 	@Override
+	public void initAtlas(Consumer<ImageDef> register) {
+	}
+
+	@Override
 	public void initFromPrototype() {
-	}
-
-	@Override
-	public void populateLogistics(WorldMap map, MapEntity entity) {
-	}
-
-	@Override
-	public void populateWorldMap(WorldMap map, MapEntity entity) {
 	}
 
 	@Override
@@ -75,7 +71,11 @@ public class UnknownEntityRendering extends EntityRendererFactory {
 	}
 
 	@Override
-	public void initAtlas(Consumer<ImageDef> register) {
+	public void populateLogistics(WorldMap map, MapEntity entity) {
+	}
+
+	@Override
+	public void populateWorldMap(WorldMap map, MapEntity entity) {
 	}
 
 }

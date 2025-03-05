@@ -20,6 +20,12 @@ public class FPSprite extends FPSpriteParameters {
 
 	}
 
+	public List<SpriteDef> defineSprites() {
+		List<SpriteDef> ret = new ArrayList<>();
+		defineSprites(ret::add);
+		return ret;
+	}
+
 	public void defineSprites(Consumer<? super SpriteDef> consumer) {
 		if (layers.isPresent()) {
 			for (FPSprite layer : layers.get()) {
@@ -29,11 +35,5 @@ public class FPSprite extends FPSpriteParameters {
 		}
 
 		consumer.accept(super.defineSprite());
-	}
-
-	public List<SpriteDef> defineSprites() {
-		List<SpriteDef> ret = new ArrayList<>();
-		defineSprites(ret::add);
-		return ret;
 	}
 }

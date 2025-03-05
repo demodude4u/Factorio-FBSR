@@ -18,6 +18,13 @@ public class MapPosition {
 		return new MapPosition(unitToFixedPoint(x), unitToFixedPoint(y));
 	}
 
+	public static MapPosition convert(FPVector v) {
+		return byUnit(v.x, v.y);
+	}
+
+	public static MapPosition convert(Point2D.Double p) {
+		return byUnit(p.x, p.y);
+	}
 	public static MapRect enclosingBounds(Collection<MapPosition> points) {
 		if (points.isEmpty()) {
 			return new MapRect(0, 0, 0, 0);
@@ -45,6 +52,7 @@ public class MapPosition {
 
 	// Fixed-point, 8-bit precision
 	final int xfp;
+
 	final int yfp;
 
 	MapPosition(int x, int y) {
@@ -96,6 +104,10 @@ public class MapPosition {
 		return new MapPosition((int) (xfp * value), (int) (yfp * value));
 	}
 
+	public MapPosition multiplyUnit(double x, double y) {
+		return new MapPosition((int) (this.xfp * x), (int) (this.yfp * y));
+	}
+
 	public MapPosition multiplyUnitAdd(double value, MapPosition position) {
 		return new MapPosition((int) (xfp * value) + position.xfp, (int) (yfp * value) + position.yfp);
 	}
@@ -112,28 +124,16 @@ public class MapPosition {
 		return new MapPosition(-yfp, xfp);
 	}
 
+	public MapPosition sub(MapPosition position) {
+		return new MapPosition(xfp - position.xfp, yfp - position.yfp);
+	}
+
 	public Point toPixels() {
 		return new Point(fixedPointToPixels(xfp), fixedPointToPixels(yfp));
 	}
 
 	public MapPosition transformMatrix(double mx1, double mx2, double my1, double my2) {
 		return new MapPosition((int) (xfp * mx1 + yfp * mx2), (int) (xfp * my1 + yfp * my2));
-	}
-
-	public static MapPosition convert(FPVector v) {
-		return byUnit(v.x, v.y);
-	}
-
-	public static MapPosition convert(Point2D.Double p) {
-		return byUnit(p.x, p.y);
-	}
-
-	public MapPosition multiplyUnit(double x, double y) {
-		return new MapPosition((int) (this.xfp * x), (int) (this.yfp * y));
-	}
-
-	public MapPosition sub(MapPosition position) {
-		return new MapPosition(xfp - position.xfp, yfp - position.yfp);
 	}
 
 }

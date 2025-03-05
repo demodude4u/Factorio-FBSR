@@ -79,6 +79,11 @@ public abstract class LoaderRendering extends TransportBeltConnectableRendering 
 	}
 
 	@Override
+	public Class<? extends BSEntity> getEntityClass() {
+		return BSLoaderEntity.class;
+	}
+
+	@Override
 	public void initFromPrototype() {
 		super.initFromPrototype();
 
@@ -173,10 +178,5 @@ public abstract class LoaderRendering extends TransportBeltConnectableRendering 
 		} else {
 			map.setBelt(pos.add(beltShift), entity.getDirection(), false, true);
 		}
-	}
-
-	@Override
-	public Class<? extends BSEntity> getEntityClass() {
-		return BSLoaderEntity.class;
 	}
 }

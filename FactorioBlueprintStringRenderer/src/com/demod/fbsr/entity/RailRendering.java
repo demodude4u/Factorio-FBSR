@@ -43,6 +43,15 @@ public abstract class RailRendering extends EntityRendererFactory {
 	}
 
 	@Override
+	protected MapRect3D computeBounds() {
+		MapRect3D ret = super.computeBounds();
+		if (elevated) {
+			ret = ret.shiftHeightUnit(3);
+		}
+		return ret;
+	}
+
+	@Override
 	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
 		FPRailPieceLayers railPieceLayers = protoPictures.get(entity.getDirection());
 		if (railPieceLayers.stonePathBackground.isPresent()) {
@@ -65,21 +74,12 @@ public abstract class RailRendering extends EntityRendererFactory {
 	}
 
 	@Override
-	public void initFromPrototype() {
-		protoPictures = new FPRailPictureSet(prototype.lua().get("pictures"));
-	}
-
-	@Override
-	protected MapRect3D computeBounds() {
-		MapRect3D ret = super.computeBounds();
-		if (elevated) {
-			ret = ret.shiftHeightUnit(3);
-		}
-		return ret;
-	}
-
-	@Override
 	public void initAtlas(Consumer<ImageDef> register) {
 		protoPictures.getDefs(register, VARIATION);
+	}
+
+	@Override
+	public void initFromPrototype() {
+		protoPictures = new FPRailPictureSet(prototype.lua().get("pictures"));
 	}
 }

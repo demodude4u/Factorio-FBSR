@@ -27,6 +27,25 @@ public class MapItemLogistics extends MapRenderable {
 
 	private static final Map<String, Color> itemColorCache = new HashMap<>();
 
+	private static Color getItemLogisticColor(String itemName) {
+		return itemColorCache.computeIfAbsent(itemName, k -> {
+			Optional<ItemPrototype> optProto = FactorioManager.lookupItemByName(k);
+			if (!optProto.isPresent()) {
+				LOGGER.warn("ITEM MISSING FOR LOGISTICS: {}", k);
+				return Color.MAGENTA;
+			}
+			DataPrototype prototype = optProto.get();
+			BufferedImage image = prototype.getTable().getData().getWikiIcon(prototype);
+			Color color = RenderUtils.getAverageColor(image);
+			// return new Color(color.getRGB() | 0xA0A0A0);
+			// return color.brighter().brighter();
+			float[] hsb = Color.RGBtoHSB(color.getRed(), color.getGreen(), color.getBlue(), null);
+			return Color.getHSBColor(hsb[0], Math.max(0.25f, hsb[1]), Math.max(0.5f, hsb[2]));
+			// return Color.getHSBColor(hsb[0], Math.max(1f, hsb[1]),
+			// Math.max(0.75f, hsb[2]));
+		});
+	}
+
 	private final WorldMap map;
 
 	public MapItemLogistics(WorldMap map) {
@@ -61,25 +80,6 @@ public class MapItemLogistics extends MapRenderable {
 				}
 				g.setStroke(ps);
 			});
-		});
-	}
-
-	private static Color getItemLogisticColor(String itemName) {
-		return itemColorCache.computeIfAbsent(itemName, k -> {
-			Optional<ItemPrototype> optProto = FactorioManager.lookupItemByName(k);
-			if (!optProto.isPresent()) {
-				LOGGER.warn("ITEM MISSING FOR LOGISTICS: {}", k);
-				return Color.MAGENTA;
-			}
-			DataPrototype prototype = optProto.get();
-			BufferedImage image = prototype.getTable().getData().getWikiIcon(prototype);
-			Color color = RenderUtils.getAverageColor(image);
-			// return new Color(color.getRGB() | 0xA0A0A0);
-			// return color.brighter().brighter();
-			float[] hsb = Color.RGBtoHSB(color.getRed(), color.getGreen(), color.getBlue(), null);
-			return Color.getHSBColor(hsb[0], Math.max(0.25f, hsb[1]), Math.max(0.5f, hsb[2]));
-			// return Color.getHSBColor(hsb[0], Math.max(1f, hsb[1]),
-			// Math.max(0.75f, hsb[2]));
 		});
 	}
 

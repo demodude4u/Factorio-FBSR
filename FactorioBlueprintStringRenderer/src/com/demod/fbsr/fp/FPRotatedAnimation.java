@@ -74,8 +74,8 @@ public class FPRotatedAnimation extends FPAnimationParameters {
 					int x = stripe.x + width * frame;
 					int y = stripe.y + height * stripeIndex;
 
-					defs.add(SpriteDef.fromFP(stripe.filename, drawAsShadow, blendMode, tint, x, y, width, height,
-							shift.x, shift.y, scale));
+					defs.add(SpriteDef.fromFP(stripe.filename, drawAsShadow, blendMode, tint, applyRuntimeTint, x, y,
+							width, height, shift.x, shift.y, scale));
 
 					break;
 				}
@@ -95,8 +95,8 @@ public class FPRotatedAnimation extends FPAnimationParameters {
 				int x = this.x + width * (fileFrame % lineLength);
 				int y = this.y + height * (fileFrame / lineLength);
 
-				defs.add(SpriteDef.fromFP(filenames.get().get(fileIndex), drawAsShadow, blendMode, tint, x, y, width,
-						height, shift.x, shift.y, scale));
+				defs.add(SpriteDef.fromFP(filenames.get().get(fileIndex), drawAsShadow, blendMode, tint,
+						applyRuntimeTint, x, y, width, height, shift.x, shift.y, scale));
 
 			}
 			return defs;
@@ -139,6 +139,12 @@ public class FPRotatedAnimation extends FPAnimationParameters {
 		return ret;
 	}
 
+	public void getDefs(Consumer<ImageDef> consumer, int frame) {
+		for (int index = 0; index < directionCount; index++) {
+			defineSprites(consumer, index, frame);
+		}
+	}
+
 	@Override
 	public int getFrameCount() {
 		if (layers.isPresent()) {
@@ -161,11 +167,5 @@ public class FPRotatedAnimation extends FPAnimationParameters {
 			index = (int) (orientation * directionCount);
 		}
 		return index;
-	}
-
-	public void getDefs(Consumer<ImageDef> consumer, int frame) {
-		for (int index = 0; index < directionCount; index++) {
-			defineSprites(consumer, index, frame);
-		}
 	}
 }

@@ -7,6 +7,7 @@ import java.util.function.Consumer;
 
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.FPUtils;
+import com.demod.fbsr.ImageDef;
 import com.demod.fbsr.SpriteDef;
 import com.google.common.collect.ImmutableList;
 
@@ -39,7 +40,6 @@ public class FPAnimationVariations {
 
 	public void defineSprites(Consumer<? super SpriteDef> consumer, int variation, int frame) {
 		if (sheets.isPresent()) {
-			// Not sure if variation per sheet or acting as layers
 			sheets.get().forEach(s -> s.defineSprites(consumer, variation, frame));
 		} else if (animations.isPresent()) {
 			animations.get().get(variation).defineSprites(consumer, frame);
@@ -50,5 +50,13 @@ public class FPAnimationVariations {
 		List<SpriteDef> ret = new ArrayList<>();
 		defineSprites(ret::add, variation, frame);
 		return ret;
+	}
+
+	public void getDefs(Consumer<ImageDef> register, int frame) {
+		if (sheets.isPresent()) {
+			sheets.get().forEach(s -> s.getDefs(register, frame));
+		} else if (animations.isPresent()) {
+			animations.get().forEach(fp -> fp.defineSprites(register, frame));
+		}
 	}
 }

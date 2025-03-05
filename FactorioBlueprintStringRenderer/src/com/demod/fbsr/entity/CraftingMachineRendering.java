@@ -147,6 +147,19 @@ public abstract class CraftingMachineRendering extends SimpleEntityRendering {
 	}
 
 	@Override
+	public Class<? extends BSEntity> getEntityClass() {
+		return BSCraftingMachineEntity.class;
+	}
+
+	@Override
+	public void initAtlas(Consumer<ImageDef> register) {
+		super.initAtlas(register);
+
+		protoGraphicsSetFlipped.get().getDefs(register, FRAME);
+		protoGraphicsSet.getDefs(register, FRAME);
+	}
+
+	@Override
 	public void initFromPrototype() {
 		super.initFromPrototype();
 
@@ -206,19 +219,6 @@ public abstract class CraftingMachineRendering extends SimpleEntityRendering {
 				}
 			}
 		}
-	}
-
-	@Override
-	public Class<? extends BSEntity> getEntityClass() {
-		return BSCraftingMachineEntity.class;
-	}
-
-	@Override
-	public void initAtlas(Consumer<ImageDef> register) {
-		super.initAtlas(register);
-
-		protoGraphicsSetFlipped.get().getDefs(register, FRAME);
-		protoGraphicsSet.getDefs(register, FRAME);
 	}
 
 }

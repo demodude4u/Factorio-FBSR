@@ -50,23 +50,6 @@ public abstract class RailSignalBaseRendering extends EntityRendererFactory {
 	}
 
 	@Override
-	public void initFromPrototype() {
-		groundPictureSet = new FPRailSignalPictureSet(prototype.lua().get("ground_picture_set"));
-		elevatedPictureSet = new FPRailSignalPictureSet(prototype.lua().get("elevated_picture_set"));
-	}
-
-	@Override
-	public Class<? extends BSEntity> getEntityClass() {
-		return BSRailSignalBaseEntity.class;
-	}
-
-	@Override
-	public void initAtlas(Consumer<ImageDef> register) {
-		groundPictureSet.railPiece.sprites.getDefs().forEach(l -> l.forEach(register));
-		groundPictureSet.structure.getDefs(register, FRAME);
-	}
-
-	@Override
 	public MapRect3D getDrawBounds(MapEntity entity) {
 		MapRect3D ret = super.getDrawBounds(entity);
 
@@ -85,5 +68,22 @@ public abstract class RailSignalBaseRendering extends EntityRendererFactory {
 		}
 
 		return ret;
+	}
+
+	@Override
+	public Class<? extends BSEntity> getEntityClass() {
+		return BSRailSignalBaseEntity.class;
+	}
+
+	@Override
+	public void initAtlas(Consumer<ImageDef> register) {
+		groundPictureSet.railPiece.sprites.getDefs().forEach(l -> l.forEach(register));
+		groundPictureSet.structure.getDefs(register, FRAME);
+	}
+
+	@Override
+	public void initFromPrototype() {
+		groundPictureSet = new FPRailSignalPictureSet(prototype.lua().get("ground_picture_set"));
+		elevatedPictureSet = new FPRailSignalPictureSet(prototype.lua().get("elevated_picture_set"));
 	}
 }

@@ -43,8 +43,8 @@ public class FPSpriteNWaySheet extends FPSpriteParameters {
 				x += width * (direction.ordinal() % frames);
 			}
 
-			defs.add(SpriteDef.fromFP(filename.get(), drawAsShadow, blendMode, tint, x, y, width, height, shift.x,
-					shift.y, scale));
+			defs.add(SpriteDef.fromFP(filename.get(), drawAsShadow, blendMode, tint, applyRuntimeTint, x, y, width,
+					height, shift.x, shift.y, scale));
 		}
 		return defs;
 	}

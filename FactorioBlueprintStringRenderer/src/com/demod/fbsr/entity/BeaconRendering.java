@@ -37,6 +37,15 @@ public class BeaconRendering extends EntityRendererFactory {
 	}
 
 	@Override
+	public void initAtlas(Consumer<ImageDef> register) {
+		if (protoGraphicsSet.isPresent()) {
+			protoGraphicsSet.get().defineSprites(register, 0);
+		} else {
+			protoBasePicture.get().defineSprites(register, 0);
+		}
+	}
+
+	@Override
 	public void initFromPrototype() {
 		protoSelectionBox = new FPBoundingBox(prototype.lua().get("selection_box"));
 		protoGraphicsSet = FPUtils.opt(prototype.lua().get("graphics_set"), FPBeaconGraphicsSet::new);
@@ -59,15 +68,6 @@ public class BeaconRendering extends EntityRendererFactory {
 			for (int yFP = supplyBounds.getYFP() + halfFP; yFP < y2FP; yFP += tileFP) {
 				map.setBeaconed(MapPosition.byFixedPoint(xFP, yFP), entity, protoDistributionEffectivity);
 			}
-		}
-	}
-
-	@Override
-	public void initAtlas(Consumer<ImageDef> register) {
-		if (protoGraphicsSet.isPresent()) {
-			protoGraphicsSet.get().defineSprites(register, 0);
-		} else {
-			protoBasePicture.get().defineSprites(register, 0);
 		}
 	}
 

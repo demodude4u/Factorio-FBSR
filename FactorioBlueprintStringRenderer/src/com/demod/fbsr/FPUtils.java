@@ -7,6 +7,7 @@ import java.util.function.Function;
 
 import com.demod.factorio.Utils;
 import com.demod.factorio.fakelua.LuaValue;
+import com.demod.fbsr.fp.FPColor;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 
@@ -135,6 +136,24 @@ public final class FPUtils {
 
 	public static double projectedY(double y) {
 		return y * PROJECTION_CONSTANT;
+	}
+
+	public static BlendMode blendMode(LuaValue lua) {
+		if (lua.isnil()) {
+			return BlendMode.NORMAL;
+		}
+		return BlendMode.fromString(lua.tojstring());
+	}
+
+	public static Optional<FPColor> tint(LuaValue lua) {
+		if (lua.isnil()) {
+			return Optional.empty();
+		}
+		FPColor ret = new FPColor(lua);
+		if (ret.r == 1 && ret.g == 1 && ret.b == 1 && ret.a == 1) {
+			return Optional.empty();
+		}
+		return Optional.of(ret);
 	}
 
 }

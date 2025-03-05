@@ -1,18 +1,18 @@
 package com.demod.fbsr.fp;
 
-import java.awt.Color;
 import java.util.Optional;
 
 import com.demod.factorio.fakelua.LuaValue;
+import com.demod.fbsr.BlendMode;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.SpriteDef;
 
 public class FPSpriteParameters extends FPSpriteSource {
-	public final String blendMode;
+	public final BlendMode blendMode;
 	public final boolean drawAsShadow;
 	public final double scale;
 	public final FPVector shift;
-	public final FPColor tint;
+	public final Optional<FPColor> tint;
 	public final boolean applyRuntimeTint;
 
 	private final SpriteDef def;
@@ -20,15 +20,15 @@ public class FPSpriteParameters extends FPSpriteSource {
 	public FPSpriteParameters(LuaValue lua) {
 		super(lua);
 
-		blendMode = lua.get("blend_mode").optjstring("normal");
+		blendMode = FPUtils.blendMode(lua.get("blend_mode"));
 		drawAsShadow = lua.get("draw_as_shadow").optboolean(false);
 		scale = lua.get("scale").optdouble(1) * 2;
 		shift = FPUtils.opt(lua.get("shift"), FPVector::new).orElseGet(() -> new FPVector(0, 0));
-		tint = FPUtils.opt(lua.get("tint"), FPColor::new).orElseGet(() -> new FPColor(1, 1, 1, 1));
+		tint = FPUtils.tint(lua.get("tint"));
 		applyRuntimeTint = lua.get("apply_runtime_tint").optboolean(false);
 
-		def = SpriteDef.fromFP(filename.get(), drawAsShadow, blendMode, tint, x, y, width, height, shift.x, shift.y,
-				scale);
+		def = SpriteDef.fromFP(filename.get(), drawAsShadow, blendMode, tint, applyRuntimeTint, x, y, width, height,
+				shift.x, shift.y, scale);
 	}
 
 	protected SpriteDef defineSprite() {

@@ -51,6 +51,11 @@ public class PipeRendering extends EntityRendererFactory {
 	}
 
 	@Override
+	public void initAtlas(Consumer<ImageDef> register) {
+		protoPipeSprites.forEach(fp -> fp.defineSprites(register));
+	}
+
+	@Override
 	public void initFromPrototype() {
 		LuaValue luaPictures = prototype.lua().get("pictures");
 		protoPipeSprites = Arrays.stream(pipeSpriteNameMapping).map(s -> new FPSprite(luaPictures.get(s)))
@@ -64,10 +69,5 @@ public class PipeRendering extends EntityRendererFactory {
 	@Override
 	public void populateWorldMap(WorldMap map, MapEntity entity) {
 		map.setPipe(entity.getPosition());
-	}
-
-	@Override
-	public void initAtlas(Consumer<ImageDef> register) {
-		protoPipeSprites.forEach(fp -> fp.defineSprites(register));
 	}
 }

@@ -30,6 +30,10 @@ public class ErrorRendering extends EntityRendererFactory {
 	}
 
 	@Override
+	public void initAtlas(Consumer<ImageDef> register) {
+	}
+
+	@Override
 	public void initFromPrototype() {
 	}
 
@@ -39,10 +43,6 @@ public class ErrorRendering extends EntityRendererFactory {
 
 	@Override
 	public void populateWorldMap(WorldMap map, MapEntity entity) {
-	}
-
-	@Override
-	public void initAtlas(Consumer<ImageDef> register) {
 	}
 
 }

@@ -59,6 +59,15 @@ public class MapRect {
 		this.heightfp = height;
 	}
 
+	public MapRect add(MapPosition position) {
+		return new MapRect(xfp + position.xfp, yfp + position.yfp, widthfp, heightfp);
+	}
+
+	public MapRect expandUnit(double distance) {
+		int distFP = unitToFixedPoint(distance);
+		return new MapRect(xfp - distFP, yfp - distFP, widthfp + distFP * 2, heightfp + distFP * 2);
+	}
+
 	public double getHeight() {
 		return fixedPointToUnit(heightfp);
 	}
@@ -95,25 +104,21 @@ public class MapRect {
 		return yfp;
 	}
 
-	public Rectangle toPixels() {
-		return new Rectangle(fixedPointToPixels(xfp), fixedPointToPixels(yfp), fixedPointToPixels(widthfp),
-				fixedPointToPixels(heightfp));
-	}
-
-	public MapRect add(MapPosition position) {
-		return new MapRect(xfp + position.xfp, yfp + position.yfp, widthfp, heightfp);
-	}
-
-	public MapRect rotate90() {
-		return new MapRect(-heightfp - yfp, xfp, heightfp, widthfp);
-	}
-
 	public MapRect rotate180() {
 		return new MapRect(-widthfp - xfp, -heightfp - yfp, widthfp, heightfp);
 	}
 
 	public MapRect rotate270() {
 		return new MapRect(yfp, -widthfp - xfp, heightfp, widthfp);
+	}
+
+	public MapRect rotate90() {
+		return new MapRect(-heightfp - yfp, xfp, heightfp, widthfp);
+	}
+
+	public Rectangle toPixels() {
+		return new Rectangle(fixedPointToPixels(xfp), fixedPointToPixels(yfp), fixedPointToPixels(widthfp),
+				fixedPointToPixels(heightfp));
 	}
 
 	public MapRect transformMatrix(double mx1, double mx2, double my1, double my2) {
@@ -132,10 +137,5 @@ public class MapRect {
 		int width = Math.max(dx1, dx2) - x;
 		int height = Math.max(dy1, dy2) - y;
 		return new MapRect(x, y, width, height);
-	}
-
-	public MapRect expandUnit(double distance) {
-		int distFP = unitToFixedPoint(distance);
-		return new MapRect(xfp - distFP, yfp - distFP, widthfp + distFP * 2, heightfp + distFP * 2);
 	}
 }

@@ -87,6 +87,11 @@ public class SplitterRendering extends TransportBeltConnectableRendering {
 	}
 
 	@Override
+	public Class<? extends BSEntity> getEntityClass() {
+		return BSSplitterEntity.class;
+	}
+
+	@Override
 	public void initFromPrototype() {
 		super.initFromPrototype();
 
@@ -150,10 +155,5 @@ public class SplitterRendering extends TransportBeltConnectableRendering {
 		MapPosition belt2Pos = direction.right().offset(pos, 0.5);
 		map.setBelt(belt1Pos, direction, false, true);
 		map.setBelt(belt2Pos, direction, false, true);
-	}
-
-	@Override
-	public Class<? extends BSEntity> getEntityClass() {
-		return BSSplitterEntity.class;
 	}
 }

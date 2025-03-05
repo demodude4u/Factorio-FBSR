@@ -34,6 +34,15 @@ public class BoilerRendering extends SimpleEntityRendering {
 	}
 
 	@Override
+	public void initAtlas(Consumer<ImageDef> register) {
+		super.initAtlas(register);
+
+		for (Direction direction : Direction.cardinals()) {
+			protoPictures.defineSprites(register, direction, FRAME);
+		}
+	}
+
+	@Override
 	public void initFromPrototype() {
 		super.initFromPrototype();
 
@@ -49,15 +58,6 @@ public class BoilerRendering extends SimpleEntityRendering {
 		MapPosition position = dir.back().offset(entity.getPosition(), 0.5);
 		if (protoHasEnergySource) {
 			map.setHeatPipe(position, dir.back());// TODO in the SimpleEntityRendering
-		}
-	}
-
-	@Override
-	public void initAtlas(Consumer<ImageDef> register) {
-		super.initAtlas(register);
-
-		for (Direction direction : Direction.cardinals()) {
-			protoPictures.defineSprites(register, direction, FRAME);
 		}
 	}
 

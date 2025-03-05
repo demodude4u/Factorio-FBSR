@@ -2,6 +2,7 @@ package com.demod.fbsr;
 
 import java.awt.Color;
 import java.awt.Rectangle;
+import java.util.Optional;
 
 import com.demod.fbsr.map.MapRect;
 
@@ -9,20 +10,20 @@ public class LayeredSpriteDef extends SpriteDef {
 
 	private final Layer layer;
 
-	public LayeredSpriteDef(String path, Layer layer, boolean shadow, String blendMode, Color tint, Rectangle source,
-			MapRect bounds) {
-		super(path, shadow, blendMode, tint, source, bounds);
+	public LayeredSpriteDef(String path, Layer layer, boolean shadow, BlendMode blendMode, Optional<Color> tint,
+			boolean applyRuntimeTint, Rectangle source, MapRect bounds) {
+		super(path, shadow, blendMode, tint, applyRuntimeTint, source, bounds);
 		this.layer = shadow ? Layer.SHADOW_BUFFER : layer;
 	}
 
-	public LayeredSpriteDef(ImageDef shared, Layer layer, boolean shadow, String blendMode, Color tint,
-			MapRect bounds) {
-		super(shared, shadow, blendMode, tint, bounds);
+	public LayeredSpriteDef(ImageDef shared, Layer layer, boolean shadow, BlendMode blendMode, Optional<Color> tint,
+			boolean applyRuntimeTint, MapRect bounds) {
+		super(shared, shadow, blendMode, tint, applyRuntimeTint, bounds);
 		this.layer = shadow ? Layer.SHADOW_BUFFER : layer;
 	}
 
 	public LayeredSpriteDef(ImageDef shared, Layer layer, MapRect bounds) {
-		super(shared, false, "normal", Color.white, bounds);
+		super(shared, false, BlendMode.NORMAL, Optional.empty(), false, bounds);
 		this.layer = shadow ? Layer.SHADOW_BUFFER : layer;
 	}
 

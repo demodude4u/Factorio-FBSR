@@ -1,22 +1,21 @@
 package com.demod.fbsr.entity;
 
-import java.awt.geom.Point2D;
-import java.util.List;
 import java.util.function.Consumer;
-
-import javax.swing.Renderer;
 
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.Direction;
+import com.demod.fbsr.ImageDef;
 import com.demod.fbsr.Layer;
-import com.demod.fbsr.RenderUtils;
-import com.demod.fbsr.Sprite;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.WorldMap.BeltBend;
+import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.bs.entity.BSUndergroundBeltEntity;
 import com.demod.fbsr.fp.FPSprite4Way;
+import com.demod.fbsr.map.MapEntity;
+import com.demod.fbsr.map.MapPosition;
+import com.demod.fbsr.map.MapRenderable;
 
-public class UndergroundBeltRendering extends TransportBeltConnectableRendering<BSUndergroundBeltEntity> {
+public class UndergroundBeltRendering extends TransportBeltConnectableRendering {
 
 	private FPSprite4Way protoStructureDirectionIn;
 	private FPSprite4Way protoStructureDirectionOut;
@@ -25,17 +24,18 @@ public class UndergroundBeltRendering extends TransportBeltConnectableRendering<
 	private int protoMaxDistance;
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, BSUndergroundBeltEntity entity) {
-		List<Sprite> beltSprites = createBeltSprites(entity.direction.cardinal(), BeltBend.NONE.ordinal(),
-				getAlternatingFrame(entity.position.createPoint(), 0));
-		register.accept(RenderUtils.spriteRenderer(Layer.TRANSPORT_BELT, beltSprites, entity, drawBounds));
+	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
+		BSUndergroundBeltEntity bsEntity = entity.<BSUndergroundBeltEntity>fromBlueprint();
 
-		boolean input = entity.type.get().equals("input");
-		Direction structDir = input ? entity.direction : entity.direction.back();
+		defineBeltSprites(entity.spriteRegister(register, Layer.TRANSPORT_BELT), entity.getDirection().cardinal(),
+				BeltBend.NONE.ordinal(), getAlternatingFrame(entity.getPosition()));
+
+		boolean input = bsEntity.type.get().equals("input");
+		Direction structDir = input ? entity.getDirection() : entity.getDirection().back();
 		FPSprite4Way protoStructSprite = input ? protoStructureDirectionIn : protoStructureDirectionOut;
-		if (entity.direction.isHorizontal()) {
-			Point2D.Double checkPos = entity.position.createPoint();
-			checkPos = (input ? entity.direction.back() : entity.direction).offset(checkPos, 0.25);
+		if (entity.getDirection().isHorizontal()) {
+			MapPosition checkPos = entity.getPosition();
+			checkPos = (input ? entity.getDirection().back() : entity.getDirection()).offset(checkPos, 0.25);
 			checkPos = Direction.SOUTH.offset(checkPos, 0.75);
 			boolean sideLoading = map.getLogisticGridCell(checkPos).flatMap(lgc -> lgc.getMove())
 					.filter(d -> d == Direction.NORTH).isPresent();
@@ -44,9 +44,22 @@ public class UndergroundBeltRendering extends TransportBeltConnectableRendering<
 						: protoStructureDirectionOutSideLoading;
 			}
 		}
-		List<Sprite> structureSprites = protoStructSprite.createSprites(data, structDir);
-		register.accept(
-				RenderUtils.spriteRenderer(Layer.HIGHER_OBJECT_UNDER, structureSprites, entity, drawBounds));
+		protoStructSprite.defineSprites(entity.spriteRegister(register, Layer.HIGHER_OBJECT_UNDER), structDir);
+	}
+
+	@Override
+	public Class<? extends BSEntity> getEntityClass() {
+		return BSUndergroundBeltEntity.class;
+	}
+
+	@Override
+	public void initAtlas(Consumer<ImageDef> register) {
+		super.initAtlas(register);
+
+		protoStructureDirectionIn.getDefs().forEach(l -> l.forEach(register));
+		protoStructureDirectionInSideLoading.getDefs().forEach(l -> l.forEach(register));
+		protoStructureDirectionOut.getDefs().forEach(l -> l.forEach(register));
+		protoStructureDirectionOutSideLoading.getDefs().forEach(l -> l.forEach(register));
 	}
 
 	@Override
@@ -63,10 +76,12 @@ public class UndergroundBeltRendering extends TransportBeltConnectableRendering<
 	}
 
 	@Override
-	public void populateLogistics(WorldMap map, BSUndergroundBeltEntity entity) {
-		Direction dir = entity.direction;
-		Point2D.Double pos = entity.position.createPoint();
-		boolean input = entity.type.get().equals("input");
+	public void populateLogistics(WorldMap map, MapEntity entity) {
+		BSUndergroundBeltEntity bsEntity = entity.<BSUndergroundBeltEntity>fromBlueprint();
+
+		Direction dir = entity.getDirection();
+		MapPosition pos = entity.getPosition();
+		boolean input = bsEntity.type.get().equals("input");
 
 		if (input) {
 			setLogisticMove(map, pos, dir.backLeft(), dir);
@@ -83,8 +98,8 @@ public class UndergroundBeltRendering extends TransportBeltConnectableRendering<
 
 		if (input) {
 			for (int offset = 1; offset <= protoMaxDistance; offset++) {
-				Point2D.Double targetPos = dir.offset(pos, offset);
-				if (map.isMatchingUndergroundBeltEnding(entity.name, targetPos, dir)) {
+				MapPosition targetPos = dir.offset(pos, offset);
+				if (map.isMatchingUndergroundBeltEnding(entity.fromBlueprint().name, targetPos, dir)) {
 					addLogisticWarp(map, pos, dir.frontLeft(), targetPos, dir.backLeft());
 					addLogisticWarp(map, pos, dir.frontRight(), targetPos, dir.backRight());
 					break;
@@ -94,15 +109,16 @@ public class UndergroundBeltRendering extends TransportBeltConnectableRendering<
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, BSUndergroundBeltEntity entity) {
-		boolean input = entity.type.get().equals("input");
+	public void populateWorldMap(WorldMap map, MapEntity entity) {
+		BSUndergroundBeltEntity bsEntity = entity.<BSUndergroundBeltEntity>fromBlueprint();
+		boolean input = bsEntity.type.get().equals("input");
 
-		Point2D.Double pos = entity.position.createPoint();
+		MapPosition pos = entity.getPosition();
 		if (input) {
-			map.setBelt(pos, entity.direction, false, false);
+			map.setBelt(pos, entity.getDirection(), false, false);
 		} else {
-			map.setBelt(pos, entity.direction, false, true);
-			map.setUndergroundBeltEnding(entity.name, pos, entity.direction);
+			map.setBelt(pos, entity.getDirection(), false, true);
+			map.setUndergroundBeltEnding(entity.fromBlueprint().name, pos, entity.getDirection());
 		}
 	}
 }

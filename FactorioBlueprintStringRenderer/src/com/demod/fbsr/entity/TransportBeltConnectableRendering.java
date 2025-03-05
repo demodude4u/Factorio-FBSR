@@ -102,6 +102,18 @@ public abstract class TransportBeltConnectableRendering extends EntityRendererFa
 	}
 
 	@Override
+	public void initAtlas(Consumer<ImageDef> register) {
+		if (protoHasBeltAnimationSet) {
+			protoBeltAnimationSet.getDefs(register, FRAME);
+			if (protoBeltAlternate) {
+				int frameCount = protoBeltAnimationSet.getFrameCount();
+				int altFrame = (FRAME + frameCount / 2) % frameCount;
+				protoBeltAnimationSet.getDefs(register, altFrame);
+			}
+		}
+	}
+
+	@Override
 	public void initFromPrototype() {
 
 		LuaValue luaBeltAnimationSet = prototype.lua().get("belt_animation_set");
@@ -135,18 +147,6 @@ public abstract class TransportBeltConnectableRendering extends EntityRendererFa
 			}
 
 			protoBeltAlternate = luaBeltAnimationSet.get("alternate").optboolean(false);
-		}
-	}
-
-	@Override
-	public void initAtlas(Consumer<ImageDef> register) {
-		if (protoHasBeltAnimationSet) {
-			protoBeltAnimationSet.getDefs(register, FRAME);
-			if (protoBeltAlternate) {
-				int frameCount = protoBeltAnimationSet.getFrameCount();
-				int altFrame = (FRAME + frameCount / 2) % frameCount;
-				protoBeltAnimationSet.getDefs(register, altFrame);
-			}
 		}
 	}
 

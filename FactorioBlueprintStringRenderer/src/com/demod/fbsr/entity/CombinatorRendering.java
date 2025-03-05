@@ -60,6 +60,13 @@ public abstract class CombinatorRendering extends SimpleEntityRendering {
 	public abstract Optional<String> getOperation(MapEntity entity);
 
 	@Override
+	public void initAtlas(Consumer<ImageDef> register) {
+		super.initAtlas(register);
+
+		protoOperationSprites.values().forEach(fp -> fp.getDefs().forEach(l -> l.forEach(register)));
+	}
+
+	@Override
 	public void initFromPrototype() {
 		super.initFromPrototype();
 
@@ -69,13 +76,6 @@ public abstract class CombinatorRendering extends SimpleEntityRendering {
 		for (Entry<String, String> entry : operations.entrySet()) {
 			protoOperationSprites.put(entry.getKey(), new FPSprite4Way(prototype.lua().get(entry.getValue())));
 		}
-	}
-
-	@Override
-	public void initAtlas(Consumer<ImageDef> register) {
-		super.initAtlas(register);
-
-		protoOperationSprites.values().forEach(fp -> fp.getDefs().forEach(l -> l.forEach(register)));
 	}
 
 }

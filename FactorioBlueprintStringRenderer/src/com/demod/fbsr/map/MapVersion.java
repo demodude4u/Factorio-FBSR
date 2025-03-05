@@ -45,11 +45,6 @@ public class MapVersion implements Comparable<MapVersion> {
 		return this.version == that.version;
 	}
 
-	@Override
-	public int hashCode() {
-		return Objects.hashCode(this.version);
-	}
-
 	public int getDev() {
 		return dev;
 	}
@@ -72,6 +67,11 @@ public class MapVersion implements Comparable<MapVersion> {
 
 	public boolean greaterOrEquals(MapVersion other) {
 		return version >= other.version;
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hashCode(this.version);
 	}
 
 	public boolean isInvalid() {

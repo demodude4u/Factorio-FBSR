@@ -703,15 +703,6 @@ public abstract class SimpleEntityRendering extends EntityRendererFactory {
 	}
 
 	@Override
-	public void initFromPrototype() {
-		List<BindAction<?>> bindings = new ArrayList<>();
-		fluidBoxes = new ArrayList<>();
-		Bindings fluent = new Bindings(bindings);
-		defineEntity(fluent, prototype.lua());
-		this.bindings = bindings;
-	}
-
-	@Override
 	public void initAtlas(Consumer<ImageDef> register) {
 
 		for (BindAction<?> bindAction : bindings) {
@@ -740,6 +731,15 @@ public abstract class SimpleEntityRendering extends EntityRendererFactory {
 				});
 			}
 		}
+	}
+
+	@Override
+	public void initFromPrototype() {
+		List<BindAction<?>> bindings = new ArrayList<>();
+		fluidBoxes = new ArrayList<>();
+		Bindings fluent = new Bindings(bindings);
+		defineEntity(fluent, prototype.lua());
+		this.bindings = bindings;
 	}
 
 	@Override

@@ -118,6 +118,21 @@ public class InserterRendering extends SimpleEntityRendering {
 	}
 
 	@Override
+	public Class<? extends BSEntity> getEntityClass() {
+		return BSInserterEntity.class;
+	}
+
+	@Override
+	public void initAtlas(Consumer<ImageDef> register) {
+		super.initAtlas(register);
+
+		protoPlatformPicture.getDefs().forEach(l -> l.forEach(register));
+		protoHandOpenPicture.defineSprites(register);
+		protoIndicationLine.defineSprites(register);
+		protoIndicationArrow.defineSprites(register);
+	}
+
+	@Override
 	public void initFromPrototype() {
 		super.initFromPrototype();
 
@@ -167,21 +182,6 @@ public class InserterRendering extends SimpleEntityRendering {
 			addLogisticWarp(map, inPos, dir.backLeft(), outPos, cellDir);
 			addLogisticWarp(map, inPos, dir.backRight(), outPos, cellDir);
 		}
-	}
-
-	@Override
-	public Class<? extends BSEntity> getEntityClass() {
-		return BSInserterEntity.class;
-	}
-
-	@Override
-	public void initAtlas(Consumer<ImageDef> register) {
-		super.initAtlas(register);
-
-		protoPlatformPicture.getDefs().forEach(l -> l.forEach(register));
-		protoHandOpenPicture.defineSprites(register);
-		protoIndicationLine.defineSprites(register);
-		protoIndicationArrow.defineSprites(register);
 	}
 
 }

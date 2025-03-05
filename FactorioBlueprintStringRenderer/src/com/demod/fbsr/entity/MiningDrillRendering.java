@@ -49,18 +49,18 @@ public class MiningDrillRendering extends SimpleEntityRendering {
 	}
 
 	@Override
-	public void initFromPrototype() {
-		super.initFromPrototype();
-
-		protoBasePicture = FPUtils.opt(prototype.lua().get("base_picture"), FPSprite4Way::new);
-		protoGraphicsSet = FPUtils.opt(prototype.lua().get("graphics_set"), FPWorkingVisualisations::new);
-	}
-
-	@Override
 	public void initAtlas(Consumer<ImageDef> register) {
 		super.initAtlas(register);
 
 		protoBasePicture.ifPresent(fp -> fp.getDefs().forEach(l -> l.forEach(register)));
 		protoGraphicsSet.ifPresent(fp -> fp.getDefs(register, FRAME));
+	}
+
+	@Override
+	public void initFromPrototype() {
+		super.initFromPrototype();
+
+		protoBasePicture = FPUtils.opt(prototype.lua().get("base_picture"), FPSprite4Way::new);
+		protoGraphicsSet = FPUtils.opt(prototype.lua().get("graphics_set"), FPWorkingVisualisations::new);
 	}
 }

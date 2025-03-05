@@ -31,17 +31,17 @@ public class AgriculturalTowerRendering extends SimpleEntityRendering {
 	}
 
 	@Override
-	public void initFromPrototype() {
-		super.initFromPrototype();
-
-		protoGraphicsSet = new FPWorkingVisualisations(prototype.lua().get("graphics_set"));
-	}
-
-	@Override
 	public void initAtlas(Consumer<ImageDef> register) {
 		super.initAtlas(register);
 
 		protoGraphicsSet.getDefs(register, FRAME);
+	}
+
+	@Override
+	public void initFromPrototype() {
+		super.initFromPrototype();
+
+		protoGraphicsSet = new FPWorkingVisualisations(prototype.lua().get("graphics_set"));
 	}
 
 }

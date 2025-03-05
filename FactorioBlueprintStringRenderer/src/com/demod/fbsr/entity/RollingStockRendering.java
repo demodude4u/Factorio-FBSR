@@ -51,13 +51,6 @@ public class RollingStockRendering extends EntityRendererFactory {
 	}
 
 	@Override
-	public void initFromPrototype() {
-		protoJointDistance = prototype.lua().get("joint_distance").todouble();
-		protoPictures = new FPRollingStockRotatedSlopedGraphics(prototype.lua().get("pictures"));
-		protoWheels = FPUtils.opt(prototype.lua().get("wheels"), FPRollingStockRotatedSlopedGraphics::new);
-	}
-
-	@Override
 	public void initAtlas(Consumer<ImageDef> register) {
 		protoPictures.rotated.getDefs(register);
 		protoPictures.sloped.getDefs(register);
@@ -65,5 +58,12 @@ public class RollingStockRendering extends EntityRendererFactory {
 			protoWheels.get().rotated.getDefs(register);
 			protoWheels.get().sloped.getDefs(register);
 		}
+	}
+
+	@Override
+	public void initFromPrototype() {
+		protoJointDistance = prototype.lua().get("joint_distance").todouble();
+		protoPictures = new FPRollingStockRotatedSlopedGraphics(prototype.lua().get("pictures"));
+		protoWheels = FPUtils.opt(prototype.lua().get("wheels"), FPRollingStockRotatedSlopedGraphics::new);
 	}
 }

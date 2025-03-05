@@ -55,6 +55,11 @@ public class HeatPipeRendering extends EntityRendererFactory {
 	}
 
 	@Override
+	public void initAtlas(Consumer<ImageDef> register) {
+		protoConnectionSprites.forEach(fp -> fp.defineSprites(register, VARIATION));
+	}
+
+	@Override
 	public void initFromPrototype() {
 		protoConnectionSprites = Arrays.stream(heatPipeSpriteNameMapping)
 				.map(s -> new FPSpriteVariations(prototype.lua().get("connection_sprites").get(s)))
@@ -64,10 +69,5 @@ public class HeatPipeRendering extends EntityRendererFactory {
 	@Override
 	public void populateWorldMap(WorldMap map, MapEntity entity) {
 		map.setHeatPipe(entity.getPosition());
-	}
-
-	@Override
-	public void initAtlas(Consumer<ImageDef> register) {
-		protoConnectionSprites.forEach(fp -> fp.defineSprites(register, VARIATION));
 	}
 }

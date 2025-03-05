@@ -66,12 +66,12 @@ public class ArithmeticCombinatorRendering extends CombinatorRendering {
 	}
 
 	@Override
-	public Optional<String> getOperation(MapEntity entity) {
-		return entity.<BSArithmeticCombinatorEntity>fromBlueprint().arithmeticConditions.map(bs -> bs.operation);
+	public Class<? extends BSEntity> getEntityClass() {
+		return BSArithmeticCombinatorEntity.class;
 	}
 
 	@Override
-	public Class<? extends BSEntity> getEntityClass() {
-		return BSArithmeticCombinatorEntity.class;
+	public Optional<String> getOperation(MapEntity entity) {
+		return entity.<BSArithmeticCombinatorEntity>fromBlueprint().arithmeticConditions.map(bs -> bs.operation);
 	}
 }

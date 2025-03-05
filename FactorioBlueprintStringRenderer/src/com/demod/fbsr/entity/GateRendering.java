@@ -29,6 +29,12 @@ public class GateRendering extends EntityRendererFactory {
 	}
 
 	@Override
+	public void initAtlas(Consumer<ImageDef> register) {
+		protoVerticalAnimation.defineSprites(register, FRAME);
+		protoHorizontalAnimation.defineSprites(register, FRAME);
+	}
+
+	@Override
 	public void initFromPrototype() {
 		protoVerticalAnimation = new FPAnimation(prototype.lua().get("vertical_animation"));
 		protoHorizontalAnimation = new FPAnimation(prototype.lua().get("horizontal_animation"));
@@ -46,11 +52,5 @@ public class GateRendering extends EntityRendererFactory {
 		} else {
 			map.setHorizontalGate(pos);
 		}
-	}
-
-	@Override
-	public void initAtlas(Consumer<ImageDef> register) {
-		protoVerticalAnimation.defineSprites(register, FRAME);
-		protoHorizontalAnimation.defineSprites(register, FRAME);
 	}
 }

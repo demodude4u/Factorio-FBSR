@@ -53,15 +53,15 @@ public class FPMaterialTextureParameters {
 		return defs.get(frame);
 	}
 
-	public int getTexWidthTiles() {
-		return texWidthTiles;
+	public List<ImageDef> getDefs() {
+		return defs;
 	}
 
 	public int getTexHeightTiles() {
 		return texHeightTiles;
 	}
 
-	public List<ImageDef> getDefs() {
-		return defs;
+	public int getTexWidthTiles() {
+		return texWidthTiles;
 	}
 }

@@ -27,6 +27,12 @@ public class FPLayeredSprite extends FPSprite {
 		}
 	}
 
+	public List<LayeredSpriteDef> defineLayeredSprites() {
+		List<LayeredSpriteDef> ret = new ArrayList<>();
+		defineLayeredSprites(ret::add);
+		return ret;
+	}
+
 	public void defineLayeredSprites(Consumer<? super LayeredSpriteDef> consumer) {
 		if (array.isPresent()) {
 			for (FPLayeredSprite item : array.get()) {
@@ -37,12 +43,6 @@ public class FPLayeredSprite extends FPSprite {
 
 		Layer layer = renderLayer.get();
 		super.defineSprites(s -> consumer.accept(new LayeredSpriteDef(s, layer)));
-	}
-
-	public List<LayeredSpriteDef> defineLayeredSprites() {
-		List<LayeredSpriteDef> ret = new ArrayList<>();
-		defineLayeredSprites(ret::add);
-		return ret;
 	}
 
 	@Override

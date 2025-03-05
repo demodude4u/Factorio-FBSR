@@ -25,11 +25,11 @@ public class SpiderVehicleRendering extends EntityRendererFactory {
 	}
 
 	@Override
-	public void initFromPrototype() {
+	public void initAtlas(Consumer<ImageDef> register) {
 	}
 
 	@Override
-	public void initAtlas(Consumer<ImageDef> register) {
+	public void initFromPrototype() {
 	}
 
 }

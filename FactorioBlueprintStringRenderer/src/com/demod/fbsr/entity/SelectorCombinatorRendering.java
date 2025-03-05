@@ -21,12 +21,12 @@ public class SelectorCombinatorRendering extends CombinatorRendering {
 	}
 
 	@Override
-	public Optional<String> getOperation(MapEntity entity) {
-		return entity.<BSSelectorCombinatorEntity>fromBlueprint().operation;
+	public Class<? extends BSEntity> getEntityClass() {
+		return BSSelectorCombinatorEntity.class;
 	}
 
 	@Override
-	public Class<? extends BSEntity> getEntityClass() {
-		return BSSelectorCombinatorEntity.class;
+	public Optional<String> getOperation(MapEntity entity) {
+		return entity.<BSSelectorCombinatorEntity>fromBlueprint().operation;
 	}
 }

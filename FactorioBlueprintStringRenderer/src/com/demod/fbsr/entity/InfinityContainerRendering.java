@@ -41,6 +41,11 @@ public class InfinityContainerRendering extends ContainerRendering {
 	}
 
 	@Override
+	public Class<? extends BSEntity> getEntityClass() {
+		return BSInfinityContainerEntity.class;
+	}
+
+	@Override
 	public void populateLogistics(WorldMap map, MapEntity entity) {
 		MapPosition pos = entity.getPosition();
 
@@ -56,10 +61,5 @@ public class InfinityContainerRendering extends ContainerRendering {
 			map.getOrCreateLogisticGridCell(Direction.SOUTHEAST.offset(pos, 0.25)).setOutputs(Optional.of(outputs));
 			map.getOrCreateLogisticGridCell(Direction.SOUTHWEST.offset(pos, 0.25)).setOutputs(Optional.of(outputs));
 		}
-	}
-
-	@Override
-	public Class<? extends BSEntity> getEntityClass() {
-		return BSInfinityContainerEntity.class;
 	}
 }

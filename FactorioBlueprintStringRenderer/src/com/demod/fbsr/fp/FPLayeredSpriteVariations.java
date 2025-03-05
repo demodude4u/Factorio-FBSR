@@ -19,11 +19,11 @@ public class FPLayeredSpriteVariations {
 		layeredSprites.get(variation).defineLayeredSprites(consumer);
 	}
 
-	public int getVariationCount() {
-		return layeredSprites.size();
-	}
-
 	public void getDefs(Consumer<ImageDef> register) {
 		layeredSprites.forEach(fp -> fp.defineLayeredSprites(register));
+	}
+
+	public int getVariationCount() {
+		return layeredSprites.size();
 	}
 }

@@ -47,6 +47,16 @@ public class FusionGeneratorRendering extends SimpleEntityRendering {
 	}
 
 	@Override
+	public void initAtlas(Consumer<ImageDef> register) {
+		super.initAtlas(register);
+
+		protoNorthAnimation.defineSprites(register, FRAME);
+		protoEastAnimation.defineSprites(register, FRAME);
+		protoSouthAnimation.defineSprites(register, FRAME);
+		protoWestAnimation.defineSprites(register, FRAME);
+	}
+
+	@Override
 	public void initFromPrototype() {
 		super.initFromPrototype();
 
@@ -55,16 +65,6 @@ public class FusionGeneratorRendering extends SimpleEntityRendering {
 		protoEastAnimation = new FPAnimation(luaGraphicsSet.get("east_graphics_set").get("animation"));
 		protoSouthAnimation = new FPAnimation(luaGraphicsSet.get("south_graphics_set").get("animation"));
 		protoWestAnimation = new FPAnimation(luaGraphicsSet.get("west_graphics_set").get("animation"));
-	}
-
-	@Override
-	public void initAtlas(Consumer<ImageDef> register) {
-		super.initAtlas(register);
-
-		protoNorthAnimation.defineSprites(register, FRAME);
-		protoEastAnimation.defineSprites(register, FRAME);
-		protoSouthAnimation.defineSprites(register, FRAME);
-		protoWestAnimation.defineSprites(register, FRAME);
 	}
 
 	// TODO connectors between adjacent fusion reactors and generators
