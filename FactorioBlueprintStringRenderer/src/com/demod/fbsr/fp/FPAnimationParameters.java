@@ -11,7 +11,7 @@ import com.demod.fbsr.map.MapRect;
 
 public class FPAnimationParameters extends FPSpriteParameters {
 
-	protected final int frameCount;
+	public final int frameCount;
 	public final int lineLength;
 
 	private final List<SpriteDef> defs;
@@ -40,8 +40,10 @@ public class FPAnimationParameters extends FPSpriteParameters {
 			double scaledHeight = scale * height / FBSR.TILE_SIZE;
 			MapRect bounds = MapRect.byUnit(shift.x - scaledWidth / 2.0, shift.y - scaledHeight / 2.0, scaledWidth,
 					scaledHeight);
-			defs.add(new SpriteDef(filename.get(), drawAsShadow, blendMode, tint.map(FPColor::createColor),
-					applyRuntimeTint, source, bounds));
+			if (filename.isPresent()) {
+				defs.add(new SpriteDef(filename.get(), drawAsShadow, blendMode, tint.map(FPColor::createColor),
+						applyRuntimeTint, source, bounds));
+			}
 		}
 		return defs;
 	}

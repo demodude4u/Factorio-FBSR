@@ -94,7 +94,7 @@ public abstract class TransportBeltConnectableRendering extends EntityRendererFa
 
 	protected int getAlternatingFrame(MapPosition pos) {
 		if (protoBeltAlternate && (((pos.getXCell() + pos.getYCell()) % 2) == 0)) {
-			int frameCount = protoBeltAnimationSet.getFrameCount();
+			int frameCount = protoBeltAnimationSet.frameCount;
 			return (FRAME + frameCount / 2) % frameCount;
 		} else {
 			return FRAME;
@@ -106,7 +106,7 @@ public abstract class TransportBeltConnectableRendering extends EntityRendererFa
 		if (protoHasBeltAnimationSet) {
 			protoBeltAnimationSet.getDefs(register, FRAME);
 			if (protoBeltAlternate) {
-				int frameCount = protoBeltAnimationSet.getFrameCount();
+				int frameCount = protoBeltAnimationSet.frameCount;
 				int altFrame = (FRAME + frameCount / 2) % frameCount;
 				protoBeltAnimationSet.getDefs(register, altFrame);
 			}

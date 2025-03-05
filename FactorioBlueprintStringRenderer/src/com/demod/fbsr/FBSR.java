@@ -156,8 +156,8 @@ public class FBSR {
 	public static String getVersion() {
 		if (version == null) {
 			ModInfo baseInfo;
-			try (FileInputStream fis = new FileInputStream(new File(
-					Config.get().getJSONObject("factorio_manager").getString("install"), "data/base/info.json"))) {
+			try (FileInputStream fis = new FileInputStream(
+					new File(Config.get().getJSONObject("factorio_manager").getString("install"), "base/info.json"))) {
 				baseInfo = new ModInfo(Utils.readJsonFromStream(fis));
 				version = baseInfo.getVersion();
 			} catch (JSONException | IOException e) {

@@ -153,6 +153,11 @@ public class FactorioManager {
 
 			JSONObject jsonModRendering = new JSONObject(
 					Files.readString(new File(folderMods, "mod-rendering.json").toPath()));
+
+			if (jsonModRendering.getJSONObject("entities").has("Base")) {
+				baseData = data;
+			}
+
 			EntityRendererFactory.registerFactories(FactorioManager::registerEntityFactory, data,
 					jsonModRendering.getJSONObject("entities"));
 			TileRendererFactory.registerFactories(FactorioManager::registerTileFactory, data,
@@ -163,8 +168,6 @@ public class FactorioManager {
 		EntityRendererFactory.initFactories(entityFactories);
 		TileRendererFactory.initFactories(tileFactories);
 
-		baseData = entityFactories.stream().filter(e -> e.getGroupName().equals("Base")).map(e -> e.getData()).findAny()
-				.orElseThrow(() -> new IOException("No entities for group \"Base\" was found."));
 		entityFactories.forEach(e -> dataByGroupName.put(e.getGroupName(), e.getData()));
 
 		// Place vanilla protos again to be the priority
@@ -197,7 +200,8 @@ public class FactorioManager {
 
 		JSONObject json = Config.get().getJSONObject("factorio_manager");
 
-		String factorio = json.getString("install");
+		String factorioData = json.getString("install");
+		String factorioExecutable = json.getString("executable");
 
 		folderModsRoot = new File(json.optString("mods", "mods"));
 		if (folderModsRoot.mkdirs()) {
@@ -267,7 +271,8 @@ public class FactorioManager {
 			folderData.mkdir();
 
 			JSONObject fdConfig = new JSONObject();
-			fdConfig.put("factorio", factorio);
+			fdConfig.put("factorio", factorioData);
+			fdConfig.put("executable", factorioExecutable);
 			fdConfig.put("mods", folderMods.getAbsolutePath());
 			fdConfig.put("data", folderData.getAbsolutePath());
 

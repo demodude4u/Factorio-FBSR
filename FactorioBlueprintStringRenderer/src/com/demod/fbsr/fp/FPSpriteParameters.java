@@ -27,8 +27,12 @@ public class FPSpriteParameters extends FPSpriteSource {
 		tint = FPUtils.tint(lua.get("tint"));
 		applyRuntimeTint = lua.get("apply_runtime_tint").optboolean(false);
 
-		def = SpriteDef.fromFP(filename.get(), drawAsShadow, blendMode, tint, applyRuntimeTint, x, y, width, height,
-				shift.x, shift.y, scale);
+		if (filename.isPresent()) {
+			def = SpriteDef.fromFP(filename.get(), drawAsShadow, blendMode, tint, applyRuntimeTint, x, y, width, height,
+					shift.x, shift.y, scale);
+		} else {
+			def = null;
+		}
 	}
 
 	protected SpriteDef defineSprite() {

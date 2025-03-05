@@ -155,7 +155,9 @@ public abstract class CraftingMachineRendering extends SimpleEntityRendering {
 	public void initAtlas(Consumer<ImageDef> register) {
 		super.initAtlas(register);
 
-		protoGraphicsSetFlipped.get().getDefs(register, FRAME);
+		if (protoGraphicsSetFlipped.isPresent()) {
+			protoGraphicsSetFlipped.get().getDefs(register, FRAME);
+		}
 		protoGraphicsSet.getDefs(register, FRAME);
 	}
 

@@ -25,14 +25,17 @@ public class FPSpriteSheet extends FPSpriteParameters {
 	public FPSpriteSheet(LuaValue lua) {
 		super(lua);
 
-		// TODO figure out how variation and repeat works
-
 		layers = FPUtils.optList(lua.get("layers"), FPSpriteSheet::new);
 		filenames = FPUtils.optList(lua.get("filenames"), LuaValue::toString);
 		variationCount = lua.get("variation_count").optint(1);
 		repeatCount = lua.get("repeat_count").optint(1);
 		lineLength = lua.get("line_length").optint(variationCount);
 		linesPerFile = lua.get("lines_per_file").optint(0);
+
+		// TODO figure out how variation and repeat works
+		if (variationCount > 1 && repeatCount > 1) {
+			throw new RuntimeException("Look into how variation count and repeat count works!");
+		}
 
 		defs = createDefs();
 	}
@@ -42,10 +45,10 @@ public class FPSpriteSheet extends FPSpriteParameters {
 			return ImmutableList.of();
 
 		} else if (filenames.isPresent()) {
-
 			ArrayList<SpriteDef> defs = new ArrayList<SpriteDef>();
+			int frameCount = variationCount;
 			int fileFrameCount = (linesPerFile * lineLength);
-			for (int frame = 0; frame < fileFrameCount; frame++) {
+			for (int frame = 0; frame < frameCount; frame++) {
 				int fileFrame = frame % fileFrameCount;
 				int fileIndex = frame / fileFrameCount;
 				int x = this.x + width * (fileFrame % lineLength);
@@ -54,21 +57,19 @@ public class FPSpriteSheet extends FPSpriteParameters {
 						applyRuntimeTint, x, y, width, height, shift.x, shift.y, scale));
 			}
 			return defs;
+
+		} else {
+			int frameCount = variationCount;
+			ArrayList<SpriteDef> defs = new ArrayList<SpriteDef>();
+			for (int frame = 0; frame < frameCount; frame++) {
+				int x = this.x + width * (frame % lineLength);
+				int y = this.y + height * (frame / lineLength);
+
+				defs.add(SpriteDef.fromFP(filename.get(), drawAsShadow, blendMode, tint, applyRuntimeTint, x, y, width,
+						height, shift.x, shift.y, scale));
+			}
+			return defs;
 		}
-
-		// XXX bad hack to get image width and height
-		BufferedImage image = FactorioManager.lookupModImage(filename.get());
-
-		int frameCount = image.getHeight() / height;
-		ArrayList<SpriteDef> defs = new ArrayList<SpriteDef>();
-		for (int frame = 0; frame < frameCount; frame++) {
-			int x = this.x + width * (frame % lineLength);
-			int y = this.y + height * (frame / lineLength);
-
-			defs.add(SpriteDef.fromFP(filename.get(), drawAsShadow, blendMode, tint, applyRuntimeTint, x, y, width,
-					height, shift.x, shift.y, scale));
-		}
-		return defs;
 	}
 
 	public void defineSprites(Consumer<? super SpriteDef> consumer, int frame) {
@@ -84,7 +85,8 @@ public class FPSpriteSheet extends FPSpriteParameters {
 			return;
 		}
 
-		consumer.accept(defs.get(frame));
+		// TODO figure out the exact dynamic of variation_count and repeat_count
+		consumer.accept(defs.get(frame % variationCount));
 	}
 
 	public List<SpriteDef> defineSprites(int frame) {
@@ -93,11 +95,11 @@ public class FPSpriteSheet extends FPSpriteParameters {
 		return ret;
 	}
 
-	public int getVariationCount() {
+	public int getFrameCount() {
 		// So far, have seen variation/repeat counts equal across all layers
 		if (layers.isPresent()) {
 			// Should it be min, or max?
-			return layers.get().stream().mapToInt(FPSpriteSheet::getVariationCount).min().getAsInt();
+			return layers.get().stream().mapToInt(FPSpriteSheet::getFrameCount).min().getAsInt();
 		} else {
 			return Math.max(variationCount, repeatCount);
 		}

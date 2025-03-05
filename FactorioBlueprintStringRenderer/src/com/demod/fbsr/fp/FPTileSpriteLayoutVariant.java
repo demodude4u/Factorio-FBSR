@@ -24,8 +24,8 @@ public class FPTileSpriteLayoutVariant {
 		x = lua.get("x").optint(0);
 		y = lua.get("y").optint(0);
 		tileHeight = lua.get("tile_height").optint(1);
-		lineLength = lua.get("line_length").optint(0);
 		count = lua.get("count").checkint();
+		lineLength = lua.get("line_length").optint(count);
 
 		defs = createDefs();
 	}
@@ -34,7 +34,7 @@ public class FPTileSpriteLayoutVariant {
 		List<ImageDef> defs = new ArrayList<>();
 		int width = (int) Math.round(64 / scale);
 		int height = (int) Math.round(tileHeight * 64 / scale);
-		Rectangle source = new Rectangle();
+		Rectangle source = new Rectangle(width, height);
 		for (int i = 0; i < count; i++) {
 			source.x = x + width * (i % lineLength);
 			source.y = y + height * (i / lineLength);

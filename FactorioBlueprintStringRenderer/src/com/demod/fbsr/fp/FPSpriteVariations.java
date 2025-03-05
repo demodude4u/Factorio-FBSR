@@ -16,15 +16,18 @@ public class FPSpriteVariations {
 	public final Optional<List<FPSprite>> sprites;
 
 	public FPSpriteVariations(LuaValue lua) {
-		// XXX is there a better way to determine if this is an array?
-		LuaValue luaFilename = lua.get("filename");
-		LuaValue luaSheet = lua.get("sheet");
-		LuaValue luaLayers = lua.get("layers");
-		if (luaFilename.isnil() && luaSheet.isnil() && luaLayers.isnil()) {
+		if (lua.isarray()) { // This is a Sprite array
 			sheet = Optional.empty();
 			sprites = FPUtils.optList(lua, FPSprite::new);
-		} else {
-			sheet = FPUtils.opt(luaSheet, FPSpriteSheet::new).or(() -> Optional.of(new FPSpriteSheet(lua)));
+
+		} else if (!lua.get("filename").isnil() //
+				|| !lua.get("filenames").isnil() //
+				|| !lua.get("layers").isnil()) {// This is a SpriteSheet
+			sheet = Optional.of(new FPSpriteSheet(lua));
+			sprites = Optional.empty();
+
+		} else {// This is a SpriteVariations
+			sheet = Optional.of(new FPSpriteSheet(lua.get("sheet")));
 			sprites = Optional.empty();
 		}
 	}
@@ -53,7 +56,7 @@ public class FPSpriteVariations {
 
 	public int getVariationCount() {
 		if (sheet.isPresent()) {
-			return sheet.get().getVariationCount();
+			return sheet.get().getFrameCount();
 
 		} else if (sprites.isPresent()) {
 			return sprites.get().size();

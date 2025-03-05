@@ -411,8 +411,13 @@ public class TileRendererFactory {
 
 	public static void initFactories(List<TileRendererFactory> factories) {
 		for (TileRendererFactory factory : factories) {
-			factory.initFromPrototype(factory.getData().getTable());
-			factory.initAtlas(AtlasManager::registerDef);
+			try {
+				factory.initFromPrototype(factory.getData().getTable());
+				factory.initAtlas(AtlasManager::registerDef);
+			} catch (Exception e) {
+				LOGGER.error("TILE {}", factory.getName());
+				throw e;
+			}
 		}
 		LOGGER.info("Initialized {} tiles.", factories.size());
 	}
