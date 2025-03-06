@@ -571,8 +571,8 @@ public class FBSR {
 
 		Rectangle2D.Double screenBounds = new Rectangle2D.Double();
 		screenBounds.setFrameFromDiagonal(gridBounds.getX1() - worldPadding - gridPadding,
-				gridBounds.getY1() - gridBounds.getHeight() - worldPadding - gridPadding,
-				gridBounds.getX2() + worldPadding + gridPadding, gridBounds.getY2() + worldPadding + gridPadding);
+				gridBounds.getY1() - worldPadding - gridPadding, gridBounds.getX2() + worldPadding + gridPadding,
+				gridBounds.getY2() + worldPadding + gridPadding);
 
 		if (request.isDontClipSprites()) {
 			MapRect spriteBounds = MapRect
@@ -670,6 +670,9 @@ public class FBSR {
 				register.accept(new MapGrid(gridBounds, request.getGridLines().get(), gridAboveBelts, gridShowNumbers));
 			}
 		}
+
+//		AtlasManager.refreshVolatileBuffers();
+
 		for (Entry<Layer, List<MapRenderable>> entry : Multimaps.asMap(layerRenderables).entrySet()) {
 			Layer layer = entry.getKey();
 			List<MapRenderable> layerRenderers = entry.getValue();
@@ -761,6 +764,6 @@ public class FBSR {
 			}
 		}
 
-		return MapRect3D.byFixedPoint(x1fp, x2fp, y1fp, y2fp, heightfp);
+		return MapRect3D.byFixedPoint(x1fp, y1fp, x2fp, y2fp, heightfp);
 	}
 }

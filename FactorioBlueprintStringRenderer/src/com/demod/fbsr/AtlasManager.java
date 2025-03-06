@@ -23,6 +23,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.imageio.ImageIO;
 
@@ -31,6 +32,8 @@ import org.json.JSONTokener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Sets;
+import com.google.common.collect.Sets.SetView;
 import com.google.common.io.Files;
 
 public class AtlasManager {
@@ -39,19 +42,19 @@ public class AtlasManager {
 		private final BufferedImage bufImage;
 		private final Quadtree occupied;
 
-		private VolatileImage volImage;
+//		private VolatileImage volImage;
 
 		public Atlas(int id) {// Generating Atlas
 			this.id = id;
 			bufImage = new BufferedImage(ATLAS_SIZE, ATLAS_SIZE, BufferedImage.TYPE_INT_ARGB_PRE);
-			volImage = null;
+//			volImage = null;
 			occupied = new Quadtree(0, new Rectangle(0, 0, ATLAS_SIZE, ATLAS_SIZE));
 		}
 
 		public Atlas(int id, BufferedImage image) {
 			this.id = id;
 			bufImage = image;
-			volImage = null;
+//			volImage = null;
 			occupied = null;
 		}
 
@@ -63,37 +66,40 @@ public class AtlasManager {
 			return bufImage;
 		}
 
-		public void refreshVolatileImage() {
-			GraphicsConfiguration gc = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice()
-					.getDefaultConfiguration();
-
-			if (volImage == null) {
-				volImage = gc.createCompatibleVolatileImage(bufImage.getWidth(), bufImage.getHeight(),
-						Transparency.TRANSLUCENT);
-			}
-
-			while (true) {
-				int validStatus = volImage.validate(gc);
-
-				if (validStatus == VolatileImage.IMAGE_INCOMPATIBLE) {
-					volImage = gc.createCompatibleVolatileImage(bufImage.getWidth(), bufImage.getHeight(),
-							Transparency.TRANSLUCENT);
-				}
-
-				if (volImage.contentsLost() || validStatus == VolatileImage.IMAGE_INCOMPATIBLE) {
-					Graphics2D g = volImage.createGraphics();
-					g.drawImage(bufImage, 0, 0, null);
-					g.dispose();
-					continue;
-				}
-
-				break;
-			}
-		}
-
-		public VolatileImage getVolatileImage() {
-			return volImage;
-		}
+//		public void refreshVolatileImage() {
+//			GraphicsConfiguration gc = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice()
+//					.getDefaultConfiguration();
+//
+//			if (volImage == null) {
+//				volImage = gc.createCompatibleVolatileImage(bufImage.getWidth(), bufImage.getHeight(),
+//						Transparency.TRANSLUCENT);
+//				Graphics2D g = volImage.createGraphics();
+//				g.drawImage(bufImage, 0, 0, null);
+//				g.dispose();
+//			}
+//
+//			while (true) {
+//				int validStatus = volImage.validate(gc);
+//
+//				if (validStatus == VolatileImage.IMAGE_INCOMPATIBLE) {
+//					volImage = gc.createCompatibleVolatileImage(bufImage.getWidth(), bufImage.getHeight(),
+//							Transparency.TRANSLUCENT);
+//				}
+//
+//				if (volImage.contentsLost() || validStatus == VolatileImage.IMAGE_INCOMPATIBLE) {
+//					Graphics2D g = volImage.createGraphics();
+//					g.drawImage(bufImage, 0, 0, null);
+//					g.dispose();
+//					continue;
+//				}
+//
+//				break;
+//			}
+//		}
+//
+//		public VolatileImage getVolatileImage() {
+//			return volImage;
+//		}
 	}
 
 	public static class AtlasRef {
@@ -307,15 +313,15 @@ public class AtlasManager {
 	}
 
 	private static boolean checkValidManifest(File fileManifest) throws IOException {
-		Set<String> requiredKeys = new HashSet<>();
-
+		Set<String> currentKeys = new HashSet<>();
 		for (ImageDef image : defs) {
 			Rectangle source = image.source;
 			String locationKey = image.path + "|" + source.x + "|" + source.y + "|" + source.width + "|"
 					+ source.height;
-			requiredKeys.add(locationKey);
+			currentKeys.add(locationKey);
 		}
 
+		Set<String> manifestKeys = new HashSet<>();
 		JSONArray jsonManifest;
 		try (FileReader fr = new FileReader(fileManifest)) {
 			jsonManifest = new JSONArray(new JSONTokener(fr));
@@ -328,13 +334,17 @@ public class AtlasManager {
 			int width = jsonEntry.getInt(3);
 			int height = jsonEntry.getInt(4);
 			String locationKey = path + "|" + srcX + "|" + srcY + "|" + width + "|" + height;
-			if (!requiredKeys.remove(locationKey)) {
-				LOGGER.error("ATLAS MANIFEST);
-				return false;
-			}
+			manifestKeys.add(locationKey);
 		}
 
-		return requiredKeys.isEmpty();
+		SetView<String> mismatched = Sets.symmetricDifference(currentKeys, manifestKeys);
+
+		if (!mismatched.isEmpty()) {
+			LOGGER.error("ATLAS MANIFEST MISMATCHED KEYS:\n{}",
+					mismatched.stream().sorted().collect(Collectors.joining("\n")));
+		}
+
+		return mismatched.isEmpty();
 	}
 
 	private static void loadAtlases(File folderAtlas, File fileManifest) throws IOException {
@@ -395,4 +405,10 @@ public class AtlasManager {
 	public static void registerDef(ImageDef def) {
 		defs.add(def);
 	}
+
+//	public static void refreshVolatileBuffers() {
+//		for (Atlas atlas : atlases) {
+//			atlas.refreshVolatileImage();
+//		}
+//	}
 }

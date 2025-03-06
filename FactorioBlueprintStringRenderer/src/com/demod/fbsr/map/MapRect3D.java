@@ -9,12 +9,12 @@ import com.demod.fbsr.fp.FPBoundingBox;
 
 public class MapRect3D {
 
-	public static MapRect3D byFixedPoint(int x1, int x2, int y1, int y2, int height) {
-		return new MapRect3D(x1, x2, y1, y2, height);
+	public static MapRect3D byFixedPoint(int x1, int y1, int x2, int y2, int height) {
+		return new MapRect3D(x1, y1, x2, y2, height);
 	}
 
-	public static MapRect3D byUnit(double x1, double x2, double y1, double y2, double height) {
-		return new MapRect3D(unitToFixedPoint(x1), unitToFixedPoint(x2), unitToFixedPoint(y1), unitToFixedPoint(y2),
+	public static MapRect3D byUnit(double x1, double y1, double x2, double y2, double height) {
+		return new MapRect3D(unitToFixedPoint(x1), unitToFixedPoint(y1), unitToFixedPoint(x2), unitToFixedPoint(y2),
 				unitToFixedPoint(height));
 	}
 
@@ -148,7 +148,8 @@ public class MapRect3D {
 	}
 
 	public MapRect3D shift(MapPosition position) {
-		return new MapRect3D(x1fp + position.xfp, y1fp + position.yfp, x2fp + position.xfp, y2fp + position.yfp, heightfp);
+		return new MapRect3D(x1fp + position.xfp, y1fp + position.yfp, x2fp + position.xfp, y2fp + position.yfp,
+				heightfp);
 	}
 
 	public MapRect3D shiftHeightUnit(double height) {

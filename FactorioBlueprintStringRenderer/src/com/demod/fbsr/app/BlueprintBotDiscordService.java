@@ -820,6 +820,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		RenderRequest request = new RenderRequest(blueprint, event.getReporting());
 		request.setBackground(Optional.empty());
 		request.setGridLines(Optional.empty());
+		request.setDontClipSprites(true);
 		request.debug.entityPlacement = debug;
 
 		RenderResult result = FBSR.renderBlueprint(request);

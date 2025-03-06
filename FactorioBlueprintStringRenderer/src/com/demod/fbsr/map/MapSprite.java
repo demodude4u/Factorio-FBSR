@@ -43,7 +43,7 @@ public class MapSprite extends MapRenderable {
 		if (!ref.isValid()) {
 			throw new IllegalStateException("Sprite not assigned to atlas! " + def.getPath());
 		}
-		Image image = ref.getAtlas().getVolatileImage();
+		Image image = ref.getAtlas().getBufferedImage();
 		Rectangle source = ref.getRect();
 
 		Composite pc = g.getComposite();
