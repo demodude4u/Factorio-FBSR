@@ -10,6 +10,8 @@ public class ImageDef {
 	protected final Rectangle source;
 	protected final AtlasRef atlasRef;
 
+	protected Rectangle trimmed;
+
 	public ImageDef(String path, Rectangle source) {
 		this.path = path;
 		this.source = new Rectangle(source);
@@ -18,9 +20,10 @@ public class ImageDef {
 
 	// Links the atlas ref together
 	protected ImageDef(ImageDef shared) {
-		this.path = shared.path;
-		this.source = shared.source;
+		path = shared.path;
+		source = shared.source;
 		atlasRef = shared.atlasRef;
+		trimmed = shared.trimmed;
 	}
 
 	public AtlasRef getAtlasRef() {
@@ -35,4 +38,11 @@ public class ImageDef {
 		return source;
 	}
 
+	public void setTrimmed(Rectangle trimmed) {
+		this.trimmed = trimmed;
+	}
+
+	public Rectangle getTrimmed() {
+		return trimmed;
+	}
 }

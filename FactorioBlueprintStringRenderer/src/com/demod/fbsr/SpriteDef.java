@@ -13,7 +13,8 @@ public class SpriteDef extends ImageDef {
 	protected final BlendMode blendMode;
 	protected final Optional<Color> tint;
 	protected boolean applyRuntimeTint;
-	protected MapRect bounds;
+	protected MapRect sourceBounds;
+	protected MapRect trimmedBounds;
 
 	public SpriteDef(String path, boolean shadow, BlendMode blendMode, Optional<Color> tint, boolean applyRuntimeTint,
 			Rectangle source, MapRect bounds) {
@@ -22,7 +23,7 @@ public class SpriteDef extends ImageDef {
 		this.blendMode = blendMode;
 		this.tint = tint;
 		this.applyRuntimeTint = applyRuntimeTint;
-		this.bounds = bounds;
+		this.sourceBounds = bounds;
 	}
 
 	public SpriteDef(ImageDef shared, boolean shadow, BlendMode blendMode, Optional<Color> tint,
@@ -32,7 +33,8 @@ public class SpriteDef extends ImageDef {
 		this.blendMode = blendMode;
 		this.tint = tint;
 		this.applyRuntimeTint = applyRuntimeTint;
-		this.bounds = bounds;
+		this.sourceBounds = bounds;
+		updateTrimmedBounds();
 	}
 
 	protected SpriteDef(SpriteDef shared) {
@@ -41,7 +43,8 @@ public class SpriteDef extends ImageDef {
 		blendMode = shared.blendMode;
 		tint = shared.tint;
 		applyRuntimeTint = shared.applyRuntimeTint;
-		bounds = shared.bounds;
+		sourceBounds = shared.sourceBounds;
+		trimmedBounds = shared.trimmedBounds;
 	}
 
 	public boolean isShadow() {
@@ -60,16 +63,41 @@ public class SpriteDef extends ImageDef {
 		return tint;
 	}
 
-	public MapRect getBounds() {
-		return bounds;
+	public MapRect getSourceBounds() {
+		return sourceBounds;
 	}
 
-	public void setBounds(MapRect bounds) {
-		this.bounds = bounds;
+	public MapRect getTrimmedBounds() {
+		return trimmedBounds;
+	}
+
+	public void setSourceBounds(MapRect bounds) {
+		this.sourceBounds = bounds;
+		updateTrimmedBounds();
 	}
 
 	public void offset(MapPosition offset) {
-		this.bounds = bounds.add(offset);
+		this.sourceBounds = sourceBounds.add(offset);
+		if (trimmedBounds != null) {
+			this.trimmedBounds = trimmedBounds.add(offset);
+		}
+	}
+
+	@Override
+	public void setTrimmed(Rectangle trimmed) {
+		super.setTrimmed(trimmed);
+		updateTrimmedBounds();
+	}
+
+	private void updateTrimmedBounds() {
+		if (trimmed != null) {
+			double x = sourceBounds.getX() + sourceBounds.getWidth() * ((trimmed.x - source.x) / (double) source.width);
+			double y = sourceBounds.getY()
+					+ sourceBounds.getHeight() * ((trimmed.y - source.y) / (double) source.height);
+			double width = sourceBounds.getWidth() * (trimmed.width / (double) source.width);
+			double height = sourceBounds.getHeight() * (trimmed.height / (double) source.height);
+			trimmedBounds = MapRect.byUnit(x, y, width, height);
+		}
 	}
 
 	public static SpriteDef fromFP(String filename, boolean shadow, BlendMode blendMode, Optional<FPColor> tint,

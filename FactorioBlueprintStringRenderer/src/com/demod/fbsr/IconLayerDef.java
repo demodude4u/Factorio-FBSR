@@ -63,7 +63,6 @@ public class IconLayerDef extends ImageDef {
 	}
 
 	public static List<IconLayerDef> fromPrototype(LuaTable lua) {
-		String name = lua.get("name").tojstring();
 		String type = lua.get("type").tojstring();
 
 		int expectedIconSize;
@@ -87,6 +86,9 @@ public class IconLayerDef extends ImageDef {
 		if (!iconLua.isnil()) {
 
 			String path = iconLua.tojstring();
+			if (path == null) {
+				throw new RuntimeException("No Icon Path!");
+			}
 			return ImmutableList
 					.of(new IconLayerDef(path, iconSize, Color.white, new Point2D.Double(), defaultScale, true));
 		}
@@ -94,12 +96,15 @@ public class IconLayerDef extends ImageDef {
 
 		if (!iconsLua.isnil()) {
 			List<IconLayerDef> defs = new ArrayList<>();
-			for (int i = 0; i < iconsLua.length(); i++) {
+			for (int i = 1; i <= iconsLua.length(); i++) {
 				LuaValue layer = iconsLua.get(i);
-				String path = layer.get("icon").tojstring();
+				String path = layer.get("icon").checkjstring();
+				if (path == null) {
+					throw new RuntimeException("No Icon Path!");
+				}
 				iconSize = layer.get("icon_size").optint(64);
 				Color tint = FPUtils.<FPColor>opt(layer.get("tint"), FPColor::new).orElse(new FPColor(1, 1, 1, 1))
-						.createColor();
+						.createColorIgnorePreMultipliedAlpha();
 				defaultScale = (expectedIconSize / 2) / (double) iconSize;
 				double scale = layer.get("scale").optdouble(defaultScale);
 				Point2D.Double shift = FPUtils.<FPVector>opt(layer.get("shift"), FPVector::new)
@@ -109,16 +114,19 @@ public class IconLayerDef extends ImageDef {
 				boolean drawBackground = layer.get("draw_background").optboolean(i == 0);
 				defs.add(new IconLayerDef(path, iconSize, tint, shift, scale, drawBackground));
 			}
+			if (defs.isEmpty()) {
+				throw new RuntimeException("No Icon Layers!");
+			}
 			return defs;
 		}
 
-		LOGGER.error("{} ({}) has no icon.", name, type);
+//		LOGGER.error("{} ({}) has no icon.", name, type);
 		return ImmutableList.of(new IconLayerDef("__core__/graphics/empty.png", iconSize, Color.white,
 				new Point2D.Double(), defaultScale, true));
 	}
 
 	public static BufferedImage createIcon(List<IconLayerDef> defs) {
-		int sizeOfFirstLayer = defs.get(1).getIconSize();
+		int sizeOfFirstLayer = defs.get(0).getIconSize();
 
 		BufferedImage icon = new BufferedImage(sizeOfFirstLayer, sizeOfFirstLayer, BufferedImage.TYPE_INT_ARGB);
 		Graphics2D g = icon.createGraphics();

@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,17 +16,30 @@ import com.demod.factorio.FactorioData;
 import com.demod.factorio.Utils;
 import com.demod.factorio.fakelua.LuaTable;
 import com.demod.factorio.prototype.DataPrototype;
+import com.google.common.collect.ListMultimap;
+import com.google.common.collect.MultimapBuilder;
 
 public class TagManager {
 	private static final Logger LOGGER = LoggerFactory.getLogger(TagManager.class);
 
 	public static class DefaultResolver implements TagResolver {
 		private final Map<String, LuaTable> map;
-		private Map<String, List<IconLayerDef>> defs;
-		private Map<String, BufferedImage> cache;
+		private final ListMultimap<String, IconLayerDef> defs;
+		private final Map<String, BufferedImage> cache;
 
 		public DefaultResolver(Map<String, LuaTable> map) {
 			this.map = map;
+			cache = new HashMap<>();
+
+			defs = createDefs();
+		}
+
+		private ListMultimap<String, IconLayerDef> createDefs() {
+			ListMultimap<String, IconLayerDef> defs = MultimapBuilder.hashKeys().arrayListValues().build();
+			for (Entry<String, LuaTable> entry : map.entrySet()) {
+				defs.putAll(entry.getKey(), IconLayerDef.fromPrototype(entry.getValue()));
+			}
+			return defs;
 		}
 
 		@Override
@@ -35,7 +49,7 @@ public class TagManager {
 				return Optional.of(image);
 			}
 			List<IconLayerDef> protoDefs = defs.get(key);
-			if (protoDefs == null) {
+			if (protoDefs.isEmpty()) {
 				return Optional.empty();
 			}
 			image = IconLayerDef.createIcon(protoDefs);
@@ -44,23 +58,15 @@ public class TagManager {
 		}
 
 		@Override
-		public void loadDefs() {
-			defs = new HashMap<>();
-			for (Entry<String, LuaTable> entry : map.entrySet()) {
-				List<IconLayerDef> protoDefs = IconLayerDef.fromPrototype(entry.getValue());
-				defs.put(entry.getKey(), protoDefs);
-				for (IconLayerDef def : protoDefs) {
-					AtlasManager.registerDef(def);
-				}
-			}
-			cache = new HashMap<>();
+		public void getDefs(Consumer<ImageDef> register) {
+			defs.values().forEach(register);
 		}
 	}
 
 	public interface TagResolver {
 		Optional<BufferedImage> lookup(String key);
 
-		void loadDefs();
+		void getDefs(Consumer<ImageDef> register);
 
 		public static TagResolver forMap(Map<String, LuaTable> map) {
 			return new DefaultResolver(map);
@@ -130,6 +136,8 @@ public class TagManager {
 		resolvers.put("planet", TagResolver.forPath("planet"));
 		resolvers.put("space-location", TagResolver.forPath("space-location"));
 		// TODO space-age
+
+		resolvers.values().forEach(r -> r.getDefs(AtlasManager::registerDef));
 	}
 
 	public static Optional<BufferedImage> lookup(String key, String name) {

@@ -23,20 +23,18 @@ import org.slf4j.LoggerFactory;
 
 import com.demod.dcba.CommandReporting;
 import com.demod.factorio.DataTable;
-import com.demod.factorio.FactorioData;
 import com.demod.factorio.TotalRawCalculator;
 import com.demod.factorio.prototype.DataPrototype;
 import com.demod.factorio.prototype.ItemPrototype;
 import com.demod.factorio.prototype.TilePrototype;
 import com.demod.fbsr.AtlasManager.AtlasRef;
-import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.FBSR;
 import com.demod.fbsr.FactorioManager;
 import com.demod.fbsr.RenderRequest;
 import com.demod.fbsr.RenderResult;
 import com.demod.fbsr.RenderUtils;
+import com.demod.fbsr.TagManager;
 import com.demod.fbsr.bs.BSBlueprint;
-import com.demod.fbsr.fp.FPSprite;
 import com.demod.fbsr.gui.GUIBox;
 import com.demod.fbsr.gui.GUISize;
 import com.demod.fbsr.gui.GUISpacing;
@@ -221,12 +219,9 @@ public class GUILayoutBlueprint {
 
 						GUIStyle.ITEM_SLOT.render(g, cellBounds);
 
-						Optional<ItemPrototype> protoItem = FactorioManager.lookupItemByName(item);
-
-						if (protoItem.isPresent()) {
-							GUIImage imgIcon = new GUIImage(cellBounds,
-									protoItem.get().getTable().getData().getWikiIcon(protoItem.get()), itemIconScale,
-									false);
+						Optional<BufferedImage> icon = TagManager.lookup("item", item);
+						if (icon.isPresent()) {
+							GUIImage imgIcon = new GUIImage(cellBounds, icon.get(), itemIconScale, false);
 							imgIcon.render(g);
 						} else {
 							g.setColor(RenderUtils.getUnknownColor(item));
@@ -298,12 +293,10 @@ public class GUILayoutBlueprint {
 							image = Optional.of(timeIcon);
 							scale = itemIconScale * 2;
 						} else {
-							Optional<? extends DataPrototype> prototype = FactorioManager.lookupItemByName(item);
-							if (!prototype.isPresent()) {
-								prototype = FactorioManager.lookupFluidByName(item);
+							image = TagManager.lookup("item", item);
+							if (image.isEmpty()) {
+								image = TagManager.lookup("fluid", item);
 							}
-
-							image = prototype.map(p -> p.getTable().getData().getWikiIcon(p));
 							scale = itemIconScale;
 						}
 
@@ -364,7 +357,6 @@ public class GUILayoutBlueprint {
 
 		totalItems = FBSR.generateTotalItems(blueprint);
 		totalRawItems = baseDataOnly ? FBSR.generateTotalRawItems(totalItems) : ImmutableMap.of();
-		totalRawItems.forEach((k, q) -> LOGGER.info("\t{}: {}", k, q));
 
 		int itemCount = totalItems.size() + totalRawItems.size();
 		int itemRowMax;

@@ -1,14 +1,11 @@
 package com.demod.fbsr;
 
 import java.awt.Graphics2D;
-import java.awt.GraphicsConfiguration;
-import java.awt.GraphicsEnvironment;
+import java.awt.Point;
 import java.awt.Rectangle;
-import java.awt.Transparency;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
 import java.awt.image.DataBufferInt;
-import java.awt.image.VolatileImage;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileReader;
@@ -106,6 +103,7 @@ public class AtlasManager {
 		private boolean valid = false;
 		private Atlas atlas = null;
 		private Rectangle rect = null;
+		private Point trim = null;
 
 		public AtlasRef() {
 		}
@@ -114,10 +112,11 @@ public class AtlasManager {
 			return valid;
 		}
 
-		private void set(Atlas atlas, Rectangle rect) {
+		private void set(Atlas atlas, Rectangle rect, Point trim) {
 			valid = true;
 			this.atlas = atlas;
 			this.rect = rect;
+			this.trim = trim;
 		}
 
 		public Atlas getAtlas() {
@@ -140,21 +139,20 @@ public class AtlasManager {
 		// XXX Inefficient to make a context for every image
 		Graphics2D g = atlas.bufImage.createGraphics();
 		BufferedImage image = FactorioManager.lookupModImage(def.path);
-		Rectangle src = def.source;
+		Rectangle src = def.trimmed;
 		Rectangle dst = rect;
 		g.drawImage(image, dst.x, dst.y, dst.x + dst.width, dst.y + dst.height, src.x, src.y, src.x + src.width,
 				src.y + src.height, null);
 		g.dispose();
 	}
 
-	public static String computeMD5(ImageDef def) {
-		BufferedImage imageSheet = FactorioManager.lookupModImage(def.path);
-		int width = def.source.width;
-		int height = def.source.height;
+	public static String computeMD5(BufferedImage imageSheet, ImageDef def) {
+		int x = def.trimmed.x;
+		int y = def.trimmed.y;
+		int width = def.trimmed.width;
+		int height = def.trimmed.height;
 		BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB_PRE);
 		Graphics2D g = image.createGraphics();
-		int x = def.source.x;
-		int y = def.source.y;
 		g.drawImage(imageSheet, 0, 0, width, height, x, y, x + width, y + height, null);
 		g.dispose();
 		byte[] imageBytes = extractPixelData(image);
@@ -201,18 +199,90 @@ public class AtlasManager {
 		}
 	}
 
+	private static Rectangle trimEmptyRect(BufferedImage image, Rectangle rect) {
+		Rectangle ret = new Rectangle(rect.width, rect.height);
+		int[] pixels = new int[rect.width * rect.height];
+		int span = ret.width;
+		image.getRGB(rect.x, rect.y, rect.width, rect.height, pixels, 0, span);
+
+		// Top
+		boolean fullEmpty = true;
+		scan: for (int y = ret.y, yEnd = y + ret.height; y < yEnd; y++) {
+			for (int x = ret.x, xEnd = x + ret.width; x < xEnd; x++) {
+				if (((pixels[y * span + x] >> 24) & 0xFF) > 0) {
+					int trim = y - ret.y;
+					ret.y += trim;
+					ret.height -= trim;
+					fullEmpty = false;
+					break scan;
+				}
+			}
+		}
+		if (fullEmpty) { // 1x1 transparent
+			ret.width = 1;
+			ret.height = 1;
+			ret.x += rect.x;
+			ret.y += rect.y;
+			return ret;
+		}
+
+		// Bottom
+		scan: for (int yEnd = ret.y, y = yEnd + ret.height - 1; y >= yEnd; y--) {
+			for (int x = ret.x, xEnd = x + ret.width; x < xEnd; x++) {
+				if (((pixels[y * span + x] >> 24) & 0xFF) > 0) {
+					int trim = (ret.y + ret.height - 1) - y;
+					ret.height -= trim;
+					break scan;
+				}
+			}
+		}
+
+		// Left
+		scan: for (int x = ret.x, xEnd = x + ret.width; x < xEnd; x++) {
+			for (int y = ret.y, yEnd = y + ret.height; y < yEnd; y++) {
+				if (((pixels[y * span + x] >> 24) & 0xFF) > 0) {
+					int trim = x - ret.x;
+					ret.x += trim;
+					ret.width -= trim;
+					break scan;
+				}
+			}
+		}
+
+		// Right
+		scan: for (int xEnd = ret.x, x = xEnd + ret.width - 1; x >= xEnd; x--) {
+			for (int y = ret.y, yEnd = y + ret.height; y < yEnd; y++) {
+				if (((pixels[y * span + x] >> 24) & 0xFF) > 0) {
+					int trim = (ret.x + ret.width - 1) - x;
+					ret.width -= trim;
+					break scan;
+				}
+			}
+		}
+
+		ret.x += rect.x;
+		ret.y += rect.y;
+		return ret;
+	}
+
 	private static void generateAtlases(File folderAtlas, File fileManifest) throws IOException {
 		if (!atlases.isEmpty()) {
 			throw new IllegalStateException("Atlases are already generated!");
 		}
 
-		Map<String, AtlasRef> locationCheck = new HashMap<>();
-		Map<String, AtlasRef> md5Check = new HashMap<>();
+		defs.parallelStream().forEach(def -> {
+			BufferedImage imageSheet = FactorioManager.lookupModImage(def.path);
+			Rectangle trimmed = trimEmptyRect(imageSheet, def.source);
+			def.setTrimmed(trimmed);
+		});
 
 		defs.sort(Comparator.<ImageDef, Integer>comparing(i -> {
-			Rectangle r = i.getSource();
+			Rectangle r = i.getTrimmed();
 			return r.width * r.height;
 		}).reversed());
+
+		Map<String, AtlasRef> locationCheck = new HashMap<>();
+		Map<String, AtlasRef> md5Check = new HashMap<>();
 
 		atlases.add(new Atlas(0));
 		int imageCount = 0;
@@ -223,32 +293,35 @@ public class AtlasManager {
 				continue;// Shared ref
 			}
 
-			Rectangle source = image.source;
+			Rectangle source = image.getSource();
+			Rectangle trimmed = image.getTrimmed();
+
 			String locationKey = image.path + "|" + source.x + "|" + source.y + "|" + source.width + "|"
 					+ source.height;
 
 			AtlasRef cached = locationCheck.get(locationKey);
 			if (cached != null) {
-				image.getAtlasRef().set(cached.atlas, cached.rect);
+				image.getAtlasRef().set(cached.atlas, cached.rect, cached.trim);
 				continue;
 			}
 
-			String md5key = computeMD5(image);
+			BufferedImage imageSheet = FactorioManager.lookupModImage(image.path);
+			String md5key = computeMD5(imageSheet, image);
 			cached = md5Check.get(md5key);
 			if (cached != null) {
-				image.getAtlasRef().set(cached.atlas, cached.rect);
+				image.getAtlasRef().set(cached.atlas, cached.rect, cached.trim);
 				locationCheck.put(locationKey, image.getAtlasRef());
 				continue;
 			}
 
 			Atlas atlas;
-			Rectangle rect = new Rectangle(source.width, source.height);
+			Rectangle rect = new Rectangle(trimmed.width, trimmed.height);
 			nextImage: while (true) {
 				for (int i = atlases.size() - 1; i >= 0; i--) {
 					atlas = atlases.get(i);
-					for (rect.y = 0; rect.y < ATLAS_SIZE - source.height; rect.y++) {
+					for (rect.y = 0; rect.y < ATLAS_SIZE - trimmed.height; rect.y++) {
 						int nextY = ATLAS_SIZE;
-						for (rect.x = 0; rect.x < ATLAS_SIZE - source.width; rect.x++) {
+						for (rect.x = 0; rect.x < ATLAS_SIZE - trimmed.width; rect.x++) {
 							Rectangle collision = atlas.occupied.insertIfNoCollision(rect);
 							if (collision != null) {
 								rect.x = collision.x + collision.width - 1;
@@ -266,7 +339,8 @@ public class AtlasManager {
 				atlases.add(new Atlas(atlases.size()));
 			}
 
-			image.getAtlasRef().set(atlas, rect);
+			Point trim = new Point(trimmed.x - source.x, trimmed.y - source.y);
+			image.getAtlasRef().set(atlas, rect, trim);
 			locationCheck.put(locationKey, image.getAtlasRef());
 			md5Check.put(md5key, image.getAtlasRef());
 		}
@@ -278,15 +352,21 @@ public class AtlasManager {
 
 		JSONArray jsonManifest = new JSONArray();
 		for (ImageDef def : defs) {
+			Rectangle source = def.source;
+			AtlasRef atlasRef = def.atlasRef;
 			JSONArray jsonEntry = new JSONArray();
 			jsonEntry.put(def.path);
-			jsonEntry.put(def.source.x);
-			jsonEntry.put(def.source.y);
-			jsonEntry.put(def.source.width);
-			jsonEntry.put(def.source.height);
-			jsonEntry.put(def.atlasRef.atlas.id);
-			jsonEntry.put(def.atlasRef.rect.x);
-			jsonEntry.put(def.atlasRef.rect.y);
+			jsonEntry.put(source.x);
+			jsonEntry.put(source.y);
+			jsonEntry.put(source.width);
+			jsonEntry.put(source.height);
+			jsonEntry.put(atlasRef.atlas.id);
+			jsonEntry.put(atlasRef.rect.x);
+			jsonEntry.put(atlasRef.rect.y);
+			jsonEntry.put(atlasRef.rect.width);
+			jsonEntry.put(atlasRef.rect.height);
+			jsonEntry.put(atlasRef.trim.x);
+			jsonEntry.put(atlasRef.trim.y);
 			jsonManifest.put(jsonEntry);
 		}
 		Files.write(jsonManifest.toString(2), fileManifest, StandardCharsets.UTF_8);
@@ -305,27 +385,34 @@ public class AtlasManager {
 		File folderAtlas = new File(FactorioManager.getFolderDataRoot(), "atlas");
 		File fileManifest = new File(folderAtlas, "atlas-manifest.txt");
 
-		if (fileManifest.exists() && checkValidManifest(fileManifest)) {
-			loadAtlases(folderAtlas, fileManifest);
+		JSONArray jsonManifest;
+		if (fileManifest.exists() && checkValidManifest(jsonManifest = readManifest(fileManifest))) {
+			loadAtlases(folderAtlas, jsonManifest);
 		} else {
 			generateAtlases(folderAtlas, fileManifest);
 		}
 	}
 
-	private static boolean checkValidManifest(File fileManifest) throws IOException {
+	private static JSONArray readManifest(File fileManifest) throws IOException {
+		JSONArray jsonManifest;
+		try (FileReader fr = new FileReader(fileManifest)) {
+			jsonManifest = new JSONArray(new JSONTokener(fr));
+		}
+		LOGGER.info("Read Manifest: {} ({} entries)", fileManifest.getAbsolutePath(), jsonManifest.length());
+		return jsonManifest;
+	}
+
+	private static boolean checkValidManifest(JSONArray jsonManifest) throws IOException {
 		Set<String> currentKeys = new HashSet<>();
 		for (ImageDef image : defs) {
-			Rectangle source = image.source;
+			Rectangle source = image.getSource();
 			String locationKey = image.path + "|" + source.x + "|" + source.y + "|" + source.width + "|"
 					+ source.height;
 			currentKeys.add(locationKey);
 		}
 
 		Set<String> manifestKeys = new HashSet<>();
-		JSONArray jsonManifest;
-		try (FileReader fr = new FileReader(fileManifest)) {
-			jsonManifest = new JSONArray(new JSONTokener(fr));
-		}
+
 		for (int i = 0; i < jsonManifest.length(); i++) {
 			JSONArray jsonEntry = jsonManifest.getJSONArray(i);
 			String path = jsonEntry.getString(0);
@@ -340,20 +427,13 @@ public class AtlasManager {
 		SetView<String> mismatched = Sets.symmetricDifference(currentKeys, manifestKeys);
 
 		if (!mismatched.isEmpty()) {
-			LOGGER.error("ATLAS MANIFEST MISMATCHED KEYS:\n{}",
-					mismatched.stream().sorted().collect(Collectors.joining("\n")));
+			LOGGER.error("Atlas manifest mismatch detected: {} keys are different", mismatched.size());
 		}
 
 		return mismatched.isEmpty();
 	}
 
-	private static void loadAtlases(File folderAtlas, File fileManifest) throws IOException {
-		JSONArray jsonManifest;
-		try (FileReader fr = new FileReader(fileManifest)) {
-			jsonManifest = new JSONArray(new JSONTokener(fr));
-		}
-		LOGGER.info("Read Manifest: {} ({} entries)", fileManifest.getAbsolutePath(), jsonManifest.length());
-
+	private static void loadAtlases(File folderAtlas, JSONArray jsonManifest) throws IOException {
 		{
 			int id = 0;
 			File fileAtlas;
@@ -369,6 +449,7 @@ public class AtlasManager {
 		class RefValues {
 			Atlas atlas;
 			Rectangle rect;
+			Point trim;
 		}
 		Map<String, RefValues> locationMap = new HashMap<>();
 		for (int i = 0; i < jsonManifest.length(); i++) {
@@ -376,15 +457,20 @@ public class AtlasManager {
 			String path = jsonEntry.getString(0);
 			int srcX = jsonEntry.getInt(1);
 			int srcY = jsonEntry.getInt(2);
-			int width = jsonEntry.getInt(3);
-			int height = jsonEntry.getInt(4);
+			int srcWidth = jsonEntry.getInt(3);
+			int srcHeight = jsonEntry.getInt(4);
 			int id = jsonEntry.getInt(5);
 			int atlasX = jsonEntry.getInt(6);
 			int atlasY = jsonEntry.getInt(7);
-			String locationKey = path + "|" + srcX + "|" + srcY + "|" + width + "|" + height;
+			int atlasWidth = jsonEntry.getInt(8);
+			int atlasHeight = jsonEntry.getInt(9);
+			int trimX = jsonEntry.getInt(10);
+			int trimY = jsonEntry.getInt(11);
+			String locationKey = path + "|" + srcX + "|" + srcY + "|" + srcWidth + "|" + srcHeight;
 			RefValues ref = new RefValues();
 			ref.atlas = atlases.get(id);
-			ref.rect = new Rectangle(atlasX, atlasY, width, height);
+			ref.rect = new Rectangle(atlasX, atlasY, atlasWidth, atlasHeight);
+			ref.trim = new Point(trimX, trimY);
 			locationMap.put(locationKey, ref);
 		}
 
@@ -396,7 +482,9 @@ public class AtlasManager {
 			if (ref == null) {
 				LOGGER.error("MISSING ATLAS ENTRY FOR {}", locationKey);
 			} else {
-				image.getAtlasRef().set(ref.atlas, ref.rect);
+				image.getAtlasRef().set(ref.atlas, ref.rect, ref.trim);
+				image.setTrimmed(
+						new Rectangle(source.x + ref.trim.x, source.y + ref.trim.y, ref.rect.width, ref.rect.height));
 			}
 		}
 

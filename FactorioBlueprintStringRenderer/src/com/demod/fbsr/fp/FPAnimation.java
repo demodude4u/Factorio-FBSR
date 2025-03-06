@@ -47,12 +47,6 @@ public class FPAnimation extends FPAnimationParameters {
 				List<SpriteDef> stripeDefs = new ArrayList<>();
 				for (FPStripe stripe : stripes.get()) {
 
-					// XXX at least it is cached
-					BufferedImage image = FactorioManager.lookupModImage(stripe.filename);
-
-					int width = image.getWidth() / stripe.widthInFrames;
-					int height = image.getHeight() / stripe.heightInFrames;
-
 					int x = stripe.x + width * (frame % stripe.widthInFrames);
 					int y = stripe.y + height * (frame / stripe.widthInFrames);
 

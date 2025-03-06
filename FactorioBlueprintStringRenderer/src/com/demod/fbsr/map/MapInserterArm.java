@@ -32,7 +32,7 @@ public class MapInserterArm extends MapRenderable {
 		AffineTransform pat = g.getTransform();
 
 		for (SpriteDef sprite : sprites) {
-			MapRect bounds = sprite.getBounds();
+			MapRect bounds = sprite.getTrimmedBounds();
 			Rectangle source = sprite.getAtlasRef().getRect();
 			BufferedImage image = sprite.getAtlasRef().getAtlas().getBufferedImage();
 

@@ -1,8 +1,8 @@
 package com.demod.fbsr.fp;
 
 import java.awt.Rectangle;
-import java.awt.image.BufferedImage;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -11,7 +11,6 @@ import java.util.function.Consumer;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.FBSR;
 import com.demod.fbsr.FPUtils;
-import com.demod.fbsr.FactorioManager;
 import com.demod.fbsr.ImageDef;
 import com.demod.fbsr.SpriteDef;
 import com.demod.fbsr.map.MapRect;
@@ -52,39 +51,30 @@ public class FPRotatedAnimation extends FPAnimationParameters {
 
 		if (stripes.isPresent()) {
 
-			int frameCount = directionCount * lineLength;
-			List<SpriteDef> defs = new ArrayList<>();
-			for (int frame = 0; frame < frameCount; frame++) {
-				int index = frame / lineLength;
+			SpriteDef[] defs = new SpriteDef[directionCount * frameCount];
+			int stripeRow = 0, stripeCol = 0;
+			for (FPStripe stripe : stripes.get()) {
 
-				int stripeStartIndex = 0;
-				for (FPStripe stripe : stripes.get()) {
+				for (int row = 0; row < stripe.heightInFrames; row++) {
+					for (int col = 0; col < stripe.widthInFrames; col++) {
+						int x = stripe.x + width * col;
+						int y = stripe.y + height * row;
 
-					if (stripeStartIndex + stripe.heightInFrames < index) {
-						stripeStartIndex += stripe.heightInFrames;
-						continue;
+						int frame = stripeCol + col;
+						int index = stripeRow + row;
+						defs[index * frameCount + frame] = SpriteDef.fromFP(stripe.filename, drawAsShadow, blendMode,
+								tint, applyRuntimeTint, x, y, width, height, shift.x, shift.y, scale);
 					}
-
-					int stripeIndex = index - stripeStartIndex;
-
-					// XXX bad hack to get image width and height
-					BufferedImage image = FactorioManager.lookupModImage(stripe.filename);
-
-					int width = image.getWidth() / stripe.widthInFrames;
-					int height = image.getHeight() / stripe.heightInFrames;
-
-					int x = stripe.x + width * frame;
-					int y = stripe.y + height * stripeIndex;
-
-					defs.add(SpriteDef.fromFP(stripe.filename, drawAsShadow, blendMode, tint, applyRuntimeTint, x, y,
-							width, height, shift.x, shift.y, scale));
-
-					break;
 				}
 
+				stripeCol += stripe.widthInFrames;
+				if (stripeCol == frameCount) {
+					stripeCol = 0;
+					stripeRow += stripe.heightInFrames;
+				}
 			}
 
-			return defs;
+			return Arrays.asList(defs);
 
 		} else if (filenames.isPresent()) {
 
@@ -105,23 +95,14 @@ public class FPRotatedAnimation extends FPAnimationParameters {
 			return defs;
 
 		} else {
-			// XXX Weird undocumented behavior - line_count gets replaced by frame_count
-			int frameCount = directionCount * this.frameCount;
-			int lineLength = this.frameCount;
+			int spriteCount = directionCount * frameCount;
 			List<SpriteDef> defs = new ArrayList<>();
-			for (int frame = 0; frame < frameCount; frame++) {
-				int x = this.x + width * (frame % lineLength);
-				int y = this.y + height * (frame / lineLength);
+			for (int sprite = 0; sprite < spriteCount; sprite++) {
+				int x = this.x + width * (sprite % lineLength);
+				int y = this.y + height * (sprite / lineLength);
 
-				Rectangle source = new Rectangle(x, y, width, height);
-				double scaledWidth = scale * width / FBSR.TILE_SIZE;
-				double scaledHeight = scale * height / FBSR.TILE_SIZE;
-				MapRect bounds = MapRect.byUnit(shift.x - scaledWidth / 2.0, shift.y - scaledHeight / 2.0, scaledWidth,
-						scaledHeight);
-				if (filename.isPresent()) {
-					defs.add(new SpriteDef(filename.get(), drawAsShadow, blendMode, tint.map(FPColor::createColor),
-							applyRuntimeTint, source, bounds));
-				}
+				defs.add(SpriteDef.fromFP(filename.get(), drawAsShadow, blendMode, tint, applyRuntimeTint, x, y, width,
+						height, shift.x, shift.y, scale));
 			}
 			return defs;
 		}

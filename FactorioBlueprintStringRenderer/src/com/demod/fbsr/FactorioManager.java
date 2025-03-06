@@ -335,9 +335,14 @@ public class FactorioManager {
 	}
 
 	public static BufferedImage lookupModImage(String filename) {
-		String firstSegment = filename.split("\\/")[0];
-		String modName = firstSegment.substring(2, firstSegment.length() - 2);
-		return dataByModName.get(modName).get(0).getModImage(filename);
+		try {
+			String firstSegment = filename.split("\\/")[0];
+			String modName = firstSegment.substring(2, firstSegment.length() - 2);
+			return dataByModName.get(modName).get(0).getModImage(filename);
+		} catch (Exception e) {
+			LOGGER.error("FILENAME: {}", filename);
+			throw e;
+		}
 	}
 
 	public static Optional<RecipePrototype> lookupRecipeByName(String name) {

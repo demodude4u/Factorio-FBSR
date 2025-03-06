@@ -16,17 +16,19 @@ import com.demod.fbsr.TintComposite;
 
 public class MapSprite extends MapRenderable {
 
-	protected final LayeredSpriteDef def;
+	protected final SpriteDef def;
 	protected final MapRect bounds;
 
 	public MapSprite(LayeredSpriteDef def, MapPosition pos) {
 		super(def.getLayer());
 		this.def = def;
-		this.bounds = def.getBounds().add(pos);
+		this.bounds = def.getTrimmedBounds().add(pos);
 	}
 
 	public MapSprite(SpriteDef def, Layer layer, MapPosition pos) {
-		this(new LayeredSpriteDef(def, layer), pos);
+		super(layer);
+		this.def = def;
+		this.bounds = def.getTrimmedBounds().add(pos);
 	}
 
 	public MapRect getBounds() {

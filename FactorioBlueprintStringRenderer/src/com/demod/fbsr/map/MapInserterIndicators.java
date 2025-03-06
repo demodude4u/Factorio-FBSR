@@ -51,7 +51,7 @@ public class MapInserterIndicators extends MapRenderable {
 		double pickupRotate = Math.atan2(pickupPos.yfp, pickupPos.xfp);
 
 		for (SpriteDef sprite : lineSprites) {
-			MapRect bounds = sprite.getBounds();
+			MapRect bounds = sprite.getTrimmedBounds();
 			Rectangle source = sprite.getAtlasRef().getRect();
 			BufferedImage image = sprite.getAtlasRef().getAtlas().getBufferedImage();
 
@@ -83,7 +83,7 @@ public class MapInserterIndicators extends MapRenderable {
 		double insertRotate = Math.atan2(insertPos.yfp, insertPos.xfp);
 
 		for (SpriteDef sprite : arrowSprites) {
-			MapRect bounds = sprite.getBounds();
+			MapRect bounds = sprite.getTrimmedBounds();
 			Rectangle source = sprite.getAtlasRef().getRect();
 			BufferedImage image = sprite.getAtlasRef().getAtlas().getBufferedImage();
 

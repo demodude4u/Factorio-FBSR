@@ -174,8 +174,8 @@ public class FBSR {
 		}
 		initialized = true;
 		FactorioManager.initializePrototypes();
-		TagManager.initialize();
 		FactorioManager.initializeFactories();
+		TagManager.initialize();
 		AtlasManager.initialize();
 	}
 
