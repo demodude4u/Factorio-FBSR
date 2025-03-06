@@ -41,8 +41,8 @@ public class LinkedBeltRendering extends TransportBeltConnectableRendering {
 	public void initAtlas(Consumer<ImageDef> register) {
 		super.initAtlas(register);
 
-		protoStructureDirectionIn.getDefs().forEach(l -> l.forEach(register));
-		protoStructureDirectionOut.getDefs().forEach(l -> l.forEach(register));
+		protoStructureDirectionIn.getDefs(register);
+		protoStructureDirectionOut.getDefs(register);
 	}
 
 	@Override

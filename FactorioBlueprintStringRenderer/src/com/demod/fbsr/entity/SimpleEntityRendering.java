@@ -428,7 +428,7 @@ public abstract class SimpleEntityRendering extends EntityRendererFactory {
 					if (direction.isPresent()) {
 						proto.defineSprites(register, direction.get());
 					} else {
-						proto.getDefs().forEach(l -> l.forEach(register));
+						proto.getDefs(register);
 					}
 				}
 			};
@@ -715,8 +715,8 @@ public abstract class SimpleEntityRendering extends EntityRendererFactory {
 					if (!conn.connectionType.equals("normal")) {
 						continue;
 					}
-					fluidBox.pipePicture.ifPresent(fp -> fp.getDefs().forEach(l -> l.forEach(register)));
-					fluidBox.pipeCovers.ifPresent(fp -> fp.getDefs().forEach(l -> l.forEach(register)));
+					fluidBox.pipePicture.ifPresent(fp -> fp.getDefs(register));
+					fluidBox.pipeCovers.ifPresent(fp -> fp.getDefs(register));
 				}
 			}
 		}

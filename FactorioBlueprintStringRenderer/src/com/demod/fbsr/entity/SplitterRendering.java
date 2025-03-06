@@ -7,6 +7,7 @@ import java.util.function.Consumer;
 
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.FPUtils;
+import com.demod.fbsr.ImageDef;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.SpriteDef;
 import com.demod.fbsr.TagManager;
@@ -89,6 +90,16 @@ public class SplitterRendering extends TransportBeltConnectableRendering {
 	@Override
 	public Class<? extends BSEntity> getEntityClass() {
 		return BSSplitterEntity.class;
+	}
+
+	@Override
+	public void initAtlas(Consumer<ImageDef> register) {
+		super.initAtlas(register);
+
+		if (protoStructurePatch.isPresent()) {
+			protoStructurePatch.get().getDefs(register, STRUCTURE_PATCH_FRAME);
+		}
+		protoStructure.getDefs(register, STRUCTURE_FRAME);
 	}
 
 	@Override

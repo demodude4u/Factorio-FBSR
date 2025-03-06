@@ -63,7 +63,7 @@ public abstract class CombinatorRendering extends SimpleEntityRendering {
 	public void initAtlas(Consumer<ImageDef> register) {
 		super.initAtlas(register);
 
-		protoOperationSprites.values().forEach(fp -> fp.getDefs().forEach(l -> l.forEach(register)));
+		protoOperationSprites.values().forEach(fp -> fp.getDefs(register));
 	}
 
 	@Override

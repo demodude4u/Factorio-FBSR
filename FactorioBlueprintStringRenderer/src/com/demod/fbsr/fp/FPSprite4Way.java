@@ -8,6 +8,7 @@ import java.util.function.Consumer;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.FPUtils;
+import com.demod.fbsr.ImageDef;
 import com.demod.fbsr.SpriteDef;
 
 public class FPSprite4Way {
@@ -17,8 +18,6 @@ public class FPSprite4Way {
 	public final Optional<FPSprite> south;
 	public final Optional<FPSprite> west;
 	public final Optional<FPSpriteNWaySheet> sheet;
-	// TODO figure out if the sheets are overlapping sprites, or one for each
-	// direction
 	public final Optional<List<FPSpriteNWaySheet>> sheets;
 	public final Optional<FPSprite> sprite;
 	private final List<List<SpriteDef>> defs;
@@ -80,7 +79,7 @@ public class FPSprite4Way {
 		return ret;
 	}
 
-	public List<List<SpriteDef>> getDefs() {
-		return defs;
+	public void getDefs(Consumer<ImageDef> register) {
+		defs.forEach(l -> l.forEach(register));
 	}
 }

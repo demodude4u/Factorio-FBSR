@@ -83,7 +83,7 @@ public class WallRendering extends SimpleEntityRendering {
 		super.initAtlas(register);
 
 		protoPictures.forEach(fp -> fp.getDefs(register));
-		protoWallDiodeRed.getDefs().forEach(l -> l.forEach(register));
+		protoWallDiodeRed.getDefs(register);
 	}
 
 	@Override

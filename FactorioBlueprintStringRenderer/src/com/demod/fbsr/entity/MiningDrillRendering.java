@@ -52,7 +52,7 @@ public class MiningDrillRendering extends SimpleEntityRendering {
 	public void initAtlas(Consumer<ImageDef> register) {
 		super.initAtlas(register);
 
-		protoBasePicture.ifPresent(fp -> fp.getDefs().forEach(l -> l.forEach(register)));
+		protoBasePicture.ifPresent(fp -> fp.getDefs(register));
 		protoGraphicsSet.ifPresent(fp -> fp.getDefs(register, FRAME));
 	}
 

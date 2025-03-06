@@ -130,6 +130,10 @@ public class FPRotatedSprite extends FPSpriteParameters {
 	}
 
 	public void getDefs(Consumer<ImageDef> register) {
+		if (layers.isPresent()) {
+			layers.get().forEach(fp -> fp.getDefs(register));
+		}
+
 		defs.forEach(register);
 	}
 

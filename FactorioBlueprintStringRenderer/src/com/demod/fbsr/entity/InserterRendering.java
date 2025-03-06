@@ -126,7 +126,7 @@ public class InserterRendering extends SimpleEntityRendering {
 	public void initAtlas(Consumer<ImageDef> register) {
 		super.initAtlas(register);
 
-		protoPlatformPicture.getDefs().forEach(l -> l.forEach(register));
+		protoPlatformPicture.getDefs(register);
 		protoHandOpenPicture.defineSprites(register);
 		protoIndicationLine.defineSprites(register);
 		protoIndicationArrow.defineSprites(register);

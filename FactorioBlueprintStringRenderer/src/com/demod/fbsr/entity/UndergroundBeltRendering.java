@@ -56,10 +56,10 @@ public class UndergroundBeltRendering extends TransportBeltConnectableRendering 
 	public void initAtlas(Consumer<ImageDef> register) {
 		super.initAtlas(register);
 
-		protoStructureDirectionIn.getDefs().forEach(l -> l.forEach(register));
-		protoStructureDirectionInSideLoading.getDefs().forEach(l -> l.forEach(register));
-		protoStructureDirectionOut.getDefs().forEach(l -> l.forEach(register));
-		protoStructureDirectionOutSideLoading.getDefs().forEach(l -> l.forEach(register));
+		protoStructureDirectionIn.getDefs(register);
+		protoStructureDirectionInSideLoading.getDefs(register);
+		protoStructureDirectionOut.getDefs(register);
+		protoStructureDirectionOutSideLoading.getDefs(register);
 	}
 
 	@Override
