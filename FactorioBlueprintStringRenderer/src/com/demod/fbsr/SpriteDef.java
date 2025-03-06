@@ -2,7 +2,9 @@ package com.demod.fbsr;
 
 import java.awt.Color;
 import java.awt.Rectangle;
+import java.awt.image.BufferedImage;
 import java.util.Optional;
+import java.util.function.Function;
 
 import com.demod.fbsr.fp.FPColor;
 import com.demod.fbsr.map.MapPosition;
@@ -15,6 +17,16 @@ public class SpriteDef extends ImageDef {
 	protected boolean applyRuntimeTint;
 	protected MapRect sourceBounds;
 	protected MapRect trimmedBounds;
+
+	public SpriteDef(String path, Function<String, BufferedImage> loader, boolean shadow, BlendMode blendMode,
+			Optional<Color> tint, boolean applyRuntimeTint, Rectangle source, MapRect bounds) {
+		super(path, loader, source);
+		this.shadow = shadow;
+		this.blendMode = blendMode;
+		this.tint = tint;
+		this.applyRuntimeTint = applyRuntimeTint;
+		this.sourceBounds = bounds;
+	}
 
 	public SpriteDef(String path, boolean shadow, BlendMode blendMode, Optional<Color> tint, boolean applyRuntimeTint,
 			Rectangle source, MapRect bounds) {

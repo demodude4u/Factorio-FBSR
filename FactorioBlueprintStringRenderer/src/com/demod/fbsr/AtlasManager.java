@@ -20,7 +20,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import javax.imageio.ImageIO;
 
@@ -271,7 +270,7 @@ public class AtlasManager {
 		}
 
 		defs.parallelStream().forEach(def -> {
-			BufferedImage imageSheet = FactorioManager.lookupModImage(def.path);
+			BufferedImage imageSheet = def.getOrLoadImage();
 			Rectangle trimmed = trimEmptyRect(imageSheet, def.source);
 			def.setTrimmed(trimmed);
 		});
