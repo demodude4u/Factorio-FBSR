@@ -5,7 +5,7 @@ import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.Rectangle;
 import java.awt.geom.AffineTransform;
-import java.awt.geom.Rectangle2D;
+import java.awt.geom.RoundRectangle2D;
 
 import com.demod.fbsr.AtlasManager.AtlasRef;
 import com.demod.fbsr.ImageDef;
@@ -36,7 +36,8 @@ public class MapIcon extends MapRenderable {
 		double halfShadowSize = shadowSize / 2.0;
 
 		g.setColor(SHADOW);
-		g.fill(new Rectangle2D.Double(x - halfShadowSize, y - halfShadowSize, shadowSize, shadowSize));
+		g.fill(new RoundRectangle2D.Double(x - halfShadowSize, y - halfShadowSize, shadowSize, shadowSize, border * 2,
+				border * 2));
 
 		AtlasRef ref = image.getAtlasRef();
 		if (!ref.isValid()) {
