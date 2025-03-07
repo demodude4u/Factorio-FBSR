@@ -2,9 +2,7 @@ package com.demod.fbsr;
 
 import java.awt.Color;
 import java.awt.Rectangle;
-import java.awt.image.BufferedImage;
 import java.util.Optional;
-import java.util.function.Function;
 
 import com.demod.fbsr.map.MapRect;
 

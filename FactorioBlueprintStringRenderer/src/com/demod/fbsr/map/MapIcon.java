@@ -1,19 +1,15 @@
 package com.demod.fbsr.map;
 
 import java.awt.Color;
-import java.awt.Composite;
 import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.Rectangle;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Rectangle2D;
-import java.awt.image.BufferedImage;
-import java.util.Optional;
 
+import com.demod.fbsr.AtlasManager.AtlasRef;
 import com.demod.fbsr.ImageDef;
 import com.demod.fbsr.Layer;
-import com.demod.fbsr.TintComposite;
-import com.demod.fbsr.AtlasManager.AtlasRef;
 
 public class MapIcon extends MapRenderable {
 	private static final Color SHADOW = new Color(0, 0, 0, 180);
