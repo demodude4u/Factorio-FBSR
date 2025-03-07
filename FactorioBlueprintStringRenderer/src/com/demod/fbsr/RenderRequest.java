@@ -32,7 +32,7 @@ public class RenderRequest {
 	private OptionalInt minWidth = OptionalInt.empty();
 	private OptionalInt minHeight = OptionalInt.empty();
 	private OptionalDouble maxScale = OptionalDouble.empty();
-	private boolean dontClipSprites = false;
+	private boolean dontClipSprites = true;
 
 	private Optional<Color> background = Optional.of(FBSR.GROUND_COLOR);
 	private Optional<Color> gridLines = Optional.of(FBSR.GRID_COLOR);
@@ -81,7 +81,7 @@ public class RenderRequest {
 		return reporting;
 	}
 
-	public boolean isDontClipSprites() {
+	public boolean dontClipSprites() {
 		return dontClipSprites;
 	}
 

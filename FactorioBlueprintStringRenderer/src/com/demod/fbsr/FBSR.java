@@ -574,7 +574,7 @@ public class FBSR {
 				gridBounds.getY1() - worldPadding - gridPadding, gridBounds.getX2() + worldPadding + gridPadding,
 				gridBounds.getY2() + worldPadding + gridPadding);
 
-		if (request.isDontClipSprites()) {
+		if (request.dontClipSprites()) {
 			MapRect spriteBounds = MapRect
 					.combineAll(layerRenderables.values().stream().filter(r -> r instanceof MapSprite)
 							.map(r -> ((MapSprite) r).getBounds()).collect(Collectors.toList()));
