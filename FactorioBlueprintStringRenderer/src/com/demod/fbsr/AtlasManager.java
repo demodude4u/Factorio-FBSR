@@ -17,9 +17,11 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.imageio.ImageIO;
 
@@ -28,6 +30,7 @@ import org.json.JSONTokener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.demod.fbsr.ImageDef.ImageSheetLoader;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
 import com.google.common.io.Files;
@@ -134,13 +137,12 @@ public class AtlasManager {
 	private static List<ImageDef> defs = new ArrayList<>();
 	private static List<Atlas> atlases = new ArrayList<>();
 
-	private static void copyToAtlas(ImageDef def, Atlas atlas, Rectangle rect) {
+	private static void copyToAtlas(BufferedImage imageSheet, ImageDef def, Atlas atlas, Rectangle rect) {
 		// XXX Inefficient to make a context for every image
 		Graphics2D g = atlas.bufImage.createGraphics();
-		BufferedImage image = FactorioManager.lookupModImage(def.path);
 		Rectangle src = def.trimmed;
 		Rectangle dst = rect;
-		g.drawImage(image, dst.x, dst.y, dst.x + dst.width, dst.y + dst.height, src.x, src.y, src.x + src.width,
+		g.drawImage(imageSheet, dst.x, dst.y, dst.x + dst.width, dst.y + dst.height, src.x, src.y, src.x + src.width,
 				src.y + src.height, null);
 		g.dispose();
 	}
@@ -269,12 +271,25 @@ public class AtlasManager {
 			throw new IllegalStateException("Atlases are already generated!");
 		}
 
+		Map<String, ImageSheetLoader> loaders = new LinkedHashMap<>();
+		for (ImageDef def : defs) {
+			loaders.put(def.getPath(), def.getLoader());
+		}
+
+		LOGGER.info("Loading Image Sheets...");
+		Map<String, BufferedImage> imageSheets = new ConcurrentHashMap<>();
+		loaders.entrySet().parallelStream().forEach(entry -> {
+			imageSheets.put(entry.getKey(), entry.getValue().apply(entry.getKey()));
+		});
+
+		LOGGER.info("Trimming Images...");
 		defs.parallelStream().forEach(def -> {
-			BufferedImage imageSheet = def.getOrLoadImage();
-			Rectangle trimmed = trimEmptyRect(imageSheet, def.source);
+			BufferedImage imageSheet = imageSheets.get(def.path);
+			Rectangle trimmed = trimEmptyRect(imageSheet, def.getSource());
 			def.setTrimmed(trimmed);
 		});
 
+		LOGGER.info("Atlas Packing...");
 		defs.sort(Comparator.<ImageDef, Integer>comparing(i -> {
 			Rectangle r = i.getTrimmed();
 			return r.width * r.height;
@@ -285,31 +300,31 @@ public class AtlasManager {
 
 		atlases.add(new Atlas(0));
 		int imageCount = 0;
-		for (ImageDef image : defs) {
+		for (ImageDef def : defs) {
 			imageCount++;
 
-			if (image.getAtlasRef().isValid()) {
+			if (def.getAtlasRef().isValid()) {
 				continue;// Shared ref
 			}
 
-			Rectangle source = image.getSource();
-			Rectangle trimmed = image.getTrimmed();
+			Rectangle source = def.getSource();
+			Rectangle trimmed = def.getTrimmed();
 
-			String locationKey = image.path + "|" + source.x + "|" + source.y + "|" + source.width + "|"
+			String locationKey = def.path + "|" + source.x + "|" + source.y + "|" + source.width + "|"
 					+ source.height;
 
 			AtlasRef cached = locationCheck.get(locationKey);
 			if (cached != null) {
-				image.getAtlasRef().set(cached.atlas, cached.rect, cached.trim);
+				def.getAtlasRef().set(cached.atlas, cached.rect, cached.trim);
 				continue;
 			}
 
-			BufferedImage imageSheet = FactorioManager.lookupModImage(image.path);
-			String md5key = computeMD5(imageSheet, image);
+			BufferedImage imageSheet = imageSheets.get(def.path);
+			String md5key = computeMD5(imageSheet, def);
 			cached = md5Check.get(md5key);
 			if (cached != null) {
-				image.getAtlasRef().set(cached.atlas, cached.rect, cached.trim);
-				locationCheck.put(locationKey, image.getAtlasRef());
+				def.getAtlasRef().set(cached.atlas, cached.rect, cached.trim);
+				locationCheck.put(locationKey, def.getAtlasRef());
 				continue;
 			}
 
@@ -326,7 +341,7 @@ public class AtlasManager {
 								rect.x = collision.x + collision.width - 1;
 								nextY = Math.min(nextY, collision.y + collision.height);
 							} else {
-								copyToAtlas(image, atlas, rect);
+								copyToAtlas(imageSheet, def, atlas, rect);
 								break nextImage;
 							}
 						}
@@ -339,9 +354,9 @@ public class AtlasManager {
 			}
 
 			Point trim = new Point(trimmed.x - source.x, trimmed.y - source.y);
-			image.getAtlasRef().set(atlas, rect, trim);
-			locationCheck.put(locationKey, image.getAtlasRef());
-			md5Check.put(md5key, image.getAtlasRef());
+			def.getAtlasRef().set(atlas, rect, trim);
+			locationCheck.put(locationKey, def.getAtlasRef());
+			md5Check.put(md5key, def.getAtlasRef());
 		}
 
 		folderAtlas.mkdirs();

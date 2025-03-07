@@ -1,6 +1,5 @@
 package com.demod.fbsr.entity;
 
-import java.awt.image.BufferedImage;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -8,6 +7,7 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import com.demod.fbsr.Direction;
+import com.demod.fbsr.ImageDef;
 import com.demod.fbsr.TagManager;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.bs.BSEntity;
@@ -32,7 +32,7 @@ public class InfinityContainerRendering extends ContainerRendering {
 			if (!items.isEmpty()) {
 				String itemName = items.get(0);
 
-				Optional<BufferedImage> icon = TagManager.lookup("item", itemName);
+				Optional<ImageDef> icon = TagManager.lookup("item", itemName);
 				if (icon.isPresent()) {
 					register.accept(new MapIcon(entity.getPosition(), icon.get(), 0.6, 0.1, false));
 				}

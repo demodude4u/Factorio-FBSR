@@ -1,6 +1,5 @@
 package com.demod.fbsr.entity;
 
-import java.awt.image.BufferedImage;
 import java.util.Optional;
 import java.util.function.Consumer;
 
@@ -63,7 +62,7 @@ public class LaneSplitterRendering extends TransportBeltConnectableRendering {
 			if (bsEntity.filter.isPresent()) {
 				MapPosition iconPos = right ? rightPos : leftPos;
 				String itemName = bsEntity.filter.get().name;
-				Optional<BufferedImage> icon = TagManager.lookup("item", itemName);
+				Optional<ImageDef> icon = TagManager.lookup("item", itemName);
 				if (icon.isPresent()) {
 					register.accept(new MapIcon(iconPos, icon.get(), 0.6, 0.1, false));
 				}

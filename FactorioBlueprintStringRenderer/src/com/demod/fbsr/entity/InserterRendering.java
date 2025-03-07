@@ -1,6 +1,5 @@
 package com.demod.fbsr.entity;
 
-import java.awt.image.BufferedImage;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -104,7 +103,7 @@ public class InserterRendering extends SimpleEntityRendering {
 			// TODO show double/quad icons if more than one
 			if (!items.isEmpty()) {
 				String itemName = items.get(0);
-				Optional<BufferedImage> icon = TagManager.lookup("item", itemName);
+				Optional<ImageDef> icon = TagManager.lookup("item", itemName);
 				if (icon.isPresent()) {
 					register.accept(new MapIcon(pos, icon.get(), 0.6, 0.1, false));
 				}

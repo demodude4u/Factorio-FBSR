@@ -151,7 +151,7 @@ public abstract class EntityRendererFactory {
 			double y = position.getY() + 0.7;
 
 			for (String itemName : renderModules) {
-				Optional<BufferedImage> image = TagManager.lookup("item", itemName);
+				Optional<ImageDef> image = TagManager.lookup("item", itemName);
 				if (image.isPresent()) {
 					register.accept(new MapIcon(MapPosition.byUnit(x, y), image.get(), 0.5, 0.05, true));
 					x += 0.7;
@@ -191,7 +191,7 @@ public abstract class EntityRendererFactory {
 				double y = position.getY() - 1.15;
 
 				for (String itemName : renderModules) {
-					Optional<BufferedImage> image = TagManager.lookup("item", itemName);
+					Optional<ImageDef> image = TagManager.lookup("item", itemName);
 					if (image.isPresent()) {
 						register.accept(new MapIcon(MapPosition.byUnit(x, y), image.get(), 0.25, 0.025, true));
 						x += 0.3;

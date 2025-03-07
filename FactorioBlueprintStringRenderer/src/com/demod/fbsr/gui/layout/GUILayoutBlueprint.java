@@ -1,6 +1,7 @@
 package com.demod.fbsr.gui.layout;
 
 import java.awt.Color;
+import java.awt.Font;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.geom.AffineTransform;
@@ -24,12 +25,11 @@ import org.slf4j.LoggerFactory;
 import com.demod.dcba.CommandReporting;
 import com.demod.factorio.DataTable;
 import com.demod.factorio.TotalRawCalculator;
-import com.demod.factorio.prototype.DataPrototype;
-import com.demod.factorio.prototype.ItemPrototype;
 import com.demod.factorio.prototype.TilePrototype;
 import com.demod.fbsr.AtlasManager.AtlasRef;
 import com.demod.fbsr.FBSR;
 import com.demod.fbsr.FactorioManager;
+import com.demod.fbsr.ImageDef;
 import com.demod.fbsr.RenderRequest;
 import com.demod.fbsr.RenderResult;
 import com.demod.fbsr.RenderUtils;
@@ -41,17 +41,18 @@ import com.demod.fbsr.gui.GUISpacing;
 import com.demod.fbsr.gui.GUIStyle;
 import com.demod.fbsr.gui.feature.GUIPipeFeature;
 import com.demod.fbsr.gui.part.GUIImage;
+import com.demod.fbsr.gui.part.GUIImageDef;
 import com.demod.fbsr.gui.part.GUILabel;
 import com.demod.fbsr.gui.part.GUILabel.Align;
 import com.demod.fbsr.gui.part.GUIPanel;
 import com.google.common.collect.ImmutableMap;
 
 public class GUILayoutBlueprint {
+	private static final Logger LOGGER = LoggerFactory.getLogger(GUILayoutBlueprint.class);
 
 	// Discord messages at 100% scale embed images at 550x350
 	// This is double so it has a nice zoom but also crisp in detail
 	public static final GUISize DISCORD_IMAGE_SIZE = new GUISize(1100, 700);
-	private static final Logger LOGGER = LoggerFactory.getLogger(GUILayoutBlueprint.class);
 
 	private static BufferedImage timeIcon = null;
 
@@ -161,6 +162,8 @@ public class GUILayoutBlueprint {
 		GUIPanel backPanel = new GUIPanel(bounds, GUIStyle.FRAME_DARK_INNER, GUIStyle.FRAME_OUTER);
 		backPanel.render(g);
 
+		Font fontQty = GUIStyle.FONT_BP_BOLD.deriveFont(itemFontSize);
+
 		abstract class SubPanel {
 			GUIBox bounds;
 			String title;
@@ -219,9 +222,9 @@ public class GUILayoutBlueprint {
 
 						GUIStyle.ITEM_SLOT.render(g, cellBounds);
 
-						Optional<BufferedImage> icon = TagManager.lookup("item", item);
+						Optional<ImageDef> icon = TagManager.lookup("item", item);
 						if (icon.isPresent()) {
-							GUIImage imgIcon = new GUIImage(cellBounds, icon.get(), itemIconScale, false);
+							GUIImageDef imgIcon = new GUIImageDef(cellBounds, icon.get(), itemIconScale, false);
 							imgIcon.render(g);
 						} else {
 							g.setColor(RenderUtils.getUnknownColor(item));
@@ -229,7 +232,7 @@ public class GUILayoutBlueprint {
 						}
 
 						String fmtQty = RenderUtils.fmtItemQuantity(quantity);
-						g.setFont(GUIStyle.FONT_BP_BOLD.deriveFont(itemFontSize));
+						g.setFont(fontQty);
 						int strW = g.getFontMetrics().stringWidth(fmtQty);
 						int x = cellBounds.x + cellBounds.width - strW - itemFontOffset;
 						int y = cellBounds.y + cellBounds.height - itemFontOffset;
@@ -287,29 +290,26 @@ public class GUILayoutBlueprint {
 
 						GUIStyle.ITEM_SLOT.render(g, cellBounds);
 
-						Optional<BufferedImage> image;
-						double scale;
+						Optional<ImageDef> image = null;
 						if (item.equals(TotalRawCalculator.RAW_TIME)) {
-							image = Optional.of(timeIcon);
-							scale = itemIconScale * 2;
+							GUIImage imgIcon = new GUIImage(cellBounds, timeIcon, itemIconScale * 2, false);
+							imgIcon.render(g);
 						} else {
 							image = TagManager.lookup("item", item);
 							if (image.isEmpty()) {
 								image = TagManager.lookup("fluid", item);
 							}
-							scale = itemIconScale;
-						}
-
-						if (image.isPresent()) {
-							GUIImage imgIcon = new GUIImage(cellBounds, image.get(), scale, false);
-							imgIcon.render(g);
-						} else {
-							g.setColor(RenderUtils.getUnknownColor(item));
-							g.fillOval(cellBounds.x, cellBounds.y, cellBounds.width, cellBounds.height);
+							if (image.isPresent()) {
+								GUIImageDef imgIcon = new GUIImageDef(cellBounds, image.get(), itemIconScale, false);
+								imgIcon.render(g);
+							} else {
+								g.setColor(RenderUtils.getUnknownColor(item));
+								g.fillOval(cellBounds.x, cellBounds.y, cellBounds.width, cellBounds.height);
+							}
 						}
 
 						String fmtQty = RenderUtils.fmtItemQuantity(quantity);
-						g.setFont(GUIStyle.FONT_BP_BOLD.deriveFont(itemFontSize));
+						g.setFont(fontQty);
 						int strW = g.getFontMetrics().stringWidth(fmtQty);
 						int x = cellBounds.x + cellBounds.width - strW - itemFontOffset;
 						int y = cellBounds.y + cellBounds.height - itemFontOffset;
@@ -363,19 +363,19 @@ public class GUILayoutBlueprint {
 		if (itemCount <= 32) {
 			itemRowMax = 8;
 			itemCellSize = 40;
-			itemIconScale = 0.5;
+			itemIconScale = 1.0;
 			itemFontSize = 12f;
 			itemFontOffset = 5;
 		} else if (itemCount <= 72) {
 			itemRowMax = 12;
 			itemCellSize = 30;
-			itemIconScale = 0.375;
+			itemIconScale = 0.75;
 			itemFontSize = 10f;
 			itemFontOffset = 4;
 		} else {
 			itemRowMax = 16;
 			itemCellSize = 20;
-			itemIconScale = 0.25;
+			itemIconScale = 0.5;
 			itemFontSize = 8f;
 			itemFontOffset = 3;
 		}

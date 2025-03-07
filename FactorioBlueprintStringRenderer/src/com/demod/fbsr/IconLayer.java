@@ -16,14 +16,14 @@ import org.slf4j.LoggerFactory;
 import com.demod.factorio.Utils;
 import com.demod.factorio.fakelua.LuaTable;
 import com.demod.factorio.fakelua.LuaValue;
-import com.demod.fbsr.AtlasManager.AtlasRef;
 import com.demod.fbsr.fp.FPColor;
 import com.demod.fbsr.fp.FPVector;
 import com.google.common.collect.ImmutableList;
 
-public class IconLayerDef extends ImageDef {
-	private static final Logger LOGGER = LoggerFactory.getLogger(IconLayerDef.class);
+public class IconLayer {
+	private static final Logger LOGGER = LoggerFactory.getLogger(IconLayer.class);
 
+	private final String path;
 	private final int iconSize;
 	private final Color tint;
 	private final Point2D.Double shift;
@@ -32,9 +32,9 @@ public class IconLayerDef extends ImageDef {
 
 	// For icon details -- https://lua-api.factorio.com/stable/types/IconData.html
 
-	public IconLayerDef(String path, int iconSize, Color tint, Point2D.Double shift, double scale,
+	public IconLayer(String path, int iconSize, Color tint, Point2D.Double shift, double scale,
 			boolean drawBackground) {
-		super(path, new Rectangle(iconSize, iconSize));
+		this.path = path;
 		this.iconSize = iconSize;
 		this.tint = tint;
 		this.shift = shift;
@@ -62,7 +62,7 @@ public class IconLayerDef extends ImageDef {
 		return drawBackground;
 	}
 
-	public static List<IconLayerDef> fromPrototype(LuaTable lua) {
+	public static List<IconLayer> fromPrototype(LuaTable lua) {
 		String type = lua.get("type").tojstring();
 
 		int expectedIconSize;
@@ -90,12 +90,12 @@ public class IconLayerDef extends ImageDef {
 				throw new RuntimeException("No Icon Path!");
 			}
 			return ImmutableList
-					.of(new IconLayerDef(path, iconSize, Color.white, new Point2D.Double(), defaultScale, true));
+					.of(new IconLayer(path, iconSize, Color.white, new Point2D.Double(), defaultScale, true));
 		}
 		LuaValue iconsLua = lua.get("icons");
 
 		if (!iconsLua.isnil()) {
-			List<IconLayerDef> defs = new ArrayList<>();
+			List<IconLayer> layers = new ArrayList<>();
 			for (int i = 1; i <= iconsLua.length(); i++) {
 				LuaValue layer = iconsLua.get(i);
 				String path = layer.get("icon").checkjstring();
@@ -112,60 +112,51 @@ public class IconLayerDef extends ImageDef {
 				shift.x *= defaultScale * 2;
 				shift.y *= defaultScale * 2;
 				boolean drawBackground = layer.get("draw_background").optboolean(i == 0);
-				defs.add(new IconLayerDef(path, iconSize, tint, shift, scale, drawBackground));
+				layers.add(new IconLayer(path, iconSize, tint, shift, scale, drawBackground));
 			}
-			if (defs.isEmpty()) {
+			if (layers.isEmpty()) {
 				throw new RuntimeException("No Icon Layers!");
 			}
-			return defs;
+			return layers;
 		}
 
 //		LOGGER.error("{} ({}) has no icon.", name, type);
-		return ImmutableList.of(new IconLayerDef("__core__/graphics/empty.png", iconSize, Color.white,
+		return ImmutableList.of(new IconLayer("__core__/graphics/empty.png", iconSize, Color.white,
 				new Point2D.Double(), defaultScale, true));
 	}
 
-	public static BufferedImage createIcon(List<IconLayerDef> defs) {
+	public static BufferedImage createIcon(List<IconLayer> defs, int size) {
 		int sizeOfFirstLayer = defs.get(0).getIconSize();
+		double outputScale = 2 * size / (double) sizeOfFirstLayer;
 
-		BufferedImage icon = new BufferedImage(sizeOfFirstLayer, sizeOfFirstLayer, BufferedImage.TYPE_INT_ARGB);
+		BufferedImage icon = new BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB);
 		Graphics2D g = icon.createGraphics();
 		g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 		g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
 		AffineTransform pat = g.getTransform();
-		for (IconLayerDef def : defs) {
-			AtlasRef ref = def.atlasRef;
-			BufferedImage srcImage = ref.getAtlas().getBufferedImage();
-			Rectangle rect = ref.getRect();
+		for (IconLayer layer : defs) {
+			BufferedImage imageSheet = FactorioManager.lookupModImage(layer.path);
+			Rectangle rect = new Rectangle(layer.iconSize, layer.iconSize);
 
-			BufferedImage layer = srcImage.getSubimage(rect.x, rect.y, rect.width, rect.height);
+			BufferedImage image = imageSheet.getSubimage(rect.x, rect.y, rect.width, rect.height);
 
-			if (!def.tint.equals(Color.white)) {
-				layer = Utils.tintImage(layer, def.tint);
+			if (!layer.tint.equals(Color.white)) {
+				image = Utils.tintImage(image, layer.tint);
 			}
 
 			// move icon into the center
-			g.translate((icon.getWidth() / 2) - (layer.getWidth() * (def.scale)) / 2,
-					(icon.getHeight() / 2) - (layer.getHeight() * (def.scale)) / 2);
+			g.translate((icon.getWidth() / 2) - (image.getWidth() * (layer.scale)) / 2,
+					(icon.getHeight() / 2) - (image.getHeight() * (layer.scale)) / 2);
+			g.translate(layer.shift.x, layer.shift.y);
+			g.scale(layer.scale, layer.scale);
 
-			g.translate(def.shift.x, def.shift.y);
+			g.scale(outputScale, outputScale);
 
-			// TODO how do I deal with this?
-			// HACK
-			// Overlay icon of equipment technology icons are outside bounds of base icon.
-			// So, move the overlay icon up. Do the same for mining productivity tech.
-//			String path = l.get("icon").tojstring();
-//			if (path.equals("__core__/graphics/icons/technology/constants/constant-mining-productivity.png")) {
-//				g.translate(-8, -7);
-//			} else if (path.equals("__core__/graphics/icons/technology/constants/constant-equipment.png")) {
-//				g.translate(0, -20);
-//			}
-
-			g.scale(def.scale, def.scale);
-			g.drawImage(layer, 0, 0, null);
+			g.drawImage(image, 0, 0, null);
 			g.setTransform(pat);
 		}
 		g.dispose();
+
 		return icon;
 	}
 

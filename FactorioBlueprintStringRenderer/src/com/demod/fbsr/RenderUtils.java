@@ -2,6 +2,7 @@ package com.demod.fbsr;
 
 import java.awt.Color;
 import java.awt.Graphics2D;
+import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 import java.lang.reflect.Field;
 import java.text.DecimalFormat;
@@ -45,8 +46,8 @@ public final class RenderUtils {
 		return amountStr;
 	}
 
-	public static Color getAverageColor(BufferedImage image) {
-		int[] pixels = image.getRGB(0, 0, image.getWidth(), image.getHeight(), null, 0, image.getWidth());
+	public static Color getAverageColor(BufferedImage imageSheet, Rectangle rect) {
+		int[] pixels = imageSheet.getRGB(rect.x, rect.y, rect.width, rect.height, null, 0, rect.width);
 		float sumR = 0, sumG = 0, sumB = 0, sumA = 0;
 		for (int pixel : pixels) {
 			float a = (pixel >> 24) & 0xFF;

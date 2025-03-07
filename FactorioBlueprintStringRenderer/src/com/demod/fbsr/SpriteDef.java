@@ -18,8 +18,8 @@ public class SpriteDef extends ImageDef {
 	protected MapRect sourceBounds;
 	protected MapRect trimmedBounds;
 
-	public SpriteDef(String path, Function<String, BufferedImage> loader, boolean shadow, BlendMode blendMode,
-			Optional<Color> tint, boolean applyRuntimeTint, Rectangle source, MapRect bounds) {
+	public SpriteDef(String path, ImageSheetLoader loader, boolean shadow, BlendMode blendMode, Optional<Color> tint,
+			boolean applyRuntimeTint, Rectangle source, MapRect bounds) {
 		super(path, loader, source);
 		this.shadow = shadow;
 		this.blendMode = blendMode;

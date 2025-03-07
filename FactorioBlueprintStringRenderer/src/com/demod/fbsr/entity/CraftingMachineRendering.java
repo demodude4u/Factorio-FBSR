@@ -1,6 +1,5 @@
 package com.demod.fbsr.entity;
 
-import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -112,7 +111,7 @@ public abstract class CraftingMachineRendering extends SimpleEntityRendering {
 
 		// TODO need a better approach that doesn't involve searching recipe lua
 		if (recipe.isPresent() && map.isAltMode()) {
-			Optional<BufferedImage> icon = TagManager.lookup("recipe", recipe.get());
+			Optional<ImageDef> icon = TagManager.lookup("recipe", recipe.get());
 			if (icon.isEmpty()) {
 				Optional<RecipePrototype> optRecipe = FactorioManager.lookupRecipeByName(recipe.get());
 				if (optRecipe.isPresent()) {

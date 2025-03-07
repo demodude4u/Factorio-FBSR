@@ -1,6 +1,6 @@
 package com.demod.fbsr;
 
-import java.awt.image.BufferedImage;
+import java.awt.Rectangle;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -18,69 +18,93 @@ import com.demod.factorio.fakelua.LuaTable;
 import com.demod.factorio.prototype.DataPrototype;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.MultimapBuilder;
+import com.google.common.collect.Multimaps;
 
 public class TagManager {
 	private static final Logger LOGGER = LoggerFactory.getLogger(TagManager.class);
 
-	public static class DefaultResolver implements TagResolver {
+	public static final int ICON_SIZE = 32;
+
+	public static class DefaultResolver extends TagResolver {
 		private final Map<String, LuaTable> map;
-		private final ListMultimap<String, IconLayerDef> defs;
-		private final Map<String, BufferedImage> cache;
 
-		public DefaultResolver(Map<String, LuaTable> map) {
+		private final ListMultimap<String, IconLayer> layers;
+		private final Map<String, ImageDef> defs;
+
+		public DefaultResolver(String key, Map<String, LuaTable> map) {
+			super(key);
+
 			this.map = map;
-			cache = new HashMap<>();
 
+			layers = createLayers();
 			defs = createDefs();
 		}
 
-		private ListMultimap<String, IconLayerDef> createDefs() {
-			ListMultimap<String, IconLayerDef> defs = MultimapBuilder.hashKeys().arrayListValues().build();
+		private ListMultimap<String, IconLayer> createLayers() {
+			ListMultimap<String, IconLayer> layers = MultimapBuilder.hashKeys().arrayListValues().build();
 			for (Entry<String, LuaTable> entry : map.entrySet()) {
-				defs.putAll(entry.getKey(), IconLayerDef.fromPrototype(entry.getValue()));
+				layers.putAll(entry.getKey(), IconLayer.fromPrototype(entry.getValue()));
+			}
+			return layers;
+		}
+
+		private Map<String, ImageDef> createDefs() {
+			Map<String, ImageDef> defs = new HashMap<>();
+			for (Entry<String, List<IconLayer>> entry : Multimaps.asMap(layers).entrySet()) {
+				defs.put(entry.getKey(), new ImageDef("TAG[" + key + "]/" + entry.getKey() + "/" + ICON_SIZE, k -> {
+					return IconLayer.createIcon(layers.get(entry.getKey()), ICON_SIZE);
+				}, new Rectangle(ICON_SIZE, ICON_SIZE)));
 			}
 			return defs;
 		}
 
 		@Override
-		public Optional<BufferedImage> lookup(String key) {
-			BufferedImage image = cache.get(key);
-			if (image != null) {
-				return Optional.of(image);
-			}
-			List<IconLayerDef> protoDefs = defs.get(key);
-			if (protoDefs.isEmpty()) {
-				return Optional.empty();
-			}
-			image = IconLayerDef.createIcon(protoDefs);
-			cache.put(key, image);
-			return Optional.of(image);
+		public Optional<ImageDef> lookup(String key) {
+			return Optional.ofNullable(defs.get(key));
+		}
+
+		@Override
+		public Optional<List<IconLayer>> lookupLayers(String key) {
+			return Optional.ofNullable(layers.get(key));
 		}
 
 		@Override
 		public void getDefs(Consumer<ImageDef> register) {
 			defs.values().forEach(register);
 		}
+
 	}
 
-	public interface TagResolver {
-		Optional<BufferedImage> lookup(String key);
+	public static abstract class TagResolver {
+		protected final String key;
 
-		void getDefs(Consumer<ImageDef> register);
-
-		public static TagResolver forMap(Map<String, LuaTable> map) {
-			return new DefaultResolver(map);
+		public TagResolver(String key) {
+			this.key = key;
 		}
 
-		public static TagResolver forPrototypes(List<? extends DataPrototype> prototypes) {
+		public String getKey() {
+			return key;
+		}
+
+		public abstract Optional<ImageDef> lookup(String key);
+
+		public abstract Optional<List<IconLayer>> lookupLayers(String key);
+
+		public abstract void getDefs(Consumer<ImageDef> register);
+
+		public static void forMap(String key, Map<String, LuaTable> map) {
+			resolvers.put(key, new DefaultResolver(key, map));
+		}
+
+		public static void forPrototypes(String key, List<? extends DataPrototype> prototypes) {
 			Map<String, LuaTable> map = new LinkedHashMap<>();
 			for (DataPrototype proto : prototypes) {
 				map.put(proto.getName(), proto.lua());
 			}
-			return new DefaultResolver(map);
+			resolvers.put(key, new DefaultResolver(key, map));
 		}
 
-		public static TagResolver forPath(String rawPath) {
+		public static void forPath(String key, String rawPath) {
 			String[] path = rawPath.split("\\.");
 			Map<String, LuaTable> map = new LinkedHashMap<>();
 			for (FactorioData data : FactorioManager.getDatas()) {
@@ -89,7 +113,7 @@ public class TagManager {
 					map.put(k.tojstring(), v.totableObject());
 				});
 			}
-			return new DefaultResolver(map);
+			resolvers.put(key, new DefaultResolver(key, map));
 		}
 	}
 
@@ -114,33 +138,33 @@ public class TagManager {
 		// Details found at https://wiki.factorio.com/rich_text
 
 		// TODO img
-		resolvers.put("item", TagResolver.forPrototypes(FactorioManager.getItems()));
-		resolvers.put("entity", TagResolver.forPrototypes(FactorioManager.getEntities()));
-		resolvers.put("technology", TagResolver.forPrototypes(FactorioManager.getTechnologies()));
-		resolvers.put("recipe", TagResolver.forPrototypes(FactorioManager.getRecipes()));
-		resolvers.put("item-group", TagResolver.forPath("item-group"));
-		resolvers.put("fluid", TagResolver.forPrototypes(FactorioManager.getFluids()));
-		resolvers.put("tile", TagResolver.forPrototypes(FactorioManager.getTiles()));
-		resolvers.put("virtual-signal", TagResolver.forPath("virtual-signal"));
-		resolvers.put("achievement", TagResolver.forPrototypes(FactorioManager.getAchievements()));
+		TagResolver.forPrototypes("item", FactorioManager.getItems());
+		TagResolver.forPrototypes("entity", FactorioManager.getEntities());
+		TagResolver.forPrototypes("technology", FactorioManager.getTechnologies());
+		TagResolver.forPrototypes("recipe", FactorioManager.getRecipes());
+		TagResolver.forPath("item-group", "item-group");
+		TagResolver.forPrototypes("fluid", FactorioManager.getFluids());
+		TagResolver.forPrototypes("tile", FactorioManager.getTiles());
+		TagResolver.forPath("virtual-signal", "virtual-signal");
+		TagResolver.forPrototypes("achievement", FactorioManager.getAchievements());
 		// TODO gps
 		// TODO special-item
-		resolvers.put("armor", TagResolver.forPath("armor"));
+		TagResolver.forPath("armor", "armor");
 		// TODO train
 		// TODO train-stop
-		resolvers.put("shortcut", TagResolver.forPath("shortcut"));
+		TagResolver.forPath("shortcut", "shortcut");
 		// TODO tip
 		// TODO tooltip
-		resolvers.put("quality", TagResolver.forPath("quality"));
+		TagResolver.forPath("quality", "quality");
 		// TODO space-platform
-		resolvers.put("planet", TagResolver.forPath("planet"));
-		resolvers.put("space-location", TagResolver.forPath("space-location"));
+		TagResolver.forPath("planet", "planet");
+		TagResolver.forPath("space-location", "space-location");
 		// TODO space-age
 
 		resolvers.values().forEach(r -> r.getDefs(AtlasManager::registerDef));
 	}
 
-	public static Optional<BufferedImage> lookup(String key, String name) {
+	public static Optional<ImageDef> lookup(String key, String name) {
 		return resolvers.get(key).lookup(name);
 	}
 }

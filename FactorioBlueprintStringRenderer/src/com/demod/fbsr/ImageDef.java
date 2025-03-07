@@ -8,15 +8,19 @@ import com.demod.fbsr.AtlasManager.AtlasRef;
 
 public class ImageDef {
 
+	@FunctionalInterface
+	public static interface ImageSheetLoader extends Function<String, BufferedImage> {
+	}
+
 	protected final String path;
-	protected final Function<String, BufferedImage> loader;
+	protected final ImageSheetLoader loader;
 	protected final Rectangle source;
 	protected final AtlasRef atlasRef;
 
 	protected BufferedImage image = null;
 	protected Rectangle trimmed = null;
 
-	public ImageDef(String path, Function<String, BufferedImage> loader, Rectangle source) {
+	public ImageDef(String path, ImageSheetLoader loader, Rectangle source) {
 		this.path = path;
 		this.loader = loader;
 		this.source = new Rectangle(source);
@@ -47,11 +51,8 @@ public class ImageDef {
 		return path;
 	}
 
-	public BufferedImage getOrLoadImage() {
-		if (image == null) {
-			image = loader.apply(path);
-		}
-		return image;
+	public ImageSheetLoader getLoader() {
+		return loader;
 	}
 
 	public Rectangle getSource() {

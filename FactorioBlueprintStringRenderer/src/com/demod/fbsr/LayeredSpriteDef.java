@@ -12,8 +12,8 @@ public class LayeredSpriteDef extends SpriteDef {
 
 	private final Layer layer;
 
-	public LayeredSpriteDef(String path, Function<String, BufferedImage> loader, Layer layer, boolean shadow,
-			BlendMode blendMode, Optional<Color> tint, boolean applyRuntimeTint, Rectangle source, MapRect bounds) {
+	public LayeredSpriteDef(String path, ImageSheetLoader loader, Layer layer, boolean shadow, BlendMode blendMode,
+			Optional<Color> tint, boolean applyRuntimeTint, Rectangle source, MapRect bounds) {
 		super(path, loader, shadow, blendMode, tint, applyRuntimeTint, source, bounds);
 		this.layer = shadow ? Layer.SHADOW_BUFFER : layer;
 	}

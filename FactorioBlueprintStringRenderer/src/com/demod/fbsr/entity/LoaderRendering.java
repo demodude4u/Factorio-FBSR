@@ -1,6 +1,5 @@
 package com.demod.fbsr.entity;
 
-import java.awt.image.BufferedImage;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
@@ -10,6 +9,7 @@ import java.util.stream.Collectors;
 
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.Direction;
+import com.demod.fbsr.ImageDef;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.TagManager;
 import com.demod.fbsr.WorldMap;
@@ -56,7 +56,7 @@ public abstract class LoaderRendering extends TransportBeltConnectableRendering 
 			// TODO double/quad icons
 			if (!items.isEmpty()) {
 				String itemName = items.get(0);
-				Optional<BufferedImage> icon = TagManager.lookup("item", itemName);
+				Optional<ImageDef> icon = TagManager.lookup("item", itemName);
 				if (icon.isPresent()) {
 					register.accept(new MapIcon(entity.getPosition(), icon.get(), 0.6, 0.1, false));
 				}
