@@ -95,8 +95,4 @@ public class FPAnimation extends FPAnimationParameters {
 		defineSprites(ret::add, frame);
 		return ret;
 	}
-
-	public List<List<SpriteDef>> getDefs() {
-		return defs;
-	}
 }
