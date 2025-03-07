@@ -15,6 +15,7 @@ import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapRect3D;
 import com.demod.fbsr.map.MapRenderable;
 import com.demod.fbsr.map.MapSprite;
+import com.google.common.collect.ImmutableList;
 
 public abstract class RailSignalBaseRendering extends EntityRendererFactory {
 	private static final int FRAME = 0;
@@ -77,8 +78,17 @@ public abstract class RailSignalBaseRendering extends EntityRendererFactory {
 
 	@Override
 	public void initAtlas(Consumer<ImageDef> register) {
-		groundPictureSet.railPiece.sprites.getDefs().forEach(l -> l.forEach(register));
-		groundPictureSet.structure.getDefs(register, FRAME);
+		for (FPRailSignalPictureSet pictureSet : ImmutableList.of(groundPictureSet, elevatedPictureSet)) {
+			for (int direction = 0; direction < 16; direction++) {
+				int align = direction * 12;
+
+				int railPieceFrame = pictureSet.railPiece.alignToFrameIndex.get(align);
+				pictureSet.railPiece.sprites.defineSprites(register, railPieceFrame);
+
+				int structureIndex = pictureSet.structureAlignToAnimationIndex.get(align);
+				pictureSet.structure.defineSprites(register, structureIndex, FRAME);
+			}
+		}
 	}
 
 	@Override
