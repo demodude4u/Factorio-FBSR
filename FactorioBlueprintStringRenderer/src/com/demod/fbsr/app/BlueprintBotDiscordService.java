@@ -324,26 +324,16 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		if (blueprintString.blueprint.isPresent()) {
 			BSBlueprint blueprint = blueprintString.blueprint.get();
 
-			if (event.optParamBoolean("simple").orElse(false)) {
-				RenderRequest request = new RenderRequest(blueprint, reporting);
-				RenderResult result = FBSR.renderBlueprint(request);
-				image = result.image;
-				unknownNames.addAll(result.unknownNames);
-				renderTimes.add(result.renderTime);
+			GUILayoutBlueprint layout = new GUILayoutBlueprint();
+			layout.setBlueprint(blueprint);
+			layout.setReporting(reporting);
+			image = layout.generateDiscordImage();
+			unknownNames.addAll(layout.getResult().unknownNames);
+			renderTimes.add(layout.getResult().renderTime);
 
-			} else {
-				GUILayoutBlueprint layout = new GUILayoutBlueprint();
-				layout.setBlueprint(blueprint);
-				layout.setReporting(reporting);
-				image = layout.generateDiscordImage();
-				unknownNames.addAll(layout.getResult().unknownNames);
-				renderTimes.add(layout.getResult().renderTime);
-
-				if (layout.getResult().renderScale < 0.501) {
-					actionButtonRow
-							.add(Button.secondary("reply-zoom|" + futBlueprintStringUpload.get().getId(), "Zoom In")
-									.withEmoji(EMOJI_SEARCH));
-				}
+			if (layout.getResult().renderScale < 0.501) {
+				actionButtonRow.add(Button.secondary("reply-zoom|" + futBlueprintStringUpload.get().getId(), "Zoom In")
+						.withEmoji(EMOJI_SEARCH));
 			}
 
 			label = blueprint.label;
