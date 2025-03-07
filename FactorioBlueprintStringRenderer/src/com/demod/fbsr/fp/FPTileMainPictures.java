@@ -4,6 +4,7 @@ import java.awt.Rectangle;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.FPUtils;
@@ -14,15 +15,18 @@ public class FPTileMainPictures extends FPTileSpriteLayout {
 	public final double probability;
 	public final Optional<List<Double>> weights;
 
+	private final int limitedCount;
 	private final List<ImageDef> defs;
 
-	public FPTileMainPictures(LuaValue lua) {
+	public FPTileMainPictures(LuaValue lua, int limitCount) {
 		super(lua);
 		size = lua.get("size").checkint();
 		probability = lua.get("probability").optdouble(1.0);
 		weights = FPUtils.optList(lua.get("weights"), LuaValue::todouble);
 
-		defs = createDefs();
+		limitedCount = Math.min(limitCount, count);
+		List<ImageDef> allDefs = createDefs();
+		defs = allDefs.stream().limit(limitedCount).collect(Collectors.toList());
 	}
 
 	private List<ImageDef> createDefs() {
@@ -45,5 +49,9 @@ public class FPTileMainPictures extends FPTileSpriteLayout {
 
 	public List<ImageDef> getDefs() {
 		return defs;
+	}
+
+	public int getLimitedCount() {
+		return limitedCount;
 	}
 }

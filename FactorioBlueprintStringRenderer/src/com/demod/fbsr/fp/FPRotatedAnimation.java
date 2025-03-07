@@ -1,19 +1,17 @@
 package com.demod.fbsr.fp;
 
-import java.awt.Rectangle;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import com.demod.factorio.fakelua.LuaValue;
-import com.demod.fbsr.FBSR;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.ImageDef;
 import com.demod.fbsr.SpriteDef;
-import com.demod.fbsr.map.MapRect;
 import com.google.common.collect.ImmutableList;
 
 public class FPRotatedAnimation extends FPAnimationParameters {
@@ -27,12 +25,17 @@ public class FPRotatedAnimation extends FPAnimationParameters {
 	public final boolean applyProjection;
 	public final boolean counterclockwise;
 
-	private final List<SpriteDef> defs;
+	private final List<List<SpriteDef>> defs;
+	private final int limitedDirectionCount;
 
 	public FPRotatedAnimation(LuaValue lua) {
+		this(lua, Integer.MAX_VALUE);
+	}
+
+	public FPRotatedAnimation(LuaValue lua, int limitDirectionCount) {
 		super(lua);
 
-		layers = FPUtils.optList(lua.get("layers"), FPRotatedAnimation::new);
+		layers = FPUtils.optList(lua.get("layers"), l -> new FPRotatedAnimation(l, limitDirectionCount));
 		directionCount = lua.get("direction_count").optint(1);
 		stripes = FPUtils.optList(lua.get("stripes"), l -> new FPStripe(l, OptionalInt.of(directionCount)));
 		filenames = FPUtils.optList(lua.get("filenames"), LuaValue::toString);
@@ -41,17 +44,19 @@ public class FPRotatedAnimation extends FPAnimationParameters {
 		applyProjection = lua.get("apply_projection").optboolean(true);
 		counterclockwise = lua.get("counterclockwise").optboolean(false);
 
-		defs = createDefs();
+		this.limitedDirectionCount = Math.min(limitDirectionCount, directionCount);
+		List<List<SpriteDef>> allDefs = createDefs();
+		defs = limitedDirectionDefs(allDefs);
 	}
 
-	private List<SpriteDef> createDefs() {
+	private List<List<SpriteDef>> createDefs() {
 		if (layers.isPresent()) {
 			return ImmutableList.of();
 		}
 
 		if (stripes.isPresent()) {
 
-			SpriteDef[] defs = new SpriteDef[directionCount * frameCount];
+			SpriteDef[] defArray = new SpriteDef[directionCount * frameCount];
 			int stripeRow = 0, stripeCol = 0;
 			for (FPStripe stripe : stripes.get()) {
 
@@ -62,8 +67,8 @@ public class FPRotatedAnimation extends FPAnimationParameters {
 
 						int frame = stripeCol + col;
 						int index = stripeRow + row;
-						defs[index * frameCount + frame] = SpriteDef.fromFP(stripe.filename, drawAsShadow, blendMode,
-								tint, applyRuntimeTint, x, y, width, height, shift.x, shift.y, scale);
+						defArray[index * frameCount + frame] = SpriteDef.fromFP(stripe.filename, drawAsShadow,
+								blendMode, tint, applyRuntimeTint, x, y, width, height, shift.x, shift.y, scale);
 					}
 				}
 
@@ -74,38 +79,64 @@ public class FPRotatedAnimation extends FPAnimationParameters {
 				}
 			}
 
-			return Arrays.asList(defs);
+			List<List<SpriteDef>> defs = new ArrayList<>();
+			for (int index = 0; index < directionCount; index++) {
+				List<SpriteDef> dirDefs = new ArrayList<>();
+				defs.add(dirDefs);
+				for (int frame = 0; frame < frameCount; frame++) {
+					dirDefs.add(defArray[index * frameCount + frame]);
+				}
+			}
+			return defs;
 
 		} else if (filenames.isPresent()) {
 
-			int frameCount = directionCount * lineLength;
-			List<SpriteDef> defs = new ArrayList<>();
-			for (int frame = 0; frame < frameCount; frame++) {
+			List<List<SpriteDef>> defs = new ArrayList<>();
+			for (int index = 0; index < directionCount; index++) {
+				List<SpriteDef> dirDefs = new ArrayList<>();
+				defs.add(dirDefs);
+				for (int frame = 0; frame < frameCount; frame++) {
 
-				int fileFrameCount = (linesPerFile * lineLength);
-				int fileFrame = frame % fileFrameCount;
-				int fileIndex = frame / fileFrameCount;
-				int x = this.x + width * (fileFrame % lineLength);
-				int y = this.y + height * (fileFrame / lineLength);
+					int spriteIndex = index * frameCount + frame;
+					int fileFrameCount = (linesPerFile * lineLength);
+					int fileFrame = spriteIndex % fileFrameCount;
+					int fileIndex = spriteIndex / fileFrameCount;
+					int x = this.x + width * (fileFrame % lineLength);
+					int y = this.y + height * (fileFrame / lineLength);
 
-				defs.add(SpriteDef.fromFP(filenames.get().get(fileIndex), drawAsShadow, blendMode, tint,
-						applyRuntimeTint, x, y, width, height, shift.x, shift.y, scale));
+					dirDefs.add(SpriteDef.fromFP(filenames.get().get(fileIndex), drawAsShadow, blendMode, tint,
+							applyRuntimeTint, x, y, width, height, shift.x, shift.y, scale));
 
+				}
 			}
 			return defs;
 
 		} else {
-			int spriteCount = directionCount * frameCount;
-			List<SpriteDef> defs = new ArrayList<>();
-			for (int sprite = 0; sprite < spriteCount; sprite++) {
-				int x = this.x + width * (sprite % lineLength);
-				int y = this.y + height * (sprite / lineLength);
+			List<List<SpriteDef>> defs = new ArrayList<>();
+			for (int index = 0; index < directionCount; index++) {
+				List<SpriteDef> dirDefs = new ArrayList<>();
+				defs.add(dirDefs);
+				for (int frame = 0; frame < frameCount; frame++) {
 
-				defs.add(SpriteDef.fromFP(filename.get(), drawAsShadow, blendMode, tint, applyRuntimeTint, x, y, width,
-						height, shift.x, shift.y, scale));
+					int spriteIndex = index * frameCount + frame;
+					int x = this.x + width * (spriteIndex % lineLength);
+					int y = this.y + height * (spriteIndex / lineLength);
+
+					dirDefs.add(SpriteDef.fromFP(filename.get(), drawAsShadow, blendMode, tint, applyRuntimeTint, x, y,
+							width, height, shift.x, shift.y, scale));
+				}
 			}
 			return defs;
 		}
+	}
+
+	private List<List<SpriteDef>> limitedDirectionDefs(List<List<SpriteDef>> allDefs) {
+		if (limitedDirectionCount == directionCount || allDefs.isEmpty()) {
+			return allDefs;
+		}
+
+		return IntStream.range(0, limitedDirectionCount).map(i -> (i * directionCount) / limitedDirectionCount)
+				.mapToObj(allDefs::get).collect(Collectors.toList());
 	}
 
 	public void defineSprites(Consumer<? super SpriteDef> consumer, double orientation, int frame) {
@@ -121,14 +152,7 @@ public class FPRotatedAnimation extends FPAnimationParameters {
 			return;
 		}
 
-		if (stripes.isPresent() || filenames.isPresent()) {
-			frame = index * lineLength + frame;
-			consumer.accept(defs.get(frame));
-			return;
-		}
-
-		frame = index * frameCount + frame;
-		consumer.accept(defs.get(frame));
+		consumer.accept(defs.get(index).get(frame));
 	}
 
 	public List<SpriteDef> defineSprites(double orientation, int frame) {
@@ -147,28 +171,21 @@ public class FPRotatedAnimation extends FPAnimationParameters {
 			layers.get().forEach(fp -> fp.getDefs(consumer, frame));
 
 		} else {
-			for (int index = 0; index < directionCount; index++) {
+			for (int index = 0; index < limitedDirectionCount; index++) {
 				defineSprites(consumer, index, frame);
 			}
 		}
 	}
 
-	@Override
-	public int getFrameCount() {
-		if (layers.isPresent()) {
-			return layers.get().stream().mapToInt(FPRotatedAnimation::getFrameCount).max().getAsInt();
-		} else if (stripes.isPresent() || filenames.isPresent()) {
-			return directionCount * lineLength;
-		} else {
-			return directionCount * frameCount;
-		}
+	public int getLimitedDirectionCount() {
+		return limitedDirectionCount;
 	}
 
 	private int getIndex(double orientation) {
 		if (counterclockwise) {
 			orientation = 1 - orientation;
 		}
-		int directionCount = this.directionCount;
+		int directionCount = this.limitedDirectionCount;
 		int index;
 		if (applyProjection) {
 			index = (int) (FPUtils.projectedOrientation(orientation) * directionCount);

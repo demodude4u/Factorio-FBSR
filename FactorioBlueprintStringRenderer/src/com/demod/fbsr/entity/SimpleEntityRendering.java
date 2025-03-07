@@ -325,6 +325,39 @@ public abstract class SimpleEntityRendering extends EntityRendererFactory {
 			return ret;
 		}
 
+		public BindRotateFrameAction<FPRotatedAnimation> rotatedAnimationLimited(LuaValue lua,
+				int limitDirectionCount) {
+			if (lua.isnil()) {
+				return new BindRotateFrameNoAction<>();
+			}
+			BindRotateFrameAction<FPRotatedAnimation> ret = new BindRotateFrameAction<FPRotatedAnimation>() {
+				@Override
+				public void defineSprites(Consumer<SpriteDef> consumer, MapEntity entity) {
+					double orientation;
+					if (this.orientation.isPresent()) {
+						orientation = this.orientation.getAsDouble();
+					} else if (entity.fromBlueprint().orientation.isPresent()) {
+						orientation = entity.fromBlueprint().orientation.getAsDouble();
+					} else {
+						orientation = entity.fromBlueprint().directionRaw / 16.0;
+					}
+					proto.defineSprites(consumer, orientation, frame);
+				}
+
+				@Override
+				public void initAtlas(Consumer<ImageDef> register) {
+					if (orientation.isPresent()) {
+						proto.defineSprites(register, orientation.getAsDouble(), frame);
+					} else {
+						proto.getDefs(register, frame);
+					}
+				}
+			};
+			ret.proto = new FPRotatedAnimation(lua, limitDirectionCount);
+			bindings.add(ret);
+			return ret;
+		}
+
 		public BindRotateDirFrameAction<FPRotatedAnimation8Way> rotatedAnimation8Way(LuaValue lua) {
 			if (lua.isnil()) {
 				return new BindRotateDirFrameNoAction<>();
@@ -389,6 +422,38 @@ public abstract class SimpleEntityRendering extends EntityRendererFactory {
 				}
 			};
 			ret.proto = new FPRotatedSprite(lua);
+			bindings.add(ret);
+			return ret;
+		}
+
+		public BindRotateAction<FPRotatedSprite> rotatedSpriteLimited(LuaValue lua, int limitDirectionCount) {
+			if (lua.isnil()) {
+				return new BindRotateNoAction<>();
+			}
+			BindRotateAction<FPRotatedSprite> ret = new BindRotateAction<FPRotatedSprite>() {
+				@Override
+				public void defineSprites(Consumer<SpriteDef> consumer, MapEntity entity) {
+					double orientation;
+					if (this.orientation.isPresent()) {
+						orientation = this.orientation.getAsDouble();
+					} else if (entity.fromBlueprint().orientation.isPresent()) {
+						orientation = entity.fromBlueprint().orientation.getAsDouble();
+					} else {
+						orientation = entity.getDirection().getOrientation();
+					}
+					proto.defineSprites(consumer, orientation);
+				}
+
+				@Override
+				public void initAtlas(Consumer<ImageDef> register) {
+					if (orientation.isPresent()) {
+						proto.defineSprites(register, orientation.getAsDouble());
+					} else {
+						proto.getDefs(register);
+					}
+				}
+			};
+			ret.proto = new FPRotatedSprite(lua, limitDirectionCount);
 			bindings.add(ret);
 			return ret;
 		}

@@ -5,7 +5,7 @@ import com.demod.factorio.fakelua.LuaTable;
 public class RailSupportRendering extends SimpleEntityRendering {
 	@Override
 	public void defineEntity(Bindings bind, LuaTable lua) {
-		bind.rotatedSprite(lua.get("graphics_set").get("structure"));
+		bind.rotatedSpriteLimited(lua.get("graphics_set").get("structure"), 16);
 	}
 
 }

@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,14 +31,25 @@ public class FPRotatedSprite extends FPSpriteParameters {
 
 	private final List<SpriteDef> defs;
 
+	private final int limitedDirectionCount;
+
 	public FPRotatedSprite(LuaValue lua) {
-		this(lua, Optional.empty());
+		this(lua, Optional.empty(), Integer.MAX_VALUE);
+	}
+
+	public FPRotatedSprite(LuaValue lua, int limitDirectionCount) {
+		this(lua, Optional.empty(), limitDirectionCount);
 	}
 
 	public FPRotatedSprite(LuaValue lua, Optional<Boolean> overrideBackEqualsFront) {
+		this(lua, overrideBackEqualsFront, Integer.MAX_VALUE);
+	}
+
+	public FPRotatedSprite(LuaValue lua, Optional<Boolean> overrideBackEqualsFront, int limitDirectionCount) {
 		super(lua);
 
-		layers = FPUtils.optList(lua.get("layers"), l -> new FPRotatedSprite(l, overrideBackEqualsFront));
+		layers = FPUtils.optList(lua.get("layers"),
+				l -> new FPRotatedSprite(l, overrideBackEqualsFront, limitDirectionCount));
 		directionCount = lua.get("direction_count").optint(1);
 		Optional<List<String>> filenames = FPUtils.optList(lua.get("filenames"), LuaValue::tojstring);
 		if (!filenames.isPresent() && filename.isPresent()) {
@@ -55,7 +68,9 @@ public class FPRotatedSprite extends FPSpriteParameters {
 		lineLength = lua.get("line_length").optint(0);
 		frames = FPUtils.optList(lua.get("frames"), l -> new FPRotatedSpriteFrame(lua, width, height));
 
-		defs = createDefs();
+		this.limitedDirectionCount = Math.min(limitDirectionCount, directionCount);
+		List<SpriteDef> allDefs = createDefs();
+		defs = limitedDirectionDefs(allDefs);
 	}
 
 	private List<SpriteDef> createDefs() {
@@ -111,6 +126,15 @@ public class FPRotatedSprite extends FPSpriteParameters {
 		return defs;
 	}
 
+	private List<SpriteDef> limitedDirectionDefs(List<SpriteDef> allDefs) {
+		if (limitedDirectionCount == directionCount || allDefs.isEmpty()) {
+			return allDefs;
+		}
+
+		return IntStream.range(0, limitedDirectionCount).map(i -> (i * directionCount) / limitedDirectionCount)
+				.mapToObj(allDefs::get).collect(Collectors.toList());
+	}
+
 	public void defineSprites(Consumer<? super SpriteDef> consumer, double orientation) {
 		if (layers.isPresent()) {
 			for (FPRotatedSprite layer : layers.get()) {
@@ -141,7 +165,7 @@ public class FPRotatedSprite extends FPSpriteParameters {
 		if (counterclockwise) {
 			orientation = 1 - orientation;
 		}
-		int directionCount = this.directionCount;
+		int directionCount = this.limitedDirectionCount;
 		if (backEqualsFront) {
 			directionCount *= 2;
 		}

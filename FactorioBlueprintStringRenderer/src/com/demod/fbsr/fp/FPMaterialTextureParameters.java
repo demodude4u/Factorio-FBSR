@@ -3,6 +3,7 @@ package com.demod.fbsr.fp;
 import java.awt.Rectangle;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.ImageDef;
@@ -18,9 +19,10 @@ public class FPMaterialTextureParameters {
 	public final int y;
 	public final int lineLength;
 
+	private final int limitedCount;
 	private final List<ImageDef> defs;
 
-	public FPMaterialTextureParameters(LuaValue lua, int texWidthTiles, int texHeightTiles) {
+	public FPMaterialTextureParameters(LuaValue lua, int texWidthTiles, int texHeightTiles, int limitCount) {
 		this.texWidthTiles = texWidthTiles;
 		this.texHeightTiles = texHeightTiles;
 
@@ -31,7 +33,9 @@ public class FPMaterialTextureParameters {
 		y = lua.get("y").optint(0);
 		lineLength = lua.get("line_length").optint(count);
 
-		defs = createDefs();
+		limitedCount = Math.min(limitCount, count);
+		List<ImageDef> allDefs = createDefs();
+		defs = allDefs.stream().limit(limitedCount).collect(Collectors.toList());
 	}
 
 	private List<ImageDef> createDefs() {
@@ -63,5 +67,9 @@ public class FPMaterialTextureParameters {
 
 	public int getTexWidthTiles() {
 		return texWidthTiles;
+	}
+
+	public int getLimitedCount() {
+		return limitedCount;
 	}
 }

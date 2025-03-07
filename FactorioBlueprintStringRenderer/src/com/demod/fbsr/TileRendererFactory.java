@@ -159,7 +159,7 @@ public class TileRendererFactory {
 			FPTileMainPictures main = protoVariantsMainSize1.get();
 
 			rand.setSeed(getRandomSeed(cell.row, cell.col, cell.layer, 0));
-			int frame = rand.nextInt(main.count);
+			int frame = rand.nextInt(main.getLimitedCount());
 
 			register.accept(new MapSprite(new LayeredSpriteDef(main.defineImage(frame), Layer.DECALS, TILE_BOUNDS),
 					cell.tile.position.createPoint()));
@@ -237,7 +237,7 @@ public class TileRendererFactory {
 			int th = material.getTexHeightTiles();
 
 			rand.setSeed(getRandomSeed(cell.row / th, cell.col / tw, cell.layer, 0));
-			int frame = rand.nextInt(material.count);
+			int frame = rand.nextInt(material.getLimitedCount());
 
 			register.accept(new MapSprite(new LayeredSpriteDef(material.defineImage(frame), Layer.DECALS, TILE_BOUNDS),
 					tile.position.createPoint()));
@@ -473,7 +473,7 @@ public class TileRendererFactory {
 
 	public void initFromPrototype(DataTable table) {
 		protoLayer = prototype.lua().get("layer").checkint();
-		protoVariants = new FPTileTransitionsVariants(prototype.lua().get("variants"));
+		protoVariants = new FPTileTransitionsVariants(prototype.lua().get("variants"), 3);
 		protoVariantsMainSize1 = protoVariants.main.stream().filter(fp -> fp.size == 1).findFirst();
 		protoTransitionMergesWithTileID = FPUtils.optString(prototype.lua().get("transition_merges_with_tile"));
 		protoTransitionMergesWithTile = protoTransitionMergesWithTileID

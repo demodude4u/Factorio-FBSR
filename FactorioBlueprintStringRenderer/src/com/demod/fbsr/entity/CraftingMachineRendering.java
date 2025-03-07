@@ -158,6 +158,7 @@ public abstract class CraftingMachineRendering extends SimpleEntityRendering {
 			protoGraphicsSetFlipped.get().getDefs(register, FRAME);
 		}
 		protoGraphicsSet.getDefs(register, FRAME);
+		protoConditionalFluidBoxes.forEach(fp -> fp.getDefs(register));
 	}
 
 	@Override

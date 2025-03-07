@@ -1,6 +1,5 @@
 package com.demod.fbsr.fp;
 
-import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -8,7 +7,6 @@ import java.util.function.Consumer;
 
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.FPUtils;
-import com.demod.fbsr.FactorioManager;
 import com.demod.fbsr.SpriteDef;
 import com.google.common.collect.ImmutableList;
 
