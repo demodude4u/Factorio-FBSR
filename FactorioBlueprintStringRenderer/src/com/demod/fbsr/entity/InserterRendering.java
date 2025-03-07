@@ -105,7 +105,7 @@ public class InserterRendering extends SimpleEntityRendering {
 				String itemName = items.get(0);
 				Optional<ImageDef> icon = TagManager.lookup("item", itemName);
 				if (icon.isPresent()) {
-					register.accept(new MapIcon(pos, icon.get(), 0.6, 0.1, false));
+					register.accept(new MapIcon(pos, icon.get(), 0.5, 0.05, false));
 				}
 			}
 		}
