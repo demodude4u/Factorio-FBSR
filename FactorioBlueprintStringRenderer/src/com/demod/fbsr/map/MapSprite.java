@@ -26,6 +26,12 @@ public class MapSprite extends MapRenderable {
 	public MapSprite(SpriteDef def, Layer layer, MapPosition pos) {
 		super(def.isShadow() ? Layer.SHADOW_BUFFER : layer);
 		this.def = def;
+
+		if (!def.getAtlasRef().isValid()) {
+			throw new IllegalStateException("Sprite not on atlas! " + def.getPath() + " (" + def.getSource().x + ","
+					+ def.getSource().y + "," + def.getSource().width + "," + def.getSource().height + ")");
+		}
+
 		this.bounds = def.getTrimmedBounds().add(pos);
 	}
 
