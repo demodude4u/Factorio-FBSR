@@ -117,6 +117,7 @@ public class GUILayoutBlueprint {
 		request.setMaxScale(OptionalDouble.of(2.0));
 		request.setBackground(Optional.empty());
 		request.setGridLines(Optional.of(GUIStyle.FONT_BP_COLOR.darker().darker()));
+		request.setDontClipSprites(false);
 
 		this.result = FBSR.renderBlueprint(request);
 
