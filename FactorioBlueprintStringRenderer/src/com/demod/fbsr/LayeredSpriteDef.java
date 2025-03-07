@@ -13,29 +13,29 @@ public class LayeredSpriteDef extends SpriteDef {
 	public LayeredSpriteDef(String path, ImageSheetLoader loader, Layer layer, boolean shadow, BlendMode blendMode,
 			Optional<Color> tint, boolean applyRuntimeTint, Rectangle source, MapRect bounds) {
 		super(path, loader, shadow, blendMode, tint, applyRuntimeTint, source, bounds);
-		this.layer = shadow ? Layer.SHADOW_BUFFER : layer;
+		this.layer = layer;
 	}
 
 	public LayeredSpriteDef(String path, Layer layer, boolean shadow, BlendMode blendMode, Optional<Color> tint,
 			boolean applyRuntimeTint, Rectangle source, MapRect bounds) {
 		super(path, shadow, blendMode, tint, applyRuntimeTint, source, bounds);
-		this.layer = shadow ? Layer.SHADOW_BUFFER : layer;
+		this.layer = layer;
 	}
 
 	public LayeredSpriteDef(ImageDef shared, Layer layer, boolean shadow, BlendMode blendMode, Optional<Color> tint,
 			boolean applyRuntimeTint, MapRect bounds) {
 		super(shared, shadow, blendMode, tint, applyRuntimeTint, bounds);
-		this.layer = shadow ? Layer.SHADOW_BUFFER : layer;
+		this.layer = layer;
 	}
 
 	public LayeredSpriteDef(ImageDef shared, Layer layer, MapRect bounds) {
 		super(shared, false, BlendMode.NORMAL, Optional.empty(), false, bounds);
-		this.layer = shadow ? Layer.SHADOW_BUFFER : layer;
+		this.layer = layer;
 	}
 
 	public LayeredSpriteDef(SpriteDef shared, Layer layer) {
 		super(shared);
-		this.layer = shadow ? Layer.SHADOW_BUFFER : layer;
+		this.layer = layer;
 	}
 
 	public Layer getLayer() {

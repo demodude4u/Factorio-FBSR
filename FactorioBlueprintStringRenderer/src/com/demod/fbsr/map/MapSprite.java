@@ -20,13 +20,11 @@ public class MapSprite extends MapRenderable {
 	protected final MapRect bounds;
 
 	public MapSprite(LayeredSpriteDef def, MapPosition pos) {
-		super(def.getLayer());
-		this.def = def;
-		this.bounds = def.getTrimmedBounds().add(pos);
+		this(def, def.getLayer(), pos);
 	}
 
 	public MapSprite(SpriteDef def, Layer layer, MapPosition pos) {
-		super(layer);
+		super(def.isShadow() ? Layer.SHADOW_BUFFER : layer);
 		this.def = def;
 		this.bounds = def.getTrimmedBounds().add(pos);
 	}
