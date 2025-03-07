@@ -14,7 +14,7 @@ public class SpriteDef extends ImageDef {
 	protected final Optional<Color> tint;
 	protected boolean applyRuntimeTint;
 	protected MapRect sourceBounds;
-	protected MapRect trimmedBounds;
+	private MapRect trimmedBounds;
 
 	public SpriteDef(String path, ImageSheetLoader loader, boolean shadow, BlendMode blendMode, Optional<Color> tint,
 			boolean applyRuntimeTint, Rectangle source, MapRect bounds) {
@@ -78,6 +78,9 @@ public class SpriteDef extends ImageDef {
 	}
 
 	public MapRect getTrimmedBounds() {
+		if (trimmedBounds == null) {
+			updateTrimmedBounds();
+		}
 		return trimmedBounds;
 	}
 
@@ -100,6 +103,7 @@ public class SpriteDef extends ImageDef {
 	}
 
 	private void updateTrimmedBounds() {
+		Rectangle trimmed = getTrimmed();
 		if (trimmed != null) {
 			double x = sourceBounds.getX() + sourceBounds.getWidth() * ((trimmed.x - source.x) / (double) source.width);
 			double y = sourceBounds.getY()

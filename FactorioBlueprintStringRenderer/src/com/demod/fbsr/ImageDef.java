@@ -1,5 +1,6 @@
 package com.demod.fbsr;
 
+import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 import java.util.function.Function;
@@ -18,7 +19,7 @@ public class ImageDef {
 	protected final AtlasRef atlasRef;
 
 	protected BufferedImage image = null;
-	protected Rectangle trimmed = null;
+	private Rectangle trimmed = null;
 
 	public ImageDef(String path, ImageSheetLoader loader, Rectangle source) {
 		this.path = path;
@@ -64,6 +65,11 @@ public class ImageDef {
 	}
 
 	public Rectangle getTrimmed() {
+		if (trimmed == null) {
+			Point trim = atlasRef.getTrim();
+			Rectangle rect = atlasRef.getRect();
+			trimmed = new Rectangle(source.x + trim.x, source.y + trim.y, rect.width, rect.height);
+		}
 		return trimmed;
 	}
 }

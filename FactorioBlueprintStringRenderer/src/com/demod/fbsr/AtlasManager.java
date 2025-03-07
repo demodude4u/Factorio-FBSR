@@ -14,6 +14,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -22,6 +23,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import javax.imageio.ImageIO;
 
@@ -128,6 +131,10 @@ public class AtlasManager {
 		public Rectangle getRect() {
 			return rect;
 		}
+
+		public Point getTrim() {
+			return trim;
+		}
 	}
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(AtlasManager.class);
@@ -140,7 +147,7 @@ public class AtlasManager {
 	private static void copyToAtlas(BufferedImage imageSheet, ImageDef def, Atlas atlas, Rectangle rect) {
 		// XXX Inefficient to make a context for every image
 		Graphics2D g = atlas.bufImage.createGraphics();
-		Rectangle src = def.trimmed;
+		Rectangle src = def.getTrimmed();
 		Rectangle dst = rect;
 		g.drawImage(imageSheet, dst.x, dst.y, dst.x + dst.width, dst.y + dst.height, src.x, src.y, src.x + src.width,
 				src.y + src.height, null);
@@ -148,10 +155,11 @@ public class AtlasManager {
 	}
 
 	public static String computeMD5(BufferedImage imageSheet, ImageDef def) {
-		int x = def.trimmed.x;
-		int y = def.trimmed.y;
-		int width = def.trimmed.width;
-		int height = def.trimmed.height;
+		Rectangle trimmed = def.getTrimmed();
+		int x = trimmed.x;
+		int y = trimmed.y;
+		int width = trimmed.width;
+		int height = trimmed.height;
 		BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB_PRE);
 		Graphics2D g = image.createGraphics();
 		g.drawImage(imageSheet, 0, 0, width, height, x, y, x + width, y + height, null);
@@ -298,6 +306,12 @@ public class AtlasManager {
 		Map<String, AtlasRef> locationCheck = new HashMap<>();
 		Map<String, AtlasRef> md5Check = new HashMap<>();
 
+		long totalPixels = defs.stream().mapToLong(def -> {
+			Rectangle r = def.getTrimmed();
+			return r.width * r.height;
+		}).sum();
+		long progressPixels = 0;
+
 		atlases.add(new Atlas(0));
 		int imageCount = 0;
 		for (ImageDef def : defs) {
@@ -309,9 +323,9 @@ public class AtlasManager {
 
 			Rectangle source = def.getSource();
 			Rectangle trimmed = def.getTrimmed();
+			progressPixels += trimmed.width * trimmed.height;
 
-			String locationKey = def.path + "|" + source.x + "|" + source.y + "|" + source.width + "|"
-					+ source.height;
+			String locationKey = def.path + "|" + source.x + "|" + source.y + "|" + source.width + "|" + source.height;
 
 			AtlasRef cached = locationCheck.get(locationKey);
 			if (cached != null) {
@@ -348,8 +362,8 @@ public class AtlasManager {
 						rect.y = nextY - 1;
 					}
 				}
-				LOGGER.info("Atlas {} -  {}/{} ({}%, area {}px)", atlases.size(), imageCount, defs.size(),
-						(100 * imageCount) / defs.size(), rect.width * rect.height);
+				LOGGER.info("Atlas {} -  {}/{} ({}%)", atlases.size(), imageCount, defs.size(),
+						(100 * progressPixels) / totalPixels);
 				atlases.add(new Atlas(atlases.size()));
 			}
 
@@ -448,16 +462,21 @@ public class AtlasManager {
 	}
 
 	private static void loadAtlases(File folderAtlas, JSONArray jsonManifest) throws IOException {
-		{
-			int id = 0;
-			File fileAtlas;
-			while ((fileAtlas = new File(folderAtlas, "atlas" + id + ".png")).exists()) {
+
+		int[] atlasIds = IntStream.range(0, jsonManifest.length()).map(i -> jsonManifest.getJSONArray(i).getInt(5))
+				.distinct().toArray();
+		atlases = Arrays.stream(atlasIds).parallel().mapToObj(id -> {
+			try {
+				File fileAtlas = new File(folderAtlas, "atlas" + id + ".png");
 				BufferedImage image = ImageIO.read(fileAtlas);
-				Atlas atlas = new Atlas(id++, image);
-				atlases.add(atlas);
 				LOGGER.info("Read Atlas: {}", fileAtlas.getAbsolutePath());
+				return new Atlas(id, image);
+			} catch (IOException e) {
+				e.printStackTrace();
+				System.exit(-1);
+				return null;
 			}
-		}
+		}).sorted(Comparator.comparing(a -> a.getId())).collect(Collectors.toList());
 
 		// XXX not an elegant approach
 		class RefValues {
