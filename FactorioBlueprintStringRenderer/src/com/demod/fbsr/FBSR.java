@@ -702,7 +702,10 @@ public class FBSR {
 
 				AffineTransform tempXform = g.getTransform();
 				g.setTransform(noXform);
+				Composite pc = g.getComposite();
+				g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.5f));
 				g.drawImage(shadowImage, 0, 0, null);
+				g.setComposite(pc);
 				g.setTransform(tempXform);
 
 			} else {
