@@ -41,22 +41,24 @@ import com.google.common.io.Files;
 public class AtlasManager {
 	public static class Atlas {
 		private final int id;
+		private boolean shadow;
+
 		private final BufferedImage bufImage;
 		private final Quadtree occupied;
 
 //		private VolatileImage volImage;
 
-		public Atlas(int id) {// Generating Atlas
+		public Atlas(int id, boolean shadow) {// Generating Atlas
 			this.id = id;
+			this.shadow = shadow;
+
 			bufImage = new BufferedImage(ATLAS_SIZE, ATLAS_SIZE, BufferedImage.TYPE_INT_ARGB_PRE);
-//			volImage = null;
 			occupied = new Quadtree(0, new Rectangle(0, 0, ATLAS_SIZE, ATLAS_SIZE));
 		}
 
 		public Atlas(int id, BufferedImage image) {
 			this.id = id;
 			bufImage = image;
-//			volImage = null;
 			occupied = null;
 		}
 
@@ -67,41 +69,6 @@ public class AtlasManager {
 		public BufferedImage getBufferedImage() {
 			return bufImage;
 		}
-
-//		public void refreshVolatileImage() {
-//			GraphicsConfiguration gc = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice()
-//					.getDefaultConfiguration();
-//
-//			if (volImage == null) {
-//				volImage = gc.createCompatibleVolatileImage(bufImage.getWidth(), bufImage.getHeight(),
-//						Transparency.TRANSLUCENT);
-//				Graphics2D g = volImage.createGraphics();
-//				g.drawImage(bufImage, 0, 0, null);
-//				g.dispose();
-//			}
-//
-//			while (true) {
-//				int validStatus = volImage.validate(gc);
-//
-//				if (validStatus == VolatileImage.IMAGE_INCOMPATIBLE) {
-//					volImage = gc.createCompatibleVolatileImage(bufImage.getWidth(), bufImage.getHeight(),
-//							Transparency.TRANSLUCENT);
-//				}
-//
-//				if (volImage.contentsLost() || validStatus == VolatileImage.IMAGE_INCOMPATIBLE) {
-//					Graphics2D g = volImage.createGraphics();
-//					g.drawImage(bufImage, 0, 0, null);
-//					g.dispose();
-//					continue;
-//				}
-//
-//				break;
-//			}
-//		}
-//
-//		public VolatileImage getVolatileImage() {
-//			return volImage;
-//		}
 	}
 
 	public static class AtlasRef {
@@ -312,7 +279,8 @@ public class AtlasManager {
 		}).sum();
 		long progressPixels = 0;
 
-		atlases.add(new Atlas(0));
+		atlases.add(new Atlas(atlases.size(), true));
+		atlases.add(new Atlas(atlases.size(), false));
 		int imageCount = 0;
 		for (ImageDef def : defs) {
 			imageCount++;
@@ -347,6 +315,9 @@ public class AtlasManager {
 			nextImage: while (true) {
 				for (int i = atlases.size() - 1; i >= 0; i--) {
 					atlas = atlases.get(i);
+					if (atlas.shadow != def.isShadow()) {
+						continue;
+					}
 					for (rect.y = 0; rect.y < ATLAS_SIZE - trimmed.height; rect.y++) {
 						int nextY = ATLAS_SIZE;
 						for (rect.x = 0; rect.x < ATLAS_SIZE - trimmed.width; rect.x++) {
@@ -364,7 +335,7 @@ public class AtlasManager {
 				}
 				LOGGER.info("Atlas {} -  {}/{} ({}%)", atlases.size(), imageCount, defs.size(),
 						(100 * progressPixels) / totalPixels);
-				atlases.add(new Atlas(atlases.size()));
+				atlases.add(new Atlas(atlases.size(), def.isShadow()));
 			}
 
 			Point trim = new Point(trimmed.x - source.x, trimmed.y - source.y);
@@ -526,10 +497,4 @@ public class AtlasManager {
 	public static void registerDef(ImageDef def) {
 		defs.add(def);
 	}
-
-//	public static void refreshVolatileBuffers() {
-//		for (Atlas atlas : atlases) {
-//			atlas.refreshVolatileImage();
-//		}
-//	}
 }

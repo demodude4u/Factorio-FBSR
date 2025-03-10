@@ -22,14 +22,14 @@ public class LayeredSpriteDef extends SpriteDef {
 		this.layer = layer;
 	}
 
-	public LayeredSpriteDef(ImageDef shared, Layer layer, boolean shadow, BlendMode blendMode, Optional<Color> tint,
+	public LayeredSpriteDef(ImageDef shared, Layer layer, BlendMode blendMode, Optional<Color> tint,
 			boolean applyRuntimeTint, MapRect bounds) {
-		super(shared, shadow, blendMode, tint, applyRuntimeTint, bounds);
+		super(shared, blendMode, tint, applyRuntimeTint, bounds);
 		this.layer = layer;
 	}
 
 	public LayeredSpriteDef(ImageDef shared, Layer layer, MapRect bounds) {
-		super(shared, false, BlendMode.NORMAL, Optional.empty(), false, bounds);
+		super(shared, BlendMode.NORMAL, Optional.empty(), false, bounds);
 		this.layer = layer;
 	}
 

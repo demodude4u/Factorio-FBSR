@@ -9,7 +9,6 @@ import com.demod.fbsr.map.MapPosition;
 import com.demod.fbsr.map.MapRect;
 
 public class SpriteDef extends ImageDef {
-	protected final boolean shadow;
 	protected final BlendMode blendMode;
 	protected final Optional<Color> tint;
 	protected boolean applyRuntimeTint;
@@ -18,8 +17,7 @@ public class SpriteDef extends ImageDef {
 
 	public SpriteDef(String path, ImageSheetLoader loader, boolean shadow, BlendMode blendMode, Optional<Color> tint,
 			boolean applyRuntimeTint, Rectangle source, MapRect bounds) {
-		super(path, loader, source);
-		this.shadow = shadow;
+		super(path, loader, source, shadow);
 		this.blendMode = blendMode;
 		this.tint = tint;
 		this.applyRuntimeTint = applyRuntimeTint;
@@ -28,18 +26,16 @@ public class SpriteDef extends ImageDef {
 
 	public SpriteDef(String path, boolean shadow, BlendMode blendMode, Optional<Color> tint, boolean applyRuntimeTint,
 			Rectangle source, MapRect bounds) {
-		super(path, source);
-		this.shadow = shadow;
+		super(path, source, shadow);
 		this.blendMode = blendMode;
 		this.tint = tint;
 		this.applyRuntimeTint = applyRuntimeTint;
 		this.sourceBounds = bounds;
 	}
 
-	public SpriteDef(ImageDef shared, boolean shadow, BlendMode blendMode, Optional<Color> tint,
-			boolean applyRuntimeTint, MapRect bounds) {
+	public SpriteDef(ImageDef shared, BlendMode blendMode, Optional<Color> tint, boolean applyRuntimeTint,
+			MapRect bounds) {
 		super(shared);
-		this.shadow = shadow;
 		this.blendMode = blendMode;
 		this.tint = tint;
 		this.applyRuntimeTint = applyRuntimeTint;
@@ -49,16 +45,11 @@ public class SpriteDef extends ImageDef {
 
 	protected SpriteDef(SpriteDef shared) {
 		super(shared);
-		shadow = shared.shadow;
 		blendMode = shared.blendMode;
 		tint = shared.tint;
 		applyRuntimeTint = shared.applyRuntimeTint;
 		sourceBounds = shared.sourceBounds;
 		trimmedBounds = shared.trimmedBounds;
-	}
-
-	public boolean isShadow() {
-		return shadow;
 	}
 
 	public BlendMode getBlendMode() {

@@ -15,6 +15,7 @@ public class ImageDef {
 
 	protected final String path;
 	protected final ImageSheetLoader loader;
+	private final boolean shadow;
 	protected final Rectangle source;
 	protected final AtlasRef atlasRef;
 
@@ -22,15 +23,25 @@ public class ImageDef {
 	private Rectangle trimmed = null;
 
 	public ImageDef(String path, ImageSheetLoader loader, Rectangle source) {
+		this(path, loader, source, false);
+	}
+
+	public ImageDef(String path, ImageSheetLoader loader, Rectangle source, boolean shadow) {
 		this.path = path;
 		this.loader = loader;
+		this.shadow = shadow;
 		this.source = new Rectangle(source);
 		atlasRef = new AtlasRef();
 	}
 
 	public ImageDef(String path, Rectangle source) {
+		this(path, source, false);
+	}
+
+	public ImageDef(String path, Rectangle source, boolean shadow) {
 		this.path = path;
 		this.loader = FactorioManager::lookupModImage;
+		this.shadow = shadow;
 		this.source = new Rectangle(source);
 		atlasRef = new AtlasRef();
 	}
@@ -39,9 +50,14 @@ public class ImageDef {
 	protected ImageDef(ImageDef shared) {
 		path = shared.path;
 		loader = shared.loader;
+		shadow = shared.shadow;
 		source = shared.source;
 		atlasRef = shared.atlasRef;
 		trimmed = shared.trimmed;
+	}
+
+	public boolean isShadow() {
+		return shadow;
 	}
 
 	public AtlasRef getAtlasRef() {
