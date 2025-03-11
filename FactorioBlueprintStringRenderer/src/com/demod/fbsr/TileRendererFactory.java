@@ -473,7 +473,7 @@ public class TileRendererFactory {
 
 	public void initFromPrototype(DataTable table) {
 		protoLayer = prototype.lua().get("layer").checkint();
-		protoVariants = new FPTileTransitionsVariants(prototype.lua().get("variants"), 3);
+		protoVariants = new FPTileTransitionsVariants(prototype.lua().get("variants"), 10);
 		protoVariantsMainSize1 = protoVariants.main.stream().filter(fp -> fp.size == 1).findFirst();
 		protoTransitionMergesWithTileID = FPUtils.optString(prototype.lua().get("transition_merges_with_tile"));
 		protoTransitionMergesWithTile = protoTransitionMergesWithTileID
