@@ -265,8 +265,12 @@ public class AtlasManager {
 		LOGGER.info("Trimming Images...");
 		defs.parallelStream().forEach(def -> {
 			BufferedImage imageSheet = imageSheets.get(def.path);
-			Rectangle trimmed = trimEmptyRect(imageSheet, def.getSource());
-			def.setTrimmed(trimmed);
+			if (def.isTrimmable()) {
+				Rectangle trimmed = trimEmptyRect(imageSheet, def.getSource());
+				def.setTrimmed(trimmed);
+			} else {
+				def.setTrimmed(def.getSource());
+			}
 		});
 
 		LOGGER.info("Atlas Packing...");

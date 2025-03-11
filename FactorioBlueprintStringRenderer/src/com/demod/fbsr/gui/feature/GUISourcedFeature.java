@@ -14,6 +14,7 @@ public abstract class GUISourcedFeature {
 
 	public GUISourcedFeature(String filename, GUIBox source) {
 		def = new ImageDef(filename, new Rectangle(source.x, source.y, source.width, source.height));
+		def.setTrimmable(false);
 		AtlasManager.registerDef(def);
 	}
 

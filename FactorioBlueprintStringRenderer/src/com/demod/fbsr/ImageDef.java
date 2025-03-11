@@ -21,6 +21,7 @@ public class ImageDef {
 
 	protected BufferedImage image = null;
 	private Rectangle trimmed = null;
+	private boolean trimmable = true;
 
 	public ImageDef(String path, ImageSheetLoader loader, Rectangle source) {
 		this(path, loader, source, false);
@@ -60,6 +61,10 @@ public class ImageDef {
 		return shadow;
 	}
 
+	public boolean isTrimmable() {
+		return trimmable;
+	}
+
 	public AtlasRef getAtlasRef() {
 		return atlasRef;
 	}
@@ -87,5 +92,9 @@ public class ImageDef {
 			trimmed = new Rectangle(source.x + trim.x, source.y + trim.y, rect.width, rect.height);
 		}
 		return trimmed;
+	}
+
+	public void setTrimmable(boolean trimmable) {
+		this.trimmable = trimmable;
 	}
 }
