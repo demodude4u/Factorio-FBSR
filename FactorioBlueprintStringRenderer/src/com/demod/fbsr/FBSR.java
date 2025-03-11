@@ -23,6 +23,10 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -86,6 +90,397 @@ public class FBSR {
 	public static final double TILE_SIZE = 64.0;
 
 	private static volatile boolean initialized = false;
+
+	private static final ExecutorService executor = Executors.newWorkStealingPool();
+
+	private static class ImageRenderer implements Callable<RenderResult> {
+		private final RenderRequest request;
+
+		private CommandReporting reporting;
+		private BSBlueprint blueprint;
+
+		private List<MapEntity> mapEntities;
+		private List<MapTile> mapTiles;
+		private Map<Integer, MapEntity> mapEntityByNumber;
+		private Multiset<String> unknownNames;
+
+		private WorldMap map;
+
+		private ListMultimap<Layer, MapRenderable> renderBuckets;
+		private Consumer<MapRenderable> register;
+
+		private Rectangle2D.Double screenBounds;
+		private int imageWidth;
+		private int imageHeight;
+		private double worldRenderScale;
+
+		private BufferedImage image;
+
+		public ImageRenderer(RenderRequest request) {
+			this.request = request;
+		}
+
+		@Override
+		public RenderResult call() {
+			blueprint = request.getBlueprint();
+			reporting = request.getReporting();
+			LOGGER.info("Rendering {} {}", blueprint.label.orElse("Untitled Blueprint"), blueprint.version);
+			long startMillis = System.currentTimeMillis();
+
+			parseBlueprint();
+
+			populateMap();
+
+			createRenderers();
+
+			calculateBounds();
+
+			LOGGER.info("\t{}x{} ({})", imageWidth, imageHeight, worldRenderScale);
+
+			renderImage();
+
+			long endMillis = System.currentTimeMillis();
+			LOGGER.info("\tRender Time {} ms", endMillis - startMillis);
+			return new RenderResult(request, image, endMillis - startMillis, worldRenderScale, unknownNames);
+		}
+
+		private void parseBlueprint() {
+			mapEntities = new ArrayList<MapEntity>();
+			mapTiles = new ArrayList<MapTile>();
+			mapEntityByNumber = new HashMap<>();
+			unknownNames = LinkedHashMultiset.create();
+
+			for (BSMetaEntity metaEntity : blueprint.entities) {
+				EntityRendererFactory factory = FactorioManager.lookupEntityFactoryForName(metaEntity.name);
+				BSEntity entity;
+				try {
+					if (metaEntity.isLegacy()) {
+						entity = factory.parseEntityLegacy(metaEntity.getLegacy());
+					} else {
+						entity = factory.parseEntity(metaEntity.getJson());
+					}
+				} catch (Exception e) {
+					metaEntity.setParseException(Optional.of(e));
+					entity = metaEntity;
+				}
+				if (metaEntity.getParseException().isPresent()) {
+					factory = new ErrorRendering();
+					reporting.addException(metaEntity.getParseException().get(),
+							entity.name + " " + entity.entityNumber);
+				}
+				MapEntity mapEntity = new MapEntity(entity, factory);
+				mapEntities.add(mapEntity);
+				mapEntityByNumber.put(entity.entityNumber, mapEntity);
+				if (factory.isUnknown()) {
+					unknownNames.add(metaEntity.name);
+				}
+			}
+			for (BSTile tile : blueprint.tiles) {
+				TileRendererFactory factory = FactorioManager.lookupTileFactoryForName(tile.name);
+				MapTile mapTile = new MapTile(tile, factory);
+				mapTiles.add(mapTile);
+				if (factory.isUnknown()) {
+					unknownNames.add(tile.name);
+				}
+			}
+
+			mapEntities.sort(Comparator.comparing((MapEntity r) -> r.getPosition().getYFP())
+					.thenComparing(r -> r.getPosition().getXFP()));
+			mapTiles.sort(Comparator.comparing((MapTile r) -> r.getPosition().getYFP())
+					.thenComparing(r -> r.getPosition().getXFP()));
+		}
+
+		private void populateMap() {
+			map = new WorldMap();
+
+			map.setAltMode(request.show.altMode);
+
+			map.setFoundation(mapTiles.stream().anyMatch(t -> t.getFactory().getPrototype().isFoundation()));
+
+			mapEntities.forEach(t -> {
+				try {
+					t.getFactory().populateWorldMap(map, t);
+				} catch (Exception e) {
+					reporting.addException(e,
+							t.getFactory().getClass().getSimpleName() + ", " + t.fromBlueprint().name);
+				}
+			});
+			mapTiles.forEach(t -> {
+				try {
+					t.getFactory().populateWorldMap(map, t);
+				} catch (Exception e) {
+					reporting.addException(e,
+							t.getFactory().getClass().getSimpleName() + ", " + t.fromBlueprint().name);
+				}
+			});
+
+			mapEntities.forEach(t -> {
+				try {
+					t.getFactory().populateLogistics(map, t);
+				} catch (Exception e) {
+					reporting.addException(e,
+							t.getFactory().getClass().getSimpleName() + ", " + t.fromBlueprint().name);
+				}
+			});
+
+			populateReverseLogistics(map);
+			populateTransitLogistics(map, request.show.pathInputs, request.show.pathOutputs);
+
+			populateRailBlocking(map);
+			populateRailStationLogistics(map);
+		}
+
+		private void createRenderers() {
+			renderBuckets = MultimapBuilder.enumKeys(Layer.class).arrayListValues().build();
+			register = r -> renderBuckets.put(r.getLayer(), r);
+
+			TileRendererFactory.createAllRenderers(register, mapTiles);
+
+			mapTiles.forEach(t -> {
+				try {
+					t.getFactory().createRenderers(register, map, t);
+				} catch (Exception e) {
+					reporting.addException(e,
+							t.getFactory().getClass().getSimpleName() + ", " + t.fromBlueprint().name);
+				}
+			});
+
+			mapEntities.forEach(t -> {
+				try {
+					t.getFactory().createRenderers(register, map, t);
+				} catch (Exception e) {
+					reporting.addException(e,
+							t.getFactory().getClass().getSimpleName() + ", " + t.fromBlueprint().name);
+				}
+			});
+
+			if (map.isAltMode()) {
+				mapEntities.forEach(t -> {
+					try {
+						t.getFactory().createModuleIcons(register, map, t);
+					} catch (Exception e) {
+						reporting.addException(e,
+								t.getFactory().getClass().getSimpleName() + ", " + t.fromBlueprint().name);
+					}
+				});
+			}
+
+			Map<Integer, Double> connectorOrientations = new HashMap<>();
+			int[] wireEntityNumbers = blueprint.wires.stream()
+					.flatMapToInt(w -> IntStream.of(w.firstEntityNumber, w.secondEntityNumber)).distinct().toArray();
+			for (int entityNumber : wireEntityNumbers) {
+				MapEntity mapEntity = mapEntityByNumber.get(entityNumber);
+				List<MapEntity> wired = blueprint.wires.stream().flatMapToInt(w -> {
+					if (w.firstEntityNumber == entityNumber) {
+						return IntStream.of(w.secondEntityNumber);
+					} else if (w.secondEntityNumber == entityNumber) {
+						return IntStream.of(w.firstEntityNumber);
+					} else {
+						return IntStream.of();
+					}
+				}).mapToObj(mapEntityByNumber::get).collect(Collectors.toList());
+
+				double orientation = mapEntity.getFactory().initWireConnector(register, mapEntity, wired);
+				connectorOrientations.put(entityNumber, orientation);
+			}
+
+			for (BSWire wire : blueprint.wires) {
+				try {
+					MapEntity first = mapEntityByNumber.get(wire.firstEntityNumber);
+					MapEntity second = mapEntityByNumber.get(wire.secondEntityNumber);
+
+					double orientation1 = connectorOrientations.get(wire.firstEntityNumber);
+					double orientation2 = connectorOrientations.get(wire.secondEntityNumber);
+
+					Optional<WirePoint> firstPoint = first.getFactory().createWirePoint(register,
+							first.fromBlueprint().position.createPoint(), orientation1, wire.firstWireConnectorId);
+					Optional<WirePoint> secondPoint = second.getFactory().createWirePoint(register,
+							second.fromBlueprint().position.createPoint(), orientation2, wire.secondWireConnectorId);
+
+					if (!firstPoint.isPresent() || !secondPoint.isPresent()) {
+						continue;// Probably something modded
+					}
+
+					register.accept(new MapWire(firstPoint.get().getPosition(), secondPoint.get().getPosition(),
+							firstPoint.get().getColor().getColor()));
+					register.accept(new MapWireShadow(firstPoint.get().getShadow(), secondPoint.get().getShadow()));
+				} catch (Exception e) {
+					reporting.addException(e, "Wire " + wire.firstEntityNumber + ", " + wire.firstWireConnectorId + ", "
+							+ wire.secondEntityNumber + ", " + wire.secondWireConnectorId);
+				}
+			}
+
+			register.accept(new MapDebug(request.debug, map, mapEntities, mapTiles));
+
+			register.accept(new MapItemLogistics(map));
+			register.accept(new MapRailLogistics(map));
+		}
+
+		private void calculateBounds() {
+			boolean showGrid = !request.getGridLines().isEmpty();
+			boolean gridFoundationMode = map.isFoundation() && !request.show.gridNumbers;
+			boolean gridShowNumbers = !gridFoundationMode && request.show.gridNumbers;
+			boolean gridAboveBelts = request.show.gridAboveBelts;
+
+			double gridPadding = (showGrid && gridShowNumbers) ? 1 : 0;
+			double worldPadding = 0.1;
+
+			MapRect3D gridBounds = calculateGridBounds(mapEntities, mapTiles);
+
+			screenBounds = new Rectangle2D.Double();
+			screenBounds.setFrameFromDiagonal(gridBounds.getX1() - worldPadding - gridPadding,
+					gridBounds.getY1() - worldPadding - gridPadding, gridBounds.getX2() + worldPadding + gridPadding,
+					gridBounds.getY2() + worldPadding + gridPadding);
+
+			if (request.dontClipSprites()) {
+				MapRect spriteBounds = MapRect
+						.combineAll(renderBuckets.values().stream().filter(r -> r instanceof MapSprite)
+								.map(r -> ((MapSprite) r).getBounds()).collect(Collectors.toList()));
+
+				double x1 = spriteBounds.getX();
+				double y1 = spriteBounds.getY();
+				double x2 = x1 + spriteBounds.getWidth();
+				double y2 = y1 + spriteBounds.getHeight();
+
+				screenBounds.setFrameFromDiagonal(Math.min(screenBounds.getMinX(), x1),
+						Math.min(screenBounds.getMinY(), y1), Math.max(screenBounds.getMaxX(), x2),
+						Math.max(screenBounds.getMaxY(), y2));
+			}
+
+			worldRenderScale = 1;
+
+			// Max scale limit
+			if (request.getMaxScale().isPresent()) {
+				worldRenderScale = request.getMaxScale().getAsDouble();
+			}
+
+			// Shrink down the scale to fit the max requirements
+			int maxWidthPixels = request.getMaxWidth().orElse(Integer.MAX_VALUE);
+			int maxHeightPixels = request.getMaxHeight().orElse(Integer.MAX_VALUE);
+			long maxPixels = Math.min(MAX_WORLD_RENDER_PIXELS, (long) maxWidthPixels * (long) maxHeightPixels);
+
+			if ((screenBounds.getWidth() * worldRenderScale * TILE_SIZE) > maxWidthPixels) {
+				worldRenderScale *= (maxWidthPixels / (screenBounds.getWidth() * worldRenderScale * TILE_SIZE));
+			}
+			if ((screenBounds.getHeight() * worldRenderScale * TILE_SIZE) > maxHeightPixels) {
+				worldRenderScale *= (maxHeightPixels / (screenBounds.getHeight() * worldRenderScale * TILE_SIZE));
+			}
+			if ((screenBounds.getWidth() * worldRenderScale * TILE_SIZE)
+					* (screenBounds.getHeight() * worldRenderScale * TILE_SIZE) > maxPixels) {
+				worldRenderScale *= Math.sqrt(maxPixels / ((screenBounds.getWidth() * worldRenderScale * TILE_SIZE)
+						* (screenBounds.getHeight() * worldRenderScale * TILE_SIZE)));
+			}
+
+			// Expand the world to fit the min requirements
+			int minWidthPixels = request.getMinWidth().orElse(0);
+			int minHeightPixels = request.getMinHeight().orElse(0);
+
+			if ((screenBounds.getWidth() * worldRenderScale * TILE_SIZE) < minWidthPixels) {
+				double padding = (minWidthPixels - (screenBounds.getWidth() * worldRenderScale * TILE_SIZE))
+						/ (worldRenderScale * TILE_SIZE);
+				screenBounds.x -= padding / 2.0;
+				screenBounds.width += padding;
+			}
+			if ((screenBounds.getHeight() * worldRenderScale * TILE_SIZE) < minHeightPixels) {
+				double padding = (minHeightPixels - (screenBounds.getHeight() * worldRenderScale * TILE_SIZE))
+						/ (worldRenderScale * TILE_SIZE);
+				screenBounds.y -= padding / 2.0;
+				screenBounds.height += padding;
+			}
+
+			boolean gridTooSmall = (1 / worldRenderScale) > 5;
+			if (gridTooSmall) {
+				showGrid = false;
+			}
+
+			if (showGrid) {
+				if (gridFoundationMode) {
+					register.accept(new MapFoundationGrid(mapTiles, request.getGridLines().get(), gridAboveBelts));
+				} else {
+					register.accept(
+							new MapGrid(gridBounds, request.getGridLines().get(), gridAboveBelts, gridShowNumbers));
+				}
+			}
+
+			imageWidth = Math.max(minWidthPixels,
+					Math.min(maxWidthPixels, (int) Math.round(screenBounds.getWidth() * worldRenderScale * TILE_SIZE)));
+			imageHeight = Math.max(minHeightPixels, Math.min(maxHeightPixels,
+					(int) Math.round(screenBounds.getHeight() * worldRenderScale * TILE_SIZE)));
+		}
+
+		private void renderImage() {
+			image = new BufferedImage(imageWidth, imageHeight, BufferedImage.TYPE_INT_ARGB);
+			Graphics2D g = image.createGraphics();
+
+			AffineTransform noXform = g.getTransform();
+
+			g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+			g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+			g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+			g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+			g.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
+			g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+
+			g.scale(image.getWidth() / screenBounds.getWidth(), image.getHeight() / screenBounds.getHeight());
+			g.translate(-screenBounds.getX(), -screenBounds.getY());
+			AffineTransform worldXform = g.getTransform();
+
+			// Background
+			if (request.getBackground().isPresent()) {
+				g.setColor(request.getBackground().get());
+				g.fill(screenBounds);
+			}
+
+			for (Entry<Layer, List<MapRenderable>> entry : Multimaps.asMap(renderBuckets).entrySet()) {
+				Layer layer = entry.getKey();
+				List<MapRenderable> layerRenderers = entry.getValue();
+
+				if (layer == Layer.SHADOW_BUFFER) {
+
+					BufferedImage shadowImage = new BufferedImage(imageWidth, imageHeight, BufferedImage.TYPE_INT_ARGB);
+					Graphics2D shadowG = shadowImage.createGraphics();
+					shadowG.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+					shadowG.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,
+							RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+					shadowG.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+							RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+					shadowG.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+					shadowG.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS,
+							RenderingHints.VALUE_FRACTIONALMETRICS_ON);
+					shadowG.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+					shadowG.setTransform(worldXform);
+
+					for (MapRenderable renderer : layerRenderers) {
+						try {
+							renderer.render(shadowG);
+						} catch (Exception e) {
+							reporting.addException(e);
+						}
+					}
+
+					shadowG.dispose();
+
+					AffineTransform tempXform = g.getTransform();
+					g.setTransform(noXform);
+					Composite pc = g.getComposite();
+					g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.5f));
+					g.drawImage(shadowImage, 0, 0, null);
+					g.setComposite(pc);
+					g.setTransform(tempXform);
+
+				} else {
+					for (MapRenderable renderer : layerRenderers) {
+						try {
+							renderer.render(g);
+						} catch (Exception e) {
+							reporting.addException(e);
+						}
+					}
+				}
+			}
+			g.dispose();
+		}
+	}
 
 	private static void addToItemAmount(Map<String, Double> items, String itemName, double add) {
 		double amount = items.getOrDefault(itemName, 0.0);
@@ -393,340 +788,11 @@ public class FBSR {
 	}
 
 	public static RenderResult renderBlueprint(RenderRequest request) {
+		return new ImageRenderer(request).call();
+	}
 
-		BSBlueprint blueprint = request.getBlueprint();
-		CommandReporting reporting = request.getReporting();
-
-		LOGGER.info("Rendering {} {}", blueprint.label.orElse("Untitled Blueprint"), blueprint.version);
-		long startMillis = System.currentTimeMillis();
-
-		WorldMap map = new WorldMap();
-
-		map.setAltMode(request.show.altMode);
-
-		List<MapEntity> mapEntities = new ArrayList<MapEntity>();
-		List<MapTile> mapTiles = new ArrayList<MapTile>();
-		Map<Integer, MapEntity> mapEntityByNumber = new HashMap<>();
-		Multiset<String> unknownNames = LinkedHashMultiset.create();
-
-		for (BSMetaEntity metaEntity : blueprint.entities) {
-			EntityRendererFactory factory = FactorioManager.lookupEntityFactoryForName(metaEntity.name);
-			BSEntity entity;
-			try {
-				if (metaEntity.isLegacy()) {
-					entity = factory.parseEntityLegacy(metaEntity.getLegacy());
-				} else {
-					entity = factory.parseEntity(metaEntity.getJson());
-				}
-			} catch (Exception e) {
-				metaEntity.setParseException(Optional.of(e));
-				entity = metaEntity;
-			}
-			if (metaEntity.getParseException().isPresent()) {
-				factory = new ErrorRendering();
-				reporting.addException(metaEntity.getParseException().get(), entity.name + " " + entity.entityNumber);
-			}
-			MapEntity mapEntity = new MapEntity(entity, factory);
-			mapEntities.add(mapEntity);
-			mapEntityByNumber.put(entity.entityNumber, mapEntity);
-			if (factory.isUnknown()) {
-				unknownNames.add(metaEntity.name);
-			}
-		}
-		for (BSTile tile : blueprint.tiles) {
-			TileRendererFactory factory = FactorioManager.lookupTileFactoryForName(tile.name);
-			MapTile mapTile = new MapTile(tile, factory);
-			mapTiles.add(mapTile);
-			if (factory.isUnknown()) {
-				unknownNames.add(tile.name);
-			}
-		}
-
-		mapEntities.sort(Comparator.comparing((MapEntity r) -> r.getPosition().getYFP())
-				.thenComparing(r -> r.getPosition().getXFP()));
-		mapTiles.sort(Comparator.comparing((MapTile r) -> r.getPosition().getYFP())
-				.thenComparing(r -> r.getPosition().getXFP()));
-
-		map.setFoundation(mapTiles.stream().anyMatch(t -> t.getFactory().getPrototype().isFoundation()));
-
-		mapEntities.forEach(t -> {
-			try {
-				t.getFactory().populateWorldMap(map, t);
-			} catch (Exception e) {
-				reporting.addException(e, t.getFactory().getClass().getSimpleName() + ", " + t.fromBlueprint().name);
-			}
-		});
-		mapTiles.forEach(t -> {
-			try {
-				t.getFactory().populateWorldMap(map, t);
-			} catch (Exception e) {
-				reporting.addException(e, t.getFactory().getClass().getSimpleName() + ", " + t.fromBlueprint().name);
-			}
-		});
-
-		mapEntities.forEach(t -> {
-			try {
-				t.getFactory().populateLogistics(map, t);
-			} catch (Exception e) {
-				reporting.addException(e, t.getFactory().getClass().getSimpleName() + ", " + t.fromBlueprint().name);
-			}
-		});
-
-		populateReverseLogistics(map);
-		populateTransitLogistics(map, request.show.pathInputs, request.show.pathOutputs);
-
-		populateRailBlocking(map);
-		populateRailStationLogistics(map);
-
-		ListMultimap<Layer, MapRenderable> layerRenderables = MultimapBuilder.enumKeys(Layer.class).arrayListValues()
-				.build();
-		Consumer<MapRenderable> register = r -> layerRenderables.put(r.getLayer(), r);
-
-		TileRendererFactory.createAllRenderers(register, mapTiles);
-
-		mapTiles.forEach(t -> {
-			try {
-				t.getFactory().createRenderers(register, map, t);
-			} catch (Exception e) {
-				reporting.addException(e, t.getFactory().getClass().getSimpleName() + ", " + t.fromBlueprint().name);
-			}
-		});
-
-		mapEntities.forEach(t -> {
-			try {
-				t.getFactory().createRenderers(register, map, t);
-			} catch (Exception e) {
-				reporting.addException(e, t.getFactory().getClass().getSimpleName() + ", " + t.fromBlueprint().name);
-			}
-		});
-
-		if (map.isAltMode()) {
-			mapEntities.forEach(t -> {
-				try {
-					t.getFactory().createModuleIcons(register, map, t);
-				} catch (Exception e) {
-					reporting.addException(e,
-							t.getFactory().getClass().getSimpleName() + ", " + t.fromBlueprint().name);
-				}
-			});
-		}
-
-		Map<Integer, Double> connectorOrientations = new HashMap<>();
-		int[] wireEntityNumbers = blueprint.wires.stream()
-				.flatMapToInt(w -> IntStream.of(w.firstEntityNumber, w.secondEntityNumber)).distinct().toArray();
-		for (int entityNumber : wireEntityNumbers) {
-			MapEntity mapEntity = mapEntityByNumber.get(entityNumber);
-			List<MapEntity> wired = blueprint.wires.stream().flatMapToInt(w -> {
-				if (w.firstEntityNumber == entityNumber) {
-					return IntStream.of(w.secondEntityNumber);
-				} else if (w.secondEntityNumber == entityNumber) {
-					return IntStream.of(w.firstEntityNumber);
-				} else {
-					return IntStream.of();
-				}
-			}).mapToObj(mapEntityByNumber::get).collect(Collectors.toList());
-
-			double orientation = mapEntity.getFactory().initWireConnector(register, mapEntity, wired);
-			connectorOrientations.put(entityNumber, orientation);
-		}
-
-		for (BSWire wire : blueprint.wires) {
-			try {
-				MapEntity first = mapEntityByNumber.get(wire.firstEntityNumber);
-				MapEntity second = mapEntityByNumber.get(wire.secondEntityNumber);
-
-				double orientation1 = connectorOrientations.get(wire.firstEntityNumber);
-				double orientation2 = connectorOrientations.get(wire.secondEntityNumber);
-
-				Optional<WirePoint> firstPoint = first.getFactory().createWirePoint(register,
-						first.fromBlueprint().position.createPoint(), orientation1, wire.firstWireConnectorId);
-				Optional<WirePoint> secondPoint = second.getFactory().createWirePoint(register,
-						second.fromBlueprint().position.createPoint(), orientation2, wire.secondWireConnectorId);
-
-				if (!firstPoint.isPresent() || !secondPoint.isPresent()) {
-					continue;// Probably something modded
-				}
-
-				register.accept(new MapWire(firstPoint.get().getPosition(), secondPoint.get().getPosition(),
-						firstPoint.get().getColor().getColor()));
-				register.accept(new MapWireShadow(firstPoint.get().getShadow(), secondPoint.get().getShadow()));
-			} catch (Exception e) {
-				reporting.addException(e, "Wire " + wire.firstEntityNumber + ", " + wire.firstWireConnectorId + ", "
-						+ wire.secondEntityNumber + ", " + wire.secondWireConnectorId);
-			}
-		}
-
-		register.accept(new MapDebug(request.debug, map, mapEntities, mapTiles));
-
-		register.accept(new MapItemLogistics(map));
-		register.accept(new MapRailLogistics(map));
-
-		boolean showGrid = !request.getGridLines().isEmpty();
-		boolean gridFoundationMode = map.isFoundation() && !request.show.gridNumbers;
-		boolean gridShowNumbers = !gridFoundationMode && request.show.gridNumbers;
-		boolean gridAboveBelts = request.show.gridAboveBelts;
-
-		double gridPadding = (showGrid && gridShowNumbers) ? 1 : 0;
-		double worldPadding = 0.1;
-
-		MapRect3D gridBounds = calculateGridBounds(mapEntities, mapTiles);
-
-		Rectangle2D.Double screenBounds = new Rectangle2D.Double();
-		screenBounds.setFrameFromDiagonal(gridBounds.getX1() - worldPadding - gridPadding,
-				gridBounds.getY1() - worldPadding - gridPadding, gridBounds.getX2() + worldPadding + gridPadding,
-				gridBounds.getY2() + worldPadding + gridPadding);
-
-		if (request.dontClipSprites()) {
-			MapRect spriteBounds = MapRect
-					.combineAll(layerRenderables.values().stream().filter(r -> r instanceof MapSprite)
-							.map(r -> ((MapSprite) r).getBounds()).collect(Collectors.toList()));
-
-			double x1 = spriteBounds.getX();
-			double y1 = spriteBounds.getY();
-			double x2 = x1 + spriteBounds.getWidth();
-			double y2 = y1 + spriteBounds.getHeight();
-
-			screenBounds.setFrameFromDiagonal(Math.min(screenBounds.getMinX(), x1),
-					Math.min(screenBounds.getMinY(), y1), Math.max(screenBounds.getMaxX(), x2),
-					Math.max(screenBounds.getMaxY(), y2));
-		}
-
-		double worldRenderScale = 1;
-
-		// Max scale limit
-		if (request.getMaxScale().isPresent()) {
-			worldRenderScale = request.getMaxScale().getAsDouble();
-		}
-
-		// Shrink down the scale to fit the max requirements
-		int maxWidthPixels = request.getMaxWidth().orElse(Integer.MAX_VALUE);
-		int maxHeightPixels = request.getMaxHeight().orElse(Integer.MAX_VALUE);
-		long maxPixels = Math.min(MAX_WORLD_RENDER_PIXELS, (long) maxWidthPixels * (long) maxHeightPixels);
-
-		if ((screenBounds.getWidth() * worldRenderScale * TILE_SIZE) > maxWidthPixels) {
-			worldRenderScale *= (maxWidthPixels / (screenBounds.getWidth() * worldRenderScale * TILE_SIZE));
-		}
-		if ((screenBounds.getHeight() * worldRenderScale * TILE_SIZE) > maxHeightPixels) {
-			worldRenderScale *= (maxHeightPixels / (screenBounds.getHeight() * worldRenderScale * TILE_SIZE));
-		}
-		if ((screenBounds.getWidth() * worldRenderScale * TILE_SIZE)
-				* (screenBounds.getHeight() * worldRenderScale * TILE_SIZE) > maxPixels) {
-			worldRenderScale *= Math.sqrt(maxPixels / ((screenBounds.getWidth() * worldRenderScale * TILE_SIZE)
-					* (screenBounds.getHeight() * worldRenderScale * TILE_SIZE)));
-		}
-
-		// Expand the world to fit the min requirements
-		int minWidthPixels = request.getMinWidth().orElse(0);
-		int minHeightPixels = request.getMinHeight().orElse(0);
-
-		if ((screenBounds.getWidth() * worldRenderScale * TILE_SIZE) < minWidthPixels) {
-			double padding = (minWidthPixels - (screenBounds.getWidth() * worldRenderScale * TILE_SIZE))
-					/ (worldRenderScale * TILE_SIZE);
-			screenBounds.x -= padding / 2.0;
-			screenBounds.width += padding;
-		}
-		if ((screenBounds.getHeight() * worldRenderScale * TILE_SIZE) < minHeightPixels) {
-			double padding = (minHeightPixels - (screenBounds.getHeight() * worldRenderScale * TILE_SIZE))
-					/ (worldRenderScale * TILE_SIZE);
-			screenBounds.y -= padding / 2.0;
-			screenBounds.height += padding;
-		}
-
-		int imageWidth = Math.max(minWidthPixels,
-				Math.min(maxWidthPixels, (int) Math.round(screenBounds.getWidth() * worldRenderScale * TILE_SIZE)));
-		int imageHeight = Math.max(minHeightPixels,
-				Math.min(maxHeightPixels, (int) Math.round(screenBounds.getHeight() * worldRenderScale * TILE_SIZE)));
-		LOGGER.info("\t{}x{} ({})", imageWidth, imageHeight, worldRenderScale);
-
-		BufferedImage image = new BufferedImage(imageWidth, imageHeight, BufferedImage.TYPE_INT_ARGB);
-		Graphics2D g = image.createGraphics();
-
-		AffineTransform noXform = g.getTransform();
-
-		g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-		g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-		g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-		g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-		g.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
-		g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
-
-		g.scale(image.getWidth() / screenBounds.getWidth(), image.getHeight() / screenBounds.getHeight());
-		g.translate(-screenBounds.getX(), -screenBounds.getY());
-		AffineTransform worldXform = g.getTransform();
-
-		// Background
-		if (request.getBackground().isPresent()) {
-			g.setColor(request.getBackground().get());
-			g.fill(screenBounds);
-		}
-
-		boolean gridTooSmall = (1 / worldRenderScale) > 5;
-		if (gridTooSmall) {
-			showGrid = false;
-		}
-
-		if (showGrid) {
-			if (gridFoundationMode) {
-				register.accept(new MapFoundationGrid(mapTiles, request.getGridLines().get(), gridAboveBelts));
-			} else {
-				register.accept(new MapGrid(gridBounds, request.getGridLines().get(), gridAboveBelts, gridShowNumbers));
-			}
-		}
-
-//		AtlasManager.refreshVolatileBuffers();
-
-		for (Entry<Layer, List<MapRenderable>> entry : Multimaps.asMap(layerRenderables).entrySet()) {
-			Layer layer = entry.getKey();
-			List<MapRenderable> layerRenderers = entry.getValue();
-
-			if (layer == Layer.SHADOW_BUFFER) {
-
-				BufferedImage shadowImage = new BufferedImage(imageWidth, imageHeight, BufferedImage.TYPE_INT_ARGB);
-				Graphics2D shadowG = shadowImage.createGraphics();
-				shadowG.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-				shadowG.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-				shadowG.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-				shadowG.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-				shadowG.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS,
-						RenderingHints.VALUE_FRACTIONALMETRICS_ON);
-				shadowG.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
-				shadowG.setTransform(worldXform);
-
-				for (MapRenderable renderer : layerRenderers) {
-					try {
-						renderer.render(shadowG);
-					} catch (Exception e) {
-						reporting.addException(e);
-					}
-				}
-
-				shadowG.dispose();
-
-				AffineTransform tempXform = g.getTransform();
-				g.setTransform(noXform);
-				Composite pc = g.getComposite();
-				g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.5f));
-				g.drawImage(shadowImage, 0, 0, null);
-				g.setComposite(pc);
-				g.setTransform(tempXform);
-
-			} else {
-				for (MapRenderable renderer : layerRenderers) {
-					try {
-						renderer.render(g);
-					} catch (Exception e) {
-						reporting.addException(e);
-					}
-				}
-			}
-		}
-		g.dispose();
-
-		long endMillis = System.currentTimeMillis();
-		LOGGER.info("\tRender Time {} ms", endMillis - startMillis);
-
-		RenderResult result = new RenderResult(image, endMillis - startMillis, worldRenderScale, unknownNames);
-		return result;
+	public static Future<RenderResult> renderBlueprintAsync(RenderRequest request) {
+		return executor.submit(new ImageRenderer(request));
 	}
 
 	private static MapRect3D calculateGridBounds(List<MapEntity> mapEntities, List<MapTile> mapTiles) {

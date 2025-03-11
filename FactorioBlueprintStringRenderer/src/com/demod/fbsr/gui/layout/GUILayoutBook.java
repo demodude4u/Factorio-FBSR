@@ -12,6 +12,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.OptionalInt;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -276,6 +278,7 @@ public class GUILayoutBook {
 		// Render Images
 		blocks = new ArrayList<>();
 		results = new ArrayList<>();
+		List<Future<RenderResult>> futures = new ArrayList<>();
 		for (BSBlueprint blueprint : book.getAllBlueprints()) {
 
 			int minWidth = (int) (BP_IMAGE_MIN.width * renderScale);
@@ -292,12 +295,21 @@ public class GUILayoutBook {
 			request.setGridLines(Optional.empty());
 			request.setMaxScale(OptionalDouble.of(0.5));
 
-			RenderResult result = FBSR.renderBlueprint(request);
+			futures.add(FBSR.renderBlueprintAsync(request));
+		}
+		for (Future<RenderResult> future : futures) {
+			RenderResult result;
+			try {
+				result = future.get();
+			} catch (InterruptedException | ExecutionException e) {
+				reporting.addException(e);
+				continue;
+			}
 			results.add(result);
 
 			int rows = (result.image.getHeight() + BP_CELL_SIZE.height - 1) / BP_CELL_SIZE.height;
 			int cols = (result.image.getWidth() + BP_CELL_SIZE.width - 1) / BP_CELL_SIZE.width;
-			blocks.add(new ImageBlock(rows, cols, blueprint.label, result.image));
+			blocks.add(new ImageBlock(rows, cols, result.request.getBlueprint().label, result.image));
 		}
 
 		packBounds = packBlocks(blocks, DISCORD_IMAGE_RATIO);

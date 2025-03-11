@@ -26,7 +26,7 @@ public class MapItemLogistics extends MapRenderable {
 
 	private static final Map<String, Color> itemColorCache = new HashMap<>();
 
-	private static Color getItemLogisticColor(String itemName) {
+	private static synchronized Color getItemLogisticColor(String itemName) {
 		return itemColorCache.computeIfAbsent(itemName, k -> {
 			Optional<ImageDef> icon = TagManager.lookup("item", k);
 			if (!icon.isPresent()) {
