@@ -1,5 +1,6 @@
 package com.demod.fbsr;
 
+import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.Rectangle;
@@ -26,7 +27,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import javax.imageio.IIOImage;
 import javax.imageio.ImageIO;
+import javax.imageio.ImageWriteParam;
+import javax.imageio.ImageWriter;
+import javax.imageio.stream.ImageOutputStream;
 
 import org.json.JSONArray;
 import org.json.JSONTokener;
@@ -37,23 +42,40 @@ import com.demod.fbsr.ImageDef.ImageSheetLoader;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
 import com.google.common.io.Files;
+import com.luciad.imageio.webp.WebPWriteParam;
 
 public class AtlasManager {
+	public static final String IMAGE_EXT = "webp";
+	public static final String IMAGE_MIME = "image/webp";
+
 	public static class Atlas {
 		private final int id;
 		private boolean shadow;
+		private boolean alpha;
 
 		private final BufferedImage bufImage;
 		private final Quadtree occupied;
 
 //		private VolatileImage volImage;
 
-		public Atlas(int id, boolean shadow) {// Generating Atlas
+		public Atlas(int id, boolean shadow, boolean alpha) {// Generating Atlas
 			this.id = id;
 			this.shadow = shadow;
+			this.alpha = alpha;
 
-			bufImage = new BufferedImage(ATLAS_SIZE, ATLAS_SIZE, BufferedImage.TYPE_INT_ARGB_PRE);
+			if (alpha) {
+				bufImage = new BufferedImage(ATLAS_SIZE, ATLAS_SIZE, BufferedImage.TYPE_INT_ARGB_PRE);
+			} else {
+				bufImage = new BufferedImage(ATLAS_SIZE, ATLAS_SIZE, BufferedImage.TYPE_INT_RGB);
+			}
 			occupied = new Quadtree(0, new Rectangle(0, 0, ATLAS_SIZE, ATLAS_SIZE));
+
+			if (!alpha) {
+				Graphics2D g = bufImage.createGraphics();
+				g.setColor(Color.gray);
+				g.fillRect(0, 0, bufImage.getWidth(), bufImage.getHeight());
+				g.dispose();
+			}
 		}
 
 		public Atlas(int id, BufferedImage image) {
@@ -121,12 +143,11 @@ public class AtlasManager {
 		g.dispose();
 	}
 
-	public static String computeMD5(BufferedImage imageSheet, ImageDef def) {
-		Rectangle trimmed = def.getTrimmed();
-		int x = trimmed.x;
-		int y = trimmed.y;
-		int width = trimmed.width;
-		int height = trimmed.height;
+	public static String computeMD5(BufferedImage imageSheet, Rectangle rect) {
+		int x = rect.x;
+		int y = rect.y;
+		int width = rect.width;
+		int height = rect.height;
 		BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB_PRE);
 		Graphics2D g = image.createGraphics();
 		g.drawImage(imageSheet, 0, 0, width, height, x, y, x + width, y + height, null);
@@ -146,6 +167,12 @@ public class AtlasManager {
 			sb.append(String.format("%02x", b));
 		}
 		return sb.toString();
+	}
+
+	private static boolean computeHasAlpha(BufferedImage imageSheet, Rectangle rect) {
+		int[] pixels = new int[rect.width * rect.height];
+		imageSheet.getRGB(rect.x, rect.y, rect.width, rect.height, pixels, 0, rect.width);
+		return IntStream.of(pixels).anyMatch(p -> (p & 0xFF000000) != 0xFF000000);
 	}
 
 	private static byte[] extractPixelData(BufferedImage image) {
@@ -175,11 +202,11 @@ public class AtlasManager {
 		}
 	}
 
-	private static Rectangle trimEmptyRect(BufferedImage image, Rectangle rect) {
+	private static Rectangle trimEmptyRect(BufferedImage imageSheet, Rectangle rect) {
 		Rectangle ret = new Rectangle(rect.width, rect.height);
 		int[] pixels = new int[rect.width * rect.height];
 		int span = ret.width;
-		image.getRGB(rect.x, rect.y, rect.width, rect.height, pixels, 0, span);
+		imageSheet.getRGB(rect.x, rect.y, rect.width, rect.height, pixels, 0, span);
 
 		// Top
 		boolean fullEmpty = true;
@@ -279,8 +306,9 @@ public class AtlasManager {
 		}).sum();
 		long progressPixels = 0;
 
-		atlases.add(new Atlas(atlases.size(), true));
-		atlases.add(new Atlas(atlases.size(), false));
+		atlases.add(new Atlas(atlases.size(), false, true));
+		atlases.add(new Atlas(atlases.size(), false, false));
+		atlases.add(new Atlas(atlases.size(), true, true));
 		int imageCount = 0;
 		for (ImageDef def : defs) {
 			imageCount++;
@@ -302,7 +330,7 @@ public class AtlasManager {
 			}
 
 			BufferedImage imageSheet = imageSheets.get(def.path);
-			String md5key = computeMD5(imageSheet, def);
+			String md5key = computeMD5(imageSheet, trimmed);
 			cached = md5Check.get(md5key);
 			if (cached != null) {
 				def.getAtlasRef().set(cached.atlas, cached.rect, cached.trim);
@@ -310,12 +338,17 @@ public class AtlasManager {
 				continue;
 			}
 
+			boolean hasAlpha = computeHasAlpha(imageSheet, trimmed);
+
 			Atlas atlas;
 			Rectangle rect = new Rectangle(trimmed.width, trimmed.height);
 			nextImage: while (true) {
 				for (int i = atlases.size() - 1; i >= 0; i--) {
 					atlas = atlases.get(i);
 					if (atlas.shadow != def.isShadow()) {
+						continue;
+					}
+					if (!def.isShadow() && (atlas.alpha != hasAlpha)) {
 						continue;
 					}
 					for (rect.y = 0; rect.y < ATLAS_SIZE - trimmed.height; rect.y++) {
@@ -335,7 +368,7 @@ public class AtlasManager {
 				}
 				LOGGER.info("Atlas {} -  {}/{} ({}%)", atlases.size(), imageCount, defs.size(),
 						(100 * progressPixels) / totalPixels);
-				atlases.add(new Atlas(atlases.size(), def.isShadow()));
+				atlases.add(new Atlas(atlases.size(), def.isShadow(), hasAlpha));
 			}
 
 			Point trim = new Point(trimmed.x - source.x, trimmed.y - source.y);
@@ -368,14 +401,31 @@ public class AtlasManager {
 			jsonEntry.put(atlasRef.trim.y);
 			jsonManifest.put(jsonEntry);
 		}
-		Files.write(jsonManifest.toString(2), fileManifest, StandardCharsets.UTF_8);
-		LOGGER.info("Write Manifest: {} ({} entries)", fileManifest.getAbsolutePath(), defs.size());
 
 		for (Atlas atlas : atlases) {
-			File fileAtlas = new File(folderAtlas, "atlas" + atlas.id + ".png");
-			ImageIO.write(atlas.bufImage, "PNG", fileAtlas);
+			File fileAtlas = new File(folderAtlas, "atlas" + atlas.id + "." + IMAGE_EXT);
+
+//			ImageIO.write(atlas.bufImage, IMAGE_EXT, fileAtlas);
+
+			ImageWriter writer = ImageIO.getImageWritersByMIMEType(IMAGE_MIME).next();
+			try {
+				try (ImageOutputStream ios = ImageIO.createImageOutputStream(fileAtlas)) {
+					writer.setOutput(ios);
+					WebPWriteParam param = new WebPWriteParam(writer.getLocale());
+					param.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
+					param.setCompressionType(param.getCompressionTypes()[WebPWriteParam.LOSSY_COMPRESSION]);
+					param.setCompressionQuality(0.9f);
+					writer.write(null, new IIOImage(atlas.bufImage, null, null), param);
+				}
+			} finally {
+				writer.dispose();
+			}
+
 			LOGGER.info("Write Atlas: {}", fileAtlas.getAbsolutePath());
 		}
+
+		Files.write(jsonManifest.toString(2), fileManifest, StandardCharsets.UTF_8);
+		LOGGER.info("Write Manifest: {} ({} entries)", fileManifest.getAbsolutePath(), defs.size());
 
 		LOGGER.info("Atlas generation complete.");
 	}
@@ -438,7 +488,7 @@ public class AtlasManager {
 				.distinct().toArray();
 		atlases = Arrays.stream(atlasIds).parallel().mapToObj(id -> {
 			try {
-				File fileAtlas = new File(folderAtlas, "atlas" + id + ".png");
+				File fileAtlas = new File(folderAtlas, "atlas" + id + "." + IMAGE_EXT);
 				BufferedImage image = ImageIO.read(fileAtlas);
 				LOGGER.info("Read Atlas: {}", fileAtlas.getAbsolutePath());
 				return new Atlas(id, image);
