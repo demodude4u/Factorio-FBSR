@@ -127,9 +127,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 	public static final Emoji EMOJI_BLUEPRINTBOOK = Emoji.fromFormatted("<:blueprintbook:1316556633073258569>");
 	public static final Emoji EMOJI_DECONSTRUCTIONPLANNER = Emoji
 			.fromFormatted("<:deconstructionplanner:1316556636621508688>");
-
 	public static final Emoji EMOJI_UPGRADEPLANNER = Emoji.fromFormatted("<:upgradeplanner:1316556634528546887>");
-
 	public static final Emoji EMOJI_SEARCH = Emoji.fromFormatted("<:search:1319740035825799259>");
 
 	private static Cache<String, CachedMessageImageResult> recentLazyLoadedMessages = CacheBuilder.newBuilder()//
@@ -1035,18 +1033,8 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			replyContent = label.map(s -> s + " ").orElse("") + message.getAttachments().get(0).getUrl();
 
 		} else if (command.equals("reply-zoom")) {
-
 			String cacheKey = raw;
-			CachedMessageImageResult cachedResult = recentLazyLoadedMessages.getIfPresent(cacheKey);
-
-			if (cachedResult != null) {
-				TextChannel hostingChannel = bot.getJDA().getTextChannelById(hostingChannelID);
-				Message messageImage = hostingChannel.retrieveMessageById(cachedResult.messageId).complete();
-
-				replyContent = cachedResult.label.map(s -> s + " ").orElse("")
-						+ messageImage.getAttachments().get(0).getUrl();
-
-			} else {
+			CachedMessageImageResult cachedResult = recentLazyLoadedMessages.get(cacheKey, () -> {
 				String messageId = split[1];
 
 				TextChannel hostingChannel = bot.getJDA().getTextChannelById(hostingChannelID);
@@ -1066,12 +1054,14 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 				Message messageImage = useDiscordForFileHosting(imageFilename, shrinkResult.data).get();
 
-				recentLazyLoadedMessages.put(cacheKey,
-						new CachedMessageImageResult(blueprint.label, messageImage.getId()));
+				return new CachedMessageImageResult(blueprint.label, messageImage.getId());
+			});
 
-				replyContent = blueprint.label.map(s -> s + " ").orElse("")
-						+ messageImage.getAttachments().get(0).getUrl();
-			}
+			TextChannel hostingChannel = bot.getJDA().getTextChannelById(hostingChannelID);
+			Message messageImage = hostingChannel.retrieveMessageById(cachedResult.messageId).complete();
+
+			replyContent = cachedResult.label.map(s -> s + " ").orElse("")
+					+ messageImage.getAttachments().get(0).getUrl();
 
 		} else {
 			LOGGER.warn("UNKNOWN COMMAND {}", command);
@@ -1110,17 +1100,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			String raw = event.getValues().get(0);
 
 			String cacheKey = command + "|" + raw;
-			CachedMessageImageResult cachedResult = recentLazyLoadedMessages.getIfPresent(cacheKey);
-
-			if (cachedResult != null) {
-				TextChannel hostingChannel = bot.getJDA().getTextChannelById(hostingChannelID);
-				Message messageImage = hostingChannel.retrieveMessageById(cachedResult.messageId).complete();
-
-				replyContent = cachedResult.label.map(s -> s + " ").orElse("")
-						+ messageImage.getAttachments().get(0).getUrl();
-
-			} else {
-
+			CachedMessageImageResult cachedResult = recentLazyLoadedMessages.get(cacheKey, () -> {
 				String[] split = raw.split("\\|");
 				String messageId = split[0];
 				int index = Integer.parseInt(split[1]);
@@ -1142,13 +1122,14 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 				Message messageImage = useDiscordForFileHosting(imageFilename, shrinkResult.data).get();
 
-				recentLazyLoadedMessages.put(cacheKey,
-						new CachedMessageImageResult(blueprint.label, messageImage.getId()));
+				return new CachedMessageImageResult(blueprint.label, messageImage.getId());
+			});
 
-				replyContent = blueprint.label.map(s -> s + " ").orElse("")
-						+ messageImage.getAttachments().get(0).getUrl();
+			TextChannel hostingChannel = bot.getJDA().getTextChannelById(hostingChannelID);
+			Message messageImage = hostingChannel.retrieveMessageById(cachedResult.messageId).complete();
 
-			}
+			replyContent = cachedResult.label.map(s -> s + " ").orElse("")
+					+ messageImage.getAttachments().get(0).getUrl();
 
 		} else {
 			LOGGER.info("UNKNOWN COMMAND {}", command);
@@ -1241,6 +1222,9 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				.withCustomField("Mods Loaded",
 						groups.stream().sorted(Comparator.comparing(s -> s.toLowerCase()))
 								.collect(Collectors.joining(", ")))
+				//
+				.async(true)//
+				//
 				.addSlashCommand("bp/string", "Renders an image of the blueprint string.", this::handleBlueprintCommand)//
 				.withParam(OptionType.STRING, "string", "Blueprint string.")//
 				//
@@ -1367,7 +1351,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				//
 				.addButtonHandler(this::onButtonInteraction)//
 				.addStringSelectHandler(this::onSelectionInteraction)//
-				.setMessageContextHandler("Generate Blueprint Image", this::onBlueprintContextInteraction)
+				.setMessageContextHandler("Generate Blueprint Image", this::onBlueprintContextInteraction)//
 				//
 				//
 				.withCustomSetup(builder -> {
