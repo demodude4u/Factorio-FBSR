@@ -374,7 +374,7 @@ public class AtlasManager {
 			jsonManifest.put(jsonEntry);
 		}
 
-		for (Atlas atlas : atlases) {
+		atlases.parallelStream().forEach(atlas -> {
 			File fileAtlas = new File(folderAtlas, "atlas" + atlas.id + "." + IMAGE_EXT);
 
 //			ImageIO.write(atlas.bufImage, IMAGE_EXT, fileAtlas);
@@ -388,13 +388,15 @@ public class AtlasManager {
 					param.setCompressionType(param.getCompressionTypes()[WebPWriteParam.LOSSY_COMPRESSION]);
 					param.setCompressionQuality(0.9f);
 					writer.write(null, new IIOImage(atlas.bufImage, null, null), param);
+				} catch (IOException e) {
+					e.printStackTrace();
 				}
 			} finally {
 				writer.dispose();
 			}
 
 			LOGGER.info("Write Atlas: {}", fileAtlas.getAbsolutePath());
-		}
+		});
 
 		Files.write(jsonManifest.toString(2), fileManifest, StandardCharsets.UTF_8);
 		LOGGER.info("Write Manifest: {} ({} entries)", fileManifest.getAbsolutePath(), defs.size());
