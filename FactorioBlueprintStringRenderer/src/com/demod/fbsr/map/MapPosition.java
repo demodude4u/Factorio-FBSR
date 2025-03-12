@@ -25,6 +25,7 @@ public class MapPosition {
 	public static MapPosition convert(Point2D.Double p) {
 		return byUnit(p.x, p.y);
 	}
+
 	public static MapRect enclosingBounds(Collection<MapPosition> points) {
 		if (points.isEmpty()) {
 			return new MapRect(0, 0, 0, 0);
@@ -65,11 +66,11 @@ public class MapPosition {
 	}
 
 	public MapPosition addUnit(double x, double y) {
-		return new MapPosition(unitToFixedPoint(x), unitToFixedPoint(y));
+		return new MapPosition(xfp + unitToFixedPoint(x), yfp + unitToFixedPoint(y));
 	}
 
 	public MapPosition addUnit(FPVector vector) {
-		return new MapPosition(unitToFixedPoint(vector.x), unitToFixedPoint(vector.y));
+		return new MapPosition(xfp + unitToFixedPoint(vector.x), yfp + unitToFixedPoint(vector.y));
 	}
 
 	public Point2D.Double createPoint2D() {
