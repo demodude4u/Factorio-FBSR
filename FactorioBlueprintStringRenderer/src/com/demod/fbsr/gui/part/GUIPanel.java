@@ -1,5 +1,6 @@
 package com.demod.fbsr.gui.part;
 
+import java.awt.Color;
 import java.awt.Graphics2D;
 import java.util.Optional;
 
@@ -34,6 +35,18 @@ public class GUIPanel extends GUIPart {
 		this.stat = Optional.of(stat);
 	}
 
+	public void renderInner(Graphics2D g) {
+		if (inner.isPresent()) {
+			inner.get().render(g, box);
+		}
+	}
+
+	public void renderOuter(Graphics2D g) {
+		if (outer.isPresent()) {
+			outer.get().render(g, box);
+		}
+	}
+
 	@Override
 	public void render(Graphics2D g) {
 		if (inner.isPresent()) {
@@ -46,5 +59,4 @@ public class GUIPanel extends GUIPart {
 			stat.get().render(g, box);
 		}
 	}
-
 }

@@ -23,7 +23,7 @@ import com.google.common.collect.Multimaps;
 public class TagManager {
 	private static final Logger LOGGER = LoggerFactory.getLogger(TagManager.class);
 
-	public static final int ICON_SIZE = 32;
+	public static final int ICON_SIZE = 64;
 
 	public static class DefaultResolver extends TagResolver {
 		private final Map<String, LuaTable> map;
@@ -51,9 +51,11 @@ public class TagManager {
 		private Map<String, ImageDef> createDefs() {
 			Map<String, ImageDef> defs = new HashMap<>();
 			for (Entry<String, List<IconLayer>> entry : Multimaps.asMap(layers).entrySet()) {
-				defs.put(entry.getKey(), new ImageDef("TAG[" + key + "]/" + entry.getKey() + "/" + ICON_SIZE, k -> {
+				ImageDef def = new ImageDef("TAG[" + key + "]/" + entry.getKey() + "/" + ICON_SIZE, k -> {
 					return IconLayer.createIcon(layers.get(entry.getKey()), ICON_SIZE);
-				}, new Rectangle(ICON_SIZE, ICON_SIZE)));
+				}, new Rectangle(ICON_SIZE, ICON_SIZE));
+				def.setTrimmable(false);
+				defs.put(entry.getKey(), def);
 			}
 			return defs;
 		}

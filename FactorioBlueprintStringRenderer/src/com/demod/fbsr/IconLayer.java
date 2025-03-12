@@ -1,11 +1,11 @@
 package com.demod.fbsr;
 
 import java.awt.Color;
+import java.awt.Composite;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
-import java.awt.RenderingHints;
-import java.awt.geom.AffineTransform;
 import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
@@ -13,7 +13,6 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.demod.factorio.Utils;
 import com.demod.factorio.fakelua.LuaTable;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.fp.FPColor;
@@ -23,39 +22,35 @@ import com.google.common.collect.ImmutableList;
 public class IconLayer {
 	private static final Logger LOGGER = LoggerFactory.getLogger(IconLayer.class);
 
+	private static final IconLayer ICONLAYER_EMPTY = new IconLayer("__core__/graphics/empty.png",
+			new Rectangle(0, 0, 64, 64), new Rectangle2D.Double(0, 0, 1, 1), Color.white, false);
+
 	private final String path;
-	private final int iconSize;
+	private final Rectangle source;
+	private final Rectangle2D.Double bounds;
 	private final Color tint;
-	private final Point2D.Double shift;
-	private final double scale;
 	private final boolean drawBackground;
 
 	// For icon details -- https://lua-api.factorio.com/stable/types/IconData.html
 
-	public IconLayer(String path, int iconSize, Color tint, Point2D.Double shift, double scale,
-			boolean drawBackground) {
+	public IconLayer(String path, Rectangle source, Rectangle2D.Double bounds, Color tint, boolean drawBackground) {
 		this.path = path;
-		this.iconSize = iconSize;
+		this.source = source;
+		this.bounds = bounds;
 		this.tint = tint;
-		this.shift = shift;
-		this.scale = scale;
 		this.drawBackground = drawBackground;
 	}
 
-	public int getIconSize() {
-		return iconSize;
+	public Rectangle getSource() {
+		return source;
+	}
+
+	public Rectangle2D.Double getBounds() {
+		return bounds;
 	}
 
 	public Color getTint() {
 		return tint;
-	}
-
-	public Point2D.Double getShift() {
-		return shift;
-	}
-
-	public double getScale() {
-		return scale;
 	}
 
 	public boolean isDrawBackground() {
@@ -89,8 +84,10 @@ public class IconLayer {
 			if (path == null) {
 				throw new RuntimeException("No Icon Path!");
 			}
-			return ImmutableList
-					.of(new IconLayer(path, iconSize, Color.white, new Point2D.Double(), defaultScale, true));
+
+			Rectangle source = new Rectangle(0, 0, iconSize, iconSize);
+			Rectangle2D.Double bounds = new Rectangle2D.Double(0, 0, 1, 1);
+			return ImmutableList.of(new IconLayer(path, source, bounds, Color.white, true));
 		}
 		LuaValue iconsLua = lua.get("icons");
 
@@ -103,16 +100,22 @@ public class IconLayer {
 					throw new RuntimeException("No Icon Path!");
 				}
 				iconSize = layer.get("icon_size").optint(64);
+				Rectangle source = new Rectangle(0, 0, iconSize, iconSize);
 				Color tint = FPUtils.<FPColor>opt(layer.get("tint"), FPColor::new).orElse(new FPColor(1, 1, 1, 1))
 						.createColorIgnorePreMultipliedAlpha();
+
 				defaultScale = (expectedIconSize / 2) / (double) iconSize;
-				double scale = layer.get("scale").optdouble(defaultScale);
+				double scale = layer.get("scale").optdouble(defaultScale) * 2;
+
+				Rectangle2D.Double bounds = new Rectangle2D.Double(0.5 - scale / 2.0, 0.5 - scale / 2.0, scale, scale);
+
 				Point2D.Double shift = FPUtils.<FPVector>opt(layer.get("shift"), FPVector::new)
-						.orElse(new FPVector(0, 0)).createPoint();
-				shift.x *= defaultScale * 2;
-				shift.y *= defaultScale * 2;
+						.orElseGet(() -> new FPVector(0, 0)).createPoint();
+				bounds.x += shift.x / (expectedIconSize / 2.0);
+				bounds.y += shift.y / (expectedIconSize / 2.0);
+
 				boolean drawBackground = layer.get("draw_background").optboolean(i == 0);
-				layers.add(new IconLayer(path, iconSize, tint, shift, scale, drawBackground));
+				layers.add(new IconLayer(path, source, bounds, tint, drawBackground));
 			}
 			if (layers.isEmpty()) {
 				throw new RuntimeException("No Icon Layers!");
@@ -121,39 +124,36 @@ public class IconLayer {
 		}
 
 //		LOGGER.error("{} ({}) has no icon.", name, type);
-		return ImmutableList.of(new IconLayer("__core__/graphics/empty.png", iconSize, Color.white,
-				new Point2D.Double(), defaultScale, true));
+		return ImmutableList.of(ICONLAYER_EMPTY);
 	}
 
 	public static BufferedImage createIcon(List<IconLayer> defs, int size) {
-		int sizeOfFirstLayer = defs.get(0).getIconSize();
-		double outputScale = 2 * size / (double) sizeOfFirstLayer;
 
 		BufferedImage icon = new BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB);
 		Graphics2D g = icon.createGraphics();
-		g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-		g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
-		AffineTransform pat = g.getTransform();
+		Composite pc = g.getComposite();
+
 		for (IconLayer layer : defs) {
 			BufferedImage imageSheet = FactorioManager.lookupModImage(layer.path);
-			Rectangle rect = new Rectangle(layer.iconSize, layer.iconSize);
-
-			BufferedImage image = imageSheet.getSubimage(rect.x, rect.y, rect.width, rect.height);
 
 			if (!layer.tint.equals(Color.white)) {
-				image = Utils.tintImage(image, layer.tint);
+				g.setComposite(new TintComposite(layer.tint));
+			} else {
+				g.setComposite(pc);
 			}
 
-			// move icon into the center
-			g.translate((icon.getWidth() / 2) - (image.getWidth() * (layer.scale)) / 2,
-					(icon.getHeight() / 2) - (image.getHeight() * (layer.scale)) / 2);
-			g.translate(layer.shift.x, layer.shift.y);
-			g.scale(layer.scale, layer.scale);
+			// TODO use drawBackground to draw a SDF outline
 
-			g.scale(outputScale, outputScale);
-
-			g.drawImage(image, 0, 0, null);
-			g.setTransform(pat);
+			g.drawImage(imageSheet, //
+					(int) (layer.bounds.x * size), //
+					(int) (layer.bounds.y * size), //
+					(int) ((layer.bounds.x + layer.bounds.width) * size), //
+					(int) ((layer.bounds.y + layer.bounds.height) * size), //
+					layer.source.x, //
+					layer.source.y, //
+					layer.source.x + layer.source.width, //
+					layer.source.y + layer.source.height, //
+					null);
 		}
 		g.dispose();
 

@@ -5,7 +5,11 @@ import java.awt.Font;
 import java.util.Optional;
 import java.util.function.Consumer;
 
+import org.json.JSONObject;
+
 import com.demod.factorio.FactorioData;
+import com.demod.factorio.fakelua.LuaTable;
+import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.FactorioManager;
 import com.demod.fbsr.ImageDef;
@@ -16,6 +20,7 @@ import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.gui.GUIStyle;
 import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapPosition;
+import com.demod.fbsr.map.MapRect3D;
 import com.demod.fbsr.map.MapRenderable;
 import com.demod.fbsr.map.MapText;
 import com.demod.fbsr.map.MapUnknownEntityMarker;
@@ -30,6 +35,8 @@ public class UnknownEntityRendering extends EntityRendererFactory {
 		this.name = name;
 		color = RenderUtils.getUnknownColor(name);
 		offset = RenderUtils.getUnknownTextOffset(name);
+
+		setPrototype(new EntityPrototype(new LuaTable(new JSONObject()), name, "unknown"));
 	}
 
 	@Override
@@ -55,6 +62,11 @@ public class UnknownEntityRendering extends EntityRendererFactory {
 	@Override
 	public FactorioData getData() {
 		return FactorioManager.getBaseData();
+	}
+
+	@Override
+	public MapRect3D getDrawBounds(MapEntity entity) {
+		return MapRect3D.byUnit(-0.5, -0.5, 0.5, 0.5, 0);
 	}
 
 	@Override
