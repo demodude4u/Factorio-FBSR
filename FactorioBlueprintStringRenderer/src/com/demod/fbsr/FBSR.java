@@ -292,10 +292,10 @@ public class FBSR {
 					double orientation1 = connectorOrientations.get(wire.firstEntityNumber);
 					double orientation2 = connectorOrientations.get(wire.secondEntityNumber);
 
-					Optional<WirePoint> firstPoint = first.getFactory().createWirePoint(register,
-							first.fromBlueprint().position.createPoint(), orientation1, wire.firstWireConnectorId);
+					Optional<WirePoint> firstPoint = first.getFactory().createWirePoint(register, first.getPosition(),
+							orientation1, wire.firstWireConnectorId);
 					Optional<WirePoint> secondPoint = second.getFactory().createWirePoint(register,
-							second.fromBlueprint().position.createPoint(), orientation2, wire.secondWireConnectorId);
+							second.getPosition(), orientation2, wire.secondWireConnectorId);
 
 					if (!firstPoint.isPresent() || !secondPoint.isPresent()) {
 						continue;// Probably something modded
