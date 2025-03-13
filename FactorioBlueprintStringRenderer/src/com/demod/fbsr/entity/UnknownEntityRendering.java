@@ -66,7 +66,7 @@ public class UnknownEntityRendering extends EntityRendererFactory {
 
 	@Override
 	public MapRect3D getDrawBounds(MapEntity entity) {
-		return MapRect3D.byUnit(-0.5, -0.5, 0.5, 0.5, 0);
+		return MapRect3D.byUnit(-0.5, -0.5, 0.5, 0.5, 0).shift(entity.getPosition());
 	}
 
 	@Override
