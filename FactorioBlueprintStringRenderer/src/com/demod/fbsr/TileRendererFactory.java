@@ -141,6 +141,7 @@ public class TileRendererFactory {
 			if (params.size() != 2) {
 				return params;
 			}
+			// TODO strings bad
 			for (TileEdgeRuleParam param : params) {
 				if (!param.rule.equals("SIDE")) {
 					return params;
@@ -188,8 +189,8 @@ public class TileRendererFactory {
 
 						int frame = rand.nextInt(variant.count);
 
-						register.accept(new MapSprite(
-								new LayeredSpriteDef(variant.defineImage(frame), Layer.DECALS, TILE_BOUNDS), pos));
+						register.accept(new MapSprite(new LayeredSpriteDef(variant.defineImage(param.variant, frame),
+								Layer.DECALS, TILE_BOUNDS), pos));
 					}
 				}
 			}
@@ -209,8 +210,8 @@ public class TileRendererFactory {
 
 						int frame = rand.nextInt(variant.count);
 
-						register.accept(new MapSprite(
-								new LayeredSpriteDef(variant.defineImage(frame), Layer.UNDER_TILES, TILE_BOUNDS), pos));
+						register.accept(new MapSprite(new LayeredSpriteDef(variant.defineImage(param.variant, frame),
+								Layer.UNDER_TILES, TILE_BOUNDS), pos));
 					}
 				}
 			}

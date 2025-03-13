@@ -26,6 +26,8 @@ public class FPAnimation4Way {
 
 	public final Optional<FPAnimation> animation;
 
+	private final List<Optional<FPAnimation>> directional;
+
 	public FPAnimation4Way(LuaValue lua) {
 		north = FPUtils.opt(lua.get("north"), FPAnimation::new);
 		northEast = FPUtils.opt(lua.get("north_east"), FPAnimation::new).or(() -> north);
@@ -41,14 +43,14 @@ public class FPAnimation4Way {
 		} else {
 			animation = Optional.empty();
 		}
+
+		directional = ImmutableList.of(north, northEast, east, southEast, south, southWest, west, northWest);
 	}
 
 	public void defineSprites(Consumer<? super SpriteDef> consumer, Direction direction, int frame) {
 		if (animation.isPresent()) {
 			animation.get().defineSprites(consumer, frame);
 		} else {
-			List<Optional<FPAnimation>> directional = ImmutableList.of(north, northEast, east, southEast, south,
-					southWest, west, northWest);
 			directional.get(direction.ordinal()).get().defineSprites(consumer, frame);
 		}
 	}

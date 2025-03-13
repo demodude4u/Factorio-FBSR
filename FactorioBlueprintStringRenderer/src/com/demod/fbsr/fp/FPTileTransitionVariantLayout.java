@@ -16,12 +16,12 @@ public class FPTileTransitionVariantLayout {
 	public final Optional<FPTileSpriteLayoutVariant> innerCorner;
 
 	public FPTileTransitionVariantLayout(LuaValue lua) {
-		side = FPUtils.opt(lua.get("side"), FPTileSpriteLayoutVariant::new);
-		doubleSide = FPUtils.opt(lua.get("double_side"), FPTileSpriteLayoutVariant::new);
-		outerCorner = FPUtils.opt(lua.get("outer_corner"), FPTileSpriteLayoutVariant::new);
-		uTransition = FPUtils.opt(lua.get("u_transition"), FPTileSpriteLayoutVariant::new);
-		oTransition = FPUtils.opt(lua.get("o_transition"), FPTileSpriteLayoutVariant::new);
-		innerCorner = FPUtils.opt(lua.get("inner_corner"), FPTileSpriteLayoutVariant::new);
+		side = FPUtils.opt(lua.get("side"), l -> new FPTileSpriteLayoutVariant(l, 4));
+		doubleSide = FPUtils.opt(lua.get("double_side"), l -> new FPTileSpriteLayoutVariant(l, 2));
+		outerCorner = FPUtils.opt(lua.get("outer_corner"), l -> new FPTileSpriteLayoutVariant(l, 4));
+		uTransition = FPUtils.opt(lua.get("u_transition"), l -> new FPTileSpriteLayoutVariant(l, 4));
+		oTransition = FPUtils.opt(lua.get("o_transition"), l -> new FPTileSpriteLayoutVariant(l, 1));
+		innerCorner = FPUtils.opt(lua.get("inner_corner"), l -> new FPTileSpriteLayoutVariant(l, 4));
 	}
 
 	public void getDefs(Consumer<ImageDef> consumer) {
