@@ -266,10 +266,8 @@ public class FBSR {
 			}
 
 			Map<Integer, Double> connectorOrientations = new HashMap<>();
-			int[] wireEntityNumbers = blueprint.wires.stream()
-					.flatMapToInt(w -> IntStream.of(w.firstEntityNumber, w.secondEntityNumber)).distinct().toArray();
-			for (int entityNumber : wireEntityNumbers) {
-				MapEntity mapEntity = mapEntityByNumber.get(entityNumber);
+			for (MapEntity mapEntity : mapEntities) {
+				int entityNumber = mapEntity.fromBlueprint().entityNumber;
 				List<MapEntity> wired = blueprint.wires.stream().flatMapToInt(w -> {
 					if (w.firstEntityNumber == entityNumber) {
 						return IntStream.of(w.secondEntityNumber);
