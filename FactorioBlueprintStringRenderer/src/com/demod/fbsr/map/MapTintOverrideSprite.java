@@ -1,6 +1,7 @@
 package com.demod.fbsr.map;
 
 import java.awt.Color;
+import java.util.Optional;
 
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.LayeredSpriteDef;
@@ -21,7 +22,7 @@ public class MapTintOverrideSprite extends MapSprite {
 	}
 
 	@Override
-	protected Color tintOverride(Color tint) {
-		return this.tint;
+	protected Optional<Color> tintOverride(Optional<Color> tint) {
+		return Optional.of(this.tint);
 	}
 }

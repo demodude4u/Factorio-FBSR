@@ -55,7 +55,7 @@ public class MapSprite extends MapRenderable {
 		Composite pc = g.getComposite();
 		AffineTransform pat = g.getTransform();
 
-		Optional<Color> tint = def.getTint().map(this::tintOverride);
+		Optional<Color> tint = tintOverride(def.getTint());
 		// TODO tint with blending
 		if (tint.isPresent()) {
 			g.setComposite(new TintComposite(tint.get()));
@@ -73,7 +73,7 @@ public class MapSprite extends MapRenderable {
 		g.setComposite(pc);
 	}
 
-	protected Color tintOverride(Color tint) {
+	protected Optional<Color> tintOverride(Optional<Color> tint) {
 		return tint;
 	}
 }
