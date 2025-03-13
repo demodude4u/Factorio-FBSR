@@ -331,18 +331,20 @@ public class FBSR {
 					gridBounds.getY2() + worldPadding + gridPadding);
 
 			if (request.dontClipSprites()) {
-				MapRect spriteBounds = MapRect
-						.combineAll(renderBuckets.values().stream().filter(r -> r instanceof MapSprite)
-								.map(r -> ((MapSprite) r).getBounds()).collect(Collectors.toList()));
+				List<MapRect> rects = renderBuckets.values().stream().filter(r -> r instanceof MapSprite)
+						.map(r -> ((MapSprite) r).getBounds()).collect(Collectors.toList());
+				if (!rects.isEmpty()) {
+					MapRect spriteBounds = MapRect.combineAll(rects);
 
-				double x1 = spriteBounds.getX();
-				double y1 = spriteBounds.getY();
-				double x2 = x1 + spriteBounds.getWidth();
-				double y2 = y1 + spriteBounds.getHeight();
+					double x1 = spriteBounds.getX();
+					double y1 = spriteBounds.getY();
+					double x2 = x1 + spriteBounds.getWidth();
+					double y2 = y1 + spriteBounds.getHeight();
 
-				screenBounds.setFrameFromDiagonal(Math.min(screenBounds.getMinX(), x1),
-						Math.min(screenBounds.getMinY(), y1), Math.max(screenBounds.getMaxX(), x2),
-						Math.max(screenBounds.getMaxY(), y2));
+					screenBounds.setFrameFromDiagonal(Math.min(screenBounds.getMinX(), x1),
+							Math.min(screenBounds.getMinY(), y1), Math.max(screenBounds.getMaxX(), x2),
+							Math.max(screenBounds.getMaxY(), y2));
+				}
 			}
 
 			worldRenderScale = 1;
