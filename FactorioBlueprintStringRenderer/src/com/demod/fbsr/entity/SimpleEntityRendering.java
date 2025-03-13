@@ -810,11 +810,11 @@ public abstract class SimpleEntityRendering extends EntityRendererFactory {
 	@Override
 	public double initWireConnector(Consumer<MapRenderable> register, MapEntity entity, List<MapEntity> wired) {
 
-		Consumer<SpriteDef> entityRegister = entity.spriteRegister(register, Layer.OBJECT);
-
-		if (circuitConnectors.isPresent()) {
+		if (circuitConnectors.isPresent() && !wired.isEmpty()) {
 			FPCircuitConnectorDefinition circuitConnector = RenderUtils.pickDirectional(circuitConnectors.get(),
 					entity);
+
+			Consumer<SpriteDef> entityRegister = entity.spriteRegister(register, Layer.OBJECT);
 
 			circuitConnector.sprites.ifPresent(sprites -> {
 				sprites.connectorMain.ifPresent(fp -> fp.defineSprites(entityRegister));
