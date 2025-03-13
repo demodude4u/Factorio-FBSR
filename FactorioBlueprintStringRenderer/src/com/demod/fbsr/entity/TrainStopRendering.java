@@ -59,6 +59,8 @@ public class TrainStopRendering extends SimpleEntityRendering {
 	@Override
 	public void defineEntity(Bindings bind, LuaTable lua) {
 		bind.circuitConnector4Way(lua.get("circuit_connector"));
+		bind.sprite4Way(lua.get("light1").get("picture")).layer(Layer.HIGHER_OBJECT_ABOVE);
+		bind.sprite4Way(lua.get("light2").get("picture")).layer(Layer.HIGHER_OBJECT_ABOVE);
 	}
 
 	@Override
