@@ -43,7 +43,7 @@ public class MapRect {
 				maxY = Math.max(maxY, y2);
 			}
 		}
-		return new MapRect(minX, minY, maxX, maxY);
+		return new MapRect(minX, minY, maxX - minX, maxY - minY);
 	}
 
 	// Fixed-point, 8-bit precision
