@@ -185,7 +185,7 @@ public class GUILayoutBlueprint {
 		List<SubPanel> subPanels = new ArrayList<>();
 		int cutY = 0;
 
-		// Components
+		// Items
 		{
 			int itemRows = (totalItems.size() + itemColumns - 1) / itemColumns;
 			int subPanelHeight = subPanelInset.add(itemGridInset).getVertical() + itemGridCell.height * itemRows;
@@ -230,7 +230,7 @@ public class GUILayoutBlueprint {
 							GUIImageDef imgIcon = new GUIImageDef(iconBounds, icon.get());
 							imgIcon.render(g);
 						} else {
-							g.setColor(RenderUtils.getUnknownColor(item));
+							g.setColor(RenderUtils.getUnknownColor(item).brighter());
 							g.fillOval(iconBounds.x, iconBounds.y, iconBounds.width, iconBounds.height);
 						}
 
@@ -369,7 +369,7 @@ public class GUILayoutBlueprint {
 
 		Set<String> groups = new LinkedHashSet<>();
 		blueprint.entities.stream().map(e -> FactorioManager.lookupEntityFactoryForName(e.name))
-				.filter(e -> !e.isUnknown()).map(e -> e.getGroupName()).forEach(groups::add);
+				.map(e -> e.isUnknown() ? "Modded" : e.getGroupName()).forEach(groups::add);
 		blueprint.tiles.stream().map(t -> FactorioManager.lookupTileFactoryForName(t.name)).filter(t -> !t.isUnknown())
 				.map(t -> t.getGroupName()).forEach(groups::add);
 
