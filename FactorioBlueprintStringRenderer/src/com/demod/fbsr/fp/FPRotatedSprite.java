@@ -119,8 +119,8 @@ public class FPRotatedSprite extends FPSpriteParameters {
 				shiftY += frame.shift.y;
 			}
 
-			defs.add(SpriteDef.fromFP(filename, drawAsShadow, blendMode, tint, applyRuntimeTint, x, y, width, height,
-					shiftX, shiftY, scale));
+			defs.add(SpriteDef.fromFP(filename, drawAsShadow, blendMode, tint, tintAsOverlay, applyRuntimeTint, x, y,
+					width, height, shiftX, shiftY, scale));
 		}
 
 		return defs;

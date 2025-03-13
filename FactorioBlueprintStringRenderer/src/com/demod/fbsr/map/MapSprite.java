@@ -13,6 +13,7 @@ import com.demod.fbsr.Layer;
 import com.demod.fbsr.LayeredSpriteDef;
 import com.demod.fbsr.SpriteDef;
 import com.demod.fbsr.TintComposite;
+import com.demod.fbsr.TintOverlayComposite;
 
 public class MapSprite extends MapRenderable {
 
@@ -58,7 +59,11 @@ public class MapSprite extends MapRenderable {
 		Optional<Color> tint = tintOverride(def.getTint());
 		// TODO tint with blending
 		if (tint.isPresent()) {
-			g.setComposite(new TintComposite(tint.get()));
+			if (def.isTintAsOverlay()) {
+				g.setComposite(new TintOverlayComposite(tint.get()));
+			} else {
+				g.setComposite(new TintComposite(tint.get()));
+			}
 
 		} else {
 			g.setComposite(def.getBlendMode().getComposite());

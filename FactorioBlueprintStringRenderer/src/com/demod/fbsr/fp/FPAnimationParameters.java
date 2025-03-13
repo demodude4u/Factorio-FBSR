@@ -42,7 +42,7 @@ public class FPAnimationParameters extends FPSpriteParameters {
 					scaledHeight);
 			if (filename.isPresent()) {
 				defs.add(new SpriteDef(filename.get(), drawAsShadow, blendMode, tint.map(FPColor::createColor),
-						applyRuntimeTint, source, bounds));
+						tintAsOverlay, applyRuntimeTint, source, bounds));
 			}
 		}
 		return defs;

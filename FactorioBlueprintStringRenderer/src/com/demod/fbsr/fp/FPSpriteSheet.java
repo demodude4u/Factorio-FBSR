@@ -51,7 +51,7 @@ public class FPSpriteSheet extends FPSpriteParameters {
 				int fileIndex = frame / fileFrameCount;
 				int x = this.x + width * (fileFrame % lineLength);
 				int y = this.y + height * (fileFrame / lineLength);
-				defs.add(SpriteDef.fromFP(filenames.get().get(fileIndex), drawAsShadow, blendMode, tint,
+				defs.add(SpriteDef.fromFP(filenames.get().get(fileIndex), drawAsShadow, blendMode, tint, tintAsOverlay,
 						applyRuntimeTint, x, y, width, height, shift.x, shift.y, scale));
 			}
 			return defs;
@@ -63,8 +63,8 @@ public class FPSpriteSheet extends FPSpriteParameters {
 				int x = this.x + width * (frame % lineLength);
 				int y = this.y + height * (frame / lineLength);
 
-				defs.add(SpriteDef.fromFP(filename.get(), drawAsShadow, blendMode, tint, applyRuntimeTint, x, y, width,
-						height, shift.x, shift.y, scale));
+				defs.add(SpriteDef.fromFP(filename.get(), drawAsShadow, blendMode, tint, tintAsOverlay,
+						applyRuntimeTint, x, y, width, height, shift.x, shift.y, scale));
 			}
 			return defs;
 		}

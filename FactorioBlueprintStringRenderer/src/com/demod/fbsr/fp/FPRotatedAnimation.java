@@ -68,7 +68,8 @@ public class FPRotatedAnimation extends FPAnimationParameters {
 						int frame = stripeCol + col;
 						int index = stripeRow + row;
 						defArray[index * frameCount + frame] = SpriteDef.fromFP(stripe.filename, drawAsShadow,
-								blendMode, tint, applyRuntimeTint, x, y, width, height, shift.x, shift.y, scale);
+								blendMode, tint, tintAsOverlay, applyRuntimeTint, x, y, width, height, shift.x, shift.y,
+								scale);
 					}
 				}
 
@@ -105,7 +106,7 @@ public class FPRotatedAnimation extends FPAnimationParameters {
 					int y = this.y + height * (fileFrame / lineLength);
 
 					dirDefs.add(SpriteDef.fromFP(filenames.get().get(fileIndex), drawAsShadow, blendMode, tint,
-							applyRuntimeTint, x, y, width, height, shift.x, shift.y, scale));
+							tintAsOverlay, applyRuntimeTint, x, y, width, height, shift.x, shift.y, scale));
 
 				}
 			}
@@ -122,8 +123,8 @@ public class FPRotatedAnimation extends FPAnimationParameters {
 					int x = this.x + width * (spriteIndex % lineLength);
 					int y = this.y + height * (spriteIndex / lineLength);
 
-					dirDefs.add(SpriteDef.fromFP(filename.get(), drawAsShadow, blendMode, tint, applyRuntimeTint, x, y,
-							width, height, shift.x, shift.y, scale));
+					dirDefs.add(SpriteDef.fromFP(filename.get(), drawAsShadow, blendMode, tint, tintAsOverlay,
+							applyRuntimeTint, x, y, width, height, shift.x, shift.y, scale));
 				}
 			}
 			return defs;

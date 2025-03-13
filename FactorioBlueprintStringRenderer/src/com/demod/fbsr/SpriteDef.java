@@ -11,33 +11,37 @@ import com.demod.fbsr.map.MapRect;
 public class SpriteDef extends ImageDef {
 	protected final BlendMode blendMode;
 	protected final Optional<Color> tint;
+	protected final boolean tintAsOverlay;
 	protected boolean applyRuntimeTint;
 	protected MapRect sourceBounds;
 	private MapRect trimmedBounds;
 
 	public SpriteDef(String path, ImageSheetLoader loader, boolean shadow, BlendMode blendMode, Optional<Color> tint,
-			boolean applyRuntimeTint, Rectangle source, MapRect bounds) {
+			boolean tintAsOverlay, boolean applyRuntimeTint, Rectangle source, MapRect bounds) {
 		super(path, loader, source, shadow);
 		this.blendMode = blendMode;
 		this.tint = tint;
+		this.tintAsOverlay = tintAsOverlay;
 		this.applyRuntimeTint = applyRuntimeTint;
 		this.sourceBounds = bounds;
 	}
 
-	public SpriteDef(String path, boolean shadow, BlendMode blendMode, Optional<Color> tint, boolean applyRuntimeTint,
-			Rectangle source, MapRect bounds) {
+	public SpriteDef(String path, boolean shadow, BlendMode blendMode, Optional<Color> tint, boolean tintAsOverlay,
+			boolean applyRuntimeTint, Rectangle source, MapRect bounds) {
 		super(path, source, shadow);
 		this.blendMode = blendMode;
 		this.tint = tint;
+		this.tintAsOverlay = tintAsOverlay;
 		this.applyRuntimeTint = applyRuntimeTint;
 		this.sourceBounds = bounds;
 	}
 
-	public SpriteDef(ImageDef shared, BlendMode blendMode, Optional<Color> tint, boolean applyRuntimeTint,
-			MapRect bounds) {
+	public SpriteDef(ImageDef shared, BlendMode blendMode, Optional<Color> tint, boolean tintAsOverlay,
+			boolean applyRuntimeTint, MapRect bounds) {
 		super(shared);
 		this.blendMode = blendMode;
 		this.tint = tint;
+		this.tintAsOverlay = tintAsOverlay;
 		this.applyRuntimeTint = applyRuntimeTint;
 		this.sourceBounds = bounds;
 		updateTrimmedBounds();
@@ -47,6 +51,7 @@ public class SpriteDef extends ImageDef {
 		super(shared);
 		blendMode = shared.blendMode;
 		tint = shared.tint;
+		tintAsOverlay = shared.tintAsOverlay;
 		applyRuntimeTint = shared.applyRuntimeTint;
 		sourceBounds = shared.sourceBounds;
 		trimmedBounds = shared.trimmedBounds;
@@ -54,6 +59,10 @@ public class SpriteDef extends ImageDef {
 
 	public BlendMode getBlendMode() {
 		return blendMode;
+	}
+
+	public boolean isTintAsOverlay() {
+		return tintAsOverlay;
 	}
 
 	public boolean applyRuntimeTint() {
@@ -106,13 +115,13 @@ public class SpriteDef extends ImageDef {
 	}
 
 	public static SpriteDef fromFP(String filename, boolean shadow, BlendMode blendMode, Optional<FPColor> tint,
-			boolean applyRuntimeTint, int srcX, int srcY, int srcWidth, int srcHeight, double dstX, double dstY,
-			double dstScale) {
+			boolean tintAsOverlay, boolean applyRuntimeTint, int srcX, int srcY, int srcWidth, int srcHeight,
+			double dstX, double dstY, double dstScale) {
 		Rectangle source = new Rectangle(srcX, srcY, srcWidth, srcHeight);
 		double scaledWidth = dstScale * srcWidth / FBSR.TILE_SIZE;
 		double scaledHeight = dstScale * srcHeight / FBSR.TILE_SIZE;
 		MapRect bounds = MapRect.byUnit(dstX - scaledWidth / 2.0, dstY - scaledHeight / 2.0, scaledWidth, scaledHeight);
-		return new SpriteDef(filename, shadow, blendMode, tint.map(FPColor::createColor), applyRuntimeTint, source,
-				bounds);
+		return new SpriteDef(filename, shadow, blendMode, tint.map(FPColor::createColor), tintAsOverlay,
+				applyRuntimeTint, source, bounds);
 	}
 }

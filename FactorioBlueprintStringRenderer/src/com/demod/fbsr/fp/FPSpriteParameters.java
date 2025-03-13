@@ -13,6 +13,7 @@ public class FPSpriteParameters extends FPSpriteSource {
 	public final double scale;
 	public final FPVector shift;
 	public final Optional<FPColor> tint;
+	public final boolean tintAsOverlay;
 	public final boolean applyRuntimeTint;
 
 	private final SpriteDef def;
@@ -25,11 +26,12 @@ public class FPSpriteParameters extends FPSpriteSource {
 		scale = lua.get("scale").optdouble(1) * 2;
 		shift = FPUtils.opt(lua.get("shift"), FPVector::new).orElseGet(() -> new FPVector(0, 0));
 		tint = FPUtils.tint(lua.get("tint"));
+		tintAsOverlay = lua.get("tint_as_overlay").optboolean(false);
 		applyRuntimeTint = lua.get("apply_runtime_tint").optboolean(false);
 
 		if (filename.isPresent()) {
-			def = SpriteDef.fromFP(filename.get(), drawAsShadow, blendMode, tint, applyRuntimeTint, x, y, width, height,
-					shift.x, shift.y, scale);
+			def = SpriteDef.fromFP(filename.get(), drawAsShadow, blendMode, tint, tintAsOverlay, applyRuntimeTint, x, y,
+					width, height, shift.x, shift.y, scale);
 		} else {
 			def = null;
 		}
