@@ -495,6 +495,7 @@ public class FBSR {
 			String entityName = entity.name;
 			EntityRendererFactory entityFactory = FactorioManager.lookupEntityFactoryForName(entityName);
 			if (entityFactory.isUnknown()) {
+				addToItemAmount(ret, entity.name, 1);
 				continue;
 			}
 
