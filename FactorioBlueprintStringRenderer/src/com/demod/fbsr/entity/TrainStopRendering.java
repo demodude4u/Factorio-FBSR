@@ -12,6 +12,7 @@ import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.bs.entity.BSTrainStopEntity;
 import com.demod.fbsr.fp.FPAnimation4Way;
+import com.demod.fbsr.fp.FPColor;
 import com.demod.fbsr.gui.GUIStyle;
 import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapPosition;
@@ -22,6 +23,7 @@ public class TrainStopRendering extends SimpleEntityRendering {
 	public static final Font FONT = GUIStyle.FONT_BP_BOLD.deriveFont(0.5f);
 	private static final int FRAME = 0;
 
+	private FPColor protoColor;
 	private FPAnimation4Way protoRailOverlayAnimations;
 	private FPAnimation4Way protoAnimations;
 	private FPAnimation4Way protoTopAnimations;
@@ -36,7 +38,7 @@ public class TrainStopRendering extends SimpleEntityRendering {
 		if (bsEntity.color.isPresent()) {
 			color = bsEntity.color.get().createColor();
 		} else {
-			color = new Color(242, 0, 0, 127);
+			color = protoColor.createColor();
 		}
 
 		protoRailOverlayAnimations.defineSprites(
@@ -77,6 +79,7 @@ public class TrainStopRendering extends SimpleEntityRendering {
 	public void initFromPrototype() {
 		super.initFromPrototype();
 
+		protoColor = new FPColor(prototype.lua().get("color"));
 		protoRailOverlayAnimations = new FPAnimation4Way(prototype.lua().get("rail_overlay_animations"));
 		protoAnimations = new FPAnimation4Way(prototype.lua().get("animations"));
 		protoTopAnimations = new FPAnimation4Way(prototype.lua().get("top_animations"));
