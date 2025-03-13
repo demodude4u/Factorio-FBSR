@@ -247,10 +247,6 @@ public class AtlasManager {
 	}
 
 	private static void generateAtlases(File folderAtlas, File fileManifest) throws IOException {
-		if (!atlases.isEmpty()) {
-			throw new IllegalStateException("Atlases are already generated!");
-		}
-
 		Map<String, ImageSheetLoader> loaders = new LinkedHashMap<>();
 		for (ImageDef def : defs) {
 			loaders.put(def.getPath(), def.getLoader());
@@ -288,6 +284,7 @@ public class AtlasManager {
 		}).sum();
 		long progressPixels = 0;
 
+		List<Atlas> atlases = new ArrayList<>();
 		atlases.add(new Atlas(atlases.size()));
 		int imageCount = 0;
 		for (ImageDef def : defs) {
@@ -409,11 +406,12 @@ public class AtlasManager {
 		File fileManifest = new File(folderAtlas, "atlas-manifest.txt");
 
 		JSONArray jsonManifest;
-		if (fileManifest.exists() && checkValidManifest(jsonManifest = readManifest(fileManifest))) {
-			loadAtlases(folderAtlas, jsonManifest);
-		} else {
+		if (!fileManifest.exists() || !checkValidManifest(jsonManifest = readManifest(fileManifest))) {
 			generateAtlases(folderAtlas, fileManifest);
 		}
+
+		jsonManifest = readManifest(fileManifest);
+		loadAtlases(folderAtlas, jsonManifest);
 	}
 
 	private static JSONArray readManifest(File fileManifest) throws IOException {
