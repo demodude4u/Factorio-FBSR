@@ -11,6 +11,7 @@ import com.demod.fbsr.Direction;
 import com.demod.fbsr.ImageDef;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.LogisticGridCell;
+import com.demod.fbsr.SpriteDef;
 import com.demod.fbsr.TagManager;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.WorldMap.BeltBend;
@@ -126,9 +127,15 @@ public class InserterRendering extends SimpleEntityRendering {
 		super.initAtlas(register);
 
 		protoPlatformPicture.getDefs(register);
-		protoHandOpenPicture.defineSprites(register);
-		protoIndicationLine.defineSprites(register);
-		protoIndicationArrow.defineSprites(register);
+
+		Consumer<? super SpriteDef> registerNoTrim = def -> {
+			def.setTrimmable(false);
+			register.accept(def);
+		};
+
+		protoHandOpenPicture.defineSprites(registerNoTrim);
+		protoIndicationLine.defineSprites(registerNoTrim);
+		protoIndicationArrow.defineSprites(registerNoTrim);
 	}
 
 	@Override
