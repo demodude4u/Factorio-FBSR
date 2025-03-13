@@ -16,6 +16,7 @@ import com.demod.factorio.FactorioData;
 import com.demod.factorio.Utils;
 import com.demod.factorio.fakelua.LuaTable;
 import com.demod.factorio.prototype.DataPrototype;
+import com.demod.factorio.prototype.RecipePrototype;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.Multimaps;
@@ -26,10 +27,10 @@ public class TagManager {
 	public static final int ICON_SIZE = 64;
 
 	public static class DefaultResolver extends TagResolver {
-		private final Map<String, LuaTable> map;
+		protected final Map<String, LuaTable> map;
 
-		private final ListMultimap<String, IconLayer> layers;
-		private final Map<String, ImageDef> defs;
+		protected final ListMultimap<String, IconLayer> layers;
+		protected final Map<String, ImageDef> defs;
 
 		public DefaultResolver(String key, Map<String, LuaTable> map) {
 			super(key);
@@ -40,7 +41,7 @@ public class TagManager {
 			defs = createDefs();
 		}
 
-		private ListMultimap<String, IconLayer> createLayers() {
+		protected ListMultimap<String, IconLayer> createLayers() {
 			ListMultimap<String, IconLayer> layers = MultimapBuilder.hashKeys().arrayListValues().build();
 			for (Entry<String, LuaTable> entry : map.entrySet()) {
 				layers.putAll(entry.getKey(), IconLayer.fromPrototype(entry.getValue()));
@@ -48,7 +49,7 @@ public class TagManager {
 			return layers;
 		}
 
-		private Map<String, ImageDef> createDefs() {
+		protected Map<String, ImageDef> createDefs() {
 			Map<String, ImageDef> defs = new HashMap<>();
 			for (Entry<String, List<IconLayer>> entry : Multimaps.asMap(layers).entrySet()) {
 				ImageDef def = new ImageDef("TAG[" + key + "]/" + entry.getKey() + "/" + ICON_SIZE, k -> {
@@ -77,6 +78,59 @@ public class TagManager {
 
 	}
 
+	public static class RecipeResolver extends DefaultResolver {
+
+		public RecipeResolver(String key, Map<String, LuaTable> map) {
+			super(key, map);
+		}
+
+		@Override
+		protected ListMultimap<String, IconLayer> createLayers() {
+			ListMultimap<String, IconLayer> layers = MultimapBuilder.hashKeys().arrayListValues().build();
+			for (Entry<String, LuaTable> entry : map.entrySet()) {
+				LuaTable lua = entry.getValue();
+				if (!lua.get("icon").isnil() || !lua.get("icons").isnil()) {
+					layers.putAll(entry.getKey(), IconLayer.fromPrototype(lua));
+
+				} else {
+					String resultName = null;
+					if (!lua.get("main_product").isnil()) {
+						resultName = lua.get("main_product").tojstring();
+
+					} else if (lua.get("results").length() == 1) {
+						LuaTable luaResult = lua.get("results").totableArray().get(1).totableObject();
+						String resultType = luaResult.get("type").tojstring();
+
+						if (resultType.equals("item")) {
+							resultName = luaResult.get("name").tojstring();
+
+						} else if (resultType.equals("research-progress")) {
+							resultName = luaResult.get("research_item").tojstring();
+
+						} else if (resultType.equals("fluid")) {
+							resultName = luaResult.get("name").tojstring();
+						}
+
+					}
+
+					Optional<LuaTable> luaProduct = FactorioManager.lookupItemByName(resultName).map(p -> p.lua());
+					if (luaProduct.isEmpty()) {
+						luaProduct = FactorioManager.lookupFluidByName(resultName).map(p -> p.lua());
+						if (luaProduct.isEmpty()) {
+							LOGGER.error("Unable to find recipe result! {} ({})", entry.getKey(), resultName);
+							System.exit(-1);
+						}
+					}
+
+					layers.putAll(entry.getKey(), IconLayer.fromPrototype(luaProduct.get()));
+				}
+
+			}
+			return layers;
+		}
+
+	}
+
 	public static abstract class TagResolver {
 		protected final String key;
 
@@ -96,6 +150,14 @@ public class TagManager {
 
 		public static void forMap(String key, Map<String, LuaTable> map) {
 			resolvers.put(key, new DefaultResolver(key, map));
+		}
+
+		public static void forRecipes(String key, List<RecipePrototype> prototypes) {
+			Map<String, LuaTable> map = new LinkedHashMap<>();
+			for (RecipePrototype proto : prototypes) {
+				map.put(proto.getName(), proto.lua());
+			}
+			resolvers.put(key, new RecipeResolver(key, map));
 		}
 
 		public static void forPrototypes(String key, List<? extends DataPrototype> prototypes) {
@@ -143,7 +205,7 @@ public class TagManager {
 		TagResolver.forPrototypes("item", FactorioManager.getItems());
 		TagResolver.forPrototypes("entity", FactorioManager.getEntities());
 		TagResolver.forPrototypes("technology", FactorioManager.getTechnologies());
-		TagResolver.forPrototypes("recipe", FactorioManager.getRecipes());
+		TagResolver.forRecipes("recipe", FactorioManager.getRecipes());
 		TagResolver.forPath("item-group", "item-group");
 		TagResolver.forPrototypes("fluid", FactorioManager.getFluids());
 		TagResolver.forPrototypes("tile", FactorioManager.getTiles());
