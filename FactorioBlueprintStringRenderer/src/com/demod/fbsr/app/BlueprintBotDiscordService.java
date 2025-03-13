@@ -801,8 +801,19 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			return;
 		}
 
-		String jsonRaw = "{\"blueprint\":{\"entities\":[{\"entity_number\":1,\"name\":\"" + entityName
-				+ "\",\"position\":{\"x\":0,\"y\":0}}],\"version\":562949955649542}}";
+		String jsonRaw;
+		try {
+			JSONObject json = new JSONObject("{\"blueprint\":{\"entities\":[{\"entity_number\":1,\"name\":\""
+					+ entityName + "\",\"position\":{\"x\":0,\"y\":0}}],\"version\":562949955649542}}");
+			JSONObject jsonEntity = json.getJSONObject("blueprint").getJSONArray("entities").getJSONObject(0);
+			JSONObject jsonCustom = new JSONObject(event.optParamString("json").orElse("{}"));
+			Utils.forEach(jsonCustom, (k, v) -> jsonEntity.put(k, v));
+			jsonRaw = json.toString();
+		} catch (Exception e) {
+			event.reply("Malformed json!");
+			return;
+		}
+
 		BSBlueprint blueprint = BlueprintFinder.search(jsonRaw, event.getReporting()).get(0).findAllBlueprints().get(0);
 
 		RenderRequest request = new RenderRequest(blueprint, event.getReporting());
@@ -1340,6 +1351,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				.addSlashCommand("show/entity", "Display an example of the specified entity.",
 						this::handleShowEntityCommand, this::handleShowEntityAutoComplete)//
 				.withAutoParam(OptionType.STRING, "entity", "Entity name to be shown.")
+				.withOptionalParam(OptionType.STRING, "json", "JSON properties to add to the entity.")
 				.withOptionalParam(OptionType.BOOLEAN, "debug", "Show debug markers.")
 				//
 				//
