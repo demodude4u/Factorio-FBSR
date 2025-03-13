@@ -63,7 +63,7 @@ public class MapInserterIndicators extends MapRenderable {
 			}
 
 			g.setTransform(pat);
-			g.translate(inPos.xfp, inPos.yfp);
+			g.translate(inPos.getX(), inPos.getY());
 			// HACK magic numbers
 			Point2D.Double magicImageShift = new Point2D.Double(bounds.getX() + 0.1, bounds.getY() + -0.05);
 			g.translate(magicImageShift.x, magicImageShift.y);
@@ -95,7 +95,7 @@ public class MapInserterIndicators extends MapRenderable {
 			}
 
 			g.setTransform(pat);
-			g.translate(outPos.xfp, outPos.yfp);
+			g.translate(outPos.getX(), outPos.getY());
 			// HACK magic numbers
 			Point2D.Double magicImageShift = new Point2D.Double(bounds.getX() + 0.1, bounds.getY() + 0.35);
 			g.translate(magicImageShift.x, magicImageShift.y);
