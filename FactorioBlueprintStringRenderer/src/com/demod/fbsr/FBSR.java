@@ -798,6 +798,8 @@ public class FBSR {
 
 	private static MapRect3D calculateGridBounds(List<MapEntity> mapEntities, List<MapTile> mapTiles) {
 
+		int tilefp = MapUtils.unitToFixedPoint(1.0);
+
 		int x1fp = 0, x2fp = 0, y1fp = 0, y2fp = 0, heightfp = 0;
 		boolean first = true;
 
@@ -819,8 +821,8 @@ public class FBSR {
 
 			int xfp = bounds.getXFP();
 			int yfp = bounds.getYFP();
-			int wfp = bounds.getWidthFP();
-			int hfp = bounds.getHeightFP();
+			int wfp = bounds.getWidthFP() + tilefp;
+			int hfp = bounds.getHeightFP() + tilefp;
 			if (first) {
 				x1fp = xfp;
 				y1fp = yfp;
