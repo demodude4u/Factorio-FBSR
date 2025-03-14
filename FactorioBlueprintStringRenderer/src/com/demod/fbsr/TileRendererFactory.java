@@ -32,6 +32,7 @@ import com.demod.fbsr.fp.FPTileSpriteLayoutVariant;
 import com.demod.fbsr.fp.FPTileTransitionVariantLayout;
 import com.demod.fbsr.fp.FPTileTransitions;
 import com.demod.fbsr.fp.FPTileTransitionsVariants;
+import com.demod.fbsr.map.MapMaterialMaskedTile;
 import com.demod.fbsr.map.MapMaterialTile;
 import com.demod.fbsr.map.MapPosition;
 import com.demod.fbsr.map.MapRenderable;
@@ -135,19 +136,6 @@ public class TileRendererFactory {
 	}
 
 	public class TileRenderProcessMain implements TileRenderProcess {
-		private List<TileEdgeRuleParam> convertSidesToDoubleSides(List<TileEdgeRuleParam> params) {
-			if (params.size() != 2) {
-				return params;
-			}
-			// TODO strings bad
-			for (TileEdgeRuleParam param : params) {
-				if (!param.rule.equals("SIDE")) {
-					return params;
-				}
-			}
-			return ImmutableList.of(new TileEdgeRuleParam(params.stream().mapToInt(p -> p.variant).min().getAsInt(),
-					null, fp -> fp.doubleSide));
-		}
 
 		// Uses main tiles and probabilities (bricks, platform, etc.)
 		// TODO
@@ -245,20 +233,51 @@ public class TileRendererFactory {
 		public void tileEdge(Random rand, Consumer<MapRenderable> register, TileEdgeCell cell, MapPosition pos,
 				List<TileEdgeRuleParam> params) {
 
+			FPMaterialTextureParameters material = protoVariants.materialBackground.get();
+			int tw = material.getTexWidthTiles();
+			int th = material.getTexHeightTiles();
+
+			rand.setSeed(getRandomSeed(cell.row / th, cell.col / tw, cell.layer, 0));
+			int materialFrame = rand.nextInt(material.getLimitedCount());
+			MaterialDef materialDef = material.defineMaterial(materialFrame);
+
 			FPTileTransitions transitions = protoVariants.transition.get();
+			FPTileTransitionVariantLayout overlay = transitions.overlayLayout.get();
+			FPTileTransitionVariantLayout mask = transitions.maskLayout.get();
 
 			rand.setSeed(getRandomSeed(cell.row, cell.col, cell.layer, cell.adjCode));
 
-			// TODO some tiles do not have overlay/mask!
-//			FPTileTransitionVariantLayout overlay = transitions.overlayLayout.get();
-//			FPTileTransitionVariantLayout mask = transitions.maskLayout.get();
+			if (overlay.doubleSide.isPresent()) {
+				params = convertSidesToDoubleSides(params);
+			}
 
-			// TODO material edge
+			for (TileEdgeRuleParam param : params) {
+				Optional<FPTileSpriteLayoutVariant> optVariantMask = param.getSelector().apply(mask);
+				Optional<FPTileSpriteLayoutVariant> optVariantOverlay = param.getSelector().apply(overlay);
+				if (optVariantMask.isPresent() && optVariantOverlay.isPresent()) {
+					FPTileSpriteLayoutVariant variantMask = optVariantMask.get();
+					FPTileSpriteLayoutVariant variantOverlay = optVariantOverlay.get();
+
+					if (variantMask.count != variantOverlay.count) {
+						throw new IllegalStateException("Mask and overlay do not match!");
+					}
+
+					int frame = rand.nextInt(variantMask.count);
+
+					register.accept(new MapMaterialMaskedTile(materialDef,
+							variantMask.defineImage(param.variant, frame), cell.row % th, cell.col % tw, pos));
+					register.accept(new MapSprite(variantOverlay.defineImage(param.variant, frame), Layer.DECALS, pos));
+				}
+			}
+
+			rand.setSeed(getRandomSeed(cell.row, cell.col, cell.layer, cell.adjCode));
 		}
 
 		@Override
 		public void initAtlas(Consumer<ImageDef> register) {
 			protoVariants.materialBackground.get().getDefs().forEach(register);
+			protoVariants.transition.ifPresent(fp -> fp.overlayLayout.ifPresent(fp2 -> fp2.getDefs(register)));
+			protoVariants.transition.ifPresent(fp -> fp.maskLayout.ifPresent(fp2 -> fp2.getDefs(register)));
 			// TODO edge tiles
 		}
 	}
@@ -397,6 +416,20 @@ public class TileRendererFactory {
 
 		}
 
+	}
+
+	private static List<TileEdgeRuleParam> convertSidesToDoubleSides(List<TileEdgeRuleParam> params) {
+		if (params.size() != 2) {
+			return params;
+		}
+		// TODO strings bad
+		for (TileEdgeRuleParam param : params) {
+			if (!param.rule.equals("SIDE")) {
+				return params;
+			}
+		}
+		return ImmutableList.of(new TileEdgeRuleParam(params.stream().mapToInt(p -> p.variant).min().getAsInt(), null,
+				fp -> fp.doubleSide));
 	}
 
 	public static long getRandomSeed(int row, int col, int layer, int adjCode) {
