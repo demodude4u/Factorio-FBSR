@@ -54,7 +54,15 @@ public class ImageDef {
 		shadow = shared.shadow;
 		source = shared.source;
 		atlasRef = shared.atlasRef;
+		trimmable = shared.trimmable;
 		trimmed = shared.trimmed;
+	}
+
+	public void checkValid() {
+		if (!atlasRef.isValid()) {
+			throw new IllegalStateException("Sprite not on atlas! " + path + " (" + source.x + "," + source.y + ","
+					+ source.width + "," + source.height + ")");
+		}
 	}
 
 	public boolean isShadow() {
