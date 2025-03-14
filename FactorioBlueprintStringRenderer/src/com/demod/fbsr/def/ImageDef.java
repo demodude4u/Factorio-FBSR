@@ -5,9 +5,8 @@ import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 import java.util.function.Function;
 
-import com.demod.fbsr.AtlasManager;
-import com.demod.fbsr.FactorioManager;
 import com.demod.fbsr.AtlasManager.AtlasRef;
+import com.demod.fbsr.FactorioManager;
 
 public class ImageDef {
 

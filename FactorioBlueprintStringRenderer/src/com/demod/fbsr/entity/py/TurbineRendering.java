@@ -1,7 +1,6 @@
 package com.demod.fbsr.entity.py;
 
 import com.demod.factorio.fakelua.LuaTable;
-import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.entity.ElectricEnergyInterfaceRendering;
 import com.demod.fbsr.entity.SimpleEntityRendering;
 

@@ -10,9 +10,6 @@ import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.demod.factorio.fakelua.LuaTable;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.composite.TintComposite;
@@ -21,8 +18,6 @@ import com.demod.fbsr.fp.FPVector;
 import com.google.common.collect.ImmutableList;
 
 public class IconLayer {
-	private static final Logger LOGGER = LoggerFactory.getLogger(IconLayer.class);
-
 	private static final IconLayer ICONLAYER_EMPTY = new IconLayer("__core__/graphics/empty.png",
 			new Rectangle(0, 0, 64, 64), new Rectangle2D.Double(0, 0, 1, 1), Color.white, false);
 

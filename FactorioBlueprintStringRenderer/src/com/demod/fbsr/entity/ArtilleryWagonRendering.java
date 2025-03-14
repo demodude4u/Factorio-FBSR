@@ -86,9 +86,9 @@ public class ArtilleryWagonRendering extends RollingStockRendering {
 	private FPRollingStockRotatedSlopedGraphics protoCannonBarrelPictures;
 	private FPRollingStockRotatedSlopedGraphics protoCannonBasePictures;
 
-	private double protoCannonBaseHeight;
-	private double protoCannonBaseShiftWhenVertical;
-	private double protoCannonBaseShiftWhenHorizontal;
+//	private double protoCannonBaseHeight;
+//	private double protoCannonBaseShiftWhenVertical;
+//	private double protoCannonBaseShiftWhenHorizontal;
 
 	@Override
 	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
@@ -118,9 +118,9 @@ public class ArtilleryWagonRendering extends RollingStockRendering {
 				prototype.lua().get("cannon_barrel_pictures"));
 		protoCannonBasePictures = new FPRollingStockRotatedSlopedGraphics(prototype.lua().get("cannon_base_pictures"));
 
-		protoCannonBaseHeight = prototype.lua().get("cannon_base_height").optdouble(0.0);
-		protoCannonBaseShiftWhenVertical = prototype.lua().get("cannon_base_shift_when_vertical").optdouble(0.0);
-		protoCannonBaseShiftWhenHorizontal = prototype.lua().get("cannon_base_shift_when_horizontal").optdouble(0.0);
+//		protoCannonBaseHeight = prototype.lua().get("cannon_base_height").optdouble(0.0);
+//		protoCannonBaseShiftWhenVertical = prototype.lua().get("cannon_base_shift_when_vertical").optdouble(0.0);
+//		protoCannonBaseShiftWhenHorizontal = prototype.lua().get("cannon_base_shift_when_horizontal").optdouble(0.0);
 
 		protoCannonBaseShifts = new ArrayList<>();
 		for (double[] shift : CANNON_BASE_SHIFTINGS) {

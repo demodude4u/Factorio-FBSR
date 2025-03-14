@@ -1,6 +1,5 @@
 package com.demod.fbsr.task;
 
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -281,8 +280,8 @@ public class FBSRModDumperTask {
 			String[] split = jsonDependencies.getString(i).split("\\s+");
 			String depSymbol = "";
 			String depMod = null;
-			String depCompare = "";
-			String depVersion = "";
+//			String depCompare = "";
+//			String depVersion = "";
 			switch (split.length) {
 			case 1:
 				depMod = split[0];
@@ -293,14 +292,14 @@ public class FBSRModDumperTask {
 				break;
 			case 3:
 				depMod = split[0];
-				depCompare = split[1];
-				depVersion = split[2];
+//				depCompare = split[1];
+//				depVersion = split[2];
 				break;
 			case 4:
 				depSymbol = split[0];
 				depMod = split[1];
-				depCompare = split[2];
-				depVersion = split[3];
+//				depCompare = split[2];
+//				depVersion = split[3];
 				break;
 			}
 			if (!depSymbol.isBlank()) {

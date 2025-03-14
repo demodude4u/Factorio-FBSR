@@ -8,7 +8,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.OptionalInt;
 import java.util.Random;
 import java.util.TreeSet;
 import java.util.function.Consumer;
@@ -116,8 +115,8 @@ public class TileRendererFactory {
 	private static class TileCell {
 		int row, col;
 		int layer;
-		Optional<TileRendererFactory> mergeFactory;
-		OptionalInt mergeLayer;
+//		Optional<TileRendererFactory> mergeFactory;
+//		OptionalInt mergeLayer;
 		BSTile tile;
 		TileRendererFactory factory;
 	}
@@ -353,8 +352,8 @@ public class TileRendererFactory {
 			cell.row = (int) pos.y;
 			cell.col = (int) pos.x;
 			cell.layer = mapTile.getFactory().protoLayer;
-			cell.mergeFactory = mapTile.getFactory().protoTransitionMergesWithTile;
-			cell.mergeLayer = cell.mergeFactory.map(f -> OptionalInt.of(f.protoLayer)).orElse(OptionalInt.empty());
+//			cell.mergeFactory = mapTile.getFactory().protoTransitionMergesWithTile;
+//			cell.mergeLayer = cell.mergeFactory.map(f -> OptionalInt.of(f.protoLayer)).orElse(OptionalInt.empty());
 			cell.tile = mapTile.fromBlueprint();
 			cell.factory = mapTile.getFactory();
 			tileMap.put(cell.row, cell.col, cell);
@@ -481,8 +480,8 @@ public class TileRendererFactory {
 	private FPTileTransitionsVariants protoVariants;
 	private Optional<FPTileMainPictures> protoVariantsMainSize1;
 	private int protoLayer;
-	private Optional<String> protoTransitionMergesWithTileID;
-	private Optional<TileRendererFactory> protoTransitionMergesWithTile;
+//	private Optional<String> protoTransitionMergesWithTileID;
+//	private Optional<TileRendererFactory> protoTransitionMergesWithTile;
 
 	private TileRenderProcess renderProcess = null;
 
@@ -509,9 +508,9 @@ public class TileRendererFactory {
 		protoLayer = prototype.lua().get("layer").checkint();
 		protoVariants = new FPTileTransitionsVariants(prototype.lua().get("variants"), 10);
 		protoVariantsMainSize1 = protoVariants.main.stream().filter(fp -> fp.size == 1).findFirst();
-		protoTransitionMergesWithTileID = FPUtils.optString(prototype.lua().get("transition_merges_with_tile"));
-		protoTransitionMergesWithTile = protoTransitionMergesWithTileID
-				.flatMap(k -> Optional.ofNullable(FactorioManager.lookupTileFactoryForName(k)));
+//		protoTransitionMergesWithTileID = FPUtils.optString(prototype.lua().get("transition_merges_with_tile"));
+//		protoTransitionMergesWithTile = protoTransitionMergesWithTileID
+//				.flatMap(k -> Optional.ofNullable(FactorioManager.lookupTileFactoryForName(k)));
 
 		if (!protoVariants.main.isEmpty())
 			renderProcess = new TileRenderProcessMain();

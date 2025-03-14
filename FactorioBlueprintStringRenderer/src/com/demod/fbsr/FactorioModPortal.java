@@ -159,7 +159,6 @@ public class FactorioModPortal {
 	private static JSONObject get(String url) throws IOException {
 		JSONObject json = cacheGet.getIfPresent(url);
 		if (json == null) {
-			@SuppressWarnings("deprecation")
 			HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
 
 			try (BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()))) {

@@ -1,6 +1,5 @@
 package com.demod.fbsr.gui.part;
 
-import java.awt.Color;
 import java.awt.Graphics2D;
 import java.util.Optional;
 
