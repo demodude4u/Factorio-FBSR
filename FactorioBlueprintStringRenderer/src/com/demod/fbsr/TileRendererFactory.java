@@ -32,8 +32,8 @@ import com.demod.fbsr.fp.FPTileSpriteLayoutVariant;
 import com.demod.fbsr.fp.FPTileTransitionVariantLayout;
 import com.demod.fbsr.fp.FPTileTransitions;
 import com.demod.fbsr.fp.FPTileTransitionsVariants;
+import com.demod.fbsr.map.MapMaterialTile;
 import com.demod.fbsr.map.MapPosition;
-import com.demod.fbsr.map.MapRect;
 import com.demod.fbsr.map.MapRenderable;
 import com.demod.fbsr.map.MapSprite;
 import com.demod.fbsr.map.MapTile;
@@ -46,8 +46,6 @@ import com.google.common.collect.Table;
 public class TileRendererFactory {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(TileRendererFactory.class);
-
-	public static final MapRect TILE_BOUNDS = MapRect.byUnit(0, 0, 1, 1);
 
 	public enum TileEdgeRule {
 		SIDE(NORTH.adjCode(), WEST.adjCode() | EAST.adjCode(), fp -> fp.side), //
@@ -162,7 +160,7 @@ public class TileRendererFactory {
 			rand.setSeed(getRandomSeed(cell.row, cell.col, cell.layer, 0));
 			int frame = rand.nextInt(main.getLimitedCount());
 
-			register.accept(new MapSprite(new LayeredSpriteDef(main.defineImage(frame), Layer.DECALS, TILE_BOUNDS),
+			register.accept(new MapSprite(new LayeredSpriteDef(main.defineImage(frame), Layer.DECALS),
 					cell.tile.position.createPoint()));
 		}
 
@@ -189,8 +187,7 @@ public class TileRendererFactory {
 
 						int frame = rand.nextInt(variant.count);
 
-						register.accept(new MapSprite(new LayeredSpriteDef(variant.defineImage(param.variant, frame),
-								Layer.DECALS, TILE_BOUNDS), pos));
+						register.accept(new MapSprite(variant.defineImage(param.variant, frame), Layer.DECALS, pos));
 					}
 				}
 			}
@@ -210,8 +207,8 @@ public class TileRendererFactory {
 
 						int frame = rand.nextInt(variant.count);
 
-						register.accept(new MapSprite(new LayeredSpriteDef(variant.defineImage(param.variant, frame),
-								Layer.UNDER_TILES, TILE_BOUNDS), pos));
+						register.accept(
+								new MapSprite(variant.defineImage(param.variant, frame), Layer.UNDER_TILES, pos));
 					}
 				}
 			}
@@ -219,7 +216,7 @@ public class TileRendererFactory {
 
 		@Override
 		public void initAtlas(Consumer<ImageDef> register) {
-			protoVariantsMainSize1.ifPresent(fp -> fp.getDefs().forEach(register));
+			protoVariantsMainSize1.ifPresent(fp -> fp.getDefs(register));
 			protoVariants.transition.get().overlayLayout.ifPresent(fp -> fp.getDefs(register));
 			protoVariants.transition.get().backgroundLayout.ifPresent(fp -> fp.getDefs(register));
 		}
@@ -240,7 +237,7 @@ public class TileRendererFactory {
 			rand.setSeed(getRandomSeed(cell.row / th, cell.col / tw, cell.layer, 0));
 			int frame = rand.nextInt(material.getLimitedCount());
 
-			register.accept(new MapSprite(new LayeredSpriteDef(material.defineImage(frame), Layer.DECALS, TILE_BOUNDS),
+			register.accept(new MapMaterialTile(material.defineMaterial(frame), cell.row % th, cell.col % tw,
 					tile.position.createPoint()));
 		}
 

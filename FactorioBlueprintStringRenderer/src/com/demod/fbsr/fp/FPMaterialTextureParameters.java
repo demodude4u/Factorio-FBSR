@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import com.demod.factorio.fakelua.LuaValue;
-import com.demod.fbsr.ImageDef;
+import com.demod.fbsr.MaterialDef;
 
 public class FPMaterialTextureParameters {
 	private final int texWidthTiles;
@@ -20,7 +20,7 @@ public class FPMaterialTextureParameters {
 	public final int lineLength;
 
 	private final int limitedCount;
-	private final List<ImageDef> defs;
+	private final List<MaterialDef> defs;
 
 	public FPMaterialTextureParameters(LuaValue lua, int texWidthTiles, int texHeightTiles, int limitCount) {
 		this.texWidthTiles = texWidthTiles;
@@ -34,12 +34,12 @@ public class FPMaterialTextureParameters {
 		lineLength = lua.get("line_length").optint(count);
 
 		limitedCount = Math.min(limitCount, count);
-		List<ImageDef> allDefs = createDefs();
+		List<MaterialDef> allDefs = createDefs();
 		defs = allDefs.stream().limit(limitedCount).collect(Collectors.toList());
 	}
 
-	private List<ImageDef> createDefs() {
-		List<ImageDef> defs = new ArrayList<>();
+	private List<MaterialDef> createDefs() {
+		List<MaterialDef> defs = new ArrayList<>();
 
 		int width = (int) (texWidthTiles * 64 / scale);
 		int height = (int) (texHeightTiles * 64 / scale);
@@ -47,17 +47,17 @@ public class FPMaterialTextureParameters {
 		for (int i = 0; i < count; i++) {
 			int x = width * (i % lineLength);
 			int y = height * (i / lineLength);
-			defs.add(new ImageDef(picture, new Rectangle(x, y, width, height)));
+			defs.add(new MaterialDef(picture, new Rectangle(x, y, width, height), texHeightTiles, texWidthTiles));
 		}
 
 		return defs;
 	}
 
-	public ImageDef defineImage(int frame) {
+	public MaterialDef defineMaterial(int frame) {
 		return defs.get(frame);
 	}
 
-	public List<ImageDef> getDefs() {
+	public List<MaterialDef> getDefs() {
 		return defs;
 	}
 

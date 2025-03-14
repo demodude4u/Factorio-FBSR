@@ -24,12 +24,12 @@ public class FPTileTransitionVariantLayout {
 		innerCorner = FPUtils.opt(lua.get("inner_corner"), l -> new FPTileSpriteLayoutVariant(l, 4));
 	}
 
-	public void getDefs(Consumer<ImageDef> consumer) {
-		side.ifPresent(fp -> fp.getDefs().forEach(consumer));
-		doubleSide.ifPresent(fp -> fp.getDefs().forEach(consumer));
-		outerCorner.ifPresent(fp -> fp.getDefs().forEach(consumer));
-		uTransition.ifPresent(fp -> fp.getDefs().forEach(consumer));
-		oTransition.ifPresent(fp -> fp.getDefs().forEach(consumer));
-		innerCorner.ifPresent(fp -> fp.getDefs().forEach(consumer));
+	public void getDefs(Consumer<ImageDef> register) {
+		side.ifPresent(fp -> fp.getDefs(register));
+		doubleSide.ifPresent(fp -> fp.getDefs(register));
+		outerCorner.ifPresent(fp -> fp.getDefs(register));
+		uTransition.ifPresent(fp -> fp.getDefs(register));
+		oTransition.ifPresent(fp -> fp.getDefs(register));
+		innerCorner.ifPresent(fp -> fp.getDefs(register));
 	}
 }
