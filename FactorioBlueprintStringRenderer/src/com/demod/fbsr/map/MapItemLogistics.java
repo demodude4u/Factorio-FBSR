@@ -13,7 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.demod.fbsr.AtlasManager.AtlasRef;
-import com.demod.fbsr.ImageDef;
+import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.LogisticGridCell;
 import com.demod.fbsr.RenderUtils;

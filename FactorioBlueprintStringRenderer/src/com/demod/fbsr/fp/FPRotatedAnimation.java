@@ -10,8 +10,8 @@ import java.util.stream.IntStream;
 
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.FPUtils;
-import com.demod.fbsr.ImageDef;
-import com.demod.fbsr.SpriteDef;
+import com.demod.fbsr.def.ImageDef;
+import com.demod.fbsr.def.SpriteDef;
 import com.google.common.collect.ImmutableList;
 
 public class FPRotatedAnimation extends FPAnimationParameters {

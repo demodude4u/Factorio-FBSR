@@ -3,7 +3,7 @@ package com.demod.fbsr.fp;
 import java.util.function.Consumer;
 
 import com.demod.factorio.fakelua.LuaValue;
-import com.demod.fbsr.ImageDef;
+import com.demod.fbsr.def.ImageDef;
 
 public class FPCargoBayConnections {
 	public final FPLayeredSpriteVariations topWall;

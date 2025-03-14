@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.demod.factorio.fakelua.LuaValue;
-import com.demod.fbsr.ImageDef;
+import com.demod.fbsr.def.ImageDef;
 
 public class FPTileLightPictures extends FPTileSpriteLayout {
 	public final int size;

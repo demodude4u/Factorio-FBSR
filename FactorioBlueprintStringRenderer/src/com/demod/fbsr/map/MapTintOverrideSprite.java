@@ -4,8 +4,8 @@ import java.awt.Color;
 import java.util.Optional;
 
 import com.demod.fbsr.Layer;
-import com.demod.fbsr.LayeredSpriteDef;
-import com.demod.fbsr.SpriteDef;
+import com.demod.fbsr.def.LayeredSpriteDef;
+import com.demod.fbsr.def.SpriteDef;
 
 public class MapTintOverrideSprite extends MapSprite {
 

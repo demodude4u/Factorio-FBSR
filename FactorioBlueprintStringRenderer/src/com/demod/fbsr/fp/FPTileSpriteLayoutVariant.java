@@ -8,8 +8,8 @@ import java.util.function.Consumer;
 
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.BlendMode;
-import com.demod.fbsr.ImageDef;
-import com.demod.fbsr.SpriteDef;
+import com.demod.fbsr.def.ImageDef;
+import com.demod.fbsr.def.SpriteDef;
 import com.demod.fbsr.map.MapRect;
 
 public class FPTileSpriteLayoutVariant {

@@ -9,10 +9,10 @@ import java.awt.image.BufferedImage;
 
 import com.demod.fbsr.AtlasManager.Atlas;
 import com.demod.fbsr.AtlasManager.AtlasRef;
+import com.demod.fbsr.def.MaterialDef;
+import com.demod.fbsr.def.SpriteDef;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.MaskedTextureComposite;
-import com.demod.fbsr.MaterialDef;
-import com.demod.fbsr.SpriteDef;
 
 public class MapMaterialMaskedTile extends MapRenderable implements MapBounded {
 

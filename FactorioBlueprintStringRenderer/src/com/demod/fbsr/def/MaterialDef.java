@@ -1,4 +1,4 @@
-package com.demod.fbsr;
+package com.demod.fbsr.def;
 
 import java.awt.Dimension;
 import java.awt.Rectangle;

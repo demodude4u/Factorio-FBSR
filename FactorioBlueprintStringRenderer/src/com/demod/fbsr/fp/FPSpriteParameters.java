@@ -5,7 +5,7 @@ import java.util.Optional;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.BlendMode;
 import com.demod.fbsr.FPUtils;
-import com.demod.fbsr.SpriteDef;
+import com.demod.fbsr.def.SpriteDef;
 
 public class FPSpriteParameters extends FPSpriteSource {
 	public final BlendMode blendMode;

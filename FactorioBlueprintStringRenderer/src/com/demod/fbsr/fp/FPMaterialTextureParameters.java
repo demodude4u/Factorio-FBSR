@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import com.demod.factorio.fakelua.LuaValue;
-import com.demod.fbsr.MaterialDef;
+import com.demod.fbsr.def.MaterialDef;
 
 public class FPMaterialTextureParameters {
 	private final int texWidthTiles;

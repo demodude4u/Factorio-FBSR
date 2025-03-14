@@ -8,7 +8,7 @@ import java.util.List;
 
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.Layer;
-import com.demod.fbsr.SpriteDef;
+import com.demod.fbsr.def.SpriteDef;
 
 public class MapInserterArm extends MapRenderable {
 

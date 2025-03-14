@@ -1,9 +1,11 @@
-package com.demod.fbsr;
+package com.demod.fbsr.def;
 
 import java.awt.Color;
 import java.awt.Rectangle;
 import java.util.Optional;
 
+import com.demod.fbsr.BlendMode;
+import com.demod.fbsr.Layer;
 import com.demod.fbsr.map.MapRect;
 
 public class LayeredSpriteDef extends SpriteDef {

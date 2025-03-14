@@ -3,10 +3,10 @@ package com.demod.fbsr.entity;
 import java.util.function.Consumer;
 
 import com.demod.fbsr.EntityRendererFactory;
-import com.demod.fbsr.ImageDef;
 import com.demod.fbsr.Layer;
-import com.demod.fbsr.SpriteDef;
 import com.demod.fbsr.WorldMap;
+import com.demod.fbsr.def.ImageDef;
+import com.demod.fbsr.def.SpriteDef;
 import com.demod.fbsr.fp.FPAnimation;
 import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapPosition;

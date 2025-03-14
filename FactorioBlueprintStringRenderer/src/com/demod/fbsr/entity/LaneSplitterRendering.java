@@ -5,14 +5,14 @@ import java.util.function.Consumer;
 
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.FPUtils;
-import com.demod.fbsr.ImageDef;
 import com.demod.fbsr.Layer;
-import com.demod.fbsr.SpriteDef;
 import com.demod.fbsr.TagManager;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.WorldMap.BeltBend;
 import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.bs.entity.BSSplitterEntity;
+import com.demod.fbsr.def.ImageDef;
+import com.demod.fbsr.def.SpriteDef;
 import com.demod.fbsr.fp.FPAnimation4Way;
 import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapIcon;

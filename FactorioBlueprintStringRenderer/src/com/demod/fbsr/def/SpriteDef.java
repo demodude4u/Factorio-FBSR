@@ -1,9 +1,11 @@
-package com.demod.fbsr;
+package com.demod.fbsr.def;
 
 import java.awt.Color;
 import java.awt.Rectangle;
 import java.util.Optional;
 
+import com.demod.fbsr.BlendMode;
+import com.demod.fbsr.FBSR;
 import com.demod.fbsr.fp.FPColor;
 import com.demod.fbsr.map.MapPosition;
 import com.demod.fbsr.map.MapRect;

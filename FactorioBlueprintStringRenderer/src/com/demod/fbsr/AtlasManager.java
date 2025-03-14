@@ -37,7 +37,8 @@ import org.json.JSONTokener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.demod.fbsr.ImageDef.ImageSheetLoader;
+import com.demod.fbsr.def.ImageDef;
+import com.demod.fbsr.def.ImageDef.ImageSheetLoader;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
 import com.google.common.io.Files;
@@ -260,7 +261,7 @@ public class AtlasManager {
 
 		LOGGER.info("Trimming Images...");
 		defs.parallelStream().forEach(def -> {
-			BufferedImage imageSheet = imageSheets.get(def.path);
+			BufferedImage imageSheet = imageSheets.get(def.getPath());
 			if (def.isTrimmable()) {
 				Rectangle trimmed = trimEmptyRect(imageSheet, def.getSource());
 				def.setTrimmed(trimmed);
@@ -298,7 +299,8 @@ public class AtlasManager {
 			Rectangle trimmed = def.getTrimmed();
 			progressPixels += trimmed.width * trimmed.height;
 
-			String locationKey = def.path + "|" + source.x + "|" + source.y + "|" + source.width + "|" + source.height;
+			String locationKey = def.getPath() + "|" + source.x + "|" + source.y + "|" + source.width + "|"
+					+ source.height;
 
 			AtlasRef cached = locationCheck.get(locationKey);
 			if (cached != null) {
@@ -306,7 +308,7 @@ public class AtlasManager {
 				continue;
 			}
 
-			BufferedImage imageSheet = imageSheets.get(def.path);
+			BufferedImage imageSheet = imageSheets.get(def.getPath());
 			String md5key = computeMD5(imageSheet, trimmed);
 			cached = md5Check.get(md5key);
 			if (cached != null) {
@@ -353,10 +355,10 @@ public class AtlasManager {
 
 		JSONArray jsonManifest = new JSONArray();
 		for (ImageDef def : defs) {
-			Rectangle source = def.source;
-			AtlasRef atlasRef = def.atlasRef;
+			Rectangle source = def.getSource();
+			AtlasRef atlasRef = def.getAtlasRef();
 			JSONArray jsonEntry = new JSONArray();
-			jsonEntry.put(def.path);
+			jsonEntry.put(def.getPath());
 			jsonEntry.put(source.x);
 			jsonEntry.put(source.y);
 			jsonEntry.put(source.width);
@@ -427,7 +429,7 @@ public class AtlasManager {
 		Set<String> currentKeys = new HashSet<>();
 		for (ImageDef image : defs) {
 			Rectangle source = image.getSource();
-			String locationKey = image.path + "|" + source.x + "|" + source.y + "|" + source.width + "|"
+			String locationKey = image.getPath() + "|" + source.x + "|" + source.y + "|" + source.width + "|"
 					+ source.height;
 			currentKeys.add(locationKey);
 		}
@@ -501,8 +503,8 @@ public class AtlasManager {
 		}
 
 		for (ImageDef image : defs) {
-			Rectangle source = image.source;
-			String locationKey = image.path + "|" + source.x + "|" + source.y + "|" + source.width + "|"
+			Rectangle source = image.getSource();
+			String locationKey = image.getPath() + "|" + source.x + "|" + source.y + "|" + source.width + "|"
 					+ source.height;
 			RefValues ref = locationMap.get(locationKey);
 			if (ref == null) {

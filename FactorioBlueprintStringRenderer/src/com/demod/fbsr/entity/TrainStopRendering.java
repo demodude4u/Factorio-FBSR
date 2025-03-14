@@ -6,11 +6,11 @@ import java.util.function.Consumer;
 
 import com.demod.factorio.fakelua.LuaTable;
 import com.demod.fbsr.Direction;
-import com.demod.fbsr.ImageDef;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.bs.entity.BSTrainStopEntity;
+import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.fp.FPAnimation4Way;
 import com.demod.fbsr.fp.FPColor;
 import com.demod.fbsr.gui.GUIStyle;

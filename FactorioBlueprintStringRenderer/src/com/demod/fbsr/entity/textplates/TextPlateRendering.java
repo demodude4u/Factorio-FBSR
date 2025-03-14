@@ -6,11 +6,11 @@ import org.json.JSONObject;
 
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.FPUtils;
-import com.demod.fbsr.ImageDef;
 import com.demod.fbsr.Layer;
-import com.demod.fbsr.SpriteDef;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.bs.BSEntity;
+import com.demod.fbsr.def.ImageDef;
+import com.demod.fbsr.def.SpriteDef;
 import com.demod.fbsr.fp.FPSpriteVariations;
 import com.demod.fbsr.legacy.LegacyBlueprintEntity;
 import com.demod.fbsr.map.MapEntity;

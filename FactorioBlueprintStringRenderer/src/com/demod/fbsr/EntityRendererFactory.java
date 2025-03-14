@@ -24,6 +24,7 @@ import com.demod.factorio.prototype.RecipePrototype;
 import com.demod.fbsr.WirePoints.WirePoint;
 import com.demod.fbsr.WorldMap.BeaconSource;
 import com.demod.fbsr.bs.BSEntity;
+import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.fp.FPBoundingBox;
 import com.demod.fbsr.fp.FPVector;
 import com.demod.fbsr.legacy.LegacyBlueprintEntity;

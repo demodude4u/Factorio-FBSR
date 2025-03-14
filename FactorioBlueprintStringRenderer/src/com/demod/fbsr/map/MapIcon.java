@@ -8,7 +8,7 @@ import java.awt.geom.AffineTransform;
 import java.awt.geom.RoundRectangle2D;
 
 import com.demod.fbsr.AtlasManager.AtlasRef;
-import com.demod.fbsr.ImageDef;
+import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.Layer;
 
 public class MapIcon extends MapRenderable {

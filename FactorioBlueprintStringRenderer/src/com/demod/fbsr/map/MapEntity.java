@@ -9,10 +9,10 @@ import com.demod.fbsr.Direction;
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.FactorioManager;
 import com.demod.fbsr.Layer;
-import com.demod.fbsr.LayeredSpriteDef;
-import com.demod.fbsr.SpriteDef;
 import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.bs.BSItemStack;
+import com.demod.fbsr.def.LayeredSpriteDef;
+import com.demod.fbsr.def.SpriteDef;
 import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.Multiset;
 

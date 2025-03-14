@@ -6,7 +6,7 @@ import java.util.function.Consumer;
 
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.FPUtils;
-import com.demod.fbsr.ImageDef;
+import com.demod.fbsr.def.ImageDef;
 
 public class FPFluidBox {
 	public final Optional<String> filter;

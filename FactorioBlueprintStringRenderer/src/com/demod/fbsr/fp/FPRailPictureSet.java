@@ -4,7 +4,7 @@ import java.util.function.Consumer;
 
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.Direction;
-import com.demod.fbsr.ImageDef;
+import com.demod.fbsr.def.ImageDef;
 import com.google.common.collect.ImmutableList;
 
 public class FPRailPictureSet {

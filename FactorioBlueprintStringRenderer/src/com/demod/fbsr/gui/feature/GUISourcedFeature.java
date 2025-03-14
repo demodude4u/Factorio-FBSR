@@ -6,7 +6,7 @@ import java.awt.image.BufferedImage;
 
 import com.demod.fbsr.AtlasManager;
 import com.demod.fbsr.AtlasManager.AtlasRef;
-import com.demod.fbsr.ImageDef;
+import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.gui.GUIBox;
 
 public abstract class GUISourcedFeature {

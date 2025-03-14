@@ -6,7 +6,7 @@ import java.util.Optional;
 
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.Direction;
-import com.demod.fbsr.SpriteDef;
+import com.demod.fbsr.def.SpriteDef;
 
 public class FPSpriteNWaySheet extends FPSpriteParameters {
 

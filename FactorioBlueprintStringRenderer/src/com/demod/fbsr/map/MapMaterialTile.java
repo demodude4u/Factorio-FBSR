@@ -8,8 +8,8 @@ import java.awt.Rectangle;
 import java.awt.geom.AffineTransform;
 
 import com.demod.fbsr.AtlasManager.AtlasRef;
+import com.demod.fbsr.def.MaterialDef;
 import com.demod.fbsr.Layer;
-import com.demod.fbsr.MaterialDef;
 
 public class MapMaterialTile extends MapRenderable implements MapBounded {
 

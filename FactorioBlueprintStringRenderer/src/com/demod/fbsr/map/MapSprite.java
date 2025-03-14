@@ -9,9 +9,9 @@ import java.awt.geom.AffineTransform;
 import java.util.Optional;
 
 import com.demod.fbsr.AtlasManager.AtlasRef;
+import com.demod.fbsr.def.LayeredSpriteDef;
+import com.demod.fbsr.def.SpriteDef;
 import com.demod.fbsr.Layer;
-import com.demod.fbsr.LayeredSpriteDef;
-import com.demod.fbsr.SpriteDef;
 import com.demod.fbsr.TintComposite;
 import com.demod.fbsr.TintOverlayComposite;
 

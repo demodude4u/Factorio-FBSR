@@ -17,6 +17,7 @@ import com.demod.factorio.Utils;
 import com.demod.factorio.fakelua.LuaTable;
 import com.demod.factorio.prototype.DataPrototype;
 import com.demod.factorio.prototype.RecipePrototype;
+import com.demod.fbsr.def.ImageDef;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.Multimaps;
