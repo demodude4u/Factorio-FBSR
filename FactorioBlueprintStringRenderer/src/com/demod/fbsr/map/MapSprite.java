@@ -15,7 +15,7 @@ import com.demod.fbsr.SpriteDef;
 import com.demod.fbsr.TintComposite;
 import com.demod.fbsr.TintOverlayComposite;
 
-public class MapSprite extends MapRenderable {
+public class MapSprite extends MapRenderable implements MapBounded {
 
 	protected final SpriteDef def;
 	protected final MapRect bounds;
@@ -28,14 +28,12 @@ public class MapSprite extends MapRenderable {
 		super(def.isShadow() ? Layer.SHADOW_BUFFER : layer);
 		this.def = def;
 
-		if (!def.getAtlasRef().isValid()) {
-			throw new IllegalStateException("Sprite not on atlas! " + def.getPath() + " (" + def.getSource().x + ","
-					+ def.getSource().y + "," + def.getSource().width + "," + def.getSource().height + ")");
-		}
+		def.checkValid();
 
 		this.bounds = def.getTrimmedBounds().add(pos);
 	}
 
+	@Override
 	public MapRect getBounds() {
 		return bounds;
 	}
@@ -47,9 +45,6 @@ public class MapSprite extends MapRenderable {
 	@Override
 	public void render(Graphics2D g) {
 		AtlasRef ref = def.getAtlasRef();
-		if (!ref.isValid()) {
-			throw new IllegalStateException("Sprite not assigned to atlas! " + def.getPath());
-		}
 		Image image = ref.getAtlas().getBufferedImage();
 		Rectangle source = ref.getRect();
 

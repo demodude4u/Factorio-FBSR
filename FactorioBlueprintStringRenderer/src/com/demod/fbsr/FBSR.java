@@ -54,6 +54,7 @@ import com.demod.fbsr.bs.BSMetaEntity;
 import com.demod.fbsr.bs.BSTile;
 import com.demod.fbsr.bs.BSWire;
 import com.demod.fbsr.entity.ErrorRendering;
+import com.demod.fbsr.map.MapBounded;
 import com.demod.fbsr.map.MapDebug;
 import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapFoundationGrid;
@@ -64,7 +65,6 @@ import com.demod.fbsr.map.MapRailLogistics;
 import com.demod.fbsr.map.MapRect;
 import com.demod.fbsr.map.MapRect3D;
 import com.demod.fbsr.map.MapRenderable;
-import com.demod.fbsr.map.MapSprite;
 import com.demod.fbsr.map.MapTile;
 import com.demod.fbsr.map.MapWire;
 import com.demod.fbsr.map.MapWireShadow;
@@ -331,8 +331,8 @@ public class FBSR {
 					gridBounds.getY2() + worldPadding + gridPadding);
 
 			if (request.dontClipSprites()) {
-				List<MapRect> rects = renderBuckets.values().stream().filter(r -> r instanceof MapSprite)
-						.map(r -> ((MapSprite) r).getBounds()).collect(Collectors.toList());
+				List<MapRect> rects = renderBuckets.values().stream().filter(r -> r instanceof MapBounded)
+						.map(r -> ((MapBounded) r).getBounds()).collect(Collectors.toList());
 				if (!rects.isEmpty()) {
 					MapRect spriteBounds = MapRect.combineAll(rects);
 
