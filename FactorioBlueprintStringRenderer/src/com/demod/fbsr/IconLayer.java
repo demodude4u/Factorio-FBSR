@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import com.demod.factorio.fakelua.LuaTable;
 import com.demod.factorio.fakelua.LuaValue;
+import com.demod.fbsr.composite.TintComposite;
 import com.demod.fbsr.fp.FPColor;
 import com.demod.fbsr.fp.FPVector;
 import com.google.common.collect.ImmutableList;

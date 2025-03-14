@@ -1,4 +1,4 @@
-package com.demod.fbsr;
+package com.demod.fbsr.composite;
 
 import java.awt.Composite;
 import java.awt.CompositeContext;

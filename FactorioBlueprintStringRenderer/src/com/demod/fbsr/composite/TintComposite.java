@@ -1,4 +1,4 @@
-package com.demod.fbsr;
+package com.demod.fbsr.composite;
 
 import java.awt.Color;
 import java.awt.Composite;
