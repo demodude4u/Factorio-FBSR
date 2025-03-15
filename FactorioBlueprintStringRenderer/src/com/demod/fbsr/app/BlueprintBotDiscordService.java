@@ -711,7 +711,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				label = Optional.empty();
 			}
 			byte[] bytes = json.toString(2).getBytes();
-			event.replyFile(bytes, WebUtils.formatBlueprintFilename(label, ".json"));
+			event.replyFile(bytes, WebUtils.formatBlueprintFilename(label, "json"));
 		}
 	}
 
