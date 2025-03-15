@@ -3,7 +3,9 @@ package com.demod.fbsr;
 import static com.demod.fbsr.Direction.*;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
+import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Objects;
@@ -48,26 +50,47 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Table;
 
 public class TileRendererFactory {
-
 	private static final Logger LOGGER = LoggerFactory.getLogger(TileRendererFactory.class);
 
+	public enum TileEdgeRuleMode {
+		NO_DOUBLE, WITH_DOUBLE, MERGED_UO
+	}
+
 	public enum TileEdgeRule {
-		SIDE(NORTH.adjCode(), WEST.adjCode() | EAST.adjCode(), fp -> fp.side), //
-		OUTER_CORNER(NORTHEAST.adjCode(), NORTH.adjCode() | EAST.adjCode(), fp -> fp.outerCorner), //
-		U_TRANSITION(WEST.adjCode() | NORTH.adjCode() | EAST.adjCode(), SOUTH.adjCode(), fp -> fp.uTransition), //
-		O_TRANSITION(WEST.adjCode() | NORTH.adjCode() | EAST.adjCode() | SOUTH.adjCode(), 0, fp -> fp.oTransition), //
-		INNER_CORNER(NORTH.adjCode() | EAST.adjCode(), SOUTH.adjCode() | WEST.adjCode(), fp -> fp.innerCorner),//
+		SIDE(NORTH.adjCode(), WEST.adjCode() | EAST.adjCode(), fp -> fp.side, 4, TileEdgeRuleMode.NO_DOUBLE,
+				TileEdgeRuleMode.MERGED_UO), //
+		SIDE_NO_FAR(NORTH.adjCode(), WEST.adjCode() | EAST.adjCode() | NORTH.adjCode(), fp -> fp.side, 4,
+				TileEdgeRuleMode.WITH_DOUBLE), //
+		DOUBLE_SIDE(NORTH.adjCode() | SOUTH.adjCode(), WEST.adjCode() | EAST.adjCode(), fp -> fp.doubleSide, 2,
+				TileEdgeRuleMode.WITH_DOUBLE), //
+		OUTER_CORNER(NORTHEAST.adjCode(), NORTH.adjCode() | EAST.adjCode(), fp -> fp.outerCorner, 4,
+				TileEdgeRuleMode.NO_DOUBLE, TileEdgeRuleMode.WITH_DOUBLE, TileEdgeRuleMode.MERGED_UO), //
+		U_TRANSITION(WEST.adjCode() | NORTH.adjCode() | EAST.adjCode(), SOUTH.adjCode(), fp -> fp.uTransition, 4,
+				TileEdgeRuleMode.NO_DOUBLE, TileEdgeRuleMode.WITH_DOUBLE, TileEdgeRuleMode.MERGED_UO), //
+		O_TRANSITION(WEST.adjCode() | NORTH.adjCode() | EAST.adjCode() | SOUTH.adjCode(), 0, fp -> fp.oTransition, 1,
+				TileEdgeRuleMode.NO_DOUBLE, TileEdgeRuleMode.WITH_DOUBLE, TileEdgeRuleMode.MERGED_UO), //
+		INNER_CORNER(NORTH.adjCode() | EAST.adjCode(), SOUTH.adjCode() | WEST.adjCode(), fp -> fp.innerCorner, 4,
+				TileEdgeRuleMode.NO_DOUBLE, TileEdgeRuleMode.WITH_DOUBLE), //
+		INNER_CORNER_MERGE_UO_1(NORTH.adjCode() | EAST.adjCode(), SOUTH.adjCode() | WEST.adjCode(), fp -> fp.side, 4,
+				TileEdgeRuleMode.MERGED_UO), //
+		INNER_CORNER_MERGE_UO_2(NORTH.adjCode() | WEST.adjCode(), SOUTH.adjCode() | EAST.adjCode(), fp -> fp.side, 4,
+				TileEdgeRuleMode.MERGED_UO),//
 		;
 
 		private final int adjCodePresent;
 		private final int adjCodeEmpty;
 		private final Function<FPTileTransitionVariantLayout, Optional<FPTileSpriteLayoutVariant>> selector;
+		private final int variants;
+		private final List<TileEdgeRuleMode> modes;
 
 		private TileEdgeRule(int adjCodePresent, int adjCodeEmpty,
-				Function<FPTileTransitionVariantLayout, Optional<FPTileSpriteLayoutVariant>> selector) {
+				Function<FPTileTransitionVariantLayout, Optional<FPTileSpriteLayoutVariant>> selector, int variants,
+				TileEdgeRuleMode... modes) {
 			this.adjCodePresent = adjCodePresent;
 			this.adjCodeEmpty = adjCodeEmpty;
 			this.selector = selector;
+			this.variants = variants;
+			this.modes = Arrays.asList(modes);
 		}
 
 		public Function<FPTileTransitionVariantLayout, Optional<FPTileSpriteLayoutVariant>> getSelector() {
@@ -77,14 +100,11 @@ public class TileRendererFactory {
 
 	public static class TileEdgeRuleParam {
 		private final int variant;
-		private final String rule;
-		private final Function<FPTileTransitionVariantLayout, Optional<FPTileSpriteLayoutVariant>> selector;
+		private final TileEdgeRule rule;
 
-		public TileEdgeRuleParam(int variant, String rule,
-				Function<FPTileTransitionVariantLayout, Optional<FPTileSpriteLayoutVariant>> selector) {
+		public TileEdgeRuleParam(int variant, TileEdgeRule rule) {
 			this.variant = variant;
 			this.rule = rule;
-			this.selector = selector;
 		}
 
 		@Override
@@ -100,7 +120,7 @@ public class TileRendererFactory {
 		}
 
 		public Function<FPTileTransitionVariantLayout, Optional<FPTileSpriteLayoutVariant>> getSelector() {
-			return selector;
+			return rule.selector;
 		}
 
 		public int getVariant() {
@@ -110,6 +130,44 @@ public class TileRendererFactory {
 		@Override
 		public int hashCode() {
 			return Objects.hash(rule, variant);
+		}
+	}
+
+	public static EnumMap<TileEdgeRuleMode, List<List<TileEdgeRuleParam>>> tileRulesByMode = new EnumMap<>(
+			TileEdgeRuleMode.class);
+
+	static {
+		for (TileEdgeRuleMode ruleMode : TileEdgeRuleMode.values()) {
+			List<List<TileEdgeRuleParam>> tileRules;
+			tileRulesByMode.put(ruleMode, tileRules = new ArrayList<>());
+			IntStream.range(0, 256).forEach(i -> tileRules.add(new ArrayList<>()));
+			for (TileEdgeRule rule : TileEdgeRule.values()) {
+				if (!rule.modes.contains(ruleMode)) {
+					continue;
+				}
+				int adjCodePresent = rule.adjCodePresent;
+				int adjCodeEmpty = rule.adjCodeEmpty;
+				for (int variant = 0; variant < rule.variants; variant++) {
+					for (int adjCode = 0; adjCode < 0xFF; adjCode++) {
+						int adjCodeCheck = (adjCode | adjCodePresent) & ~adjCodeEmpty;
+						if (adjCode == adjCodeCheck) {
+							TileEdgeRuleParam param = new TileEdgeRuleParam(variant, rule);
+							List<TileEdgeRuleParam> adjRules = tileRules.get(adjCode);
+							if (!adjRules.contains(param)) {
+								adjRules.add(param);
+							}
+						}
+					}
+					// rotate 90 degrees
+					int nextAdjCodePresent = ((adjCodePresent << 2) | (adjCodePresent >> 6)) & 0xFF;
+					int nextAdjCodeEmpty = ((adjCodeEmpty << 2) | (adjCodeEmpty >> 6)) & 0xFF;
+					if (nextAdjCodePresent == adjCodePresent && nextAdjCodeEmpty == adjCodeEmpty) {
+						break;
+					}
+					adjCodePresent = nextAdjCodePresent;
+					adjCodeEmpty = nextAdjCodeEmpty;
+				}
+			}
 		}
 	}
 
@@ -124,15 +182,16 @@ public class TileRendererFactory {
 	private static class TileEdgeCell {
 		int row, col;
 		int layer;
+		public MapPosition pos;
 		TileRendererFactory factory;
 		int adjCode = 0;
+		List<TileEdgeRuleParam> params = null;
 	}
 
 	public interface TileRenderProcess {
 		void tileCenter(Random rand, Consumer<MapRenderable> register, TileCell cell);
 
-		void tileEdge(Random rand, Consumer<MapRenderable> register, TileEdgeCell cell, MapPosition pos,
-				List<TileEdgeRuleParam> params);
+		void tileEdge(Random rand, Consumer<MapRenderable> register, TileEdgeCell cell);
 
 		void initAtlas(Consumer<ImageDef> register);
 	}
@@ -155,8 +214,7 @@ public class TileRendererFactory {
 		}
 
 		@Override
-		public void tileEdge(Random rand, Consumer<MapRenderable> register, TileEdgeCell cell, MapPosition pos,
-				List<TileEdgeRuleParam> params) {
+		public void tileEdge(Random rand, Consumer<MapRenderable> register, TileEdgeCell cell) {
 			FPTileTransitions transitions = protoVariants.transition.get();
 
 			rand.setSeed(getRandomSeed(cell.row, cell.col, cell.layer, cell.adjCode));
@@ -164,33 +222,22 @@ public class TileRendererFactory {
 			// TODO figure out why some tiles do not have an overlay!
 			if (transitions.overlayLayout.isPresent()) {
 				FPTileTransitionVariantLayout overlay = transitions.overlayLayout.get();
-				List<TileEdgeRuleParam> overlayParams;
-				if (overlay.doubleSide.isPresent()) {
-					overlayParams = convertSidesToDoubleSides(params);
-				} else {
-					overlayParams = params;
-				}
-				for (TileEdgeRuleParam param : overlayParams) {
+				for (TileEdgeRuleParam param : cell.params) {
 					Optional<FPTileSpriteLayoutVariant> optVariant = param.getSelector().apply(overlay);
 					if (optVariant.isPresent()) {
 						FPTileSpriteLayoutVariant variant = optVariant.get();
 
 						int frame = rand.nextInt(variant.count);
 
-						register.accept(new MapSprite(variant.defineImage(param.variant, frame), Layer.DECALS, pos));
+						register.accept(
+								new MapSprite(variant.defineImage(param.variant, frame), Layer.DECALS, cell.pos));
 					}
 				}
 			}
 
 			if (transitions.backgroundLayout.isPresent()) {
 				FPTileTransitionVariantLayout background = transitions.backgroundLayout.get();
-				List<TileEdgeRuleParam> backgroundParams;
-				if (background.doubleSide.isPresent()) {
-					backgroundParams = convertSidesToDoubleSides(params);
-				} else {
-					backgroundParams = params;
-				}
-				for (TileEdgeRuleParam param : backgroundParams) {
+				for (TileEdgeRuleParam param : cell.params) {
 					Optional<FPTileSpriteLayoutVariant> optVariant = param.getSelector().apply(background);
 					if (optVariant.isPresent()) {
 						FPTileSpriteLayoutVariant variant = optVariant.get();
@@ -198,7 +245,7 @@ public class TileRendererFactory {
 						int frame = rand.nextInt(variant.count);
 
 						register.accept(
-								new MapSprite(variant.defineImage(param.variant, frame), Layer.UNDER_TILES, pos));
+								new MapSprite(variant.defineImage(param.variant, frame), Layer.UNDER_TILES, cell.pos));
 					}
 				}
 			}
@@ -229,8 +276,7 @@ public class TileRendererFactory {
 		}
 
 		@Override
-		public void tileEdge(Random rand, Consumer<MapRenderable> register, TileEdgeCell cell, MapPosition pos,
-				List<TileEdgeRuleParam> params) {
+		public void tileEdge(Random rand, Consumer<MapRenderable> register, TileEdgeCell cell) {
 
 			FPMaterialTextureParameters material = protoVariants.materialBackground.get();
 			int tw = material.getTexWidthTiles();
@@ -246,11 +292,7 @@ public class TileRendererFactory {
 
 			rand.setSeed(getRandomSeed(cell.row, cell.col, cell.layer, cell.adjCode));
 
-			if (mask.doubleSide.isPresent()) {
-				params = convertSidesToDoubleSides(params);
-			}
-
-			for (TileEdgeRuleParam param : params) {
+			for (TileEdgeRuleParam param : cell.params) {
 				Optional<FPTileSpriteLayoutVariant> optVariantMask = param.getSelector().apply(mask);
 				Optional<FPTileSpriteLayoutVariant> optVariantOverlay = optOverlay
 						.flatMap(o -> param.getSelector().apply(o));
@@ -264,7 +306,7 @@ public class TileRendererFactory {
 
 					register.accept(new MapMaterialMaskedTile(materialDef,
 							variantMask.defineImage(param.variant, frame.getAsInt()), cell.row % th, cell.col % tw,
-							pos));
+							cell.pos));
 
 				}
 
@@ -276,7 +318,7 @@ public class TileRendererFactory {
 					}
 
 					register.accept(new MapSprite(variantOverlay.defineImage(param.variant, frame.getAsInt()),
-							Layer.DECALS, pos));
+							Layer.DECALS, cell.pos));
 				}
 			}
 
@@ -288,44 +330,6 @@ public class TileRendererFactory {
 			protoVariants.materialBackground.get().getDefs().forEach(register);
 			protoVariants.transition.ifPresent(fp -> fp.overlayLayout.ifPresent(fp2 -> fp2.getDefs(register)));
 			protoVariants.transition.ifPresent(fp -> fp.maskLayout.ifPresent(fp2 -> fp2.getDefs(register)));
-		}
-	}
-
-	public static List<List<TileEdgeRuleParam>> tileRules = new ArrayList<>();
-
-	static {
-		IntStream.range(0, 256).forEach(i -> tileRules.add(new ArrayList<>()));
-		for (TileEdgeRule rule : TileEdgeRule.values()) {
-			int adjCodePresent = rule.adjCodePresent;
-			int adjCodeEmpty = rule.adjCodeEmpty;
-			for (int variant = 0; variant < 4; variant++) {
-				for (int adjCode = 0; adjCode < 0xFF; adjCode++) {
-					int adjCodeCheck = (adjCode | adjCodePresent) & ~adjCodeEmpty;
-					if (adjCode == adjCodeCheck) {
-						TileEdgeRuleParam param = new TileEdgeRuleParam(variant, rule.name(), rule.selector);
-						List<TileEdgeRuleParam> adjRules = tileRules.get(adjCode);
-						if (!adjRules.contains(param)) {
-							adjRules.add(param);
-						}
-					}
-				}
-				// rotate 90 degrees
-				int nextAdjCodePresent = ((adjCodePresent << 2) | (adjCodePresent >> 6)) & 0xFF;
-				int nextAdjCodeEmpty = ((adjCodeEmpty << 2) | (adjCodeEmpty >> 6)) & 0xFF;
-				if (nextAdjCodePresent == adjCodePresent && nextAdjCodeEmpty == adjCodeEmpty) {
-					break;
-				}
-				adjCodePresent = nextAdjCodePresent;
-				adjCodeEmpty = nextAdjCodeEmpty;
-			}
-		}
-		for (int adjCode = 0; adjCode < 256; adjCode++) {
-			List<TileEdgeRuleParam> params = tileRules.get(adjCode);
-			if (params.isEmpty()) {
-				continue;
-			}
-//			System.out.println("RULE " + Integer.toBinaryString((1 << 15) | adjCode).substring(8, 16) + " -- " + params
-//					.stream().map(p -> p.rule.name() + "_" + p.variant).collect(Collectors.joining(", ", "[", "]")));
 		}
 	}
 
@@ -418,6 +422,7 @@ public class TileRendererFactory {
 					edgeCell.row = adjRow;
 					edgeCell.col = adjCol;
 					edgeCell.layer = cell.layer;
+					edgeCell.pos = MapPosition.byUnit(adjCol, adjRow);
 					edgeCell.factory = cell.factory;
 					edgeMap.put(adjRow, adjCol, edgeCell);
 					activeLayers.add(edgeCell.layer);
@@ -439,32 +444,27 @@ public class TileRendererFactory {
 
 			// Render tile edges
 			for (TileEdgeCell cell : edgeCellLayers.get(layer)) {
-				MapPosition pos = MapPosition.byUnit(cell.col, cell.row);
+				TileEdgeRuleMode ruleMode = null;
+				if (cell.factory.protoTransitionMergesWithTile.isPresent()) {
+					TileRendererFactory mergeFactory = cell.factory.protoTransitionMergesWithTile.get();
+					TileEdgeCell mergeCell = tileEdgeMaps.get(mergeFactory.protoLayer).get(cell.row, cell.col);
+					if (mergeCell != null && mergeCell.params.stream().anyMatch(
+							p -> p.rule == TileEdgeRule.U_TRANSITION || p.rule == TileEdgeRule.O_TRANSITION)) {
+						ruleMode = TileEdgeRuleMode.MERGED_UO;
+					}
+				}
+				if (ruleMode == null) {
+					ruleMode = cell.factory.protoDoubleSided ? TileEdgeRuleMode.WITH_DOUBLE
+							: TileEdgeRuleMode.NO_DOUBLE;
+				}
+				List<List<TileEdgeRuleParam>> tileRules = tileRulesByMode.get(ruleMode);
 				List<TileEdgeRuleParam> params = tileRules.get(cell.adjCode);
+				cell.params = params;
 
-				// TODO detect double side scenario and do special rendering
-
-				cell.factory.renderProcess.tileEdge(rand, register, cell, pos, params);
-			}
-
-			// Render tile blends (TODO)
-
-		}
-
-	}
-
-	private static List<TileEdgeRuleParam> convertSidesToDoubleSides(List<TileEdgeRuleParam> params) {
-		if (params.size() != 2) {
-			return params;
-		}
-		// TODO strings bad
-		for (TileEdgeRuleParam param : params) {
-			if (!param.rule.equals("SIDE")) {
-				return params;
+				cell.factory.renderProcess.tileEdge(rand, register, cell);
 			}
 		}
-		return ImmutableList.of(new TileEdgeRuleParam(params.stream().mapToInt(p -> p.variant).min().getAsInt(), null,
-				fp -> fp.doubleSide));
+
 	}
 
 	public static long getRandomSeed(int row, int col, int layer, int adjCode) {
@@ -515,6 +515,7 @@ public class TileRendererFactory {
 	private int protoLayer;
 	private Optional<String> protoTransitionMergesWithTileID;
 	private Optional<TileRendererFactory> protoTransitionMergesWithTile;
+	private boolean protoDoubleSided;
 
 	private TileRenderProcess renderProcess = null;
 
@@ -550,6 +551,10 @@ public class TileRendererFactory {
 		else if (protoVariants.materialBackground.isPresent()) {
 			renderProcess = new TileRenderProcessMaterial();
 		}
+
+		protoDoubleSided = protoVariants.transition.stream()
+				.flatMap(fp -> ImmutableList.of(fp.backgroundLayout, fp.maskLayout, fp.overlayLayout).stream())
+				.anyMatch(fp -> fp.flatMap(fp2 -> fp2.doubleSide).isPresent());
 	}
 
 	public boolean isUnknown() {
