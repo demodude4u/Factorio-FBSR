@@ -83,7 +83,7 @@ public class FBSR {
 	private static final long MAX_WORLD_RENDER_PIXELS = (long) (TARGET_FILE_SIZE * ESTIMATED_JPG_PIXELS_PER_BYTE);
 
 	public static final Color GROUND_COLOR = new Color(40, 40, 40);
-	public static final Color GRID_COLOR = new Color(0xffe6c0);
+	public static final Color GRID_COLOR = new Color(0xffe6c0).darker().darker();
 
 	private static volatile String version = null;
 
