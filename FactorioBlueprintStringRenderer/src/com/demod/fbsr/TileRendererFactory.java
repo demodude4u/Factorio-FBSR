@@ -8,6 +8,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Random;
 import java.util.TreeSet;
 import java.util.function.Consumer;
@@ -115,10 +116,9 @@ public class TileRendererFactory {
 	private static class TileCell {
 		int row, col;
 		int layer;
-//		Optional<TileRendererFactory> mergeFactory;
-//		OptionalInt mergeLayer;
 		BSTile tile;
 		TileRendererFactory factory;
+		boolean hidden;
 	}
 
 	private static class TileEdgeCell {
@@ -213,9 +213,6 @@ public class TileRendererFactory {
 	}
 
 	public class TileRenderProcessMaterial implements TileRenderProcess {
-		// Uses material_background and masks (concrete, etc.)
-		// TODO
-		// Create masking function to generate edge tiles
 		@Override
 		public void tileCenter(Random rand, Consumer<MapRenderable> register, TileCell cell) {
 			BSTile tile = cell.tile;
@@ -244,31 +241,42 @@ public class TileRendererFactory {
 			MaterialDef materialDef = material.defineMaterial(materialFrame);
 
 			FPTileTransitions transitions = protoVariants.transition.get();
-			FPTileTransitionVariantLayout overlay = transitions.overlayLayout.get();
+			Optional<FPTileTransitionVariantLayout> optOverlay = transitions.overlayLayout;
 			FPTileTransitionVariantLayout mask = transitions.maskLayout.get();
 
 			rand.setSeed(getRandomSeed(cell.row, cell.col, cell.layer, cell.adjCode));
 
-			if (overlay.doubleSide.isPresent()) {
+			if (mask.doubleSide.isPresent()) {
 				params = convertSidesToDoubleSides(params);
 			}
 
 			for (TileEdgeRuleParam param : params) {
 				Optional<FPTileSpriteLayoutVariant> optVariantMask = param.getSelector().apply(mask);
-				Optional<FPTileSpriteLayoutVariant> optVariantOverlay = param.getSelector().apply(overlay);
-				if (optVariantMask.isPresent() && optVariantOverlay.isPresent()) {
+				Optional<FPTileSpriteLayoutVariant> optVariantOverlay = optOverlay
+						.flatMap(o -> param.getSelector().apply(o));
+
+				OptionalInt frame = OptionalInt.empty();
+
+				if (optVariantMask.isPresent()) {
 					FPTileSpriteLayoutVariant variantMask = optVariantMask.get();
-					FPTileSpriteLayoutVariant variantOverlay = optVariantOverlay.get();
 
-					if (variantMask.count != variantOverlay.count) {
-						throw new IllegalStateException("Mask and overlay do not match!");
-					}
-
-					int frame = rand.nextInt(variantMask.count);
+					frame = OptionalInt.of(rand.nextInt(variantMask.count));
 
 					register.accept(new MapMaterialMaskedTile(materialDef,
-							variantMask.defineImage(param.variant, frame), cell.row % th, cell.col % tw, pos));
-					register.accept(new MapSprite(variantOverlay.defineImage(param.variant, frame), Layer.DECALS, pos));
+							variantMask.defineImage(param.variant, frame.getAsInt()), cell.row % th, cell.col % tw,
+							pos));
+
+				}
+
+				if (optVariantOverlay.isPresent()) {
+					FPTileSpriteLayoutVariant variantOverlay = optVariantOverlay.get();
+
+					if (frame.isEmpty()) {
+						frame = OptionalInt.of(rand.nextInt(variantOverlay.count));
+					}
+
+					register.accept(new MapSprite(variantOverlay.defineImage(param.variant, frame.getAsInt()),
+							Layer.DECALS, pos));
 				}
 			}
 
@@ -280,7 +288,6 @@ public class TileRendererFactory {
 			protoVariants.materialBackground.get().getDefs().forEach(register);
 			protoVariants.transition.ifPresent(fp -> fp.overlayLayout.ifPresent(fp2 -> fp2.getDefs(register)));
 			protoVariants.transition.ifPresent(fp -> fp.maskLayout.ifPresent(fp2 -> fp2.getDefs(register)));
-			// TODO edge tiles
 		}
 	}
 
@@ -331,8 +338,8 @@ public class TileRendererFactory {
 		// TODO make a predictable random method consistent for every coordinate
 		Random rand = new Random();
 
-		// <row, col, cell>
-		Table<Integer, Integer, TileCell> tileMap = HashBasedTable.create();
+		// <layer, <row, col, cell>>
+		LinkedHashMap<Integer, Table<Integer, Integer, TileCell>> tileMaps = new LinkedHashMap<>();
 
 		// XXX should I also do render order (left to right, top to bottom)?
 		List<MapTile> tileOrder = tiles.stream().filter(t -> !t.getFactory().isUnknown())
@@ -341,37 +348,60 @@ public class TileRendererFactory {
 		// <layer, <row, col, cell>>
 		LinkedHashMap<Integer, Table<Integer, Integer, TileEdgeCell>> tileEdgeMaps = new LinkedHashMap<>();
 
+		tiles.stream().mapToInt(t -> t.getFactory().protoLayer).distinct().forEach(i -> {
+			tileMaps.put(i, HashBasedTable.create());
+			tileEdgeMaps.put(i, HashBasedTable.create());
+		});
+
 		TreeSet<Integer> activeLayers = new TreeSet<>();
 		Multimap<Integer, TileCell> cellLayers = ArrayListMultimap.create();
 		Multimap<Integer, TileEdgeCell> edgeCellLayers = ArrayListMultimap.create();
 
+		List<TileCell> cells = new ArrayList<>();
+
 		// Populate tile map
 		for (MapTile mapTile : tileOrder) {
+			TileRendererFactory factory = mapTile.getFactory();
+			if (factory.protoTransitionMergesWithTile.isPresent()) {
+				TileRendererFactory mergeFactory = factory.protoTransitionMergesWithTile.get();
+
+				TileCell cell = new TileCell();
+				BSPosition pos = mapTile.fromBlueprint().position;
+				cell.row = (int) pos.y;
+				cell.col = (int) pos.x;
+				cell.layer = mergeFactory.protoLayer;
+				cell.tile = mapTile.fromBlueprint();
+				cell.factory = mergeFactory;
+				cell.hidden = true;
+				tileMaps.get(cell.layer).put(cell.row, cell.col, cell);
+				activeLayers.add(cell.layer);
+				cellLayers.put(cell.layer, cell);
+				cells.add(cell);
+			}
+
 			TileCell cell = new TileCell();
 			BSPosition pos = mapTile.fromBlueprint().position;
 			cell.row = (int) pos.y;
 			cell.col = (int) pos.x;
-			cell.layer = mapTile.getFactory().protoLayer;
-//			cell.mergeFactory = mapTile.getFactory().protoTransitionMergesWithTile;
-//			cell.mergeLayer = cell.mergeFactory.map(f -> OptionalInt.of(f.protoLayer)).orElse(OptionalInt.empty());
+			cell.layer = factory.protoLayer;
 			cell.tile = mapTile.fromBlueprint();
-			cell.factory = mapTile.getFactory();
-			tileMap.put(cell.row, cell.col, cell);
+			cell.factory = factory;
+			cell.hidden = false;
+			tileMaps.get(cell.layer).put(cell.row, cell.col, cell);
 			activeLayers.add(cell.layer);
 			cellLayers.put(cell.layer, cell);
+			cells.add(cell);
 		}
 
+		cells.sort(Comparator.comparing(c -> c.layer));
+
 		// Populate edge maps
-		for (MapTile mapTile : tileOrder) {
-			BSPosition pos = mapTile.fromBlueprint().position;
+		for (TileCell cell : cells) {
+			BSPosition pos = cell.tile.position;
 			int row = (int) pos.y;
 			int col = (int) pos.x;
-			TileCell cell = tileMap.get(row, col);
-
+			Table<Integer, Integer, TileCell> tileMap = tileMaps.get(cell.layer);
 			Table<Integer, Integer, TileEdgeCell> edgeMap = tileEdgeMaps.get(cell.layer);
-			if (edgeMap == null) {
-				tileEdgeMaps.put(cell.layer, edgeMap = HashBasedTable.create());
-			}
 
 			for (Direction direction : Direction.values()) {
 				int adjRow = row + direction.getDy();
@@ -401,6 +431,9 @@ public class TileRendererFactory {
 
 			// Render tile centers
 			for (TileCell cell : cellLayers.get(layer)) {
+				if (cell.hidden) {
+					continue;
+				}
 				cell.factory.renderProcess.tileCenter(rand, register, cell);
 			}
 
@@ -480,8 +513,8 @@ public class TileRendererFactory {
 	private FPTileTransitionsVariants protoVariants;
 	private Optional<FPTileMainPictures> protoVariantsMainSize1;
 	private int protoLayer;
-//	private Optional<String> protoTransitionMergesWithTileID;
-//	private Optional<TileRendererFactory> protoTransitionMergesWithTile;
+	private Optional<String> protoTransitionMergesWithTileID;
+	private Optional<TileRendererFactory> protoTransitionMergesWithTile;
 
 	private TileRenderProcess renderProcess = null;
 
@@ -508,9 +541,9 @@ public class TileRendererFactory {
 		protoLayer = prototype.lua().get("layer").checkint();
 		protoVariants = new FPTileTransitionsVariants(prototype.lua().get("variants"), 10);
 		protoVariantsMainSize1 = protoVariants.main.stream().filter(fp -> fp.size == 1).findFirst();
-//		protoTransitionMergesWithTileID = FPUtils.optString(prototype.lua().get("transition_merges_with_tile"));
-//		protoTransitionMergesWithTile = protoTransitionMergesWithTileID
-//				.flatMap(k -> Optional.ofNullable(FactorioManager.lookupTileFactoryForName(k)));
+		protoTransitionMergesWithTileID = FPUtils.optString(prototype.lua().get("transition_merges_with_tile"));
+		protoTransitionMergesWithTile = protoTransitionMergesWithTileID
+				.flatMap(k -> Optional.ofNullable(FactorioManager.lookupTileFactoryForName(k)));
 
 		if (!protoVariants.main.isEmpty())
 			renderProcess = new TileRenderProcessMain();
