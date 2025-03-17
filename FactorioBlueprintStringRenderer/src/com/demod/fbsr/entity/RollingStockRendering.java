@@ -53,10 +53,10 @@ public class RollingStockRendering extends EntityRendererFactory {
 	@Override
 	public void initAtlas(Consumer<ImageDef> register) {
 		protoPictures.rotated.getDefs(register);
-		protoPictures.sloped.getDefs(register);
+		protoPictures.sloped.ifPresent(fp -> fp.getDefs(register));
 		if (protoWheels.isPresent()) {
 			protoWheels.get().rotated.getDefs(register);
-			protoWheels.get().sloped.getDefs(register);
+			protoWheels.get().sloped.ifPresent(fp -> fp.getDefs(register));
 		}
 	}
 
