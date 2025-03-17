@@ -3,6 +3,7 @@ package com.demod.fbsr.gui.layout;
 import java.awt.Color;
 import java.awt.Composite;
 import java.awt.Font;
+import java.awt.FontMetrics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.geom.AffineTransform;
@@ -132,18 +133,22 @@ public class GUILayoutBlueprint {
 
 		GUIBox boundsCell = bounds.cutTop(28).cutRight(100);
 
+		Font fontMod = GUIStyle.FONT_BP_BOLD.deriveFont(15f);
+
 		if (spaceAge) {
 			GUIStyle.CIRCLE_WHITE.render(g, boundsCell);
-			GUILabel label = new GUILabel(boundsCell, "Space Age", GUIStyle.FONT_BP_BOLD.deriveFont(15f), Color.black,
-					Align.CENTER);
+			GUILabel label = new GUILabel(boundsCell, "Space Age", fontMod, Color.black, Align.CENTER);
 			label.render(g);
 			boundsCell = boundsCell.indexed(1, 0);
 		}
 
 		for (String mod : mods) {
-			GUIStyle.CIRCLE_YELLOW.render(g, boundsCell);
-			GUILabel label = new GUILabel(boundsCell, mod, GUIStyle.FONT_BP_BOLD.deriveFont(15f), Color.black,
-					Align.CENTER);
+			FontMetrics fm = g.getFontMetrics(fontMod);
+			int minWidth = fm.stringWidth(mod) + 16;
+			GUIBox boundsLabel = (minWidth > boundsCell.width) ? boundsCell.expandLeft(minWidth - boundsCell.width)
+					: boundsCell;
+			GUIStyle.CIRCLE_YELLOW.render(g, boundsLabel);
+			GUILabel label = new GUILabel(boundsLabel, mod, fontMod, Color.black, Align.CENTER);
 			label.render(g);
 			boundsCell = boundsCell.indexed(1, 0);
 		}
