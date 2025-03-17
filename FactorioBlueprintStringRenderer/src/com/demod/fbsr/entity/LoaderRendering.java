@@ -94,6 +94,13 @@ public abstract class LoaderRendering extends TransportBeltConnectableRendering 
 	}
 
 	@Override
+	public void initAtlas(Consumer<ImageDef> register) {
+		super.initAtlas(register);
+		protoStructureDirectionIn.getDefs(register);
+		protoStructureDirectionOut.getDefs(register);
+	}
+
+	@Override
 	public void populateLogistics(WorldMap map, MapEntity entity) {
 		BSLoaderEntity bsEntity = entity.<BSLoaderEntity>fromBlueprint();
 
