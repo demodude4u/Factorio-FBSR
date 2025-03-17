@@ -118,8 +118,8 @@ public class TagManager {
 					if (luaProduct.isEmpty()) {
 						luaProduct = FactorioManager.lookupFluidByName(resultName).map(p -> p.lua());
 						if (luaProduct.isEmpty()) {
-							LOGGER.error("Unable to find recipe result! {} ({})", entry.getKey(), resultName);
-							System.exit(-1);
+							LOGGER.warn("Unable to find recipe result! {} ({})", entry.getKey(), resultName);
+							continue;
 						}
 					}
 
