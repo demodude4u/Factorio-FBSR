@@ -730,7 +730,12 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				handleBookDirectoryCommand_dirWalk(0, false, sw, blueprintString);
 			}
 
-			event.reply(sw.toString());
+			String response = sw.toString();
+			if (response.isBlank()) {
+				event.reply("No blueprint book found! Please specify a `string`, `file`, or `url`!");
+			} else {
+				event.reply(response);
+			}
 		}
 	}
 
