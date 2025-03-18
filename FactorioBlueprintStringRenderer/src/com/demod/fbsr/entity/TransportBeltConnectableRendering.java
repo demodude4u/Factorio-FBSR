@@ -132,17 +132,18 @@ public abstract class TransportBeltConnectableRendering extends EntityRendererFa
 				for (int bend = 0; bend < BeltBend.values().length; bend++) {
 					String indexName = indexNames[cardinal][bend];
 					int defaultIndex = indexDefaults[cardinal][bend];
-					protoBeltIndices[cardinal][bend] = luaBeltAnimationSet.get(indexName).optint(defaultIndex);
+					protoBeltIndices[cardinal][bend] = luaBeltAnimationSet.get(indexName).optint(defaultIndex + 1) - 1;
 				}
 				{
 					String indexName = startingIndexNames[cardinal];
 					int defaultIndex = startingIndexDefaults[cardinal];
-					protoBeltStartingIndices[cardinal] = luaBeltAnimationSet.get(indexName).optint(defaultIndex);
+					protoBeltStartingIndices[cardinal] = luaBeltAnimationSet.get(indexName).optint(defaultIndex + 1)
+							- 1;
 				}
 				{
 					String indexName = endingIndexNames[cardinal];
 					int defaultIndex = endingIndexDefaults[cardinal];
-					protoBeltEndingIndices[cardinal] = luaBeltAnimationSet.get(indexName).optint(defaultIndex);
+					protoBeltEndingIndices[cardinal] = luaBeltAnimationSet.get(indexName).optint(defaultIndex + 1) - 1;
 				}
 			}
 
