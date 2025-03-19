@@ -519,6 +519,9 @@ public class AtlasManager {
 	}
 
 	public static void registerDef(ImageDef def) {
+		if (def == null) {
+			throw new NullPointerException("def is null!");
+		}
 		defs.add(def);
 	}
 }
