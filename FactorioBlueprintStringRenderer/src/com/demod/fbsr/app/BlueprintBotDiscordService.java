@@ -13,6 +13,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -124,7 +125,15 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 	}
 
 	public static final Emoji EMOJI_BLUEPRINT = Emoji.fromFormatted("<:blueprint:1316556635761672244>");
+	public static final Emoji EMOJI_BLUEPRINT_MODDED = Emoji.fromFormatted("<:blueprint_modded:1351627725059784895>");
+	public static final Emoji EMOJI_BLUEPRINT_SPACEAGE = Emoji
+			.fromFormatted("<:blueprint_spaceage:1351627802239307816>");
+
 	public static final Emoji EMOJI_BLUEPRINTBOOK = Emoji.fromFormatted("<:blueprintbook:1316556633073258569>");
+	public static final Emoji EMOJI_BLUEPRINTBOOK_MODDED = Emoji.fromFormatted("<:blueprintbook:1352366675588157492>");
+	public static final Emoji EMOJI_BLUEPRINTBOOK_SPACEAGE = Emoji
+			.fromFormatted("<:blueprintbook:1352366716876755025>");
+
 	public static final Emoji EMOJI_DECONSTRUCTIONPLANNER = Emoji
 			.fromFormatted("<:deconstructionplanner:1316556636621508688>");
 	public static final Emoji EMOJI_UPGRADEPLANNER = Emoji.fromFormatted("<:upgradeplanner:1316556634528546887>");
@@ -319,6 +328,9 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				WebUtils.formatBlueprintFilename(blueprintString.findFirstLabel(), "txt"),
 				blueprintString.getRaw().get());
 
+		boolean spaceAge = false;
+		Set<String> mods = new HashSet<>();
+
 		if (blueprintString.blueprint.isPresent()) {
 			BSBlueprint blueprint = blueprintString.blueprint.get();
 
@@ -328,6 +340,15 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			image = layout.generateDiscordImage();
 			unknownNames.addAll(layout.getResult().unknownNames);
 			renderTimes.add(layout.getResult().renderTime);
+
+			Set<String> groups = new LinkedHashSet<>();
+			blueprint.entities.stream().map(e -> FactorioManager.lookupEntityFactoryForName(e.name))
+					.map(e -> e.isUnknown() ? "Modded" : e.getGroupName()).forEach(groups::add);
+			blueprint.tiles.stream().map(t -> FactorioManager.lookupTileFactoryForName(t.name))
+					.filter(t -> !t.isUnknown()).map(t -> t.getGroupName()).forEach(groups::add);
+			spaceAge = groups.contains("Space Age");
+			groups.removeAll(Arrays.asList("Base", "Space Age"));
+			mods.addAll(groups.stream().sorted().collect(Collectors.toList()));
 
 			if (layout.getResult().renderScale < 0.501) {
 				actionButtonRow.add(Button.secondary("reply-zoom|" + futBlueprintStringUpload.get().getId(), "Zoom In")
@@ -355,6 +376,18 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			renderTimes.add(layout.getResults().stream().mapToLong(r -> r.renderTime).sum());
 
 			List<BSBlueprint> blueprints = book.getAllBlueprints();
+
+			Set<String> groups = new LinkedHashSet<>();
+			blueprints.stream().flatMap(b -> b.entities.stream().map(e -> e.name)).distinct()
+					.map(n -> FactorioManager.lookupEntityFactoryForName(n))
+					.map(e -> e.isUnknown() ? "Modded" : e.getGroupName()).forEach(groups::add);
+			blueprints.stream().flatMap(b -> b.tiles.stream().map(t -> t.name)).distinct()
+					.map(n -> FactorioManager.lookupTileFactoryForName(n)).filter(t -> !t.isUnknown())
+					.map(t -> t.getGroupName()).forEach(groups::add);
+			spaceAge = groups.contains("Space Age");
+			groups.removeAll(Arrays.asList("Base", "Space Age"));
+			mods.addAll(groups.stream().sorted().collect(Collectors.toList()));
+
 			StringSelectMenu.Builder menuBuilder = StringSelectMenu.create("reply-book-blueprint");
 			for (int i = 0; i < blueprints.size(); i++) {
 				if (i < 25) {
@@ -399,8 +432,20 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		}
 
 		Emoji emoji = EMOJI_BLUEPRINT;
-		if (blueprintString.blueprintBook.isPresent()) {
-			emoji = EMOJI_BLUEPRINTBOOK;
+		if (blueprintString.blueprint.isPresent()) {
+			if (!mods.isEmpty()) {
+				emoji = EMOJI_BLUEPRINT_MODDED;
+			} else if (spaceAge) {
+				emoji = EMOJI_BLUEPRINT_SPACEAGE;
+			}
+		} else if (blueprintString.blueprintBook.isPresent()) {
+			if (!mods.isEmpty()) {
+				emoji = EMOJI_BLUEPRINTBOOK_MODDED;
+			} else if (spaceAge) {
+				emoji = EMOJI_BLUEPRINTBOOK_SPACEAGE;
+			} else {
+				emoji = EMOJI_BLUEPRINTBOOK;
+			}
 		} else if (blueprintString.deconstructionPlanner.isPresent()) {
 			emoji = EMOJI_DECONSTRUCTIONPLANNER;
 		} else if (blueprintString.upgradePlanner.isPresent()) {
