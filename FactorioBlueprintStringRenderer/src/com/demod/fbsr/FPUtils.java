@@ -2,6 +2,7 @@ package com.demod.fbsr;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalDouble;
 import java.util.OptionalInt;
 import java.util.function.Function;
 
@@ -154,6 +155,13 @@ public final class FPUtils {
 			return Optional.empty();
 		}
 		return Optional.of(ret);
+	}
+
+	public static OptionalDouble optDouble(LuaValue lua) {
+		if (lua.isnil()) {
+			return OptionalDouble.empty();
+		}
+		return OptionalDouble.of(lua.todouble());
 	}
 
 }

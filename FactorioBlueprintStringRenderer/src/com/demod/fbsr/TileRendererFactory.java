@@ -220,8 +220,8 @@ public class TileRendererFactory {
 			rand.setSeed(getRandomSeed(cell.row, cell.col, cell.layer, cell.adjCode));
 
 			// TODO figure out why some tiles do not have an overlay!
-			if (transitions.overlayLayout.isPresent()) {
-				FPTileTransitionVariantLayout overlay = transitions.overlayLayout.get();
+			if (transitions.layout.overlay.isPresent()) {
+				FPTileTransitionVariantLayout overlay = transitions.layout.overlay.get();
 				for (TileEdgeRuleParam param : cell.params) {
 					Optional<FPTileSpriteLayoutVariant> optVariant = param.getSelector().apply(overlay);
 					if (optVariant.isPresent()) {
@@ -235,8 +235,8 @@ public class TileRendererFactory {
 				}
 			}
 
-			if (transitions.backgroundLayout.isPresent()) {
-				FPTileTransitionVariantLayout background = transitions.backgroundLayout.get();
+			if (transitions.layout.background.isPresent()) {
+				FPTileTransitionVariantLayout background = transitions.layout.background.get();
 				for (TileEdgeRuleParam param : cell.params) {
 					Optional<FPTileSpriteLayoutVariant> optVariant = param.getSelector().apply(background);
 					if (optVariant.isPresent()) {
@@ -254,8 +254,8 @@ public class TileRendererFactory {
 		@Override
 		public void initAtlas(Consumer<ImageDef> register) {
 			protoVariantsMainSize1.ifPresent(fp -> fp.getDefs(register));
-			protoVariants.transition.get().overlayLayout.ifPresent(fp -> fp.getDefs(register));
-			protoVariants.transition.get().backgroundLayout.ifPresent(fp -> fp.getDefs(register));
+			protoVariants.transition.get().layout.overlay.ifPresent(fp -> fp.getDefs(register));
+			protoVariants.transition.get().layout.background.ifPresent(fp -> fp.getDefs(register));
 		}
 	}
 
@@ -287,8 +287,8 @@ public class TileRendererFactory {
 			MaterialDef materialDef = material.defineMaterial(materialFrame);
 
 			FPTileTransitions transitions = protoVariants.transition.get();
-			Optional<FPTileTransitionVariantLayout> optOverlay = transitions.overlayLayout;
-			FPTileTransitionVariantLayout mask = transitions.maskLayout.get();
+			Optional<FPTileTransitionVariantLayout> optOverlay = transitions.layout.overlay;
+			FPTileTransitionVariantLayout mask = transitions.layout.mask.get();
 
 			rand.setSeed(getRandomSeed(cell.row, cell.col, cell.layer, cell.adjCode));
 
@@ -328,8 +328,8 @@ public class TileRendererFactory {
 		@Override
 		public void initAtlas(Consumer<ImageDef> register) {
 			protoVariants.materialBackground.get().getDefs().forEach(register);
-			protoVariants.transition.ifPresent(fp -> fp.overlayLayout.ifPresent(fp2 -> fp2.getDefs(register)));
-			protoVariants.transition.ifPresent(fp -> fp.maskLayout.ifPresent(fp2 -> fp2.getDefs(register)));
+			protoVariants.transition.ifPresent(fp -> fp.layout.overlay.ifPresent(fp2 -> fp2.getDefs(register)));
+			protoVariants.transition.ifPresent(fp -> fp.layout.mask.ifPresent(fp2 -> fp2.getDefs(register)));
 		}
 	}
 
@@ -553,7 +553,7 @@ public class TileRendererFactory {
 		}
 
 		protoDoubleSided = protoVariants.transition.stream()
-				.flatMap(fp -> ImmutableList.of(fp.backgroundLayout, fp.maskLayout, fp.overlayLayout).stream())
+				.flatMap(fp -> ImmutableList.of(fp.layout.background, fp.layout.mask, fp.layout.overlay).stream())
 				.anyMatch(fp -> fp.flatMap(fp2 -> fp2.doubleSide).isPresent());
 	}
 
