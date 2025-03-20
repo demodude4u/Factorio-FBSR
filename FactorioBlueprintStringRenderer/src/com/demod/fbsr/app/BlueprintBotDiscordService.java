@@ -415,11 +415,12 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		actionButtonRow.add(Button.secondary(actionId, "Download").withEmoji(emoji));
 
 		if (!unknownNames.isEmpty()) {
-			event.getReporting()
-					.addField(new Field(
-							"Unknown Names", unknownNames.entrySet().stream()
-									.map(e -> e.getElement() + ": " + e.getCount()).collect(Collectors.joining("\n")),
-							true));
+			String unknownNamesMsg = unknownNames.entrySet().stream().map(e -> e.getElement() + ": " + e.getCount())
+					.collect(Collectors.joining("\n"));
+			if (unknownNamesMsg.length() > 1000) {
+				unknownNamesMsg = unknownNamesMsg.substring(0, 1000) + "...";
+			}
+			event.getReporting().addField(new Field("Unknown Names", unknownNamesMsg, false));
 			event.getReporting().setLevel(Level.DEBUG);
 		}
 
