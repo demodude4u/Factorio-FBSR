@@ -3,20 +3,26 @@ package com.demod.fbsr.gui;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.FontFormatException;
+import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.CopyOption;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.demod.fbsr.FactorioManager;
 import com.demod.fbsr.gui.feature.GUIPipeFeature;
 import com.demod.fbsr.gui.feature.GUISliceFeature;
 import com.demod.fbsr.gui.feature.GUIStaticFeature;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class GUIStyle {
 	private static final Logger LOGGER = LoggerFactory.getLogger(GUIStyle.class);
 
-	public static final Font FONT_BP_REGULAR = createFont("__core__/fonts/Lilittium-Regular.ttf");
-	public static final Font FONT_BP_BOLD = createFont("__core__/fonts/Lilittium-Bold.ttf");
+	public static final Font FONT_BP_REGULAR = createFont("__core__/fonts", "Lilittium-Regular.ttf");
+	public static final Font FONT_BP_BOLD = createFont("__core__/fonts", "Lilittium-Bold.ttf");
 	public static final Color FONT_BP_COLOR = new Color(0xffe6c0);
 
 	// TODO load these details from data.raw.gui-styles.default
@@ -66,11 +72,22 @@ public final class GUIStyle {
 	public static GUIStaticFeature CLOCK_ICON = new GUIStaticFeature("__core__/graphics/clock-icon.png",
 			new GUIBox(0, 0, 32, 32));
 
-	public static Font createFont(String path) {
+	public static Font createFont(String folder, String filename) {
+
+		File folderFonts = new File(FactorioManager.getFolderDataRoot(), "fonts");
+		folderFonts.mkdirs();
+
+		File fileFont = new File(folderFonts, filename);
+
 		try {
-			return Font.createFont(Font.TRUETYPE_FONT, FactorioManager.getBaseData().getModResource(path).get());
+			if (FactorioManager.hasFactorioInstall()) {
+				InputStream inputStream = FactorioManager.getBaseData().getModResource(folder + "/" + filename).get();
+				Files.copy(inputStream, fileFont.toPath(), StandardCopyOption.REPLACE_EXISTING);
+			}
+
+			return Font.createFont(Font.TRUETYPE_FONT, fileFont);
 		} catch (FontFormatException | IOException e) {
-			LOGGER.error("FAILED TO LOAD FONT: {}", path, e);
+			LOGGER.error("FAILED TO LOAD FONT: {}", fileFont.getAbsolutePath(), e);
 			throw new RuntimeException(e);
 		}
 	}

@@ -24,7 +24,6 @@ import org.slf4j.LoggerFactory;
 
 import com.demod.factorio.Config;
 import com.demod.factorio.FactorioData;
-import com.demod.factorio.ModLoader;
 import com.demod.factorio.prototype.AchievementPrototype;
 import com.demod.factorio.prototype.DataPrototype;
 import com.demod.factorio.prototype.EntityPrototype;
@@ -83,6 +82,8 @@ public class FactorioManager {
 	private static File folderModsRoot;
 	private static File folderDataRoot;
 
+	private static boolean hasFactorioInstall;
+
 	public static List<AchievementPrototype> getAchievements() {
 		return achievements;
 	}
@@ -137,6 +138,10 @@ public class FactorioManager {
 
 	public static List<TilePrototype> getTiles() {
 		return tiles;
+	}
+
+	public static boolean hasFactorioInstall() {
+		return hasFactorioInstall;
 	}
 
 	public static void initializeFactories() throws JSONException, IOException {
@@ -200,8 +205,9 @@ public class FactorioManager {
 
 		JSONObject json = Config.get().getJSONObject("factorio_manager");
 
-		String factorioData = json.getString("install");
-		String factorioExecutable = json.getString("executable");
+		hasFactorioInstall = json.has("install") && json.has("executable");
+		Optional<String> factorioData = Optional.ofNullable(json.optString("install", null));
+		Optional<String> factorioExecutable = Optional.ofNullable(json.optString("executable", null));
 
 		folderModsRoot = new File(json.optString("mods", "mods"));
 		if (folderModsRoot.mkdirs()) {
@@ -228,60 +234,63 @@ public class FactorioManager {
 			modPortalApi = false;
 		}
 
-		List<File> modsFiles;
+		List<String> mods;
 		if (json.has("mods_include")) {
 			JSONArray jsonModsInclude = json.getJSONArray("mods_include");
-			modsFiles = IntStream.range(0, jsonModsInclude.length())
-					.mapToObj(i -> new File(folderModsRoot, jsonModsInclude.getString(i))).filter(File::exists)
+			mods = IntStream.range(0, jsonModsInclude.length()).mapToObj(i -> jsonModsInclude.getString(i))
 					.collect(Collectors.toList());
+			if (hasFactorioInstall) {
+				mods = mods.stream().filter(n -> new File(folderModsRoot, n).exists()).collect(Collectors.toList());
+			} else {
+				mods = mods.stream().filter(n -> new File(folderDataRoot, n).exists()).collect(Collectors.toList());
+			}
 		} else {
-			modsFiles = Arrays.asList(folderModsRoot.listFiles());
+			mods = Arrays.asList(folderModsRoot.listFiles()).stream()
+					.filter(f -> f.isDirectory() && new File(f, "mod-rendering.json").exists()).map(f -> f.getName())
+					.collect(Collectors.toList());
 		}
-		LOGGER.info("MODS FOLDERS: {}", modsFiles.stream().map(f -> f.getName()).collect(Collectors.joining(", ")));
+		LOGGER.info("MODS FOLDERS: {}", mods.stream().collect(Collectors.joining(", ")));
 
-		for (File folderMods : modsFiles) {
-			if (!folderMods.exists() || !folderMods.isDirectory()) {
-				continue;
-			}
-			if (!new File(folderMods, "mod-list.json").exists()) {
-				continue;
-			}
-
-			File fileModRendering = new File(folderMods, "mod-download.json");
-			if (modPortalApi && fileModRendering.exists()) {
-				JSONObject jsonModDownload = new JSONObject(Files.readString(fileModRendering.toPath()));
-				boolean auth = false;
-				String authParams = null;
-				for (String modName : jsonModDownload.keySet()) {
-					String modVersion = jsonModDownload.getString(modName);
-					JSONObject jsonRelease = FactorioModPortal.findModReleaseInfo(modName, modVersion);
-					File fileModZip = new File(folderMods, jsonRelease.getString("file_name"));
-					if (!fileModZip.exists()) {
-						if (!auth) {
-							auth = true;
-							authParams = FactorioModPortal.getAuthParams(modPortalApiUsername, modPortalApiPassword);
-						}
-						FactorioModPortal.downloadMod(folderMods, modName, modVersion, authParams);
-					}
-				}
-
-			}
-
-			File folderData = new File(folderDataRoot, folderMods.getName());
-			folderData.mkdir();
+		for (String name : mods) {
 
 			JSONObject fdConfig = new JSONObject();
-			fdConfig.put("factorio", factorioData);
-			fdConfig.put("executable", factorioExecutable);
+			File folderMods = new File(folderModsRoot, name);
+			File folderData = new File(folderDataRoot, name);
+			folderData.mkdir();
 			fdConfig.put("mods", folderMods.getAbsolutePath());
 			fdConfig.put("data", folderData.getAbsolutePath());
+
+			if (hasFactorioInstall) {
+				File fileModRendering = new File(folderMods, "mod-download.json");
+				if (modPortalApi && fileModRendering.exists()) {
+					JSONObject jsonModDownload = new JSONObject(Files.readString(fileModRendering.toPath()));
+					boolean auth = false;
+					String authParams = null;
+					for (String modName : jsonModDownload.keySet()) {
+						String modVersion = jsonModDownload.getString(modName);
+						JSONObject jsonRelease = FactorioModPortal.findModReleaseInfo(modName, modVersion);
+						File fileModZip = new File(folderMods, jsonRelease.getString("file_name"));
+						if (!fileModZip.exists()) {
+							if (!auth) {
+								auth = true;
+								authParams = FactorioModPortal.getAuthParams(modPortalApiUsername,
+										modPortalApiPassword);
+							}
+							FactorioModPortal.downloadMod(folderMods, modName, modVersion, authParams);
+						}
+					}
+
+				}
+
+				fdConfig.put("factorio", factorioData.get());
+				fdConfig.put("executable", factorioExecutable.get());
+			}
 
 			FactorioData data = new FactorioData(fdConfig);
 			data.initialize();
 			datas.add(data);
 
-			ModLoader modLoader = data.getModLoader();
-			modLoader.getMods().keySet().stream().forEach(s -> dataByModName.put(s, data));
+			data.getMods().stream().forEach(s -> dataByModName.put(s, data));
 
 			recipeByName.putAll(data.getTable().getRecipes());
 			itemByName.putAll(data.getTable().getItems());

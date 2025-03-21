@@ -11,6 +11,8 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -553,11 +555,19 @@ public class FBSR {
 
 	public static String getVersion() {
 		if (version == null) {
-			ModInfo baseInfo;
-			try (FileInputStream fis = new FileInputStream(
-					new File(Config.get().getJSONObject("factorio_manager").getString("install"), "base/info.json"))) {
-				baseInfo = new ModInfo(Utils.readJsonFromStream(fis));
-				version = baseInfo.getVersion();
+			File fileInfo = new File(FactorioManager.getFolderDataRoot(), "info.json");
+
+			try {
+				if (FactorioManager.hasFactorioInstall()) {
+					Files.copy(new File(Config.get().getJSONObject("factorio_manager").getString("install"),
+							"base/info.json").toPath(), fileInfo.toPath(), StandardCopyOption.REPLACE_EXISTING);
+				}
+
+				ModInfo baseInfo;
+				try (FileInputStream fis = new FileInputStream(fileInfo)) {
+					baseInfo = new ModInfo(Utils.readJsonFromStream(fis));
+					version = baseInfo.getVersion();
+				}
 			} catch (JSONException | IOException e) {
 				e.printStackTrace();
 				System.exit(-1);
