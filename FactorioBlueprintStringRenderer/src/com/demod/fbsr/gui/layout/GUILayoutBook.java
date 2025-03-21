@@ -295,7 +295,14 @@ public class GUILayoutBook {
 			request.setGridLines(Optional.empty());
 			request.setMaxScale(OptionalDouble.of(0.5));
 
-			futures.add(FBSR.renderBlueprintAsync(request));
+			// TODO fix race conditions, turned off parallel for now
+			Future<RenderResult> future = FBSR.renderBlueprintAsync(request);
+			try {
+				future.get();
+			} catch (InterruptedException | ExecutionException e) {
+				e.printStackTrace();
+			}
+			futures.add(future);
 		}
 		for (Future<RenderResult> future : futures) {
 			RenderResult result;
