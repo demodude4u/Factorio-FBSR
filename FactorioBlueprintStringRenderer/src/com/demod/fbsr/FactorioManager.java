@@ -344,6 +344,12 @@ public class FactorioManager {
 	}
 
 	public static BufferedImage lookupModImage(String filename) {
+		if (!hasFactorioInstall) {
+			LOGGER.error("FACTORIO INSTALL NEEDED -- LOAD IMAGES!");
+			System.exit(-1);
+			return null;
+		}
+
 		try {
 			String firstSegment = filename.split("\\/")[0];
 			String modName = firstSegment.substring(2, firstSegment.length() - 2);
