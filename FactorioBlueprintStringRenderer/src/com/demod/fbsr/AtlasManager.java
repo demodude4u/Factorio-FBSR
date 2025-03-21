@@ -407,12 +407,14 @@ public class AtlasManager {
 		File folderAtlas = new File(FactorioManager.getFolderDataRoot(), "atlas");
 		File fileManifest = new File(folderAtlas, "atlas-manifest.txt");
 
-		JSONArray jsonManifest;
+		JSONArray jsonManifest = null;
 		if (!fileManifest.exists() || !checkValidManifest(jsonManifest = readManifest(fileManifest))) {
 			generateAtlases(folderAtlas, fileManifest);
 		}
 
-		jsonManifest = readManifest(fileManifest);
+		if (jsonManifest == null) {
+			jsonManifest = readManifest(fileManifest);
+		}
 		loadAtlases(folderAtlas, jsonManifest);
 	}
 
