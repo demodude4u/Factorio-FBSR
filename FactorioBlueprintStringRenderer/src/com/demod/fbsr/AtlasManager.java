@@ -98,6 +98,13 @@ public class AtlasManager {
 			this.trim = trim;
 		}
 
+		private void reset() {
+			valid = false;
+			atlas = null;
+			rect = null;
+			trim = null;
+		}
+
 		public Atlas getAtlas() {
 			return atlas;
 		}
@@ -459,6 +466,8 @@ public class AtlasManager {
 	}
 
 	private static void loadAtlases(File folderAtlas, JSONArray jsonManifest) throws IOException {
+
+		defs.forEach(d -> d.getAtlasRef().reset());
 
 		int[] atlasIds = IntStream.range(0, jsonManifest.length()).map(i -> jsonManifest.getJSONArray(i).getInt(5))
 				.distinct().toArray();
