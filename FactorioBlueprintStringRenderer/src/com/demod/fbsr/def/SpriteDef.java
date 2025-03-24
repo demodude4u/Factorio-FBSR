@@ -126,4 +126,8 @@ public class SpriteDef extends ImageDef {
 		return new SpriteDef(filename, shadow, blendMode, tint.map(FPColor::createColor), tintAsOverlay,
 				applyRuntimeTint, source, bounds);
 	}
+
+	public static SpriteDef copy(SpriteDef def) {
+		return new SpriteDef(def);
+	}
 }

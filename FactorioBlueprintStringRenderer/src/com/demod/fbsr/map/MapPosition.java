@@ -6,6 +6,7 @@ import java.awt.Point;
 import java.awt.geom.Point2D;
 import java.util.Collection;
 
+import com.demod.fbsr.MapUtils;
 import com.demod.fbsr.fp.FPVector;
 
 public class MapPosition {
@@ -135,6 +136,14 @@ public class MapPosition {
 
 	public MapPosition transformMatrix(double mx1, double mx2, double my1, double my2) {
 		return new MapPosition((int) (xfp * mx1 + yfp * mx2), (int) (xfp * my1 + yfp * my2));
+	}
+
+	public int getXHalfCell() {
+		return xfp >> (MapUtils.FRACTIONAL_BITS - 1);
+	}
+
+	public int getYHalfCell() {
+		return yfp >> (MapUtils.FRACTIONAL_BITS - 1);
 	}
 
 }

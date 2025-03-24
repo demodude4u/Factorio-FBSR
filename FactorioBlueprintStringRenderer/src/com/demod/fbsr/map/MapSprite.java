@@ -18,7 +18,7 @@ import com.demod.fbsr.Layer;
 public class MapSprite extends MapRenderable implements MapBounded {
 
 	protected final SpriteDef def;
-	protected final MapRect bounds;
+	protected MapRect bounds;
 
 	public MapSprite(LayeredSpriteDef def, MapPosition pos) {
 		this(def, def.getLayer(), pos);
@@ -40,6 +40,10 @@ public class MapSprite extends MapRenderable implements MapBounded {
 
 	public SpriteDef getDef() {
 		return def;
+	}
+
+	public void setBounds(MapRect bounds) {
+		this.bounds = bounds;
 	}
 
 	@Override

@@ -275,6 +275,9 @@ public class WorldMap {
 	private final Table<Integer, Integer, List<BeaconSource>> beaconed = HashBasedTable.create();
 	private final Table<Integer, Integer, MapEntity> cargoBayConnectables = HashBasedTable.create();
 
+	// TODO a more generalized approach
+	private final Table<Integer, Integer, MapEntity> nixieTubes = HashBasedTable.create();
+
 	// Row: X*2
 	// Column: Y*2
 	private final Table<Integer, Integer, LogisticGridCell> logisticGrid = HashBasedTable.create();
@@ -347,12 +350,18 @@ public class WorldMap {
 	}
 
 	public Optional<LogisticGridCell> getLogisticGridCell(MapPosition pos) {
-		return Optional.ofNullable(logisticGrid.get(pos.getXCell() * 2, pos.getYCell() * 2));
+		int kr = pos.getXHalfCell();
+		int kc = pos.getYHalfCell();
+		return Optional.ofNullable(logisticGrid.get(kr, kc));
+	}
+
+	public Optional<MapEntity> getNixieTube(MapPosition pos) {
+		return Optional.ofNullable(nixieTubes.get(pos.getXCell(), pos.getYCell()));
 	}
 
 	public LogisticGridCell getOrCreateLogisticGridCell(MapPosition pos) {
-		int kr = pos.getXCell() * 2;
-		int kc = pos.getYCell() * 2;
+		int kr = pos.getXHalfCell();
+		int kc = pos.getYHalfCell();
 		LogisticGridCell ret = logisticGrid.get(kr, kc);
 		if (ret == null) {
 			logisticGrid.put(kr, kc, ret = new LogisticGridCell());
@@ -361,8 +370,8 @@ public class WorldMap {
 	}
 
 	public RailNode getOrCreateRailNode(MapPosition pos) {
-		int kr = pos.getXCell() * 2;
-		int kc = pos.getYCell() * 2;
+		int kr = pos.getXHalfCell();
+		int kc = pos.getYHalfCell();
 		RailNode ret = railNodes.get(kr, kc);
 		if (ret == null) {
 			railNodes.put(kr, kc, ret = new RailNode());
@@ -375,7 +384,9 @@ public class WorldMap {
 	}
 
 	public Optional<RailNode> getRailNode(MapPosition pos) {
-		return Optional.ofNullable(railNodes.get(pos.getXCell() * 2, pos.getYCell() * 2));
+		int kr = pos.getXHalfCell();
+		int kc = pos.getYHalfCell();
+		return Optional.ofNullable(railNodes.get(kr, kc));
 	}
 
 	public Table<Integer, Integer, RailNode> getRailNodes() {
@@ -472,6 +483,10 @@ public class WorldMap {
 
 	public void setHorizontalGate(MapPosition pos) {
 		gates.put(pos.getXCell(), pos.getYCell(), false);
+	}
+
+	public void setNixieTube(MapPosition pos, MapEntity entity) {
+		nixieTubes.put(pos.getXCell(), pos.getYCell(), entity);
 	}
 
 	public void setPipe(MapPosition pos, Direction... facings) {

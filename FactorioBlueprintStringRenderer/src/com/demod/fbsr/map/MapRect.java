@@ -138,4 +138,18 @@ public class MapRect {
 		int height = Math.max(dy1, dy2) - y;
 		return new MapRect(x, y, width, height);
 	}
+
+	public MapRect scale(double scale) {
+		int hw = widthfp / 2;
+		int hh = heightfp / 2;
+		int sw = (int) (widthfp * scale);
+		int sh = (int) (heightfp * scale);
+		int shw = sw / 2;
+		int shh = sh / 2;
+		return new MapRect(xfp + hw - shw, yfp + hh - shh, sw, sh);
+	}
+
+	public MapRect addUnit(double x, double y) {
+		return new MapRect(xfp + unitToFixedPoint(x), yfp + unitToFixedPoint(y), widthfp, heightfp);
+	}
 }
