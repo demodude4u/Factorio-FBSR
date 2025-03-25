@@ -22,7 +22,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -39,6 +39,9 @@ import org.slf4j.LoggerFactory;
 
 import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.def.ImageDef.ImageSheetLoader;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
 import com.google.common.io.Files;
@@ -260,15 +263,24 @@ public class AtlasManager {
 			loaders.put(def.getPath(), def.getLoader());
 		}
 
-		LOGGER.info("Loading Image Sheets...");
-		Map<String, BufferedImage> imageSheets = new ConcurrentHashMap<>();
-		loaders.entrySet().parallelStream().forEach(entry -> {
-			imageSheets.put(entry.getKey(), entry.getValue().apply(entry.getKey()));
-		});
+		LoadingCache<String, BufferedImage> imageSheets = CacheBuilder.newBuilder().softValues()
+				.build(new CacheLoader<String, BufferedImage>() {
+					@Override
+					public BufferedImage load(String key) throws Exception {
+						return loaders.get(key).apply(key);
+					}
+				});
 
 		LOGGER.info("Trimming Images...");
 		defs.parallelStream().forEach(def -> {
-			BufferedImage imageSheet = imageSheets.get(def.getPath());
+			BufferedImage imageSheet;
+			try {
+				imageSheet = imageSheets.get(def.getPath());
+			} catch (ExecutionException e) {
+				e.printStackTrace();
+				System.exit(-1);
+				return;
+			}
 			if (def.isTrimmable()) {
 				Rectangle trimmed = trimEmptyRect(imageSheet, def.getSource());
 				def.setTrimmed(trimmed);
@@ -315,7 +327,14 @@ public class AtlasManager {
 				continue;
 			}
 
-			BufferedImage imageSheet = imageSheets.get(def.getPath());
+			BufferedImage imageSheet;
+			try {
+				imageSheet = imageSheets.get(def.getPath());
+			} catch (ExecutionException e) {
+				e.printStackTrace();
+				System.exit(-1);
+				return null;
+			}
 			String md5key = computeMD5(imageSheet, trimmed);
 			cached = md5Check.get(md5key);
 			if (cached != null) {
