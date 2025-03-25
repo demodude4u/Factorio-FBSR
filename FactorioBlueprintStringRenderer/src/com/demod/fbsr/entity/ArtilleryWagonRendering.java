@@ -107,8 +107,9 @@ public class ArtilleryWagonRendering extends RollingStockRendering {
 
 		Consumer<? super SpriteDef> cannonRegister = s -> register
 				.accept(new MapSprite(s, Layer.HIGHER_OBJECT_UNDER, cannonBasePos));
-		protoCannonBasePictures.rotated.defineSprites(cannonRegister, orientation);
 		protoCannonBarrelPictures.rotated.defineSprites(cannonRegister, orientation);
+		protoCannonBasePictures.rotated.defineSprites(cannonRegister, orientation);
+	}
 
 	@Override
 	public void initAtlas(Consumer<ImageDef> register) {
