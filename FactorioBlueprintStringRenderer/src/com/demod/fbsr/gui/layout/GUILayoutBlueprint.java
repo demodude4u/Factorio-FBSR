@@ -67,6 +67,7 @@ public class GUILayoutBlueprint {
 	private int itemCellSize;
 	private float itemFontSize;
 	private int itemFontOffset;
+	private boolean itemShowCellBackground;
 
 	private boolean spaceAge;
 
@@ -203,12 +204,14 @@ public class GUILayoutBlueprint {
 							GUIStyle.FRAME_LIGHT_OUTER);
 					renderTinted(itemGridPanel);
 
-					for (int row = 0; row < itemRows; row++) {
-						for (int col = 0; col < itemColumns; col++) {
-							GUIBox cellBounds = itemGridCell.toBox(itemGridBounds.x, itemGridBounds.y).indexed(row,
-									col);
-							int bump = itemCellSize / 4;
-							GUIStyle.FRAME_DARK_BUMP_OUTER.render(g, cellBounds.shrink(bump, bump, bump, bump));
+					if (itemShowCellBackground) {
+						for (int row = 0; row < itemRows; row++) {
+							for (int col = 0; col < itemColumns; col++) {
+								GUIBox cellBounds = itemGridCell.toBox(itemGridBounds.x, itemGridBounds.y).indexed(row,
+										col);
+								int bump = itemCellSize / 4;
+								GUIStyle.FRAME_DARK_BUMP_OUTER.render(g, cellBounds.shrink(bump, bump, bump, bump));
+							}
 						}
 					}
 
@@ -269,12 +272,14 @@ public class GUILayoutBlueprint {
 							GUIStyle.FRAME_LIGHT_OUTER);
 					renderTinted(itemGridPanel);
 
-					for (int row = 0; row < itemRows; row++) {
-						for (int col = 0; col < itemColumns; col++) {
-							GUIBox cellBounds = itemGridCell.toBox(itemGridBounds.x, itemGridBounds.y).indexed(row,
-									col);
-							int bump = itemCellSize / 4;
-							GUIStyle.FRAME_DARK_BUMP_OUTER.render(g, cellBounds.shrink(bump, bump, bump, bump));
+					if (itemShowCellBackground) {
+						for (int row = 0; row < itemRows; row++) {
+							for (int col = 0; col < itemColumns; col++) {
+								GUIBox cellBounds = itemGridCell.toBox(itemGridBounds.x, itemGridBounds.y).indexed(row,
+										col);
+								int bump = itemCellSize / 4;
+								GUIStyle.FRAME_DARK_BUMP_OUTER.render(g, cellBounds.shrink(bump, bump, bump, bump));
+							}
 						}
 					}
 
@@ -388,21 +393,25 @@ public class GUILayoutBlueprint {
 			itemCellSize = 40;
 			itemFontSize = 12f;
 			itemFontOffset = 5;
+			itemShowCellBackground = true;
 		} else if (itemCount <= 72) {
 			itemRowMax = 12;
 			itemCellSize = 30;
 			itemFontSize = 10f;
 			itemFontOffset = 4;
+			itemShowCellBackground = true;
 		} else if (itemCount <= 128) {
 			itemRowMax = 16;
 			itemCellSize = 20;
 			itemFontSize = 8f;
 			itemFontOffset = 3;
+			itemShowCellBackground = true;
 		} else {
 			itemRowMax = 32;
 			itemCellSize = 10;
 			itemFontSize = 4f;
 			itemFontOffset = 1;
+			itemShowCellBackground = false;
 		}
 
 		itemColumns = Math.max(1, (itemCount + itemRowMax - 1) / itemRowMax);
