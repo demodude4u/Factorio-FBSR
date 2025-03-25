@@ -459,6 +459,9 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		}
 		actionButtonRow.add(Button.secondary(actionId, "Download").withEmoji(emoji));
 
+		reporting.addField(
+				new Field("Blueprint", futBlueprintStringUpload.get().getAttachments().get(0).getUrl(), false));
+
 		if (!unknownNames.isEmpty()) {
 			String unknownNamesMsg = unknownNames.entrySet().stream().map(e -> e.getElement() + ": " + e.getCount())
 					.collect(Collectors.joining("\n"));
@@ -637,6 +640,9 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		}
 		Button btnDownload = Button.secondary(actionId, "Download").withEmoji(emoji);
 		List<List<ItemComponent>> actionRows = ImmutableList.of(ImmutableList.of(btnDownload));
+
+		event.getReporting().addField(
+				new Field("Blueprint", futBlueprintStringUpload.get().getAttachments().get(0).getUrl(), false));
 
 		ImageShrinkResult shrinkResult = shrinkImageToFitUploadLimit(result.image);
 		String imageFilename = WebUtils.formatBlueprintFilename(blueprint.label, shrinkResult.extension);
