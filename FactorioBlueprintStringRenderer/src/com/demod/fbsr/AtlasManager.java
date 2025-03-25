@@ -254,7 +254,7 @@ public class AtlasManager {
 		return ret;
 	}
 
-	private static void generateAtlases(File folderAtlas, File fileManifest) throws IOException {
+	private static JSONArray generateAtlases(File folderAtlas, File fileManifest) throws IOException {
 		Map<String, ImageSheetLoader> loaders = new LinkedHashMap<>();
 		for (ImageDef def : defs) {
 			loaders.put(def.getPath(), def.getLoader());
@@ -408,6 +408,7 @@ public class AtlasManager {
 		LOGGER.info("Write Manifest: {} ({} entries)", fileManifest.getAbsolutePath(), defs.size());
 
 		LOGGER.info("Atlas generation complete.");
+		return jsonManifest;
 	}
 
 	public static void initialize() throws IOException {
@@ -416,7 +417,8 @@ public class AtlasManager {
 
 		JSONArray jsonManifest = null;
 		if (!fileManifest.exists() || !checkValidManifest(jsonManifest = readManifest(fileManifest))) {
-			generateAtlases(folderAtlas, fileManifest);
+			jsonManifest = generateAtlases(folderAtlas, fileManifest);
+
 		}
 
 		if (jsonManifest == null) {
