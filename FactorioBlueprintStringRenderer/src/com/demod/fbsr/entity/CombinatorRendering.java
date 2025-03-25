@@ -33,7 +33,10 @@ public abstract class CombinatorRendering extends SimpleEntityRendering {
 		if (operation.isPresent()) {
 			Consumer<SpriteDef> spriteRegister = entity.spriteRegister(register, Layer.OBJECT);
 
-			protoOperationSprites.get(operation.get()).defineSprites(spriteRegister, entity.getDirection());
+			FPSprite4Way fp = protoOperationSprites.get(operation.get());
+			if (fp != null) {
+				fp.defineSprites(spriteRegister, entity.getDirection());
+			}
 		}
 	}
 
