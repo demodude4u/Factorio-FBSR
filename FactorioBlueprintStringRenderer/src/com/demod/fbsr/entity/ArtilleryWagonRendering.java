@@ -8,6 +8,7 @@ import java.util.function.Consumer;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.WorldMap;
+import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.def.SpriteDef;
 import com.demod.fbsr.fp.FPRollingStockRotatedSlopedGraphics;
 import com.demod.fbsr.map.MapEntity;
@@ -108,6 +109,16 @@ public class ArtilleryWagonRendering extends RollingStockRendering {
 				.accept(new MapSprite(s, Layer.HIGHER_OBJECT_UNDER, cannonBasePos));
 		protoCannonBasePictures.rotated.defineSprites(cannonRegister, orientation);
 		protoCannonBarrelPictures.rotated.defineSprites(cannonRegister, orientation);
+
+	@Override
+	public void initAtlas(Consumer<ImageDef> register) {
+		super.initAtlas(register);
+
+		protoCannonBarrelPictures.rotated.getDefs(register);
+		protoCannonBarrelPictures.sloped.ifPresent(fp -> fp.getDefs(register));
+
+		protoCannonBasePictures.rotated.getDefs(register);
+		protoCannonBasePictures.sloped.ifPresent(fp -> fp.getDefs(register));
 	}
 
 	@Override
