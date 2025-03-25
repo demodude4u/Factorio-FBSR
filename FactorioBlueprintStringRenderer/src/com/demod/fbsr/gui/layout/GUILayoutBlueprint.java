@@ -393,11 +393,16 @@ public class GUILayoutBlueprint {
 			itemCellSize = 30;
 			itemFontSize = 10f;
 			itemFontOffset = 4;
-		} else {
+		} else if (itemCount <= 128) {
 			itemRowMax = 16;
 			itemCellSize = 20;
 			itemFontSize = 8f;
 			itemFontOffset = 3;
+		} else {
+			itemRowMax = 32;
+			itemCellSize = 10;
+			itemFontSize = 4f;
+			itemFontOffset = 1;
 		}
 
 		itemColumns = Math.max(1, (itemCount + itemRowMax - 1) / itemRowMax);
