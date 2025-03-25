@@ -5,6 +5,7 @@ import static com.demod.fbsr.MapUtils.*;
 import java.awt.geom.Rectangle2D;
 import java.util.Collection;
 
+import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.fp.FPBoundingBox;
 
 public class MapRect3D {
@@ -173,5 +174,15 @@ public class MapRect3D {
 		int maxX = Math.max(dx1, dx2);
 		int maxY = Math.max(dy1, dy2);
 		return new MapRect3D(minX, minY, maxX, maxY, heightfp);
+	}
+
+	public MapRect3D rotateOrientation(double orientation, boolean projectionCorrection) {
+		if (projectionCorrection) {
+			orientation = FPUtils.projectedOrientation(orientation);
+		}
+		double rad = orientation * Math.PI * 2.0;
+		double rotateCos = Math.cos(rad);
+		double rotateSin = Math.sin(rad);
+		return transformMatrix(rotateCos, -rotateSin, rotateSin, rotateCos);
 	}
 }

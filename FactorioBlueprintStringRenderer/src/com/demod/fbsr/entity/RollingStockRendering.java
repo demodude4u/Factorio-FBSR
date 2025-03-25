@@ -12,6 +12,7 @@ import com.demod.fbsr.def.SpriteDef;
 import com.demod.fbsr.fp.FPRollingStockRotatedSlopedGraphics;
 import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapPosition;
+import com.demod.fbsr.map.MapRect3D;
 import com.demod.fbsr.map.MapRenderable;
 import com.demod.fbsr.map.MapSprite;
 
@@ -27,7 +28,7 @@ public class RollingStockRendering extends EntityRendererFactory {
 		// TODO sloped
 		// TODO mask tinting with entity color
 
-		double orientation = entity.fromBlueprint().orientation.getAsDouble();
+		double orientation = entity.fromBlueprint().orientation.orElse(0);
 		double orientation180 = orientation < 0.5 ? orientation + 0.5 : orientation - 0.5;
 		double rotation = orientation * Math.PI * 2 + Math.PI * 0.5;
 		double jointX = (protoJointDistance / 2.0) * Math.cos(rotation);
@@ -48,6 +49,12 @@ public class RollingStockRendering extends EntityRendererFactory {
 
 		Consumer<SpriteDef> spriteRegister = entity.spriteRegister(register, Layer.HIGHER_OBJECT_UNDER);
 		protoPictures.rotated.defineSprites(spriteRegister, orientation);
+	}
+
+	@Override
+	public MapRect3D getDrawBounds(MapEntity entity) {
+		return drawBounds.rotateOrientation(entity.fromBlueprint().orientation.orElse(0), true)
+				.shift(entity.getPosition());
 	}
 
 	@Override
