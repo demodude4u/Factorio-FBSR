@@ -5,8 +5,10 @@ import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.StringWriter;
+import java.net.MalformedURLException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -47,6 +49,7 @@ import com.demod.factorio.Utils;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.factorio.prototype.DataPrototype;
 import com.demod.fbsr.BlueprintFinder;
+import com.demod.fbsr.BlueprintFinder.FindBlueprintRawResult;
 import com.demod.fbsr.BlueprintFinder.FindBlueprintResult;
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.FBSR;
@@ -65,6 +68,7 @@ import com.demod.fbsr.gui.layout.GUILayoutBlueprint;
 import com.demod.fbsr.gui.layout.GUILayoutBook;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.Multiset;
@@ -299,18 +303,37 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			content += " " + attachment.get().getUrl();
 		}
 
-		Optional<BSBlueprintString> optBlueprintString = BlueprintFinder.search(content, event.getReporting()).stream()
-				.findFirst();
+		List<FindBlueprintResult> searchResults = BlueprintFinder.search(content);
 
-		if (optBlueprintString.isEmpty()) {
+		List<BSBlueprintString> blueprintStrings = searchResults.stream().flatMap(f -> f.blueprintString.stream())
+				.collect(Collectors.toList());
+
+		if (blueprintStrings.size() > 1) {
 			event.replyEmbed(new EmbedBuilder()//
-					.setColor(Color.red)//
-					.setDescription("Blueprint string not found!")//
+					.setColor(Color.yellow)//
+					.setDescription("Multiple blueprint strings found! Please specify only one.")//
 					.build());
 			return;
 		}
 
-		BSBlueprintString blueprintString = optBlueprintString.get();
+		if (blueprintStrings.isEmpty()) {
+			List<Exception> failures = searchResults.stream().flatMap(f -> f.failureCause.stream())
+					.collect(Collectors.toList());
+
+			if (failures.isEmpty()) {
+				event.replyEmbed(new EmbedBuilder()//
+						.setColor(Color.yellow)//
+						.setDescription("Blueprint string not found!")//
+						.build());
+				return;
+
+			} else {
+				event.replyEmbed(createFailuresEmbed(failures));
+				return;
+			}
+		}
+
+		BSBlueprintString blueprintString = blueprintStrings.get(0);
 		CommandReporting reporting = event.getReporting();
 
 		Multiset<String> unknownNames = LinkedHashMultiset.create();
@@ -496,6 +519,34 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		}
 	}
 
+	private MessageEmbed createFailuresEmbed(List<Exception> failureExceptions) {
+		Multiset<String> reasons = HashMultiset.create();
+		for (Exception e : failureExceptions) {
+			e.printStackTrace();
+
+			if (e instanceof EOFException) {
+				reasons.add("Partial or corrupted blueprint string.");
+			} else if (e instanceof JSONException) {
+				reasons.add("JSON is malformed.");
+			} else if (e instanceof MalformedURLException) {
+				reasons.add("URL is malformed.");
+			} else {
+				String message = e.getMessage();
+				if (message.length() > 100) {
+					message = message.substring(0, 100) + "...";
+				}
+				reasons.add("[" + e.getClass().getSimpleName() + "] " + message);
+			}
+		}
+
+		return new EmbedBuilder()//
+				.setColor(Color.red)//
+				.setDescription("Unable to parse blueprint string:\n\n" + reasons.entrySet().stream()
+						.map(e -> "-- " + e.getElement() + (e.getCount() > 1 ? (" (" + e.getCount() + "x)") : ""))
+						.collect(Collectors.joining("\n")))//
+				.build();
+	}
+
 	private void handleBlueprintCustomCommand(SlashCommandEvent event)
 			throws IOException, InterruptedException, ExecutionException {
 
@@ -506,11 +557,20 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			content += " " + attachment.get().getUrl();
 		}
 
-		List<BSBlueprintString> blueprintStrings = BlueprintFinder.search(content, event.getReporting());
+		List<FindBlueprintResult> searchResults = BlueprintFinder.search(content);
+		List<BSBlueprintString> blueprintStrings = searchResults.stream().flatMap(f -> f.blueprintString.stream())
+				.collect(Collectors.toList());
+		List<Exception> failures = searchResults.stream().flatMap(f -> f.failureCause.stream())
+				.collect(Collectors.toList());
 
 		if (blueprintStrings.isEmpty()) {
-			event.reply("No blueprint string was found. Make sure to specify a string, url, or file.");
-			return;
+			if (failures.isEmpty()) {
+				event.reply("No blueprint string was found. Make sure to specify a string, url, or file.");
+				return;
+			} else {
+				event.replyEmbed(createFailuresEmbed(failures));
+				return;
+			}
 		}
 
 		if (blueprintStrings.size() > 1) {
@@ -657,7 +717,16 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			content += " " + attachment.get().getUrl();
 		}
 
-		List<BSBlueprintString> blueprintStrings = BlueprintFinder.search(content, event.getReporting());
+		List<FindBlueprintResult> searchResults = BlueprintFinder.search(content);
+		List<BSBlueprintString> blueprintStrings = searchResults.stream().flatMap(f -> f.blueprintString.stream())
+				.collect(Collectors.toList());
+		List<Exception> failures = searchResults.stream().flatMap(f -> f.failureCause.stream())
+				.collect(Collectors.toList());
+
+		if (blueprintStrings.isEmpty() && !failures.isEmpty()) {
+			event.replyEmbed(createFailuresEmbed(failures));
+			return;
+		}
 
 		Map<String, Double> totalItems = new LinkedHashMap<>();
 		for (BSBlueprintString bs : blueprintStrings) {
@@ -700,7 +769,16 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			content += " " + attachment.get().getUrl();
 		}
 
-		List<BSBlueprintString> blueprintStrings = BlueprintFinder.search(content, event.getReporting());
+		List<FindBlueprintResult> searchResults = BlueprintFinder.search(content);
+		List<BSBlueprintString> blueprintStrings = searchResults.stream().flatMap(f -> f.blueprintString.stream())
+				.collect(Collectors.toList());
+		List<Exception> failures = searchResults.stream().flatMap(f -> f.failureCause.stream())
+				.collect(Collectors.toList());
+
+		if (blueprintStrings.isEmpty() && !failures.isEmpty()) {
+			event.replyEmbed(createFailuresEmbed(failures));
+			return;
+		}
 
 		Map<String, Double> totalItems = new LinkedHashMap<>();
 		for (BSBlueprintString bs : blueprintStrings) {
@@ -743,19 +821,30 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			content += " " + attachment.get().getUrl();
 		}
 
-		List<FindBlueprintResult> results = BlueprintFinder.searchRaw(content, event.getReporting());
+		List<FindBlueprintRawResult> searchResults = BlueprintFinder.searchRaw(content);
+		List<JSONObject> decodedDatas = searchResults.stream().flatMap(f -> f.decodedData.stream())
+				.collect(Collectors.toList());
+		List<String> encodedDatas = searchResults.stream().flatMap(f -> f.encodedData.stream())
+				.collect(Collectors.toList());
+		List<Exception> failures = searchResults.stream().flatMap(f -> f.failureCause.stream())
+				.collect(Collectors.toList());
 
-		if (results.isEmpty()) {
-			event.replyIfNoException("No blueprint string found!");
+		if (decodedDatas.isEmpty() && encodedDatas.isEmpty()) {
 
-		} else if (results.size() > 1) {
+			if (failures.isEmpty()) {
+				event.replyIfNoException("No blueprint string found!");
+			} else {
+				event.replyEmbed(createFailuresEmbed(failures));
+			}
+
+		} else if (decodedDatas.size() + encodedDatas.size() > 1) {
 			event.replyIfNoException("More than one blueprint string was found, please only specify one.");
 
-		} else if (!results.get(0).encoded) {
+		} else if (decodedDatas.size() > 1) {
 			event.replyIfNoException("Blueprint is already in json format!");
 
-		} else if (results.get(0).encoded) {
-			JSONObject json = BSBlueprintString.decodeRaw(results.get(0).encodedData.get());
+		} else {
+			JSONObject json = BSBlueprintString.decodeRaw(encodedDatas.get(0));
 			Optional<String> label;
 			try {
 				label = new BSBlueprintString(json).findFirstLabel();
@@ -775,7 +864,16 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			content += " " + attachment.get().getUrl();
 		}
 
-		List<BSBlueprintString> blueprintStrings = BlueprintFinder.search(content, event.getReporting());
+		List<FindBlueprintResult> searchResults = BlueprintFinder.search(content);
+		List<BSBlueprintString> blueprintStrings = searchResults.stream().flatMap(f -> f.blueprintString.stream())
+				.collect(Collectors.toList());
+		List<Exception> failures = searchResults.stream().flatMap(f -> f.failureCause.stream())
+				.collect(Collectors.toList());
+
+		if (blueprintStrings.isEmpty() && !failures.isEmpty()) {
+			event.replyEmbed(createFailuresEmbed(failures));
+			return;
+		}
 
 		try (StringWriter sw = new StringWriter()) {
 			for (BSBlueprintString blueprintString : blueprintStrings) {
@@ -871,7 +969,9 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			return;
 		}
 
-		BSBlueprint blueprint = BlueprintFinder.search(jsonRaw, event.getReporting()).get(0).findAllBlueprints().get(0);
+		List<FindBlueprintResult> searchResults = BlueprintFinder.search(jsonRaw);
+		searchResults.forEach(f -> f.failureCause.ifPresent(e -> event.getReporting().addException(e)));
+		BSBlueprint blueprint = searchResults.get(0).blueprintString.get().findAllBlueprints().get(0);
 
 		RenderRequest request = new RenderRequest(blueprint, event.getReporting());
 		request.setBackground(Optional.empty());
@@ -932,7 +1032,9 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			content += " " + attachment.getUrl();
 		}
 
-		Optional<BSBlueprintString> optBlueprintString = BlueprintFinder.search(content, reporting).stream()
+		List<FindBlueprintResult> searchResults = BlueprintFinder.search(content);
+		searchResults.forEach(f -> f.failureCause.ifPresent(e -> reporting.addException(e)));
+		Optional<BSBlueprintString> optBlueprintString = searchResults.stream().flatMap(f -> f.blueprintString.stream())
 				.findFirst();
 
 		if (optBlueprintString.isEmpty()) {
@@ -1108,8 +1210,11 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				TextChannel hostingChannel = bot.getJDA().getTextChannelById(hostingChannelID);
 				Message message = hostingChannel.retrieveMessageById(messageId).complete();
 
-				BSBlueprintString blueprintString = BlueprintFinder
-						.search(message.getAttachments().get(0).getUrl(), reporting).get(0);
+				List<FindBlueprintResult> searchResults = BlueprintFinder
+						.search(message.getAttachments().get(0).getUrl());
+				searchResults.forEach(f -> f.failureCause.ifPresent(e -> reporting.addException(e)));
+				BSBlueprintString blueprintString = searchResults.stream().flatMap(f -> f.blueprintString.stream())
+						.findFirst().get();
 				BSBlueprint blueprint = blueprintString.blueprint.get();
 
 				RenderRequest request = new RenderRequest(blueprint, reporting);
@@ -1176,8 +1281,11 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				TextChannel hostingChannel = bot.getJDA().getTextChannelById(hostingChannelID);
 				Message message = hostingChannel.retrieveMessageById(messageId).complete();
 
-				BSBlueprintString blueprintString = BlueprintFinder
-						.search(message.getAttachments().get(0).getUrl(), reporting).get(0);
+				List<FindBlueprintResult> searchResults = BlueprintFinder
+						.search(message.getAttachments().get(0).getUrl());
+				searchResults.forEach(f -> f.failureCause.ifPresent(e -> reporting.addException(e)));
+				BSBlueprintString blueprintString = searchResults.stream().flatMap(f -> f.blueprintString.stream())
+						.findFirst().get();
 				BSBlueprint blueprint = blueprintString.blueprintBook.get().getAllBlueprints().get(index);
 
 				RenderRequest request = new RenderRequest(blueprint, reporting);

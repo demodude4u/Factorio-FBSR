@@ -20,17 +20,19 @@ import java.util.stream.Collectors;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.demod.dcba.CommandReporting;
 import com.demod.factorio.Config;
 import com.demod.factorio.Utils;
 import com.demod.fbsr.BlueprintFinder;
+import com.demod.fbsr.BlueprintFinder.FindBlueprintResult;
 import com.demod.fbsr.FBSR;
 import com.demod.fbsr.RenderRequest;
 import com.demod.fbsr.RenderResult;
 import com.demod.fbsr.WebUtils;
 import com.demod.fbsr.bs.BSBlueprint;
-import com.demod.fbsr.bs.BSBlueprintString;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.AbstractScheduledService;
 import com.google.common.util.concurrent.Uninterruptibles;
@@ -55,8 +57,6 @@ import net.dean.jraw.paginators.Sorting;
 import net.dean.jraw.paginators.SubredditPaginator;
 import net.dean.jraw.paginators.TimePeriod;
 import net.dv8tion.jda.api.entities.MessageEmbed.Field;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class BlueprintBotRedditService extends AbstractScheduledService {
 
@@ -92,11 +92,8 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 					LOGGER.info("Reconnected to Reddit!");
 					break;
 				} catch (Exception e) {
-					LOGGER.info(
-							"[Waiting {} seconds] Connection Failure [{}]: {}",
-							TimeUnit.MILLISECONDS.toSeconds(wait),
-							e.getClass().getSimpleName(),
-							e.getMessage());
+					LOGGER.info("[Waiting {} seconds] Connection Failure [{}]: {}",
+							TimeUnit.MILLISECONDS.toSeconds(wait), e.getClass().getSimpleName(), e.getMessage());
 					Thread.sleep(wait);
 				}
 			}
@@ -151,9 +148,10 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 		List<Entry<Optional<String>, String>> imageLinks = new ArrayList<>();
 
 		try {
-			List<BSBlueprintString> blueprintStrings = BlueprintFinder.search(content, reporting);
-			List<BSBlueprint> blueprints = blueprintStrings.stream().flatMap(s -> s.findAllBlueprints().stream())
-					.collect(Collectors.toList());
+			List<FindBlueprintResult> blueprintStrings = BlueprintFinder.search(content);
+			blueprintStrings.forEach(f -> f.failureCause.ifPresent(e -> reporting.addException(e)));
+			List<BSBlueprint> blueprints = blueprintStrings.stream().filter(f -> f.blueprintString.isPresent())
+					.flatMap(f -> f.blueprintString.get().findAllBlueprints().stream()).collect(Collectors.toList());
 			List<Long> renderTimes = new ArrayList<>();
 
 			for (BSBlueprint blueprint : blueprints) {
