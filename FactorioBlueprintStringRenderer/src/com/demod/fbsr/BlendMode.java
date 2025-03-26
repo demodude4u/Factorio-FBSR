@@ -12,13 +12,90 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public enum BlendMode {
-	NORMAL("normal", AlphaComposite.SrcOver),
-	ADDITIVE("additive", new GeneralBlendComposite((src, dst) -> Math.min(255, src + dst))),
-	ADDITIVE_SOFT("additive-soft", new GeneralBlendComposite((src, dst) -> (src * (255 - dst) / 255) + dst)),
-	MULTIPLICATIVE("multiplicative", new GeneralBlendComposite((src, dst) -> (src * dst) / 255)),
-	MULTIPLICATIVE_WITH_ALPHA("multiplicative-with-alpha",
-			new GeneralBlendComposite((src, dst, alpha) -> ((src * dst * alpha) / 255) + (dst * (255 - alpha) / 255))),
-	OVERWRITE("overwrite", AlphaComposite.Src);
+	NORMAL("normal", AlphaComposite.SrcOver), //
+	ADDITIVE("additive", new GeneralBlendComposite((src, dst) -> {
+		for (int i = 0; i < src.length; i += 4) {
+			int Sa = src[i + 0];
+			int Sr = src[i + 1];
+			int Sg = src[i + 2];
+			int Sb = src[i + 3];
+			int SpR = (Sr * Sa + 127) / 255;
+			int SpG = (Sg * Sa + 127) / 255;
+			int SpB = (Sb * Sa + 127) / 255;
+			int Da = dst[i + 0];
+			int Dr = dst[i + 1];
+			int Dg = dst[i + 2];
+			int Db = dst[i + 3];
+
+			dst[i + 0] = Da;
+			dst[i + 1] = Math.min(SpR + Dr, 255);
+			dst[i + 2] = Math.min(SpG + Dg, 255);
+			dst[i + 3] = Math.min(SpB + Db, 255);
+		}
+	})), //
+
+	ADDITIVE_SOFT("additive-soft", new GeneralBlendComposite((src, dst) -> {
+		for (int i = 0; i < src.length; i += 4) {
+			int Sa = src[i + 0];
+			int Sr = src[i + 1];
+			int Sg = src[i + 2];
+			int Sb = src[i + 3];
+			int SpR = (Sr * Sa + 127) / 255;
+			int SpG = (Sg * Sa + 127) / 255;
+			int SpB = (Sb * Sa + 127) / 255;
+			int Da = dst[i + 0];
+			int Dr = dst[i + 1];
+			int Dg = dst[i + 2];
+			int Db = dst[i + 3];
+
+			dst[i + 0] = Da;
+			dst[i + 1] = ((SpR * (255 - Dr) + Dr * 255) + 127) / 255;
+			dst[i + 2] = ((SpG * (255 - Dg) + Dg * 255) + 127) / 255;
+			dst[i + 3] = ((SpB * (255 - Db) + Db * 255) + 127) / 255;
+		}
+	})), //
+	MULTIPLICATIVE("multiplicative", new GeneralBlendComposite((src, dst) -> {
+		for (int i = 0; i < src.length; i += 4) {
+			int Sa = src[i + 0];
+			int Sr = src[i + 1];
+			int Sg = src[i + 2];
+			int Sb = src[i + 3];
+			int SpR = (Sr * Sa + 127) / 255;
+			int SpG = (Sg * Sa + 127) / 255;
+			int SpB = (Sb * Sa + 127) / 255;
+			int Da = dst[i + 0];
+			int Dr = dst[i + 1];
+			int Dg = dst[i + 2];
+			int Db = dst[i + 3];
+
+			dst[i + 0] = Da;
+			dst[i + 1] = (SpR * Dr + 127) / 255;
+			dst[i + 2] = (SpG * Dg + 127) / 255;
+			dst[i + 3] = (SpB * Db + 127) / 255;
+		}
+	})), //
+	MULTIPLICATIVE_WITH_ALPHA("multiplicative-with-alpha", new GeneralBlendComposite((src, dst) -> {
+		for (int i = 0; i < src.length; i += 4) {
+			int Sa = src[i + 0];
+			int Sr = src[i + 1];
+			int Sg = src[i + 2];
+			int Sb = src[i + 3];
+			int SpR = (Sr * Sa + 127) / 255;
+			int SpG = (Sg * Sa + 127) / 255;
+			int SpB = (Sb * Sa + 127) / 255;
+			int Da = dst[i + 0];
+			int Dr = dst[i + 1];
+			int Dg = dst[i + 2];
+			int Db = dst[i + 3];
+
+			int invSa = 255 - Sa;
+			dst[i + 0] = Da;
+			dst[i + 1] = ((SpR * Dr + Dr * invSa) + 127) / 255;
+			dst[i + 2] = ((SpG * Dg + Dg * invSa) + 127) / 255;
+			dst[i + 3] = ((SpB * Db + Db * invSa) + 127) / 255;
+		}
+	})), //
+	OVERWRITE("overwrite", AlphaComposite.Src);//
 
 	private static final Map<String, BlendMode> MODE_MAP = Stream.of(values())
 			.collect(Collectors.toMap(mode -> mode.name, mode -> mode));
@@ -41,26 +118,14 @@ public enum BlendMode {
 
 	@FunctionalInterface
 	private interface BlendFunction {
-		int blend(int src, int dst);
-	}
-
-	@FunctionalInterface
-	private interface BlendFunctionWithAlpha {
-		int blend(int src, int dst, int alpha);
+		void blend(int[] src, int[] dst);
 	}
 
 	private static class GeneralBlendComposite implements Composite {
 		private final BlendFunction blendFunction;
-		private final BlendFunctionWithAlpha blendFunctionWithAlpha;
 
 		public GeneralBlendComposite(BlendFunction blendFunction) {
 			this.blendFunction = blendFunction;
-			this.blendFunctionWithAlpha = null;
-		}
-
-		public GeneralBlendComposite(BlendFunctionWithAlpha blendFunctionWithAlpha) {
-			this.blendFunction = null;
-			this.blendFunctionWithAlpha = blendFunctionWithAlpha;
 		}
 
 		@Override
@@ -81,24 +146,7 @@ public enum BlendMode {
 					src.getPixels(0, 0, width, height, srcPixels);
 					dstIn.getPixels(0, 0, width, height, dstPixels);
 
-					for (int i = 0; i < srcPixels.length; i += 4) {
-						int srcR = srcPixels[i], srcG = srcPixels[i + 1], srcB = srcPixels[i + 2],
-								srcA = srcPixels[i + 3];
-						int dstR = dstPixels[i], dstG = dstPixels[i + 1], dstB = dstPixels[i + 2],
-								dstA = dstPixels[i + 3];
-
-						if (blendFunction != null) {
-							dstPixels[i] = blendFunction.blend(srcR, dstR);
-							dstPixels[i + 1] = blendFunction.blend(srcG, dstG);
-							dstPixels[i + 2] = blendFunction.blend(srcB, dstB);
-						} else if (blendFunctionWithAlpha != null) {
-							dstPixels[i] = blendFunctionWithAlpha.blend(srcR, dstR, srcA);
-							dstPixels[i + 1] = blendFunctionWithAlpha.blend(srcG, dstG, srcA);
-							dstPixels[i + 2] = blendFunctionWithAlpha.blend(srcB, dstB, srcA);
-						}
-
-						dstPixels[i + 3] = Math.max(srcA, dstA); // Preserve max alpha
-					}
+					blendFunction.blend(srcPixels, dstPixels);
 
 					dstOut.setPixels(0, 0, width, height, dstPixels);
 				}

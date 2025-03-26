@@ -62,7 +62,7 @@ public class AtlasManager {
 		public Atlas(int id) {// Generating Atlas
 			this.id = id;
 
-			bufImage = new BufferedImage(ATLAS_SIZE, ATLAS_SIZE, BufferedImage.TYPE_INT_ARGB_PRE);
+			bufImage = new BufferedImage(ATLAS_SIZE, ATLAS_SIZE, BufferedImage.TYPE_INT_ARGB);
 			occupied = new Quadtree(0, new Rectangle(0, 0, ATLAS_SIZE, ATLAS_SIZE));
 		}
 
