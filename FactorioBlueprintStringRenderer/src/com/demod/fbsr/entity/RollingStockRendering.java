@@ -1,5 +1,6 @@
 package com.demod.fbsr.entity;
 
+import java.awt.Color;
 import java.util.Optional;
 import java.util.function.Consumer;
 
@@ -7,8 +8,11 @@ import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.WorldMap;
+import com.demod.fbsr.bs.BSEntity;
+import com.demod.fbsr.bs.entity.BSRollingStockEntity;
 import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.def.SpriteDef;
+import com.demod.fbsr.fp.FPColor;
 import com.demod.fbsr.fp.FPRollingStockRotatedSlopedGraphics;
 import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapPosition;
@@ -18,6 +22,7 @@ import com.demod.fbsr.map.MapSprite;
 
 public class RollingStockRendering extends EntityRendererFactory {
 
+	private FPColor protoColor;
 	private double protoJointDistance;
 	private FPRollingStockRotatedSlopedGraphics protoPictures;
 	private Optional<FPRollingStockRotatedSlopedGraphics> protoWheels;
@@ -27,6 +32,16 @@ public class RollingStockRendering extends EntityRendererFactory {
 
 		// TODO sloped
 		// TODO mask tinting with entity color
+
+		BSRollingStockEntity bsEntity = entity.fromBlueprint();
+
+		Color color;
+		if (bsEntity.color.isPresent()) {
+			color = bsEntity.color.get().createColor();
+		} else {
+			color = protoColor.createColor();
+//			color = new FPColor(0.92, 0.07, 0, 0.5).createColor();
+		}
 
 		double orientation = entity.fromBlueprint().orientation.orElse(0);
 		double orientation180 = orientation < 0.5 ? orientation + 0.5 : orientation - 0.5;
@@ -47,7 +62,8 @@ public class RollingStockRendering extends EntityRendererFactory {
 			}, orientation180);
 		}
 
-		Consumer<SpriteDef> spriteRegister = entity.spriteRegister(register, Layer.HIGHER_OBJECT_UNDER);
+		Consumer<SpriteDef> spriteRegister = entity.spriteRegisterWithTintOverride(register, Layer.HIGHER_OBJECT_UNDER,
+				color);
 		protoPictures.rotated.defineSprites(spriteRegister, orientation);
 	}
 
@@ -69,8 +85,14 @@ public class RollingStockRendering extends EntityRendererFactory {
 
 	@Override
 	public void initFromPrototype() {
+		protoColor = new FPColor(prototype.lua().get("color"));
 		protoJointDistance = prototype.lua().get("joint_distance").todouble();
 		protoPictures = new FPRollingStockRotatedSlopedGraphics(prototype.lua().get("pictures"));
 		protoWheels = FPUtils.opt(prototype.lua().get("wheels"), FPRollingStockRotatedSlopedGraphics::new);
+	}
+
+	@Override
+	public Class<? extends BSEntity> getEntityClass() {
+		return BSRollingStockEntity.class;
 	}
 }
