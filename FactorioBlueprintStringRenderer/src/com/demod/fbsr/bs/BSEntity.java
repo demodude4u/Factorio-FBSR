@@ -27,31 +27,14 @@ public class BSEntity {
 			.put("stack-inserter", "bulk-inserter")//
 			.build();
 
-	// TODO change this to load dynamically the structure that matches the prototype
-	// (some things like "filter" are used with different structures)
-	// setup functions to cache dynamic parsing
-
 	public final int entityNumber;
 	public final String name;
 	public final BSPosition position;
 	public final Direction direction;
 	public final int directionRaw;
+	public final String quality;
 
 	public final OptionalDouble orientation;
-
-//	public final Optional<ItemQuality> recipeQuality;
-//	public final Optional<String> filterMode;
-//	public final OptionalInt overrideStackSize;
-//	public final OptionalInt bar;
-//	public final OptionalInt transitionalRequestIndex;
-//	public final Optional<BSSignalID> icon;
-//	public final boolean alwaysShow;
-//	public final Optional<String> spoilPriority;
-//	public final OptionalInt manualTrainsLimit;
-//	public final OptionalInt priority;
-//	public final Optional<String> text;
-//	public final Optional<ItemQuality> quality;
-//	private final boolean mirror;
 
 	public final List<BSItemStack> items;
 
@@ -61,25 +44,11 @@ public class BSEntity {
 		position = BSUtils.position(json, "position");
 		direction = BSUtils.direction(json, "direction");
 		directionRaw = json.optInt("direction");
+		quality = BSUtils.optString(json, "quality").orElse("normal");
+
 		orientation = BSUtils.optDouble(json, "orientation");
 
 		items = BSUtils.list(json, "items", BSItemStack::new);
-
-//		recipeQuality = BSUtils.optQuality(json, "recipe_quality");
-//		requestFilters = BSUtils.opt(json, "request_filters", BSEntityRequestFilters::new);
-//		filterMode = BSUtils.optString(json, "filter_mode");
-//		overrideStackSize = BSUtils.optInt(json, "override_stack_size");
-//		bar = BSUtils.optInt(json, "bar");
-//		transitionalRequestIndex = BSUtils.optInt(json, "transitional_request_index");
-//		icon = BSUtils.opt(json, "icon", BSSignalID::new);
-//		alwaysShow = json.optBoolean("always_show");
-//		spoilPriority = BSUtils.optString(json, "spoil_priority");
-//		manualTrainsLimit = BSUtils.optInt(json, "manual_trains_limit");
-//		priority = BSUtils.optInt(json, "priority");
-//		text = BSUtils.optString(json, "text");
-//		quality = BSUtils.optQuality(json, "quality");
-//		// TODO find blueprints that use mirror
-//		mirror = json.optBoolean("mirror");
 	}
 
 	public BSEntity(LegacyBlueprintEntity legacy) {
@@ -93,6 +62,8 @@ public class BSEntity {
 		position = new BSPosition(pos.x, pos.y);
 		direction = legacy.direction.toNewDirection();
 		directionRaw = direction.ordinal() * 2;
+		quality = "normal";
+
 		orientation = legacy.orientation;
 
 		JSONObject json = legacy.json();

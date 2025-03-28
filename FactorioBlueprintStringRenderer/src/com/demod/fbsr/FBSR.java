@@ -267,6 +267,17 @@ public class FBSR {
 			if (map.isAltMode()) {
 				mapEntities.forEach(t -> {
 					try {
+						t.getFactory().createQualityIcon(register, map, t);
+					} catch (Exception e) {
+						reporting.addException(e,
+								t.getFactory().getClass().getSimpleName() + ", " + t.fromBlueprint().name);
+					}
+				});
+			}
+
+			if (map.isAltMode()) {
+				mapEntities.forEach(t -> {
+					try {
 						t.getFactory().createModuleIcons(register, map, t);
 					} catch (Exception e) {
 						reporting.addException(e,

@@ -91,10 +91,6 @@ public final class BSUtils {
 		return Optional.of(BSPosition.parse(json.get(key)));
 	}
 
-	public static Optional<ItemQuality> optQuality(JSONObject json, String key) {
-		return BSUtils.optKeyed(json, key, (j, k) -> ItemQuality.valueOf(j.getString(k).toUpperCase()));
-	}
-
 	public static Optional<String> optString(JSONObject json, String key) {
 		if (json.isNull(key)) {
 			return Optional.empty();
@@ -104,9 +100,5 @@ public final class BSUtils {
 
 	public static BSPosition position(JSONObject json, String key) {
 		return BSPosition.parse(json.get(key));
-	}
-
-	public static ItemQuality quality(JSONObject json, String key) {
-		return ItemQuality.valueOf(json.getString(key).toUpperCase());
 	}
 }

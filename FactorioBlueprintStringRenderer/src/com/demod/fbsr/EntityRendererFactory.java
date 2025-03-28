@@ -139,6 +139,25 @@ public abstract class EntityRendererFactory {
 		map.getOrCreateLogisticGridCell(cellDir1.offset(gridPos1, 0.25)).addWarp(cellDir2.offset(gridPos2, 0.25));
 	}
 
+	public void createQualityIcon(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
+		String quality = entity.fromBlueprint().quality;
+		if (quality.equals("normal")) {
+			return;
+		}
+
+		Optional<ImageDef> optDef = TagManager.lookup("quality", quality);
+		if (optDef.isEmpty()) {
+			return;
+		}
+
+		ImageDef def = optDef.get();
+		MapRect3D bounds = getDrawBounds(entity);
+		double size = Math.round(Math.min(bounds.getX2() - bounds.getX1(), bounds.getY2() - bounds.getY1())) > 1 ? 0.5
+				: 0.25;
+		register.accept(new MapIcon(MapPosition.byUnit(bounds.getX1() + size / 2.0, bounds.getY2() - size / 2.0), def,
+				size, 0, false));
+	}
+
 	public void createModuleIcons(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
 
 		MapPosition position = entity.getPosition();
