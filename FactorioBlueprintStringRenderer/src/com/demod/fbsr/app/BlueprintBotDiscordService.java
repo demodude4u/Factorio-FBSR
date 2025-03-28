@@ -48,11 +48,13 @@ import com.demod.factorio.FactorioData;
 import com.demod.factorio.Utils;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.factorio.prototype.DataPrototype;
+import com.demod.fbsr.BlendMode;
 import com.demod.fbsr.BlueprintFinder;
 import com.demod.fbsr.BlueprintFinder.FindBlueprintRawResult;
 import com.demod.fbsr.BlueprintFinder.FindBlueprintResult;
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.FBSR;
+import com.demod.fbsr.FBSR.RenderDebugLayersResult;
 import com.demod.fbsr.FactorioManager;
 import com.demod.fbsr.RenderRequest;
 import com.demod.fbsr.RenderResult;
@@ -64,8 +66,12 @@ import com.demod.fbsr.bs.BSBlueprintBook;
 import com.demod.fbsr.bs.BSBlueprintString;
 import com.demod.fbsr.bs.BSDeconstructionPlanner;
 import com.demod.fbsr.bs.BSUpgradePlanner;
+import com.demod.fbsr.def.SpriteDef;
 import com.demod.fbsr.gui.layout.GUILayoutBlueprint;
 import com.demod.fbsr.gui.layout.GUILayoutBook;
+import com.demod.fbsr.map.MapRenderable;
+import com.demod.fbsr.map.MapSprite;
+import com.demod.fbsr.map.MapTintOverrideSprite;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.HashMultiset;
@@ -963,6 +969,12 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			JSONObject jsonEntity = json.getJSONObject("blueprint").getJSONArray("entities").getJSONObject(0);
 			JSONObject jsonCustom = new JSONObject(event.optParamString("json").orElse("{}"));
 			Utils.forEach(jsonCustom, (k, v) -> jsonEntity.put(k, v));
+
+			if (event.optParamBoolean("debug-layers").orElse(false)) {
+				handleShowEntityCommand_DebugLayers(event, factory, jsonEntity);
+				return;
+			}
+
 			jsonRaw = json.toString();
 		} catch (Exception e) {
 			event.reply("Malformed json!");
@@ -984,6 +996,57 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		ImageShrinkResult shrinkResult = shrinkImageToFitUploadLimit(result.image);
 		String imageFilename = WebUtils.formatBlueprintFilename(Optional.of(entityName), shrinkResult.extension);
 		event.replyFile(shrinkResult.data, imageFilename);
+	}
+
+	private void handleShowEntityCommand_DebugLayers(SlashCommandEvent event, EntityRendererFactory factory,
+			JSONObject jsonEntity) {
+
+		RenderDebugLayersResult result;
+		try {
+			result = FBSR.renderDebugLayers(factory, jsonEntity);
+		} catch (Exception e) {
+			e.printStackTrace();
+
+			event.reply("There was a problem fulfilling your request!");
+			return;
+		}
+
+		ImageShrinkResult shrinkResult = shrinkImageToFitUploadLimit(result.image);
+		String imageFilename = WebUtils.formatBlueprintFilename(Optional.of(factory.getName()), shrinkResult.extension);
+		event.replyFile(shrinkResult.data, imageFilename);
+
+		List<String> infos = new ArrayList<>();
+		for (int i = 0; i < result.renderables.size(); i++) {
+			MapRenderable renderable = result.renderables.get(i);
+			String detail = " LAYER[" + renderable.getLayer().name() + "]";
+			if (renderable instanceof MapSprite) {
+				SpriteDef def = ((MapSprite) renderable).getDef();
+				if (def.getBlendMode() != BlendMode.NORMAL) {
+					detail += " " + def.getBlendMode().name();
+				}
+				if (def.getTint().isPresent()) {
+					Color c = def.getTint().get();
+					detail += " TINT[" + c.getRed() + "," + c.getGreen() + "," + c.getBlue() + "," + c.getAlpha() + "]";
+				}
+				if (def.isTintAsOverlay()) {
+					detail += " TINT_AS_OVERLAY";
+				}
+				if (def.applyRuntimeTint()) {
+					detail += " APPLY_RUNTIME_TINT";
+				}
+				if (def.isShadow()) {
+					detail += " SHADOW";
+				}
+			}
+			if (renderable instanceof MapTintOverrideSprite) {
+				Color c = ((MapTintOverrideSprite) renderable).getTint();
+				detail += " TINT_OVERRIDE[" + c.getRed() + "," + c.getGreen() + "," + c.getBlue() + "," + c.getAlpha()
+						+ "]";
+			}
+			infos.add((i + 1) + " " + renderable.getClass().getSimpleName() + detail);
+		}
+		event.reply(infos.stream().collect(Collectors.joining("\n")));
+
 	}
 
 	private void handleShowEntityAutoComplete(AutoCompleteEvent event) {
@@ -1518,6 +1581,8 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				.withAutoParam(OptionType.STRING, "entity", "Entity name to be shown.")
 				.withOptionalParam(OptionType.STRING, "json", "JSON properties to add to the entity.")
 				.withOptionalParam(OptionType.BOOLEAN, "debug", "Show debug markers.")
+				.withOptionalParam(OptionType.BOOLEAN, "debug-layers",
+						"Show details on the layers that make up this entity. (Internal Testing)")
 				//
 				//
 				.addSlashCommand("data/raw", "Lua from `data.raw` for the specified key.", this::handleDataRawCommand,

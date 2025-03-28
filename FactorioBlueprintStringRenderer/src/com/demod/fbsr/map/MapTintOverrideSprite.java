@@ -25,4 +25,8 @@ public class MapTintOverrideSprite extends MapSprite {
 	protected Optional<Color> tintOverride(Optional<Color> tint) {
 		return Optional.of(this.tint);
 	}
+
+	public Color getTint() {
+		return tint;
+	}
 }

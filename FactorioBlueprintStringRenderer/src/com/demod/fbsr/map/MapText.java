@@ -13,7 +13,7 @@ public class MapText extends MapRenderable {
 	private final int angle;
 	protected final Font font;
 	protected final Color color;
-	protected final String string;
+	protected String string;
 
 	public MapText(Layer layer, MapPosition position, int angle, Font font, Color color, String string) {
 		super(layer);
@@ -52,6 +52,10 @@ public class MapText extends MapRenderable {
 			g.setColor(color);
 			g.drawString(string, textX, textY);
 		}
+	}
+
+	public void setString(String string) {
+		this.string = string;
 	}
 
 }

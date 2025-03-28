@@ -1,10 +1,13 @@
 package com.demod.fbsr;
 
 import java.awt.AlphaComposite;
+import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Composite;
 import java.awt.Graphics2D;
+import java.awt.Rectangle;
 import java.awt.RenderingHints;
+import java.awt.Stroke;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
@@ -16,6 +19,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -34,6 +38,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.json.JSONException;
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,6 +61,7 @@ import com.demod.fbsr.bs.BSMetaEntity;
 import com.demod.fbsr.bs.BSTile;
 import com.demod.fbsr.bs.BSWire;
 import com.demod.fbsr.entity.ErrorRendering;
+import com.demod.fbsr.gui.GUIStyle;
 import com.demod.fbsr.map.MapBounded;
 import com.demod.fbsr.map.MapDebug;
 import com.demod.fbsr.map.MapEntity;
@@ -67,9 +73,11 @@ import com.demod.fbsr.map.MapRailLogistics;
 import com.demod.fbsr.map.MapRect;
 import com.demod.fbsr.map.MapRect3D;
 import com.demod.fbsr.map.MapRenderable;
+import com.demod.fbsr.map.MapText;
 import com.demod.fbsr.map.MapTile;
 import com.demod.fbsr.map.MapWire;
 import com.demod.fbsr.map.MapWireShadow;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.MultimapBuilder;
@@ -849,5 +857,99 @@ public class FBSR {
 		}
 
 		return MapRect3D.byFixedPoint(x1fp, y1fp, x2fp, y2fp, heightfp);
+	}
+
+	public static class RenderDebugLayersResult {
+		public final BufferedImage image;
+		public final List<MapRenderable> renderables;
+
+		public RenderDebugLayersResult(BufferedImage image, List<MapRenderable> renderables) {
+			this.image = image;
+			this.renderables = renderables;
+		}
+	}
+
+	public static RenderDebugLayersResult renderDebugLayers(EntityRendererFactory factory, JSONObject jsonEntity)
+			throws Exception {
+
+		ListMultimap<Layer, MapRenderable> renderOrder = MultimapBuilder.enumKeys(Layer.class).arrayListValues()
+				.build();
+		Consumer<MapRenderable> register = r -> renderOrder.put(r.getLayer(), r);
+
+		BSEntity bsEntity = factory.parseEntity(jsonEntity);
+		MapEntity entity = new MapEntity(bsEntity, factory);
+
+		WorldMap map = new WorldMap();
+		map.setAltMode(true);
+
+		factory.populateWorldMap(map, entity);
+		factory.populateLogistics(map, entity);
+		factory.initWireConnector(register, entity, ImmutableList.of());
+		factory.createRenderers(register, map, entity);
+
+		List<MapRenderable> renderables = renderOrder.values().stream().collect(Collectors.toList());
+		Collections.reverse(renderables);
+
+		List<MapRect> rects = renderables.stream().filter(r -> r instanceof MapBounded)
+				.map(r -> ((MapBounded) r).getBounds()).collect(Collectors.toList());
+		MapRect frameBounds = MapRect.combineAll(rects);
+		frameBounds = frameBounds.expandUnit(1);
+		Rectangle frame = frameBounds.toPixels();
+
+		int rows = (int) Math.ceil(Math.sqrt(renderables.size()));
+		int cols = (renderables.size() + rows - 1) / rows;
+
+		BufferedImage image = new BufferedImage(frame.width * cols, frame.height * rows, BufferedImage.TYPE_INT_ARGB);
+		Graphics2D g = image.createGraphics();
+		g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+		g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+		g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+		g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+		g.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
+		g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+
+		g.setColor(Color.darkGray);
+		g.fillRect(0, 0, image.getWidth(), image.getHeight());
+
+		g.setColor(Color.black);
+		for (int i = 0; i < renderables.size(); i++) {
+			int x = (i % cols) * frame.width;
+			int y = (i / cols) * frame.height;
+			g.drawRect(x + 64 - 1, y + 64 - 1, frame.width - 64 * 2 + 1, frame.height - 64 * 2 + 1);
+		}
+
+		g.scale(image.getWidth() / (frameBounds.getWidth() * cols),
+				image.getHeight() / (frameBounds.getHeight() * rows));
+		g.translate(-frameBounds.getX(), -frameBounds.getY());
+		AffineTransform pt = g.getTransform();
+
+		MapText label = new MapText(null,
+				MapPosition.byUnit(frameBounds.getX() + 0.15, frameBounds.getY() + frameBounds.getHeight() / 2.0), 0,
+				GUIStyle.FONT_BP_BOLD.deriveFont(0.8f), Color.white, "");
+
+		int i = 0;
+		for (MapRenderable renderable : renderables) {
+			g.setTransform(pt);
+			g.translate(frameBounds.getWidth() * (i % cols), frameBounds.getHeight() * (i / cols));
+
+			renderable.render(g);
+
+			label.setString("" + (++i));
+			label.render(g);
+
+			if (renderable instanceof MapBounded) {
+				Stroke ps = g.getStroke();
+				g.setStroke(new BasicStroke(1 / 64f));
+				g.setColor(Color.black);
+				MapRect b = ((MapBounded) renderable).getBounds();
+				g.draw(new Rectangle2D.Double(b.getX() - 1 / 64f, b.getY() - 1 / 64f, b.getWidth() + 1 / 64f,
+						b.getHeight() + 1 / 64f));
+				g.setStroke(ps);
+			}
+		}
+
+		g.dispose();
+
+		return new RenderDebugLayersResult(image, renderables);
 	}
 }
