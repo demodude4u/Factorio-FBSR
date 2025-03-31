@@ -602,6 +602,7 @@ public class FBSR {
 		initialized = true;
 		FactorioManager.initializePrototypes();
 		FactorioManager.initializeFactories();
+		GUIStyle.initialize();
 		TagManager.initialize();
 		AtlasManager.initialize();
 	}

@@ -25,7 +25,6 @@ import com.demod.dcba.CommandReporting;
 import com.demod.factorio.DataTable;
 import com.demod.factorio.TotalRawCalculator;
 import com.demod.factorio.prototype.TilePrototype;
-import com.demod.fbsr.AtlasManager.AtlasRef;
 import com.demod.fbsr.FBSR;
 import com.demod.fbsr.FactorioManager;
 import com.demod.fbsr.RenderRequest;
@@ -53,8 +52,6 @@ public class GUILayoutBlueprint {
 	// Discord messages at 100% scale embed images at 550x350
 	// This is double so it has a nice zoom but also crisp in detail
 	public static final GUISize DISCORD_IMAGE_SIZE = new GUISize(1100, 700);
-
-	private static BufferedImage timeIcon = null;
 
 	private BSBlueprint blueprint;
 	private CommandReporting reporting;
@@ -287,11 +284,6 @@ public class GUILayoutBlueprint {
 							.sorted(Comparator.comparing((Entry<String, Double> e) -> e.getValue()).reversed())
 							.collect(Collectors.toList());
 
-					if (timeIcon == null) {
-						AtlasRef ref = GUIStyle.CLOCK_ICON.def.getAtlasRef();
-						timeIcon = ref.getAtlas().getBufferedImage().getSubimage(0, 0, 32, 32);
-					}
-
 					for (int i = 0; i < itemOrder.size(); i++) {
 						Entry<String, Double> entry = itemOrder.get(i);
 						String item = entry.getKey();
@@ -308,7 +300,7 @@ public class GUILayoutBlueprint {
 
 						Optional<ImageDef> image = null;
 						if (item.equals(TotalRawCalculator.RAW_TIME)) {
-							image = Optional.of(GUIStyle.CLOCK_ICON.def);
+							image = Optional.of(GUIStyle.DEF_CLOCK);
 						} else {
 							image = TagManager.lookup("item", item);
 							if (image.isEmpty()) {

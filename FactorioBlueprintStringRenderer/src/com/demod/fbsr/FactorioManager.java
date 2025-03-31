@@ -34,6 +34,7 @@ import com.demod.factorio.prototype.RecipePrototype;
 import com.demod.factorio.prototype.TechPrototype;
 import com.demod.factorio.prototype.TilePrototype;
 import com.demod.fbsr.entity.UnknownEntityRendering;
+import com.demod.fbsr.fp.FPUtilitySprites;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ArrayListMultimap;
@@ -73,6 +74,8 @@ public class FactorioManager {
 	private static final Map<String, TilePrototype> tileByName = new HashMap<>();
 	private static final Map<String, EquipmentPrototype> equipmentByName = new HashMap<>();
 	private static final Map<String, AchievementPrototype> achievementByName = new HashMap<>();
+
+	private static FPUtilitySprites utilitySprites;
 
 	private static final Cache<String, UnknownEntityRendering> unknownEntityFactories = CacheBuilder.newBuilder()
 			.expireAfterAccess(1, TimeUnit.HOURS).build();
@@ -140,6 +143,10 @@ public class FactorioManager {
 		return tiles;
 	}
 
+	public static FPUtilitySprites getUtilitySprites() {
+		return utilitySprites;
+	}
+
 	public static boolean hasFactorioInstall() {
 		return hasFactorioInstall;
 	}
@@ -173,6 +180,8 @@ public class FactorioManager {
 		if (baseData == null) {
 			throw new IllegalStateException("No \"Base\" mod defined in any mod-rendering.json!");
 		}
+
+		utilitySprites = new FPUtilitySprites(baseData.getTable().getRaw("utility-sprites", "default").get());
 
 		EntityRendererFactory.initFactories(entityFactories);
 		TileRendererFactory.initFactories(tileFactories);
