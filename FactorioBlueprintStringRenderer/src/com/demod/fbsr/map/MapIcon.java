@@ -12,12 +12,13 @@ import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.Layer;
 
 public class MapIcon extends MapRenderable {
-	private static final Color SHADOW = new Color(0, 0, 0, 180);
+	private static final Color BACKGROUND = new Color(0, 0, 0, 180);
 
 	private final MapPosition position;
 	private final ImageDef image;
 	private final double size;
 	private final double border;
+	private final boolean showBackground;
 
 	public MapIcon(MapPosition position, ImageDef image, double size, double border, boolean above) {
 		super(above ? Layer.ENTITY_INFO_ICON_ABOVE : Layer.ENTITY_INFO_ICON);
@@ -25,6 +26,16 @@ public class MapIcon extends MapRenderable {
 		this.image = image;
 		this.size = size;
 		this.border = border;
+		this.showBackground = true;
+	}
+
+	public MapIcon(MapPosition position, ImageDef image, double size, boolean above) {
+		super(above ? Layer.ENTITY_INFO_ICON_ABOVE : Layer.ENTITY_INFO_ICON);
+		this.position = position;
+		this.image = image;
+		this.size = size;
+		this.border = 0;
+		this.showBackground = false;
 	}
 
 	@Override
@@ -35,9 +46,11 @@ public class MapIcon extends MapRenderable {
 		double shadowSize = size + border * 2.0;
 		double halfShadowSize = shadowSize / 2.0;
 
-		g.setColor(SHADOW);
-		g.fill(new RoundRectangle2D.Double(x - halfShadowSize, y - halfShadowSize, shadowSize, shadowSize, border * 2,
-				border * 2));
+		if (showBackground) {
+			g.setColor(BACKGROUND);
+			g.fill(new RoundRectangle2D.Double(x - halfShadowSize, y - halfShadowSize, shadowSize, shadowSize,
+					border * 2, border * 2));
+		}
 
 		AtlasRef ref = image.getAtlasRef();
 		if (!ref.isValid()) {

@@ -29,7 +29,7 @@ public class DisplayPanelRendering extends SimpleEntityRendering {
 			String itemName = item;
 			Optional<ImageDef> icon = TagManager.lookup("item", itemName);
 			if (icon.isPresent()) {
-				register.accept(new MapIcon(entity.getPosition().addUnit(0, -0.25), icon.get(), 0.5, -0.25, false));
+				register.accept(new MapIcon(entity.getPosition().addUnit(0, -0.25), icon.get(), 0.5, false));
 			}
 		}
 	}

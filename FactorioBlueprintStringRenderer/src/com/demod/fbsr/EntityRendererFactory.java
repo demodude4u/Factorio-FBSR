@@ -155,7 +155,7 @@ public abstract class EntityRendererFactory {
 		double size = Math.round(Math.min(bounds.getX2() - bounds.getX1(), bounds.getY2() - bounds.getY1())) > 1 ? 0.5
 				: 0.25;
 		register.accept(new MapIcon(MapPosition.byUnit(bounds.getX1() + size / 2.0, bounds.getY2() - size / 2.0), def,
-				size, 0, false));
+				size, false));
 	}
 
 	public void createModuleIcons(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
