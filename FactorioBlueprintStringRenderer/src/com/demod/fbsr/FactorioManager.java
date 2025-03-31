@@ -46,7 +46,7 @@ public class FactorioManager {
 	private static volatile boolean initializedPrototypes = false;
 	private static volatile boolean initializedFactories = false;
 
-	private static FactorioData baseData;
+	private static FactorioData baseData = null;
 	private static final List<FactorioData> datas = new ArrayList<>();
 	private static final ListMultimap<String, FactorioData> dataByModName = ArrayListMultimap.create();
 	private static final Map<String, FactorioData> dataByGroupName = new HashMap<>();
@@ -168,6 +168,10 @@ public class FactorioManager {
 			TileRendererFactory.registerFactories(FactorioManager::registerTileFactory, data,
 					jsonModRendering.getJSONObject("tiles"));
 
+		}
+
+		if (baseData == null) {
+			throw new IllegalStateException("No \"Base\" mod defined in any mod-rendering.json!");
 		}
 
 		EntityRendererFactory.initFactories(entityFactories);
