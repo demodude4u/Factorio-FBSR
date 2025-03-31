@@ -1,9 +1,8 @@
 package com.demod.fbsr.entity;
 
-import java.util.List;
 import java.util.Optional;
+import java.util.OptionalDouble;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 import com.demod.factorio.fakelua.LuaTable;
 import com.demod.factorio.fakelua.LuaValue;
@@ -11,11 +10,11 @@ import com.demod.fbsr.Direction;
 import com.demod.fbsr.FactorioManager;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.LogisticGridCell;
-import com.demod.fbsr.TagManager;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.WorldMap.BeltBend;
 import com.demod.fbsr.WorldMap.BeltCell;
 import com.demod.fbsr.bs.BSEntity;
+import com.demod.fbsr.bs.BSFilter;
 import com.demod.fbsr.bs.entity.BSInserterEntity;
 import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.def.SpriteDef;
@@ -102,18 +101,15 @@ public class InserterRendering extends SimpleEntityRendering {
 		}
 
 		if (bsEntity.useFilters && map.isAltMode()) {
-			List<String> items = bsEntity.filters.stream().map(bs -> bs.name).collect(Collectors.toList());
 			boolean blacklist = bsEntity.filterMode.map(s -> s.equals("blacklist")).orElse(false);
 
 			// TODO show double/quad icons if more than one
-			if (!items.isEmpty()) {
-				String itemName = items.get(0);
-				Optional<ImageDef> icon = TagManager.lookup("item", itemName);
-				if (icon.isPresent()) {
-					register.accept(new MapIcon(pos, icon.get(), 0.5, 0.05, false));
-					if (blacklist) {
-						register.accept(new MapIcon(pos, protoBlacklist.defineSprites().get(0), 0.5, false));
-					}
+			if (!bsEntity.filters.isEmpty()) {
+				BSFilter filter = bsEntity.filters.get(0);
+				filter.createMapIcon(pos, 0.5, OptionalDouble.of(0.05), false).ifPresent(register);
+				if (blacklist) {
+					register.accept(new MapIcon(pos, protoBlacklist.defineSprites().get(0), 0.5, OptionalDouble.empty(),
+							false, Optional.empty()));
 				}
 			}
 		}
@@ -191,7 +187,11 @@ public class InserterRendering extends SimpleEntityRendering {
 
 		if (bsEntity.useFilters) {
 			LogisticGridCell cell = map.getOrCreateLogisticGridCell(cellDir.offset(outPos, 0.25));
-			bsEntity.filters.stream().forEach(bs -> cell.addOutput(bs.name));
+			bsEntity.filters.stream().forEach(bs -> {
+				if (bs.name.isPresent()) {
+					cell.addOutput(bs.name.get());
+				}
+			});
 
 		} else {
 			addLogisticWarp(map, inPos, dir.frontLeft(), outPos, cellDir);

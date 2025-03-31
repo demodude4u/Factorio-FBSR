@@ -65,6 +65,7 @@ import com.demod.fbsr.gui.GUIStyle;
 import com.demod.fbsr.map.MapBounded;
 import com.demod.fbsr.map.MapDebug;
 import com.demod.fbsr.map.MapEntity;
+import com.demod.fbsr.map.MapEntity.EntityModule;
 import com.demod.fbsr.map.MapFoundationGrid;
 import com.demod.fbsr.map.MapGrid;
 import com.demod.fbsr.map.MapItemLogistics;
@@ -530,9 +531,9 @@ public class FBSR {
 
 			addToItemAmount(ret, primaryItem.get().getItem(), primaryItem.get().getCount());
 
-			Multiset<String> modules = MapEntity.findModules(entity);
-			for (Multiset.Entry<String> entry : modules.entrySet()) {
-				addToItemAmount(ret, entry.getElement(), entry.getCount());
+			List<EntityModule> modules = MapEntity.findModules(entity);
+			for (EntityModule module : modules) {
+				addToItemAmount(ret, module.name, 1);
 			}
 		}
 		for (BSTile tile : blueprint.tiles) {

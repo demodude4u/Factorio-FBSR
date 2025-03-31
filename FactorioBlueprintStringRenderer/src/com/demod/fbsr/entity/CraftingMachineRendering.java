@@ -3,6 +3,7 @@ package com.demod.fbsr.entity;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalDouble;
 import java.util.function.Consumer;
 
 import com.demod.factorio.Utils;
@@ -62,9 +63,12 @@ public abstract class CraftingMachineRendering extends SimpleEntityRendering {
 				// XXX could be done better
 				List<LuaValue> inputs = new ArrayList<>();
 				List<LuaValue> outputs = new ArrayList<>();
-				Utils.forEach(protoRecipe.lua().get("ingredients").checktable(), (Consumer<LuaValue>) inputs::add);
+				LuaValue luaIngredients = protoRecipe.lua().get("ingredients");
+				if (!luaIngredients.isnil()) {
+					Utils.forEach(luaIngredients.checktable(), (Consumer<LuaValue>) inputs::add);
+				}
 				LuaValue resultsLua = protoRecipe.lua().get("results");
-				if (resultsLua != LuaValue.NIL) {
+				if (!resultsLua.isnil()) {
 					outputs.add(resultsLua);
 				}
 				hasFluidInput = inputs.stream().anyMatch(lua -> {
@@ -129,7 +133,8 @@ public abstract class CraftingMachineRendering extends SimpleEntityRendering {
 				}
 			}
 			if (icon.isPresent()) {
-				register.accept(new MapIcon(entity.getPosition().addUnit(0, -0.3), icon.get(), 1.4, 0.1, false));
+				register.accept(new MapIcon(entity.getPosition().addUnit(0, -0.3), icon.get(), 1.4,
+						OptionalDouble.of(0.1), false, bsEntity.recipeQuality));
 			}
 		}
 	}
@@ -195,9 +200,12 @@ public abstract class CraftingMachineRendering extends SimpleEntityRendering {
 					RecipePrototype protoRecipe = optRecipe.get();
 
 					List<LuaValue> items = new ArrayList<>();
-					Utils.forEach(protoRecipe.lua().get("ingredients").checktable(), (Consumer<LuaValue>) items::add);
+					LuaValue luaIngredients = protoRecipe.lua().get("ingredients");
+					if (!luaIngredients.isnil()) {
+						Utils.forEach(luaIngredients.checktable(), (Consumer<LuaValue>) items::add);
+					}
 					LuaValue resultsLua = protoRecipe.lua().get("results");
-					if (resultsLua != LuaValue.NIL) {
+					if (!resultsLua.isnil()) {
 						items.add(resultsLua);
 					}
 					hasFluid = items.stream().anyMatch(lua -> {

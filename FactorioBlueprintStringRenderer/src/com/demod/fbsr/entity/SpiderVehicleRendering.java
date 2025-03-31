@@ -1,6 +1,7 @@
 package com.demod.fbsr.entity;
 
 import java.util.Optional;
+import java.util.OptionalDouble;
 import java.util.function.Consumer;
 
 import com.demod.fbsr.EntityRendererFactory;
@@ -19,7 +20,8 @@ public class SpiderVehicleRendering extends EntityRendererFactory {
 	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
 		Optional<ImageDef> icon = TagManager.lookup("entity", entity.fromBlueprint().name);
 		if (icon.isPresent()) {
-			register.accept(new MapIcon(entity.getPosition(), icon.get(), 2, 0.2, false));
+			register.accept(
+					new MapIcon(entity.getPosition(), icon.get(), 2, OptionalDouble.of(0.2), false, Optional.empty()));
 		}
 	}
 

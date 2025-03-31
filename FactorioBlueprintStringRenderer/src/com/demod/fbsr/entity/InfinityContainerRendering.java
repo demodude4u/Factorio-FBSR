@@ -2,6 +2,7 @@ package com.demod.fbsr.entity;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalDouble;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -34,7 +35,8 @@ public class InfinityContainerRendering extends ContainerRendering {
 
 				Optional<ImageDef> icon = TagManager.lookup("item", itemName);
 				if (icon.isPresent()) {
-					register.accept(new MapIcon(entity.getPosition(), icon.get(), 0.6, 0.1, false));
+					register.accept(new MapIcon(entity.getPosition(), icon.get(), 0.6, OptionalDouble.of(0.1), false,
+							Optional.empty()));
 				}
 			}
 		}

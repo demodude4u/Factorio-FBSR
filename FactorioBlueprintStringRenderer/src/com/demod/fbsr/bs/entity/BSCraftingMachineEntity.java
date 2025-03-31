@@ -10,12 +10,14 @@ import com.demod.fbsr.legacy.LegacyBlueprintEntity;
 
 public class BSCraftingMachineEntity extends BSEntity {
 	public final Optional<String> recipe;
+	public final Optional<String> recipeQuality;
 	public final boolean mirror;
 
 	public BSCraftingMachineEntity(JSONObject json) {
 		super(json);
 
 		recipe = BSUtils.optString(json, "recipe");
+		recipeQuality = BSUtils.optString(json, "recipe_quality");
 		mirror = json.optBoolean("mirror");
 	}
 
@@ -23,6 +25,7 @@ public class BSCraftingMachineEntity extends BSEntity {
 		super(legacy);
 
 		recipe = BSUtils.optString(legacy.json(), "recipe");
+		recipeQuality = Optional.empty();
 		mirror = false;
 	}
 

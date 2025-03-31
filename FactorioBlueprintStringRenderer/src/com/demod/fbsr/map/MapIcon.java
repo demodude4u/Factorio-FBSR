@@ -6,10 +6,13 @@ import java.awt.Image;
 import java.awt.Rectangle;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.RoundRectangle2D;
+import java.util.Optional;
+import java.util.OptionalDouble;
 
 import com.demod.fbsr.AtlasManager.AtlasRef;
-import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.Layer;
+import com.demod.fbsr.TagManager;
+import com.demod.fbsr.def.ImageDef;
 
 public class MapIcon extends MapRenderable {
 	private static final Color BACKGROUND = new Color(0, 0, 0, 180);
@@ -17,25 +20,17 @@ public class MapIcon extends MapRenderable {
 	private final MapPosition position;
 	private final ImageDef image;
 	private final double size;
-	private final double border;
-	private final boolean showBackground;
+	private final OptionalDouble border;
+	private final Optional<String> quality;
 
-	public MapIcon(MapPosition position, ImageDef image, double size, double border, boolean above) {
+	public MapIcon(MapPosition position, ImageDef image, double size, OptionalDouble border, boolean above,
+			Optional<String> quality) {
 		super(above ? Layer.ENTITY_INFO_ICON_ABOVE : Layer.ENTITY_INFO_ICON);
 		this.position = position;
 		this.image = image;
 		this.size = size;
 		this.border = border;
-		this.showBackground = true;
-	}
-
-	public MapIcon(MapPosition position, ImageDef image, double size, boolean above) {
-		super(above ? Layer.ENTITY_INFO_ICON_ABOVE : Layer.ENTITY_INFO_ICON);
-		this.position = position;
-		this.image = image;
-		this.size = size;
-		this.border = 0;
-		this.showBackground = false;
+		this.quality = quality;
 	}
 
 	@Override
@@ -43,13 +38,14 @@ public class MapIcon extends MapRenderable {
 		double x = position.getX();
 		double y = position.getY();
 		double halfSize = size / 2.0;
-		double shadowSize = size + border * 2.0;
-		double halfShadowSize = shadowSize / 2.0;
 
-		if (showBackground) {
+		if (border.isPresent()) {
+			double b = border.getAsDouble();
+			double shadowSize = size + b * 2.0;
+			double halfShadowSize = shadowSize / 2.0;
 			g.setColor(BACKGROUND);
-			g.fill(new RoundRectangle2D.Double(x - halfShadowSize, y - halfShadowSize, shadowSize, shadowSize,
-					border * 2, border * 2));
+			g.fill(new RoundRectangle2D.Double(x - halfShadowSize, y - halfShadowSize, shadowSize, shadowSize, b * 2,
+					b * 2));
 		}
 
 		AtlasRef ref = image.getAtlasRef();
@@ -65,6 +61,18 @@ public class MapIcon extends MapRenderable {
 		g.translate(bounds.getX(), bounds.getY());
 		g.scale(bounds.getWidth(), bounds.getHeight());
 		g.drawImage(image, 0, 0, 1, 1, source.x, source.y, source.x + source.width, source.y + source.height, null);
+
+		if (quality.isPresent()) {
+			Optional<ImageDef> def = TagManager.lookup("quality", quality.get());
+			double qSize = 0.4;
+			g.translate(0, 1.0 - qSize);
+			g.scale(qSize, qSize);
+			AtlasRef qRef = def.get().getAtlasRef();
+			Image qImage = qRef.getAtlas().getBufferedImage();
+			Rectangle qSource = qRef.getRect();
+			g.drawImage(qImage, 0, 0, 1, 1, qSource.x, qSource.y, qSource.x + qSource.width, qSource.y + qSource.height,
+					null);
+		}
 
 		g.setTransform(pat);
 	}

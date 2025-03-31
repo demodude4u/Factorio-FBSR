@@ -1,8 +1,8 @@
 package com.demod.fbsr.entity;
 
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Optional;
+import java.util.OptionalDouble;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -10,15 +10,14 @@ import java.util.stream.Collectors;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.Layer;
-import com.demod.fbsr.TagManager;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.WorldMap.BeltBend;
 import com.demod.fbsr.bs.BSEntity;
+import com.demod.fbsr.bs.BSFilter;
 import com.demod.fbsr.bs.entity.BSLoaderEntity;
 import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.fp.FPSprite4Way;
 import com.demod.fbsr.map.MapEntity;
-import com.demod.fbsr.map.MapIcon;
 import com.demod.fbsr.map.MapPosition;
 import com.demod.fbsr.map.MapRenderable;
 import com.demod.fbsr.map.MapSprite;
@@ -51,15 +50,11 @@ public abstract class LoaderRendering extends TransportBeltConnectableRendering 
 		proto.defineSprites(entity.spriteRegister(register, Layer.HIGHER_OBJECT_UNDER), structDir);
 
 		if (!bsEntity.filters.isEmpty() && map.isAltMode()) {
-			List<String> items = bsEntity.filters.stream().map(bs -> bs.name).collect(Collectors.toList());
 
-			// TODO double/quad icons
-			if (!items.isEmpty()) {
-				String itemName = items.get(0);
-				Optional<ImageDef> icon = TagManager.lookup("item", itemName);
-				if (icon.isPresent()) {
-					register.accept(new MapIcon(entity.getPosition(), icon.get(), 0.6, 0.1, false));
-				}
+			// TODO show double/quad icons if more than one
+			if (!bsEntity.filters.isEmpty()) {
+				BSFilter filter = bsEntity.filters.get(0);
+				filter.createMapIcon(entity.getPosition(), 0.6, OptionalDouble.of(0.1), false).ifPresent(register);
 			}
 		}
 	}
@@ -164,13 +159,15 @@ public abstract class LoaderRendering extends TransportBeltConnectableRendering 
 
 		if (!bsEntity.filters.isEmpty() && !input) {
 
-			Set<String> outputs = bsEntity.filters.stream().map(bs -> bs.name)
+			Set<String> outputs = bsEntity.filters.stream().flatMap(bs -> bs.name.stream())
 					.collect(Collectors.toCollection(LinkedHashSet::new));
 
-			map.getOrCreateLogisticGridCell(dir.frontLeft().offset(pos.add(beltShift), 0.25))
-					.setOutputs(Optional.of(outputs));
-			map.getOrCreateLogisticGridCell(dir.frontRight().offset(pos.add(beltShift), 0.25))
-					.setOutputs(Optional.of(outputs));
+			if (!outputs.isEmpty()) {
+				map.getOrCreateLogisticGridCell(dir.frontLeft().offset(pos.add(beltShift), 0.25))
+						.setOutputs(Optional.of(outputs));
+				map.getOrCreateLogisticGridCell(dir.frontRight().offset(pos.add(beltShift), 0.25))
+						.setOutputs(Optional.of(outputs));
+			}
 		}
 	}
 

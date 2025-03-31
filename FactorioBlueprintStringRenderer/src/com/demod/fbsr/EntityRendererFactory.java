@@ -7,6 +7,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalDouble;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -29,6 +30,7 @@ import com.demod.fbsr.fp.FPBoundingBox;
 import com.demod.fbsr.fp.FPVector;
 import com.demod.fbsr.legacy.LegacyBlueprintEntity;
 import com.demod.fbsr.map.MapEntity;
+import com.demod.fbsr.map.MapEntity.EntityModule;
 import com.demod.fbsr.map.MapIcon;
 import com.demod.fbsr.map.MapPosition;
 import com.demod.fbsr.map.MapRect3D;
@@ -155,7 +157,7 @@ public abstract class EntityRendererFactory {
 		double size = Math.round(Math.min(bounds.getX2() - bounds.getX1(), bounds.getY2() - bounds.getY1())) > 1 ? 0.5
 				: 0.25;
 		register.accept(new MapIcon(MapPosition.byUnit(bounds.getX1() + size / 2.0, bounds.getY2() - size / 2.0), def,
-				size, false));
+				size, OptionalDouble.empty(), false, Optional.empty()));
 	}
 
 	public void createModuleIcons(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
@@ -163,16 +165,17 @@ public abstract class EntityRendererFactory {
 		MapPosition position = entity.getPosition();
 		MapRect3D bounds = entity.getBounds();
 
-		Multiset<String> renderModules = entity.getModules();
+		List<EntityModule> renderModules = entity.getModules();
 		if (!renderModules.isEmpty()) {
 
 			double x = position.getX() - 0.7 * (renderModules.size() / 2.0) + 0.35;
 			double y = position.getY() + 0.7;
 
-			for (String itemName : renderModules) {
-				Optional<ImageDef> image = TagManager.lookup("item", itemName);
+			for (EntityModule module : renderModules) {
+				Optional<ImageDef> image = TagManager.lookup("item", module.name);
 				if (image.isPresent()) {
-					register.accept(new MapIcon(MapPosition.byUnit(x, y), image.get(), 0.5, 0.05, true));
+					register.accept(new MapIcon(MapPosition.byUnit(x, y), image.get(), 0.5, OptionalDouble.of(0.05),
+							true, module.quality));
 					x += 0.7;
 				}
 			}
@@ -191,11 +194,11 @@ public abstract class EntityRendererFactory {
 					MapEntity beacon = bs.getBeacon();
 					double distributionEffectivity = bs.getDistributionEffectivity();
 
-					Multiset<String> modules2 = beacon.getModules();
-					for (Multiset.Entry<String> entry : modules2.entrySet()) {
-						double amount = beaconModules.getOrDefault(entry.getElement(), 0.0);
-						amount += distributionEffectivity * entry.getCount();
-						beaconModules.put(entry.getElement(), amount);
+					List<EntityModule> modules2 = beacon.getModules();
+					for (EntityModule module : modules2) {
+						double amount = beaconModules.getOrDefault(module.name, 0.0);
+						amount += distributionEffectivity;
+						beaconModules.put(module.name, amount);
 					}
 				}
 
@@ -209,10 +212,11 @@ public abstract class EntityRendererFactory {
 				double x = position.getX() - 0.3 * (renderModules.size() / 2.0) + 0.15;
 				double y = position.getY() - 1.15;
 
-				for (String itemName : renderModules) {
-					Optional<ImageDef> image = TagManager.lookup("item", itemName);
+				for (EntityModule module : renderModules) {
+					Optional<ImageDef> image = TagManager.lookup("item", module.name);
 					if (image.isPresent()) {
-						register.accept(new MapIcon(MapPosition.byUnit(x, y), image.get(), 0.25, 0.025, true));
+						register.accept(new MapIcon(MapPosition.byUnit(x, y), image.get(), 0.25,
+								OptionalDouble.of(0.025), true, module.quality));
 						x += 0.3;
 					}
 				}

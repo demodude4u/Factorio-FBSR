@@ -1,21 +1,21 @@
 package com.demod.fbsr.entity;
 
 import java.util.Optional;
+import java.util.OptionalDouble;
 import java.util.function.Consumer;
 
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.Layer;
-import com.demod.fbsr.TagManager;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.WorldMap.BeltBend;
 import com.demod.fbsr.bs.BSEntity;
+import com.demod.fbsr.bs.BSFilter;
 import com.demod.fbsr.bs.entity.BSSplitterEntity;
 import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.def.SpriteDef;
 import com.demod.fbsr.fp.FPAnimation4Way;
 import com.demod.fbsr.map.MapEntity;
-import com.demod.fbsr.map.MapIcon;
 import com.demod.fbsr.map.MapLaneArrow;
 import com.demod.fbsr.map.MapPosition;
 import com.demod.fbsr.map.MapRenderable;
@@ -61,12 +61,8 @@ public class LaneSplitterRendering extends TransportBeltConnectableRendering {
 
 			if (bsEntity.filter.isPresent()) {
 				MapPosition iconPos = right ? rightPos : leftPos;
-				String itemName = bsEntity.filter.get().name;
-				Optional<ImageDef> icon = TagManager.lookup("item", itemName);
-				if (icon.isPresent()) {
-					register.accept(new MapIcon(iconPos, icon.get(), 0.6, 0.1, false));
-				}
-
+				BSFilter filter = bsEntity.filter.get();
+				filter.createMapIcon(iconPos, 0.6, OptionalDouble.of(0.1), false).ifPresent(register);
 			} else {
 				register.accept(new MapLaneArrow(outputPos, dir));
 			}
@@ -106,11 +102,11 @@ public class LaneSplitterRendering extends TransportBeltConnectableRendering {
 		setLogisticMoveAndAcceptFilter(map, pos, dir.frontLeft(), dir, dir);
 		setLogisticMoveAndAcceptFilter(map, pos, dir.frontRight(), dir, dir);
 
-		if (bsEntity.outputPriority.isPresent() && bsEntity.filter.isPresent()) {
+		if (bsEntity.outputPriority.isPresent() && bsEntity.filter.flatMap(f -> f.name).isPresent()) {
 			boolean right = bsEntity.outputPriority.get().equals("right");
 			MapPosition outPos = right ? rightPos : leftPos;
 			MapPosition notOutPos = !right ? rightPos : leftPos;
-			String itemName = bsEntity.filter.get().name;
+			String itemName = bsEntity.filter.get().name.get();
 
 			map.getOrCreateLogisticGridCell(dir.offset(outPos, 0.25)).addOutput(itemName);
 			map.getOrCreateLogisticGridCell(dir.offset(notOutPos, 0.25)).addBannedOutput(itemName);
