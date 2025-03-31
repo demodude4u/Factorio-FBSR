@@ -18,6 +18,7 @@ public class BSInserterEntity extends BSEntity {
 	public final Optional<BSPosition> dropPosition;
 	public final boolean useFilters;
 	public final List<BSFilter> filters;
+	public final Optional<String> filterMode;
 
 	public BSInserterEntity(JSONObject json) {
 		super(json);
@@ -26,6 +27,7 @@ public class BSInserterEntity extends BSEntity {
 		pickupPosition = BSUtils.optPosition(json, "pickup_position");
 		dropPosition = BSUtils.optPosition(json, "drop_position");
 		filters = BSUtils.list(json, "filters", BSFilter::new);
+		filterMode = BSUtils.optString(json, "filter_mode");
 	}
 
 	public BSInserterEntity(LegacyBlueprintEntity legacy) {
@@ -42,5 +44,6 @@ public class BSInserterEntity extends BSEntity {
 
 		filters = BSUtils.list(legacy.json(), "filters", j -> new BSFilter(j.getString("name")));
 		useFilters = filters.size() > 0;
+		filterMode = BSUtils.optString(legacy.json(), "filter_mode");
 	}
 }

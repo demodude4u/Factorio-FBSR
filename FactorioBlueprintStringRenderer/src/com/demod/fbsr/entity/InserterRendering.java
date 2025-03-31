@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 import com.demod.factorio.fakelua.LuaTable;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.Direction;
+import com.demod.fbsr.FactorioManager;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.LogisticGridCell;
 import com.demod.fbsr.TagManager;
@@ -44,6 +45,8 @@ public class InserterRendering extends SimpleEntityRendering {
 	private FPVector protoInsertPosition;
 	private FPSprite protoIndicationLine;
 	private FPSprite protoIndicationArrow;
+
+	private FPSprite protoBlacklist;
 
 	@Override
 	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
@@ -100,6 +103,7 @@ public class InserterRendering extends SimpleEntityRendering {
 
 		if (bsEntity.useFilters && map.isAltMode()) {
 			List<String> items = bsEntity.filters.stream().map(bs -> bs.name).collect(Collectors.toList());
+			boolean blacklist = bsEntity.filterMode.map(s -> s.equals("blacklist")).orElse(false);
 
 			// TODO show double/quad icons if more than one
 			if (!items.isEmpty()) {
@@ -107,6 +111,9 @@ public class InserterRendering extends SimpleEntityRendering {
 				Optional<ImageDef> icon = TagManager.lookup("item", itemName);
 				if (icon.isPresent()) {
 					register.accept(new MapIcon(pos, icon.get(), 0.5, 0.05, false));
+					if (blacklist) {
+						register.accept(new MapIcon(pos, protoBlacklist.defineSprites().get(0), 0.5, false));
+					}
 				}
 			}
 		}
@@ -136,6 +143,8 @@ public class InserterRendering extends SimpleEntityRendering {
 		protoHandOpenPicture.defineSprites(registerNoTrim);
 		protoIndicationLine.defineSprites(registerNoTrim);
 		protoIndicationArrow.defineSprites(registerNoTrim);
+
+		protoBlacklist.defineSprites(registerNoTrim);
 	}
 
 	@Override
@@ -151,6 +160,8 @@ public class InserterRendering extends SimpleEntityRendering {
 		LuaValue optUtilityConstantsLua = data.getTable().getRaw("utility-sprites", "default").get();
 		protoIndicationLine = new FPSprite(optUtilityConstantsLua.get("indication_line"));
 		protoIndicationArrow = new FPSprite(optUtilityConstantsLua.get("indication_arrow"));
+
+		protoBlacklist = FactorioManager.getUtilitySprites().filterBlacklist;
 	}
 
 	@Override
