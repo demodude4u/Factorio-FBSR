@@ -203,7 +203,7 @@ public class FBSRModDumperTask {
 		cfgFactorioData.put("data", folderData.getAbsolutePath());
 		cfgFactorioData.put("mods", folderMods.getAbsolutePath());
 		FactorioData factorioData = new FactorioData(cfgFactorioData);
-		factorioData.initialize();
+		factorioData.initialize(false);
 		DataTable table = factorioData.getTable();
 
 		Map<String, String> modEntityRenderings = new LinkedHashMap<String, String>();

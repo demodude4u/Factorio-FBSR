@@ -300,7 +300,7 @@ public class FactorioManager {
 			}
 
 			FactorioData data = new FactorioData(fdConfig);
-			data.initialize();
+			data.initialize(false);
 			datas.add(data);
 
 			data.getMods().stream().forEach(s -> dataByModName.put(s, data));
