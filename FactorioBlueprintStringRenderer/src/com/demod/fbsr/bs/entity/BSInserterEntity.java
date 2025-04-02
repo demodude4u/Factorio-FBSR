@@ -27,7 +27,12 @@ public class BSInserterEntity extends BSEntity {
 		pickupPosition = BSUtils.optPosition(json, "pickup_position");
 		dropPosition = BSUtils.optPosition(json, "drop_position");
 		filters = BSUtils.list(json, "filters", BSFilter::new);
-		filterMode = BSUtils.optString(json, "filter_mode");
+
+		Optional<String> filterMode = BSUtils.optString(json, "filter_mode");
+		if (useFilters && filters.isEmpty() && filterMode.isEmpty()) {
+			filterMode = Optional.of("blacklist");
+		}
+		this.filterMode = filterMode;
 	}
 
 	public BSInserterEntity(LegacyBlueprintEntity legacy) {
