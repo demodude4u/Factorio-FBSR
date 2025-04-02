@@ -30,9 +30,10 @@ import com.demod.fbsr.FactorioManager;
 import com.demod.fbsr.RenderRequest;
 import com.demod.fbsr.RenderResult;
 import com.demod.fbsr.RenderUtils;
-import com.demod.fbsr.TagManager;
+import com.demod.fbsr.IconManager;
 import com.demod.fbsr.bs.BSBlueprint;
 import com.demod.fbsr.composite.TintComposite;
+import com.demod.fbsr.def.IconDef;
 import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.gui.GUIBox;
 import com.demod.fbsr.gui.GUISize;
@@ -229,7 +230,7 @@ public class GUILayoutBlueprint {
 						int iconShrink = (int) (itemCellSize * 0.15);
 						GUIBox iconBounds = cellBounds.shrink(iconShrink, iconShrink, iconShrink, iconShrink);
 
-						Optional<ImageDef> icon = TagManager.lookup("item", item);
+						Optional<IconDef> icon = IconManager.lookupItem(item);
 						if (icon.isPresent()) {
 							GUIImageDef imgIcon = new GUIImageDef(iconBounds, icon.get());
 							imgIcon.render(g);
@@ -298,13 +299,13 @@ public class GUILayoutBlueprint {
 						GUIBox iconBounds = new GUIBox(cellBounds.x + cellBounds.width / 2 - iconSize / 2,
 								cellBounds.y + cellBounds.height / 2 - iconSize / 2, iconSize, iconSize);
 
-						Optional<ImageDef> image = null;
+						Optional<? extends ImageDef> image = null;
 						if (item.equals(TotalRawCalculator.RAW_TIME)) {
 							image = Optional.of(GUIStyle.DEF_CLOCK);
 						} else {
-							image = TagManager.lookup("item", item);
+							image = IconManager.lookupItem(item);
 							if (image.isEmpty()) {
-								image = TagManager.lookup("fluid", item);
+								image = IconManager.lookupFluid(item);
 							}
 						}
 

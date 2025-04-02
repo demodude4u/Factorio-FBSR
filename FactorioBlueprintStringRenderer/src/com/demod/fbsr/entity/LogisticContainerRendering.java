@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 
 import com.demod.factorio.fakelua.LuaTable;
 import com.demod.fbsr.Direction;
+import com.demod.fbsr.IconManager;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.bs.BSFilter;
@@ -28,8 +29,9 @@ public class LogisticContainerRendering extends ContainerRendering {
 			Optional<BSFilter> filter = bsEntity.requestFilters.get().sections.stream()
 					.flatMap(bs -> bs.filters.stream()).filter(f -> f.name.isPresent() || f.quality.isPresent())
 					.findAny();
-			filter.ifPresent(f -> f.createMapIcon(entity.getPosition(), 0.5, OptionalDouble.of(0.05), false)
-					.ifPresent(register));
+			filter.ifPresent(f -> IconManager.lookupFilter(f.type, f.name, f.quality).ifPresent(
+					i -> register.accept(i.createMapIcon(entity.getPosition(), 0.5, OptionalDouble.of(0.05), false))));
+
 		}
 	}
 

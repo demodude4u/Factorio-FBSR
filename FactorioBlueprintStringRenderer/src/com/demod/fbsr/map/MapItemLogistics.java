@@ -13,12 +13,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.demod.fbsr.AtlasManager.AtlasRef;
-import com.demod.fbsr.def.ImageDef;
+import com.demod.fbsr.IconManager;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.LogisticGridCell;
 import com.demod.fbsr.RenderUtils;
-import com.demod.fbsr.TagManager;
 import com.demod.fbsr.WorldMap;
+import com.demod.fbsr.def.IconDef;
 import com.google.common.collect.Table;
 
 public class MapItemLogistics extends MapRenderable {
@@ -28,7 +28,7 @@ public class MapItemLogistics extends MapRenderable {
 
 	private static synchronized Color getItemLogisticColor(String itemName) {
 		return itemColorCache.computeIfAbsent(itemName, k -> {
-			Optional<ImageDef> icon = TagManager.lookup("item", k);
+			Optional<IconDef> icon = IconManager.lookupItem(k);
 			if (!icon.isPresent()) {
 				LOGGER.warn("ITEM MISSING FOR LOGISTICS: {}", k);
 				return Color.MAGENTA;

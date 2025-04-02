@@ -36,7 +36,10 @@ public class UnknownEntityRendering extends EntityRendererFactory {
 		color = RenderUtils.getUnknownColor(name);
 		offset = RenderUtils.getUnknownTextOffset(name);
 
-		setPrototype(new EntityPrototype(new LuaTable(new JSONObject()), name, "unknown"));
+		JSONObject json = new JSONObject();
+		json.put("name", name);
+		json.put("type", "unknown");
+		setPrototype(new EntityPrototype(new LuaTable(json)));
 	}
 
 	@Override

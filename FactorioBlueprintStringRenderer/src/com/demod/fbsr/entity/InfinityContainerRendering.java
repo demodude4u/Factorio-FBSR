@@ -8,11 +8,11 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import com.demod.fbsr.Direction;
-import com.demod.fbsr.TagManager;
+import com.demod.fbsr.IconManager;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.bs.entity.BSInfinityContainerEntity;
-import com.demod.fbsr.def.ImageDef;
+import com.demod.fbsr.def.IconDef;
 import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapIcon;
 import com.demod.fbsr.map.MapPosition;
@@ -33,7 +33,7 @@ public class InfinityContainerRendering extends ContainerRendering {
 			if (!items.isEmpty()) {
 				String itemName = items.get(0);
 
-				Optional<ImageDef> icon = TagManager.lookup("item", itemName);
+				Optional<IconDef> icon = IconManager.lookupItem(itemName);
 				if (icon.isPresent()) {
 					register.accept(new MapIcon(entity.getPosition(), icon.get(), 0.6, OptionalDouble.of(0.1), false,
 							Optional.empty()));

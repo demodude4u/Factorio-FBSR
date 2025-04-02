@@ -6,6 +6,7 @@ import java.util.function.Consumer;
 
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.FPUtils;
+import com.demod.fbsr.IconManager;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.WorldMap.BeltBend;
@@ -62,7 +63,8 @@ public class LaneSplitterRendering extends TransportBeltConnectableRendering {
 			if (bsEntity.filter.isPresent()) {
 				MapPosition iconPos = right ? rightPos : leftPos;
 				BSFilter filter = bsEntity.filter.get();
-				filter.createMapIcon(iconPos, 0.6, OptionalDouble.of(0.1), false).ifPresent(register);
+				IconManager.lookupFilter(filter.type, filter.name, filter.quality)
+						.ifPresent(i -> register.accept(i.createMapIcon(iconPos, 0.6, OptionalDouble.of(0.1), false)));
 			} else {
 				register.accept(new MapLaneArrow(outputPos, dir));
 			}

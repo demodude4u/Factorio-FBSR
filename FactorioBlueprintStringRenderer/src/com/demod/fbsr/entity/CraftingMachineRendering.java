@@ -14,10 +14,11 @@ import com.demod.fbsr.Direction;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.FactorioManager;
 import com.demod.fbsr.Layer;
-import com.demod.fbsr.TagManager;
+import com.demod.fbsr.IconManager;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.bs.entity.BSCraftingMachineEntity;
+import com.demod.fbsr.def.IconDef;
 import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.def.SpriteDef;
 import com.demod.fbsr.fp.FPFluidBox;
@@ -115,7 +116,7 @@ public abstract class CraftingMachineRendering extends SimpleEntityRendering {
 
 		// TODO need a better approach that doesn't involve searching recipe lua
 		if (recipe.isPresent() && map.isAltMode()) {
-			Optional<ImageDef> icon = TagManager.lookup("recipe", recipe.get());
+			Optional<IconDef> icon = IconManager.lookupRecipe(recipe.get());
 			if (icon.isEmpty()) {
 				Optional<RecipePrototype> optRecipe = FactorioManager.lookupRecipeByName(recipe.get());
 				if (optRecipe.isPresent()) {
@@ -126,15 +127,15 @@ public abstract class CraftingMachineRendering extends SimpleEntityRendering {
 					} else {
 						name = protoRecipe.lua().get("result").toString();
 					}
-					icon = TagManager.lookup("item", name);
+					icon = IconManager.lookupItem(name);
 					if (icon.isEmpty()) {
-						icon = TagManager.lookup("fluid", name);
+						icon = IconManager.lookupFluid(name);
 					}
 				}
 			}
 			if (icon.isPresent()) {
 				register.accept(new MapIcon(entity.getPosition().addUnit(0, -0.3), icon.get(), 1.4,
-						OptionalDouble.of(0.1), false, bsEntity.recipeQuality));
+						OptionalDouble.of(0.1), false, bsEntity.recipeQuality.filter(s -> !s.equals("normal"))));
 			}
 		}
 	}

@@ -7,8 +7,8 @@ import java.util.function.Consumer;
 
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.FPUtils;
+import com.demod.fbsr.IconManager;
 import com.demod.fbsr.Layer;
-import com.demod.fbsr.TagManager;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.WorldMap.BeltBend;
 import com.demod.fbsr.bs.BSEntity;
@@ -19,7 +19,6 @@ import com.demod.fbsr.def.SpriteDef;
 import com.demod.fbsr.fp.FPAnimation4Way;
 import com.demod.fbsr.map.MapBeltArrow;
 import com.demod.fbsr.map.MapEntity;
-import com.demod.fbsr.map.MapIcon;
 import com.demod.fbsr.map.MapLaneArrow;
 import com.demod.fbsr.map.MapPosition;
 import com.demod.fbsr.map.MapRenderable;
@@ -77,7 +76,8 @@ public class SplitterRendering extends TransportBeltConnectableRendering {
 			if (bsEntity.filter.isPresent()) {
 				MapPosition iconPos = right ? rightPos : leftPos;
 				BSFilter filter = bsEntity.filter.get();
-				filter.createMapIcon(iconPos, 0.6, OptionalDouble.of(0.1), false).ifPresent(register);
+				IconManager.lookupFilter(filter.type, filter.name, filter.quality)
+						.ifPresent(i -> register.accept(i.createMapIcon(iconPos, 0.6, OptionalDouble.of(0.1), false)));
 			} else {
 				register.accept(new MapBeltArrow(outputPos, dir));
 			}

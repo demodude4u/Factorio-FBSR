@@ -25,6 +25,7 @@ import com.demod.factorio.prototype.RecipePrototype;
 import com.demod.fbsr.WirePoints.WirePoint;
 import com.demod.fbsr.WorldMap.BeaconSource;
 import com.demod.fbsr.bs.BSEntity;
+import com.demod.fbsr.def.IconDef;
 import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.fp.FPBoundingBox;
 import com.demod.fbsr.fp.FPVector;
@@ -147,7 +148,7 @@ public abstract class EntityRendererFactory {
 			return;
 		}
 
-		Optional<ImageDef> optDef = TagManager.lookup("quality", quality);
+		Optional<IconDef> optDef = IconManager.lookupQuality(quality);
 		if (optDef.isEmpty()) {
 			return;
 		}
@@ -172,7 +173,7 @@ public abstract class EntityRendererFactory {
 			double y = position.getY() + 0.7;
 
 			for (EntityModule module : renderModules) {
-				Optional<ImageDef> image = TagManager.lookup("item", module.name);
+				Optional<IconDef> image = IconManager.lookupItem(module.name);
 				if (image.isPresent()) {
 					register.accept(new MapIcon(MapPosition.byUnit(x, y), image.get(), 0.5, OptionalDouble.of(0.05),
 							true, module.quality));
@@ -213,7 +214,7 @@ public abstract class EntityRendererFactory {
 				double y = position.getY() - 1.15;
 
 				for (EntityModule module : renderModules) {
-					Optional<ImageDef> image = TagManager.lookup("item", module.name);
+					Optional<IconDef> image = IconManager.lookupItem(module.name);
 					if (image.isPresent()) {
 						register.accept(new MapIcon(MapPosition.byUnit(x, y), image.get(), 0.25,
 								OptionalDouble.of(0.025), true, module.quality));

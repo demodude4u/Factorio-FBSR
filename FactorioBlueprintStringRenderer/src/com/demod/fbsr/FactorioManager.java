@@ -29,6 +29,7 @@ import com.demod.factorio.prototype.DataPrototype;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.factorio.prototype.EquipmentPrototype;
 import com.demod.factorio.prototype.FluidPrototype;
+import com.demod.factorio.prototype.ItemGroupPrototype;
 import com.demod.factorio.prototype.ItemPrototype;
 import com.demod.factorio.prototype.RecipePrototype;
 import com.demod.factorio.prototype.TechPrototype;
@@ -65,6 +66,7 @@ public class FactorioManager {
 	private static final List<TilePrototype> tiles = new ArrayList<>();
 	private static final List<EquipmentPrototype> equipments = new ArrayList<>();
 	private static final List<AchievementPrototype> achievements = new ArrayList<>();
+	private static final List<ItemGroupPrototype> itemGroups = new ArrayList<>();
 
 	private static final Map<String, ItemPrototype> itemByName = new HashMap<>();
 	private static final Map<String, RecipePrototype> recipeByName = new HashMap<>();
@@ -74,6 +76,7 @@ public class FactorioManager {
 	private static final Map<String, TilePrototype> tileByName = new HashMap<>();
 	private static final Map<String, EquipmentPrototype> equipmentByName = new HashMap<>();
 	private static final Map<String, AchievementPrototype> achievementByName = new HashMap<>();
+	private static final Map<String, ItemGroupPrototype> itemGroupByName = new HashMap<>();
 
 	private static FPUtilitySprites utilitySprites;
 
@@ -125,6 +128,10 @@ public class FactorioManager {
 
 	public static List<ItemPrototype> getItems() {
 		return items;
+	}
+
+	public static List<ItemGroupPrototype> getItemGroups() {
+		return itemGroups;
 	}
 
 	public static List<RecipePrototype> getRecipes() {
@@ -197,6 +204,7 @@ public class FactorioManager {
 		tileByName.putAll(baseData.getTable().getTiles());
 		equipmentByName.putAll(baseData.getTable().getEquipments());
 		achievementByName.putAll(baseData.getTable().getAchievements());
+		itemGroupByName.putAll(baseData.getTable().getItemGroups());
 
 		recipeByName.values().stream().sorted(Comparator.comparing(DataPrototype::getName)).forEach(recipes::add);
 		itemByName.values().stream().sorted(Comparator.comparing(DataPrototype::getName)).forEach(items::add);
@@ -208,6 +216,7 @@ public class FactorioManager {
 		equipmentByName.values().stream().sorted(Comparator.comparing(DataPrototype::getName)).forEach(equipments::add);
 		achievementByName.values().stream().sorted(Comparator.comparing(DataPrototype::getName))
 				.forEach(achievements::add);
+		itemGroupByName.values().stream().sorted(Comparator.comparing(DataPrototype::getName)).forEach(itemGroups::add);
 	}
 
 	public static void initializePrototypes() throws JSONException, IOException {
@@ -232,19 +241,23 @@ public class FactorioManager {
 		folderDataRoot.mkdirs();
 
 		boolean modPortalApi;
-		String modPortalApiUsername = null;
-		String modPortalApiPassword = null;
+		String modPortalApiUsername;
+		String modPortalApiPassword;
 		if (json.has("mod_portal_api")) {
 			JSONObject jsonModPortalAPI = json.getJSONObject("mod_portal_api");
-			if (!jsonModPortalAPI.has("username") || !jsonModPortalAPI.has("password")//
-					|| (modPortalApiUsername = jsonModPortalAPI.getString("username")).isBlank() //
-					|| (modPortalApiPassword = jsonModPortalAPI.getString("password")).isBlank()) {
-				modPortalApi = false;
-			} else {
+			if (jsonModPortalAPI.has("username") && jsonModPortalAPI.has("password")) {
 				modPortalApi = true;
+				modPortalApiUsername = jsonModPortalAPI.getString("username");
+				modPortalApiPassword = jsonModPortalAPI.getString("password");
+			} else {
+				modPortalApi = false;
+				modPortalApiUsername = null;
+				modPortalApiPassword = null;
 			}
 		} else {
 			modPortalApi = false;
+			modPortalApiUsername = null;
+			modPortalApiPassword = null;
 		}
 
 		List<String> mods;
@@ -264,43 +277,93 @@ public class FactorioManager {
 		}
 		LOGGER.info("MODS FOLDERS: {}", mods.stream().collect(Collectors.joining(", ")));
 
-		for (String name : mods) {
+		mods.parallelStream().peek(name -> {
+			try {
+				File folderMods = new File(folderModsRoot, name);
+				File folderData = new File(folderDataRoot, name);
+				folderData.mkdir();
 
-			JSONObject fdConfig = new JSONObject();
-			File folderMods = new File(folderModsRoot, name);
-			File folderData = new File(folderDataRoot, name);
-			folderData.mkdir();
-			fdConfig.put("mods", folderMods.getAbsolutePath());
-			fdConfig.put("data", folderData.getAbsolutePath());
+				if (hasFactorioInstall) {
 
-			if (hasFactorioInstall) {
-				File fileModRendering = new File(folderMods, "mod-download.json");
-				if (modPortalApi && fileModRendering.exists()) {
-					JSONObject jsonModDownload = new JSONObject(Files.readString(fileModRendering.toPath()));
-					boolean auth = false;
-					String authParams = null;
-					for (String modName : jsonModDownload.keySet()) {
-						String modVersion = jsonModDownload.getString(modName);
-						JSONObject jsonRelease = FactorioModPortal.findModReleaseInfo(modName, modVersion);
-						File fileModZip = new File(folderMods, jsonRelease.getString("file_name"));
-						if (!fileModZip.exists()) {
-							if (!auth) {
-								auth = true;
-								authParams = FactorioModPortal.getAuthParams(modPortalApiUsername,
-										modPortalApiPassword);
-							}
-							FactorioModPortal.downloadMod(folderMods, modName, modVersion, authParams);
-						}
+					File fileModDownloadCached = new File(folderMods, "mod-download-cached.json");
+					boolean cacheChange = false;
+					JSONObject jsonModDownloadCached;
+					if (fileModDownloadCached.exists()) {
+						jsonModDownloadCached = new JSONObject(Files.readString(fileModDownloadCached.toPath()));
+					} else {
+						jsonModDownloadCached = new JSONObject();
+						cacheChange = true;
 					}
 
+					File fileModDownload = new File(folderMods, "mod-download.json");
+					if (modPortalApi && fileModDownload.exists()) {
+						JSONObject jsonModDownload = new JSONObject(Files.readString(fileModDownload.toPath()));
+						boolean auth = false;
+						String authParams = null;
+						for (String modName : jsonModDownload.keySet()) {
+							String modVersion = jsonModDownload.getString(modName);
+
+							if (!jsonModDownloadCached.has(modName)) {
+								jsonModDownloadCached.put(modName, new JSONObject());
+								cacheChange = true;
+							}
+							JSONObject jsonModCached = jsonModDownloadCached.getJSONObject(modName);
+							if (!jsonModCached.has(modVersion)) {
+								jsonModCached.put(modVersion,
+										FactorioModPortal.findModReleaseInfo(modName, modVersion));
+								cacheChange = true;
+							}
+							JSONObject jsonRelease = jsonModCached.getJSONObject(modVersion);
+
+							File fileModZip = new File(folderMods, jsonRelease.getString("file_name"));
+							if (!fileModZip.exists()) {
+								if (!auth) {
+									auth = true;
+									authParams = FactorioModPortal.getAuthParams(modPortalApiUsername,
+											modPortalApiPassword);
+								}
+								FactorioModPortal.downloadMod(folderMods, modName, modVersion, authParams);
+							}
+						}
+
+					}
+
+					if (cacheChange) {
+						Files.writeString(fileModDownloadCached.toPath(), jsonModDownloadCached.toString(2));
+						LOGGER.info("WRITE MOD DOWNLOAD CACHED: {}", fileModDownloadCached.getAbsolutePath());
+					}
 				}
 
-				fdConfig.put("factorio", factorioData.get());
-				fdConfig.put("executable", factorioExecutable.get());
+			} catch (Exception e) {
+				e.printStackTrace();
+				System.exit(-1);
 			}
 
-			FactorioData data = new FactorioData(fdConfig);
-			data.initialize(false);
+		}).parallel().map(name -> {
+			try {
+				JSONObject fdConfig = new JSONObject();
+				File folderMods = new File(folderModsRoot, name);
+				File folderData = new File(folderDataRoot, name);
+				folderData.mkdir();
+				fdConfig.put("mods", folderMods.getAbsolutePath());
+				fdConfig.put("data", folderData.getAbsolutePath());
+
+				if (hasFactorioInstall) {
+					fdConfig.put("factorio", factorioData.get());
+					fdConfig.put("executable", factorioExecutable.get());
+				}
+
+				FactorioData data = new FactorioData(fdConfig);
+				data.initialize(false);
+				return data;
+
+			} catch (Exception e) {
+				e.printStackTrace();
+				System.exit(-1);
+				return null;
+			}
+
+		}).sequential().forEach(data -> {
 			datas.add(data);
 
 			data.getMods().stream().forEach(s -> dataByModName.put(s, data));
@@ -313,7 +376,8 @@ public class FactorioManager {
 			tileByName.putAll(data.getTable().getTiles());
 			equipmentByName.putAll(data.getTable().getEquipments());
 			achievementByName.putAll(data.getTable().getAchievements());
-		}
+			itemGroupByName.putAll(data.getTable().getItemGroups());
+		});
 	}
 
 	public static Optional<AchievementPrototype> lookupAchievementByName(String name) {
@@ -354,6 +418,10 @@ public class FactorioManager {
 
 	public static Optional<ItemPrototype> lookupItemByName(String name) {
 		return Optional.ofNullable(itemByName.get(name));
+	}
+
+	public static Optional<ItemGroupPrototype> lookupItemGroupByName(String name) {
+		return Optional.ofNullable(itemGroupByName.get(name));
 	}
 
 	public static BufferedImage lookupModImage(String filename) {

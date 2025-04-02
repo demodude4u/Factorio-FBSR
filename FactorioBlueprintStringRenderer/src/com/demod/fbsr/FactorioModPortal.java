@@ -50,7 +50,7 @@ public class FactorioModPortal {
 		return 0;
 	}
 
-	public static File downloadMod(File folder, String modName, String modVersion, String authParams)
+	public static synchronized File downloadMod(File folder, String modName, String modVersion, String authParams)
 			throws IOException {
 
 		JSONObject jsonRelease = findModReleaseInfo(modName, modVersion);
@@ -144,7 +144,7 @@ public class FactorioModPortal {
 		throw new IOException("Mod not found! " + modName + " " + modVersion);
 	}
 
-	public static JSONObject findModReleaseInfoFull(String modName, String modVersion) throws IOException {
+	public static synchronized JSONObject findModReleaseInfoFull(String modName, String modVersion) throws IOException {
 		JSONObject json = get(API_URL + "api/mods/" + modName + "/full");
 		JSONArray jsonReleases = json.getJSONArray("releases");
 		for (int i = 0; i < jsonReleases.length(); i++) {
@@ -156,7 +156,7 @@ public class FactorioModPortal {
 		throw new IOException("Mod not found! " + modName + " " + modVersion);
 	}
 
-	private static JSONObject get(String url) throws IOException {
+	private static synchronized JSONObject get(String url) throws IOException {
 		JSONObject json = cacheGet.getIfPresent(url);
 		if (json == null) {
 			HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
@@ -174,7 +174,7 @@ public class FactorioModPortal {
 		return json;
 	}
 
-	public static String getAuthParams(String username, String password) throws IOException {
+	public static synchronized String getAuthParams(String username, String password) throws IOException {
 		URL url = new URL("https://auth.factorio.com/api-login");
 		HttpURLConnection conn = (HttpURLConnection) url.openConnection();
 		conn.setRequestMethod("POST");
