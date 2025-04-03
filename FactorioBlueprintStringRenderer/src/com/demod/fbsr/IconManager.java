@@ -1,5 +1,6 @@
 package com.demod.fbsr;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -7,6 +8,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -181,24 +183,26 @@ public class IconManager {
 			return new PrototypeResolver(category, map);
 		}
 
-		public static IconResolver forPath(String rawPath) {
-			String[] path = rawPath.split("\\.");
+		public static IconResolver forPath(String... rawPaths) {
 			Map<String, DataPrototype> map = new LinkedHashMap<>();
-			for (FactorioData data : FactorioManager.getDatas()) {
-				LuaTable lua = data.getTable().getRaw(path).get().totableObject();
-				Utils.forEach(lua, (k, v) -> {
-					DataPrototype proto = new DataPrototype(v.totableObject());
-					Optional<ItemSubGroupPrototype> subgroup = proto.getSubgroup()
-							.flatMap(s -> data.getTable().getItemSubgroup(s));
-					if (subgroup.isPresent()) {
-						proto.setGroup(subgroup.get().getGroup());
-					} else {
-						proto.setGroup(Optional.empty());
-					}
-					map.put(k.tojstring(), proto);
-				});
+			for (String rawPath : rawPaths) {
+				String[] path = rawPath.split("\\.");
+				for (FactorioData data : FactorioManager.getDatas()) {
+					LuaTable lua = data.getTable().getRaw(path).get().totableObject();
+					Utils.forEach(lua, (k, v) -> {
+						DataPrototype proto = new DataPrototype(v.totableObject());
+						Optional<ItemSubGroupPrototype> subgroup = proto.getSubgroup()
+								.flatMap(s -> data.getTable().getItemSubgroup(s));
+						if (subgroup.isPresent()) {
+							proto.setGroup(subgroup.get().getGroup());
+						} else {
+							proto.setGroup(Optional.empty());
+						}
+						map.put(k.tojstring(), proto);
+					});
+				}
 			}
-			return new PrototypeResolver("path-" + rawPath, map);
+			return new PrototypeResolver("path-" + Arrays.stream(rawPaths).collect(Collectors.joining("-")), map);
 		}
 	}
 
@@ -251,7 +255,7 @@ public class IconManager {
 		shortcutResolver = IconResolver.forPath("shortcut");
 		qualityResolver = IconResolver.forPath("quality");
 		planetResolver = IconResolver.forPath("planet");
-		spaceLocationResolver = IconResolver.forPath("space-location");
+		spaceLocationResolver = IconResolver.forPath("space-location", "planet");
 		asteroidChunkResolver = IconResolver.forPath("asteroid-chunk");
 	}
 
