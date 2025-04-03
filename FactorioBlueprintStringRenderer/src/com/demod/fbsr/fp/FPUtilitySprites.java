@@ -7,7 +7,7 @@ public class FPUtilitySprites {
 	public final FPSprite filterBlacklist;
 
 	public FPUtilitySprites(LuaValue lua) {
-		clock = new FPSprite(lua.get("clock"));
-		filterBlacklist = new FPSprite(lua.get("filter_blacklist"));
+		clock = new FPSprite(lua.get("clock"), false);
+		filterBlacklist = new FPSprite(lua.get("filter_blacklist"), false);
 	}
 }

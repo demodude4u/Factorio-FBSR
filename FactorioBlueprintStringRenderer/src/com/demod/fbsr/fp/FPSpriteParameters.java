@@ -17,9 +17,16 @@ public class FPSpriteParameters extends FPSpriteSource {
 	public final boolean applyRuntimeTint;
 
 	private final SpriteDef def;
+	private final boolean trimmable;
 
 	public FPSpriteParameters(LuaValue lua) {
+		this(lua, true);
+	}
+
+	public FPSpriteParameters(LuaValue lua, boolean trimmable) {
 		super(lua);
+
+		this.trimmable = trimmable;
 
 		blendMode = FPUtils.blendMode(lua.get("blend_mode"));
 		drawAsShadow = lua.get("draw_as_shadow").optboolean(false);
@@ -32,9 +39,14 @@ public class FPSpriteParameters extends FPSpriteSource {
 		if (filename.isPresent()) {
 			def = SpriteDef.fromFP(filename.get(), drawAsShadow, blendMode, tint, tintAsOverlay, applyRuntimeTint, x, y,
 					width, height, shift.x, shift.y, scale);
+			def.setTrimmable(trimmable);
 		} else {
 			def = null;
 		}
+	}
+
+	public boolean isTrimmable() {
+		return trimmable;
 	}
 
 	protected SpriteDef defineSprite() {

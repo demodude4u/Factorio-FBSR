@@ -14,9 +14,13 @@ public class FPSprite extends FPSpriteParameters {
 	public final Optional<List<FPSprite>> layers;
 
 	public FPSprite(LuaValue lua) {
-		super(lua);
+		this(lua, true);
+	}
 
-		layers = FPUtils.optList(lua.get("layers"), FPSprite::new);
+	public FPSprite(LuaValue lua, boolean trimmable) {
+		super(lua, trimmable);
+
+		layers = FPUtils.optList(lua.get("layers"), l -> new FPSprite(l, trimmable));
 
 	}
 
