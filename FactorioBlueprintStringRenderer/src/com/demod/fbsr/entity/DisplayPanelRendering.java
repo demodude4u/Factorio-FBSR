@@ -5,12 +5,12 @@ import java.util.OptionalDouble;
 import java.util.function.Consumer;
 
 import com.demod.factorio.fakelua.LuaTable;
+import com.demod.fbsr.IconDefWithQuality;
 import com.demod.fbsr.IconManager;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.bs.BSSignalID;
 import com.demod.fbsr.bs.entity.BSDisplayPanelEntity;
-import com.demod.fbsr.def.IconDef;
 import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapIcon;
 import com.demod.fbsr.map.MapRenderable;
@@ -28,9 +28,10 @@ public class DisplayPanelRendering extends SimpleEntityRendering {
 		if (bsEntity.icon.isPresent() && map.isAltMode()) {
 			BSSignalID signalID = bsEntity.icon.get();
 
-			Optional<IconDef> icon = IconManager.lookupSignalID(signalID.type, signalID.name);
+			Optional<IconDefWithQuality> icon = IconManager.lookupSignalID(signalID.type, signalID.name,
+					signalID.quality);
 			if (icon.isPresent()) {
-				register.accept(new MapIcon(entity.getPosition().addUnit(0, -0.25), icon.get(), 0.5,
+				register.accept(new MapIcon(entity.getPosition().addUnit(0, -0.25), icon.get().getDef(), 0.5,
 						OptionalDouble.empty(), false, signalID.quality.filter(s -> !s.equals("normal"))));
 			}
 		}

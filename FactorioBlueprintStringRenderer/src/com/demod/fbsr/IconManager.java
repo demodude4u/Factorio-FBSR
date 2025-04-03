@@ -198,6 +198,7 @@ public class IconManager {
 						} else {
 							proto.setGroup(Optional.empty());
 						}
+						proto.setTable(data.getTable());
 						map.put(k.tojstring(), proto);
 					});
 				}
@@ -319,10 +320,10 @@ public class IconManager {
 		return asteroidChunkResolver.lookup(name);
 	}
 
-	public static Optional<IconDef> lookupSignalID(String type, String name) {
+	public static Optional<IconDefWithQuality> lookupSignalID(String type, String name, Optional<String> quality) {
 		Function<String, Optional<IconDef>> lookup = signalResolvers.get(type);
 		if (lookup != null) {
-			return lookup.apply(name);
+			return lookup.apply(name).map(def -> new IconDefWithQuality(def, quality));
 		} else {
 			return Optional.empty();
 		}
@@ -342,7 +343,7 @@ public class IconManager {
 		}
 
 		if (name.isPresent()) {
-			return lookupSignalID(type.get(), name.get()).map(def -> new IconDefWithQuality(def, quality));
+			return lookupSignalID(type.get(), name.get(), quality);
 
 		} else {
 			return lookupQuality(quality.get()).map(def -> new IconDefWithQuality(def, Optional.empty()));

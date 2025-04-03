@@ -1,4 +1,4 @@
-package com.demod.fbsr.bs;
+package com.demod.fbsr.bs.control;
 
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -6,8 +6,12 @@ import java.util.OptionalInt;
 import org.json.JSONObject;
 
 import com.demod.fbsr.BSUtils;
+import com.demod.fbsr.bs.BSCircuitCondition;
+import com.demod.fbsr.bs.BSDeciderCombinationConditions;
+import com.demod.fbsr.bs.BSDisplayPanelParameter;
+import com.demod.fbsr.bs.BSSignalID;
 
-public class BSControlBehavior {
+public class BSTransportBeltControlBehavior {
 	public final Optional<Boolean> circuitEnabled;
 	public final Optional<BSCircuitCondition> circuitCondition;
 	public final Optional<Boolean> connectToLogisticNetwork;
@@ -42,9 +46,10 @@ public class BSControlBehavior {
 	public final Optional<String> operation;
 	public final OptionalInt randomUpdateInterval;
 
-	public BSControlBehavior(JSONObject json) {
+	public BSTransportBeltControlBehavior(JSONObject json) {
 
-		// TODO we may just move this to be dynamically parsed by each renderer
+		// TODO most of these are not used in this specific control behavior, they need
+		// to be defined in their own control behavior classes
 
 		circuitEnabled = BSUtils.optBool(json, "circuit_enabled");
 		circuitCondition = BSUtils.opt(json, "circuit_condition", BSCircuitCondition::new);
