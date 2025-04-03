@@ -64,7 +64,7 @@ public class FPColor {
 			} else {
 				// Undo pre-multiplied alpha
 				if ((r / a) > 1 || (g / a) > 1 || (b / a) > 1) {
-					LOGGER.warn("Premul color exceeds bounds! [{},{},{},{}]", r, g, b, a);
+//					LOGGER.warn("Premul color exceeds bounds! [{},{},{},{}]", r, g, b, a);
 					return new Color((float) Math.min(1, (r / a)), (float) Math.min(1, (g / a)),
 							(float) Math.min(1, (b / a)), (float) a);
 				}
