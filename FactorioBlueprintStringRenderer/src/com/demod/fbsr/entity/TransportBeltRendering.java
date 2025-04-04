@@ -72,9 +72,10 @@ public class TransportBeltRendering extends TransportBeltConnectableRendering {
 		// TODO switch this over to the wire connector logic
 		if (bsEntity.controlBehavior.isPresent()) {
 			int index = transportBeltConnectorFrameMappingIndex[entity.getDirection().cardinal()][bend.ordinal()];
-			protoConnectorFrameShadow.defineSprites(entity.spriteRegister(register, Layer.OBJECT), index,
+			protoConnectorFrameShadow.defineSprites(entity.spriteRegister(register, Layer.HIGHER_OBJECT_UNDER), index,
 					CONTROL_FRAME);
-			protoConnectorFrameMain.defineSprites(entity.spriteRegister(register, Layer.OBJECT), index, CONTROL_FRAME);
+			protoConnectorFrameMain.defineSprites(entity.spriteRegister(register, Layer.HIGHER_OBJECT_UNDER), index,
+					CONTROL_FRAME);
 		}
 	}
 

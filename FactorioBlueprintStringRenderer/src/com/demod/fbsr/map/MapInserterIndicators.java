@@ -31,7 +31,7 @@ public class MapInserterIndicators extends MapRenderable {
 	public MapInserterIndicators(List<SpriteDef> lineSprites, List<SpriteDef> arrowSprites, MapPosition pos,
 			MapPosition inPos, MapPosition outPos, MapPosition pickupPos, MapPosition insertPos, Direction dir,
 			boolean modded) {
-		super(Layer.ENTITY_INFO_ICON_ABOVE);
+		super(Layer.INSERTER_INDICATORS);
 
 		this.lineSprites = lineSprites;
 		this.arrowSprites = arrowSprites;
