@@ -185,4 +185,8 @@ public class MapRect3D {
 		double rotateSin = Math.sin(rad);
 		return transformMatrix(rotateCos, -rotateSin, rotateSin, rotateCos);
 	}
+
+	public MapRect asMapRect() {
+		return new MapRect(x1fp, y1fp, x2fp - x1fp, y2fp - y1fp);
+	}
 }

@@ -14,6 +14,7 @@ import java.util.function.Function;
 
 import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapPosition;
+import com.demod.fbsr.map.MapRect;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -353,6 +354,25 @@ public class WorldMap {
 		int kr = pos.getXHalfCell();
 		int kc = pos.getYHalfCell();
 		return Optional.ofNullable(logisticGrid.get(kr, kc));
+	}
+
+	public List<LogisticGridCell> getLogisticGridCells(MapRect rect) {
+		List<LogisticGridCell> cells = new ArrayList<>();
+
+		// TODO use fixed point math
+
+		double startX = Math.round(rect.getX() * 2.0) / 2.0 + 0.25;
+		double startY = Math.round(rect.getY() * 2.0) / 2.0 + 0.25;
+		double endX = rect.getX() + rect.getWidth();
+		double endY = rect.getY() + rect.getHeight();
+
+		for (double y = startY; y < endY; y += 0.5) {
+			for (double x = startX; x < endX; x += 0.5) {
+				getLogisticGridCell(MapPosition.byUnit(x, y)).ifPresent(cells::add);
+			}
+		}
+
+		return cells;
 	}
 
 	public Optional<MapEntity> getNixieTube(MapPosition pos) {

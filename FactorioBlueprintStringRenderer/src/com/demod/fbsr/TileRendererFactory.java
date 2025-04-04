@@ -356,6 +356,11 @@ public class TileRendererFactory {
 			tileMaps.put(i, HashBasedTable.create());
 			tileEdgeMaps.put(i, HashBasedTable.create());
 		});
+		tiles.stream().flatMap(t -> t.getFactory().protoTransitionMergesWithTile.stream()).mapToInt(t -> t.protoLayer)
+				.distinct().forEach(i -> {
+					tileMaps.put(i, HashBasedTable.create());
+					tileEdgeMaps.put(i, HashBasedTable.create());
+				});
 
 		TreeSet<Integer> activeLayers = new TreeSet<>();
 		Multimap<Integer, TileCell> cellLayers = ArrayListMultimap.create();
