@@ -68,7 +68,7 @@ public class SelectorCombinatorRendering extends CombinatorRendering {
 				} else if (icons.size() > 2) {
 					iconStartPos = pos.addUnit(-0.25, iconStartY - 0.25);
 				} else {
-					iconStartPos = pos;
+					iconStartPos = pos.addUnit(0, iconStartY);
 				}
 
 				boolean iconBig = icons.size() == 1;
