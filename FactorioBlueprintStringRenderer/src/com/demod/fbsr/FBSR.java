@@ -561,12 +561,15 @@ public class FBSR {
 			String recipeName = entry.getKey();
 			double recipeAmount = entry.getValue();
 			baseTable.getRecipe(recipeName).ifPresent(r -> {
-				double multiplier = recipeAmount / r.getOutputs().get(recipeName);
-				Map<String, Double> totalRaw = calculator.compute(r);
-				for (Entry<String, Double> entry2 : totalRaw.entrySet()) {
-					String itemName = entry2.getKey();
-					double itemAmount = entry2.getValue();
-					addToItemAmount(ret, itemName, itemAmount * multiplier);
+				Map<String, Double> outputs = r.getOutputs();
+				if (outputs.containsKey(recipeName)) {
+					double multiplier = recipeAmount / outputs.get(recipeName);
+					Map<String, Double> totalRaw = calculator.compute(r);
+					for (Entry<String, Double> entry2 : totalRaw.entrySet()) {
+						String itemName = entry2.getKey();
+						double itemAmount = entry2.getValue();
+						addToItemAmount(ret, itemName, itemAmount * multiplier);
+					}
 				}
 			});
 		}
