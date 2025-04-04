@@ -59,6 +59,9 @@ public class LogisticGridCell {
 		if (!outputs.isPresent()) {
 			outputs = Optional.of(new LinkedHashSet<>());
 		}
+		if (itemName.equals("UNKNOWN")) {
+			return;
+		}
 		outputs.get().add(itemName);
 	}
 
@@ -180,6 +183,12 @@ public class LogisticGridCell {
 	}
 
 	public void setOutputs(Optional<Set<String>> outputs) {
+		if (outputs.isPresent()) {
+			Set<String> strings = outputs.get();
+			if (strings.contains("UNKNOWN")) {
+				System.out.println("WARNING: outputs contains UNKNOWN");
+			}
+		}
 		this.outputs = outputs;
 	}
 
