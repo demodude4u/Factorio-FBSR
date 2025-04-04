@@ -2,9 +2,13 @@ package com.demod.fbsr.fp;
 
 import java.awt.Color;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.demod.factorio.fakelua.LuaValue;
 
 public class FPColor {
+	private static final Logger LOGGER = LoggerFactory.getLogger(FPColor.class);
 
 	public final double r;
 	public final double g;
@@ -27,18 +31,22 @@ public class FPColor {
 			r = luaR.optdouble(0);
 			g = luaG.optdouble(0);
 			b = luaB.optdouble(0);
-			a = luaA.optdouble(1);
+			a = luaA.optdouble(isRange255(r, g, b, 0) ? 255 : 1);
 		} else {
 			r = lua.get(1).optdouble(0);
 			g = lua.get(2).optdouble(0);
 			b = lua.get(3).optdouble(0);
-			a = lua.get(4).optdouble(1);
+			a = lua.get(4).optdouble(isRange255(r, g, b, 0) ? 255 : 1);
 		}
+	}
+
+	public static boolean isRange255(double r, double g, double b, double a) {
+		return (r > 1) || (g > 1) || (b > 1) || (a > 1);
 	}
 
 	// Assuming pre-multiplied alpha
 	public Color createColor() {
-		if (r > 1 || g > 1 || b > 1 || a > 1) { // 0 to 255
+		if (isRange255(r, g, b, a)) { // 0 to 255
 			if (a == 0) {
 				return new Color(0, 0, 0, 0);
 			} else if (a == 255) {
@@ -55,6 +63,11 @@ public class FPColor {
 				return new Color((float) r, (float) g, (float) b, (float) a);
 			} else {
 				// Undo pre-multiplied alpha
+				if ((r / a) > 1 || (g / a) > 1 || (b / a) > 1) {
+//					LOGGER.warn("Premul color exceeds bounds! [{},{},{},{}]", r, g, b, a);
+					return new Color((float) Math.min(1, (r / a)), (float) Math.min(1, (g / a)),
+							(float) Math.min(1, (b / a)), (float) a);
+				}
 				return new Color((float) (r / a), (float) (g / a), (float) (b / a), (float) a);
 			}
 		}

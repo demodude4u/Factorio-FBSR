@@ -1,9 +1,8 @@
 package com.demod.fbsr.fp;
 
-import java.awt.geom.Rectangle2D;
-
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.Direction;
+import com.demod.fbsr.map.MapRect;
 
 public class FPBoundingBox {
 	public final FPVector leftTop;
@@ -27,13 +26,17 @@ public class FPBoundingBox {
 		}
 	}
 
-	public Rectangle2D.Double createRect() {
-		return new Rectangle2D.Double(leftTop.x, leftTop.y, rightBottom.x - leftTop.x, rightBottom.y - leftTop.y);
+	public MapRect createRect() {
+		return MapRect.byUnit(leftTop.x, leftTop.y, rightBottom.x - leftTop.x, rightBottom.y - leftTop.y);
 	}
 
 	public FPBoundingBox rotate(Direction direction) {
-		Rectangle2D rotated = direction.rotateBounds(createRect());
-		return new FPBoundingBox(rotated.getMinX(), rotated.getMinY(), rotated.getMaxX(), rotated.getMaxY());
+		MapRect rotated = direction.rotate(createRect());
+		double x = rotated.getX();
+		double y = rotated.getY();
+		double width = rotated.getWidth();
+		double height = rotated.getHeight();
+		return new FPBoundingBox(x, y, x + width, y + height);
 	}
 
 	public FPBoundingBox shift(FPVector v) {

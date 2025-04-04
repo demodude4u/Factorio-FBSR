@@ -1,9 +1,8 @@
 package com.demod.fbsr.entity;
 
 import com.demod.factorio.fakelua.LuaTable;
-import com.demod.fbsr.bs.BSEntity;
 
-public class AsteroidCollectorRendering extends SimpleEntityRendering<BSEntity> {
+public class AsteroidCollectorRendering extends SimpleEntityRendering {
 
 	@Override
 	public void defineEntity(Bindings bind, LuaTable lua) {

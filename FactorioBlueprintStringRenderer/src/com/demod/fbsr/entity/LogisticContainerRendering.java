@@ -1,43 +1,37 @@
 package com.demod.fbsr.entity;
 
-import java.awt.geom.Point2D;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Optional;
+import java.util.OptionalDouble;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-import org.json.JSONObject;
-
 import com.demod.factorio.fakelua.LuaTable;
-import com.demod.fbsr.BSUtils;
 import com.demod.fbsr.Direction;
+import com.demod.fbsr.IconManager;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.bs.BSEntity;
-import com.demod.fbsr.bs.BSEntityRequestFilters;
-import com.demod.fbsr.entity.LogisticContainerRendering.BSLogisticContainerEntity;
-import com.demod.fbsr.legacy.LegacyBlueprintEntity;
+import com.demod.fbsr.bs.BSFilter;
+import com.demod.fbsr.bs.entity.BSLogisticContainerEntity;
+import com.demod.fbsr.map.MapEntity;
+import com.demod.fbsr.map.MapPosition;
+import com.demod.fbsr.map.MapRenderable;
 
-public class LogisticContainerRendering extends ContainerRendering<BSLogisticContainerEntity> {
+public class LogisticContainerRendering extends ContainerRendering {
 
-	public static class BSLogisticContainerEntity extends BSEntity {
-		public final Optional<BSEntityRequestFilters> requestFilters;
+	@Override
+	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
+		super.createRenderers(register, map, entity);
 
-		public BSLogisticContainerEntity(JSONObject json) {
-			super(json);
+		BSLogisticContainerEntity bsEntity = entity.<BSLogisticContainerEntity>fromBlueprint();
+		if (!bsEntity.requestFilters.isEmpty()) {
+			Optional<BSFilter> filter = bsEntity.requestFilters.get().sections.stream()
+					.flatMap(bs -> bs.filters.stream()).filter(f -> f.name.isPresent() || f.quality.isPresent())
+					.findAny();
+			filter.ifPresent(f -> IconManager.lookupFilter(f.type, f.name, f.quality).ifPresent(
+					i -> register.accept(i.createMapIcon(entity.getPosition(), 0.5, OptionalDouble.of(0.05), false))));
 
-			requestFilters = BSUtils.opt(json, "request_filters", BSEntityRequestFilters::new);
-		}
-
-		public BSLogisticContainerEntity(LegacyBlueprintEntity legacy) {
-			super(legacy);
-
-			List<String> outputs = BSUtils.list(legacy.json(), "request_filters", j -> j.getString("name"));
-			if (outputs.isEmpty()) {
-				requestFilters = Optional.empty();
-			} else {
-				requestFilters = Optional.of(new BSEntityRequestFilters(outputs));
-			}
 		}
 	}
 
@@ -49,18 +43,26 @@ public class LogisticContainerRendering extends ContainerRendering<BSLogisticCon
 	}
 
 	@Override
-	public void populateLogistics(WorldMap map, BSLogisticContainerEntity entity) {
-		Point2D.Double pos = entity.position.createPoint();
+	public Class<? extends BSEntity> getEntityClass() {
+		return BSLogisticContainerEntity.class;
+	}
 
-		if (entity.requestFilters.isPresent()) {
+	@Override
+	public void populateLogistics(WorldMap map, MapEntity entity) {
+		MapPosition pos = entity.getPosition();
+		BSLogisticContainerEntity bsEntity = entity.<BSLogisticContainerEntity>fromBlueprint();
 
-			Set<String> outputs = entity.requestFilters.get().sections.stream().flatMap(bs -> bs.filters.stream())
-					.map(bs -> bs.name).collect(Collectors.toCollection(LinkedHashSet::new));
+		if (bsEntity.requestFilters.isPresent()) {
 
-			map.getOrCreateLogisticGridCell(Direction.NORTHEAST.offset(pos, 0.25)).setOutputs(Optional.of(outputs));
-			map.getOrCreateLogisticGridCell(Direction.NORTHWEST.offset(pos, 0.25)).setOutputs(Optional.of(outputs));
-			map.getOrCreateLogisticGridCell(Direction.SOUTHEAST.offset(pos, 0.25)).setOutputs(Optional.of(outputs));
-			map.getOrCreateLogisticGridCell(Direction.SOUTHWEST.offset(pos, 0.25)).setOutputs(Optional.of(outputs));
+			Set<String> outputs = bsEntity.requestFilters.get().sections.stream().flatMap(bs -> bs.filters.stream())
+					.flatMap(bs -> bs.name.stream()).collect(Collectors.toCollection(LinkedHashSet::new));
+
+			if (!outputs.isEmpty()) {
+				map.getOrCreateLogisticGridCell(Direction.NORTHEAST.offset(pos, 0.25)).setOutputs(Optional.of(outputs));
+				map.getOrCreateLogisticGridCell(Direction.NORTHWEST.offset(pos, 0.25)).setOutputs(Optional.of(outputs));
+				map.getOrCreateLogisticGridCell(Direction.SOUTHEAST.offset(pos, 0.25)).setOutputs(Optional.of(outputs));
+				map.getOrCreateLogisticGridCell(Direction.SOUTHWEST.offset(pos, 0.25)).setOutputs(Optional.of(outputs));
+			}
 		}
 	}
 }

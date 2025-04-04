@@ -5,37 +5,39 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 
-import com.demod.factorio.FactorioData;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.FPUtils;
-import com.demod.fbsr.Sprite;
+import com.demod.fbsr.def.SpriteDef;
 
 public class FPSprite extends FPSpriteParameters {
 
 	public final Optional<List<FPSprite>> layers;
 
 	public FPSprite(LuaValue lua) {
-		super(lua);
+		this(lua, true);
+	}
 
-		layers = FPUtils.optList(lua.get("layers"), FPSprite::new);
+	public FPSprite(LuaValue lua, boolean trimmable) {
+		super(lua, trimmable);
+
+		layers = FPUtils.optList(lua.get("layers"), l -> new FPSprite(l, trimmable));
 
 	}
 
-	public void createSprites(Consumer<Sprite> consumer, FactorioData data) {
+	public List<SpriteDef> defineSprites() {
+		List<SpriteDef> ret = new ArrayList<>();
+		defineSprites(ret::add);
+		return ret;
+	}
+
+	public void defineSprites(Consumer<? super SpriteDef> consumer) {
 		if (layers.isPresent()) {
 			for (FPSprite layer : layers.get()) {
-				layer.createSprites(consumer, data);
+				layer.defineSprites(consumer);
 			}
 			return;
 		}
 
-		consumer.accept(super.createSprite(data));
+		consumer.accept(super.defineSprite());
 	}
-
-	public List<Sprite> createSprites(FactorioData data) {
-		List<Sprite> ret = new ArrayList<>();
-		createSprites(ret::add, data);
-		return ret;
-	}
-
 }

@@ -1,50 +1,55 @@
 package com.demod.fbsr.fp;
 
-import java.awt.Color;
 import java.util.Optional;
 
-import com.demod.factorio.FactorioData;
 import com.demod.factorio.fakelua.LuaValue;
+import com.demod.fbsr.BlendMode;
 import com.demod.fbsr.FPUtils;
-import com.demod.fbsr.RenderUtils;
-import com.demod.fbsr.Sprite;
+import com.demod.fbsr.def.SpriteDef;
 
 public class FPSpriteParameters extends FPSpriteSource {
-	public final String blendMode;
+	public final BlendMode blendMode;
 	public final boolean drawAsShadow;
 	public final double scale;
 	public final FPVector shift;
-	public final FPColor tint;
+	public final Optional<FPColor> tint;
+	public final boolean tintAsOverlay;
 	public final boolean applyRuntimeTint;
 
-	// XXX hacky, violates immutability
-	public Optional<Color> runtimeTint = Optional.empty();
+	private final SpriteDef def;
+	private final boolean trimmable;
 
 	public FPSpriteParameters(LuaValue lua) {
+		this(lua, true);
+	}
+
+	public FPSpriteParameters(LuaValue lua, boolean trimmable) {
 		super(lua);
 
-		blendMode = lua.get("blend_mode").optjstring("normal");
+		this.trimmable = trimmable;
+
+		blendMode = FPUtils.blendMode(lua.get("blend_mode"));
 		drawAsShadow = lua.get("draw_as_shadow").optboolean(false);
 		scale = lua.get("scale").optdouble(1) * 2;
 		shift = FPUtils.opt(lua.get("shift"), FPVector::new).orElseGet(() -> new FPVector(0, 0));
-		tint = FPUtils.opt(lua.get("tint"), FPColor::new).orElseGet(() -> new FPColor(1, 1, 1, 1));
+		tint = FPUtils.tint(lua.get("tint"));
+		tintAsOverlay = lua.get("tint_as_overlay").optboolean(false);
 		applyRuntimeTint = lua.get("apply_runtime_tint").optboolean(false);
-	}
 
-	protected Sprite createSprite(FactorioData data) {
-		return RenderUtils.createSprite(data, filename.get(), drawAsShadow, blendMode, getEffectiveTint(), x, y, width,
-				height, shift.x, shift.y, scale);
-	}
-
-	public Color getEffectiveTint() {
-		Color tint = this.tint.createColorIgnorePreMultipliedAlpha();
-		if (applyRuntimeTint && runtimeTint.isPresent()) {
-			tint = runtimeTint.get();
+		if (filename.isPresent()) {
+			def = SpriteDef.fromFP(filename.get(), drawAsShadow, blendMode, tint, tintAsOverlay, applyRuntimeTint, x, y,
+					width, height, shift.x, shift.y, scale);
+			def.setTrimmable(trimmable);
+		} else {
+			def = null;
 		}
-		return tint;
 	}
 
-	public void setRuntimeTint(Color tint) {
-		runtimeTint = Optional.of(tint);
+	public boolean isTrimmable() {
+		return trimmable;
+	}
+
+	protected SpriteDef defineSprite() {
+		return def;
 	}
 }

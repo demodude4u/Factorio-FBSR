@@ -9,11 +9,9 @@ import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Scanner;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
@@ -22,28 +20,38 @@ import java.util.regex.Pattern;
 
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import com.demod.dcba.CommandReporting;
 import com.demod.factorio.Utils;
 import com.demod.fbsr.bs.BSBlueprintString;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.Uninterruptibles;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class BlueprintFinder {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(BlueprintFinder.class);
 
-	public static class FindBlueprintResult {
-		public final boolean encoded;
+	public static class FindBlueprintRawResult {
 		public final Optional<String> encodedData;
 		public final Optional<JSONObject> decodedData;
+		public final Optional<Exception> failureCause;
 
-		public FindBlueprintResult(Optional<String> encodedData, Optional<JSONObject> decodedData) {
-			this.encoded = encodedData.isPresent();
+		public FindBlueprintRawResult(Optional<String> encodedData, Optional<JSONObject> decodedData,
+				Optional<Exception> failureCause) {
 			this.encodedData = encodedData;
 			this.decodedData = decodedData;
+			this.failureCause = failureCause;
+		}
+	}
+
+	public static class FindBlueprintResult {
+		public final Optional<BSBlueprintString> blueprintString;
+		public Optional<Exception> failureCause;
+
+		public FindBlueprintResult(Optional<BSBlueprintString> blueprintString, Optional<Exception> failureCause) {
+			this.blueprintString = blueprintString;
+			this.failureCause = failureCause;
 		}
 	}
 
@@ -155,19 +163,21 @@ public final class BlueprintFinder {
 
 	private static final Pattern blueprintPattern = Pattern.compile("([0-9][A-Za-z0-9+\\/=\\r\\n]{90,})");
 
-	private static void findBlueprints(InputStream in, CommandReporting reporting, Set<FindBlueprintResult> results)
-			throws IOException {
-		String content = new String(in.readNBytes(20000000));
+	private static void findBlueprints(InputStream in, List<FindBlueprintRawResult> results) {
+		String content;
+		try {
+			content = new String(in.readNBytes(20000000));
+		} catch (IOException e) {
+			results.add(new FindBlueprintRawResult(Optional.empty(), Optional.empty(), Optional.of(e)));
+			return;
+		}
 		boolean hasEncoded = false;
 		try (Scanner scanner = new Scanner(content)) {
 			String blueprintString;
 			while ((blueprintString = scanner.findWithinHorizon(blueprintPattern, 0)) != null) {
-				try {
-					results.add(new FindBlueprintResult(Optional.of(blueprintString), Optional.empty()));
-					hasEncoded = true;
-				} catch (Exception e) {
-					reporting.addException(e);
-				}
+				results.add(
+						new FindBlueprintRawResult(Optional.of(blueprintString), Optional.empty(), Optional.empty()));
+				hasEncoded = true;
 			}
 		}
 		if (!hasEncoded) {// Check for decoded
@@ -180,15 +190,16 @@ public final class BlueprintFinder {
 							|| json.has("blueprint_book") //
 							|| json.has("upgrade_planner") //
 							|| json.has("deconstruction_planner")) {
-						results.add(new FindBlueprintResult(Optional.empty(), Optional.of(json)));
+						results.add(new FindBlueprintRawResult(Optional.empty(), Optional.of(json), Optional.empty()));
 					}
 				}
 			} catch (JSONException e) {
+				results.add(new FindBlueprintRawResult(Optional.empty(), Optional.empty(), Optional.of(e)));
 			}
 		}
 	}
 
-	private static void findProviders(String content, CommandReporting reporting, Set<FindBlueprintResult> results) {
+	private static void findProviders(String content, List<FindBlueprintRawResult> results) {
 		HashSet<String> uniqueCheck = new HashSet<>();
 		for (Provider provider : providers) {
 			Matcher matcher = provider.getPattern().matcher(content);
@@ -207,7 +218,7 @@ public final class BlueprintFinder {
 						List<Exception> tryExceptions = new ArrayList<>();
 						for (int tries = 6; tries >= 0; tries--) {
 							try {
-								findBlueprints(in.get(), reporting, results);
+								findBlueprints(in.get(), results);
 								break;
 							} catch (FileNotFoundException e) {
 								LOGGER.info("\t\tFile not Found!");
@@ -217,12 +228,13 @@ public final class BlueprintFinder {
 							if (tries > 1) {
 								Uninterruptibles.sleepUninterruptibly(10, TimeUnit.SECONDS);
 							} else {
-								tryExceptions.forEach(e -> reporting.addException(e));
+								tryExceptions.forEach(e -> results.add(new FindBlueprintRawResult(Optional.empty(),
+										Optional.empty(), Optional.of(e))));
 							}
 						}
 					});
 				} catch (Exception e) {
-					reporting.addException(e);
+					results.add(new FindBlueprintRawResult(Optional.empty(), Optional.empty(), Optional.of(e)));
 				}
 			}
 		}
@@ -232,31 +244,33 @@ public final class BlueprintFinder {
 		providers.add(provider);
 	}
 
-	public static List<BSBlueprintString> search(String content, CommandReporting reporting) {
-		List<BSBlueprintString> results = new ArrayList<>();
-		for (FindBlueprintResult result : searchRaw(content, reporting)) {
+	public static List<FindBlueprintResult> search(String content) {
+		List<FindBlueprintResult> results = new ArrayList<>();
+		for (FindBlueprintRawResult result : searchRaw(content)) {
 			try {
-				if (result.encoded) {
-					results.add(BSBlueprintString.decode(result.encodedData.get()));
-				} else {
-					results.add(new BSBlueprintString(result.decodedData.get(), result.decodedData.get().toString(2)));
+				BSBlueprintString blueprintString = null;
+				if (result.encodedData.isPresent()) {
+					blueprintString = BSBlueprintString.decode(result.encodedData.get());
+				} else if (result.decodedData.isPresent()) {
+					blueprintString = new BSBlueprintString(result.decodedData.get(),
+							result.decodedData.get().toString(2));
+				} else if (result.failureCause.isPresent()) {
+					results.add(new FindBlueprintResult(Optional.empty(), Optional.of(result.failureCause.get())));
+					continue;
 				}
+				results.add(new FindBlueprintResult(Optional.of(blueprintString), Optional.empty()));
 			} catch (IllegalArgumentException | IOException e) {
-				reporting.addException(e);
+				results.add(new FindBlueprintResult(Optional.empty(), Optional.of(e)));
 			}
 		}
 		return results;
 	}
 
-	public static List<FindBlueprintResult> searchRaw(String content, CommandReporting reporting) {
-		Set<FindBlueprintResult> results = new LinkedHashSet<>();
-		try {
-			findBlueprints(new ByteArrayInputStream(content.getBytes()), reporting, results);
-		} catch (IOException e) {
-			reporting.addException(e);
-		}
-		findProviders(content, reporting, results);
-		return new ArrayList<>(results);
+	public static List<FindBlueprintRawResult> searchRaw(String content) {
+		List<FindBlueprintRawResult> results = new ArrayList<>();
+		findBlueprints(new ByteArrayInputStream(content.getBytes()), results);
+		findProviders(content, results);
+		return results;
 	}
 
 	private BlueprintFinder() {

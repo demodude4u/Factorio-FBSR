@@ -1,6 +1,5 @@
 package com.demod.fbsr.entity;
 
-import java.awt.geom.Point2D;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
@@ -9,14 +8,16 @@ import java.util.stream.Collectors;
 import com.demod.factorio.fakelua.LuaTable;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.Direction;
-import com.demod.fbsr.RenderUtils;
-import com.demod.fbsr.Renderer;
+import com.demod.fbsr.Layer;
 import com.demod.fbsr.WorldMap;
-import com.demod.fbsr.bs.BSEntity;
+import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.fp.FPSprite4Way;
 import com.demod.fbsr.fp.FPSpriteVariations;
+import com.demod.fbsr.map.MapEntity;
+import com.demod.fbsr.map.MapPosition;
+import com.demod.fbsr.map.MapRenderable;
 
-public class WallRendering extends SimpleEntityRendering<BSEntity> {
+public class WallRendering extends SimpleEntityRendering {
 
 	public static final String[] wallSpriteNameMapping = //
 			new String[/* bits WSEN */] { //
@@ -41,10 +42,10 @@ public class WallRendering extends SimpleEntityRendering<BSEntity> {
 	private FPSprite4Way protoWallDiodeRed;
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, BSEntity entity) {
+	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
 		super.createRenderers(register, map, entity);
 
-		Point2D.Double pos = entity.position.createPoint();
+		MapPosition pos = entity.getPosition();
 
 		boolean northGate = map.isVerticalGate(Direction.NORTH.offset(pos));
 		boolean eastGate = map.isHorizontalGate(Direction.EAST.offset(pos));
@@ -61,22 +62,28 @@ public class WallRendering extends SimpleEntityRendering<BSEntity> {
 
 		int variation;
 		if (wallSprites.getVariationCount() > 1) {
-			variation = Math.abs((int) pos.x + (int) pos.y) % (wallSprites.getVariationCount() / 2);
+			variation = Math.abs(pos.getXCell() + pos.getYCell()) % (wallSprites.getVariationCount() / 2);
 		} else {
 			variation = 0;
 		}
-		register.accept(
-				RenderUtils.spriteRenderer(wallSprites.createSprites(data, variation), entity, drawBounds));
+		wallSprites.defineSprites(entity.spriteRegister(register, Layer.OBJECT), variation);
 
 		if (northGate || eastGate || southGate || westGate) {
-			register.accept(RenderUtils.spriteRenderer(protoWallDiodeRed.createSprites(data, entity.direction), entity,
-					drawBounds));
+			protoWallDiodeRed.defineSprites(entity.spriteRegister(register, Layer.OBJECT), entity.getDirection());
 		}
 	}
 
 	@Override
 	public void defineEntity(Bindings bind, LuaTable lua) {
 		bind.circuitConnector(lua.get("circuit_connector"));
+	}
+
+	@Override
+	public void initAtlas(Consumer<ImageDef> register) {
+		super.initAtlas(register);
+
+		protoPictures.forEach(fp -> fp.getDefs(register));
+		protoWallDiodeRed.getDefs(register);
 	}
 
 	@Override
@@ -90,9 +97,9 @@ public class WallRendering extends SimpleEntityRendering<BSEntity> {
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, BSEntity entity) {
+	public void populateWorldMap(WorldMap map, MapEntity entity) {
 		super.populateWorldMap(map, entity);
 
-		map.setWall(entity.position.createPoint());
+		map.setWall(entity.getPosition());
 	}
 }

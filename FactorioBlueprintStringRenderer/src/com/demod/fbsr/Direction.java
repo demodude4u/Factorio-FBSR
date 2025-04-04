@@ -1,9 +1,8 @@
 package com.demod.fbsr;
 
-import java.awt.geom.AffineTransform;
-import java.awt.geom.Point2D;
-import java.awt.geom.Point2D.Double;
-import java.awt.geom.Rectangle2D;
+import com.demod.fbsr.map.MapPosition;
+import com.demod.fbsr.map.MapRect;
+import com.demod.fbsr.map.MapRect3D;
 
 public enum Direction {
 	NORTH("N", 0, -1), //
@@ -14,6 +13,8 @@ public enum Direction {
 	SOUTHWEST("SW", -1, 1), //
 	WEST("W", -1, 0), //
 	NORTHWEST("NW", -1, -1);
+
+	private static Direction[] CARDINALS = { NORTH, EAST, SOUTH, WEST };
 
 	public static Direction fromCardinal(int cardinal) {
 		return values()[cardinal * 2];
@@ -30,13 +31,20 @@ public enum Direction {
 
 	private final String symbol;
 	private final int dx;
-
 	private final int dy;
+	private final MapPosition offset;
+	private final double theta;
+	private final double rotateSin;
+	private final double rotateCos;
 
 	private Direction(String symbol, int dx, int dy) {
 		this.symbol = symbol;
 		this.dx = dx;
 		this.dy = dy;
+		offset = MapPosition.byUnit(dx, dy);
+		theta = Math.atan2(dy, dx);
+		rotateSin = Math.sin(theta);
+		rotateCos = Math.cos(theta);
 	}
 
 	public int adjCode() {
@@ -95,28 +103,20 @@ public enum Direction {
 		return rotate(-2);
 	}
 
-	public Point2D.Double offset() {
-		return new Point2D.Double(dx, dy);
+	public MapPosition offset() {
+		return offset;
 	}
 
-	public Double offset(double distance) {
-		return new Point2D.Double(distance * dx, distance * dy);
+	public MapPosition offset(double distance) {
+		return offset.multiplyUnit(distance);
 	}
 
-	public Point2D.Double offset(Point2D.Double pos) {
-		return new Point2D.Double(pos.x + dx, pos.y + dy);
+	public MapPosition offset(MapPosition pos) {
+		return offset.add(pos);
 	}
 
-	public Double offset(Point2D.Double pos, double distance) {
-		return new Point2D.Double(pos.x + distance * dx, pos.y + distance * dy);
-	}
-
-	public Point2D.Double offset(Point2D.Double pos, Point2D.Double offset) {
-		return offset(right().offset(pos, offset.y), offset.x);
-	}
-
-	public Rectangle2D.Double offset(Rectangle2D.Double rect, double distance) {
-		return new Rectangle2D.Double(rect.x + distance * dx, rect.y + distance * dy, rect.width, rect.height);
+	public MapPosition offset(MapPosition pos, double distance) {
+		return offset.multiplyUnitAdd(distance, pos);
 	}
 
 	public Direction right() {
@@ -132,17 +132,49 @@ public enum Direction {
 		return values[(((ordinal() + deltaIndex) % values.length) + values.length) % values.length];
 	}
 
-	public Rectangle2D rotateBounds(Rectangle2D bounds) {
-		AffineTransform at = new AffineTransform();
-		at.rotate(Math.PI * 2.0 * ordinal() / 8.0);
-		return at.createTransformedShape(bounds).getBounds2D();
+	public MapRect rotate(MapRect bounds) {
+		if (this == NORTH) {
+			return bounds;
+		} else if (this == EAST) {
+			return bounds.rotate90();
+		} else if (this == SOUTH) {
+			return bounds.rotate180();
+		} else if (this == WEST) {
+			return bounds.rotate270();
+		} else {
+			return bounds.transformMatrix(rotateCos, -rotateSin, rotateSin, rotateCos);
+		}
 	}
 
-	public Point2D.Double rotatePoint(Point2D.Double point) {
-		AffineTransform at = new AffineTransform();
-		at.rotate(Math.PI * 2.0 * ordinal() / 8.0);
-		Point2D.Double ret = new Point2D.Double();
-		at.deltaTransform(point, ret);
-		return ret;
+	public MapRect3D rotate(MapRect3D bounds) {
+		if (this == NORTH) {
+			return bounds;
+		} else if (this == EAST) {
+			return bounds.rotate90();
+		} else if (this == SOUTH) {
+			return bounds.rotate180();
+		} else if (this == WEST) {
+			return bounds.rotate270();
+		} else {
+			return bounds.transformMatrix(rotateCos, -rotateSin, rotateSin, rotateCos);
+		}
+	}
+
+	public MapPosition rotate(MapPosition point) {
+		if (this == NORTH) {
+			return point;
+		} else if (this == EAST) {
+			return point.rotate90();
+		} else if (this == SOUTH) {
+			return point.rotate180();
+		} else if (this == WEST) {
+			return point.rotate270();
+		} else {
+			return point.transformMatrix(rotateCos, -rotateSin, rotateSin, rotateCos);
+		}
+	}
+
+	public static Direction[] cardinals() {
+		return CARDINALS;
 	}
 }

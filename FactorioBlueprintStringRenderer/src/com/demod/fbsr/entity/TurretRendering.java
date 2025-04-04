@@ -3,9 +3,8 @@ package com.demod.fbsr.entity;
 import com.demod.factorio.Utils;
 import com.demod.factorio.fakelua.LuaTable;
 import com.demod.factorio.fakelua.LuaValue;
-import com.demod.fbsr.bs.BSEntity;
 
-public abstract class TurretRendering extends SimpleEntityRendering<BSEntity> {
+public abstract class TurretRendering extends SimpleEntityRendering {
 
 	private boolean checkState(LuaValue lua, String flag) {
 		if (lua.isnil()) {

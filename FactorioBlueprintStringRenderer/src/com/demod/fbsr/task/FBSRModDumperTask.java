@@ -1,6 +1,5 @@
 package com.demod.fbsr.task;
 
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -52,19 +51,20 @@ public class FBSRModDumperTask {
 			"factorio-logo-16tiles", "factorio-logo-22tiles", "fast-inserter", "fast-loader", "fast-splitter",
 			"fast-transport-belt", "fast-underground-belt", "flamethrower-turret", "fluid-wagon", "foundry",
 			"fulgoran-ruin-attractor", "fusion-generator", "fusion-reactor", "gate", "gun-turret", "half-diagonal-rail",
-			"heat-exchanger", "heat-interface", "heat-pipe", "heating-tower", "infinity-chest", "infinity-pipe",
-			"inserter", "iron-chest", "lab", "land-mine", "lane-splitter", "laser-turret", "legacy-curved-rail",
-			"legacy-straight-rail", "lightning-collector", "lightning-rod", "linked-belt", "linked-chest", "loader",
-			"locomotive", "logistic-robot", "long-handed-inserter", "market", "medium-electric-pole", "nuclear-reactor",
-			"offshore-pump", "oil-refinery", "passive-provider-chest", "pipe", "pipe-to-ground", "power-switch",
-			"programmable-speaker", "pump", "pumpjack", "radar", "rail-chain-signal", "rail-ramp", "rail-signal",
-			"rail-support", "railgun-turret", "recycler", "red-chest", "requester-chest", "roboport", "rocket-silo",
-			"rocket-turret", "selector-combinator", "simple-entity-with-force", "simple-entity-with-owner",
-			"small-electric-pole", "small-lamp", "solar-panel", "space-platform-hub", "spidertron", "splitter",
-			"stack-inserter", "steam-engine", "steam-turbine", "steel-chest", "steel-furnace", "stone-furnace",
-			"stone-wall", "storage-chest", "storage-tank", "straight-rail", "substation", "tank", "tesla-turret",
-			"thruster", "train-stop", "transport-belt", "turbo-loader", "turbo-splitter", "turbo-transport-belt",
-			"turbo-underground-belt", "underground-belt", "wooden-chest");
+			"heat-exchanger", "heat-interface", "heat-pipe", "heating-tower", "infinity-cargo-wagon", "infinity-chest",
+			"infinity-pipe", "inserter", "iron-chest", "lab", "land-mine", "lane-splitter", "laser-turret",
+			"legacy-curved-rail", "legacy-straight-rail", "lightning-collector", "lightning-rod", "linked-belt",
+			"linked-chest", "loader", "locomotive", "logistic-robot", "long-handed-inserter", "market",
+			"medium-electric-pole", "nuclear-reactor", "offshore-pump", "oil-refinery", "passive-provider-chest",
+			"pipe", "pipe-to-ground", "power-switch", "programmable-speaker", "proxy-container", "pump", "pumpjack",
+			"radar", "rail-chain-signal", "rail-ramp", "rail-signal", "rail-support", "railgun-turret", "recycler",
+			"red-chest", "requester-chest", "roboport", "rocket-silo", "rocket-turret", "selector-combinator",
+			"simple-entity-with-force", "simple-entity-with-owner", "small-electric-pole", "small-lamp", "solar-panel",
+			"space-platform-hub", "spidertron", "splitter", "stack-inserter", "steam-engine", "steam-turbine",
+			"steel-chest", "steel-furnace", "stone-furnace", "stone-wall", "storage-chest", "storage-tank",
+			"straight-rail", "substation", "tank", "tesla-turret", "thruster", "train-stop", "transport-belt",
+			"turbo-loader", "turbo-splitter", "turbo-transport-belt", "turbo-underground-belt", "underground-belt",
+			"wooden-chest");
 
 	public static final Set<String> BASE_TILES = ImmutableSet.of("artificial-jellynut-soil", "artificial-yumako-soil",
 			"concrete", "foundation", "frozen-concrete", "frozen-hazard-concrete-left", "frozen-hazard-concrete-right",
@@ -104,14 +104,17 @@ public class FBSRModDumperTask {
 	}
 
 	public static void main(String[] args) throws IOException {
-		String[] mods = { "5dim_energy", "5dim_automation", "5dim_transport", "5dim_mining", "5dim_nuclear",
-				"5dim_battlefield", "5dim_trains", "5dim_logistic", "5dim_resources", "5dim_storage", "5dim_equipment",
-				"5dim_module", "5dim_enemies", "5dim_core", "5dim_infiniteresearch" };
+		String[] mods = { "aai-containers", "aai-industry", "aai-loaders", "aai-programmable-structures",
+				"aai-programmable-vehicles", "aai-signal-transmission", "aai-signals", "aai-vehicles-chaingunner",
+				"aai-vehicles-flame-tank", "aai-vehicles-flame-tumbler", "aai-vehicles-hauler", "aai-vehicles-ironclad",
+				"aai-vehicles-laser-tank", "aai-vehicles-miner", "aai-vehicles-warden", "aai-zones", "equipment-gantry",
+				"informatron", "shield-projector" };
 
 		JSONObject cfgFactorioManager = Config.get().getJSONObject("factorio_manager");
 		JSONObject cfgModPortalApi = cfgFactorioManager.getJSONObject("mod_portal_api");
 
 		String factorioInstall = cfgFactorioManager.getString("install");
+		String factorioExecutable = cfgFactorioManager.getString("executable");
 		String username = cfgModPortalApi.getString("username");
 		String password = cfgModPortalApi.getString("password");
 
@@ -196,10 +199,11 @@ public class FBSRModDumperTask {
 		folderData.deleteOnExit();
 		JSONObject cfgFactorioData = new JSONObject();
 		cfgFactorioData.put("factorio", factorioInstall);
+		cfgFactorioData.put("executable", factorioExecutable);
 		cfgFactorioData.put("data", folderData.getAbsolutePath());
 		cfgFactorioData.put("mods", folderMods.getAbsolutePath());
 		FactorioData factorioData = new FactorioData(cfgFactorioData);
-		factorioData.initialize();
+		factorioData.initialize(false);
 		DataTable table = factorioData.getTable();
 
 		Map<String, String> modEntityRenderings = new LinkedHashMap<String, String>();
@@ -281,8 +285,8 @@ public class FBSRModDumperTask {
 			String[] split = jsonDependencies.getString(i).split("\\s+");
 			String depSymbol = "";
 			String depMod = null;
-			String depCompare = "";
-			String depVersion = "";
+//			String depCompare = "";
+//			String depVersion = "";
 			switch (split.length) {
 			case 1:
 				depMod = split[0];
@@ -293,14 +297,14 @@ public class FBSRModDumperTask {
 				break;
 			case 3:
 				depMod = split[0];
-				depCompare = split[1];
-				depVersion = split[2];
+//				depCompare = split[1];
+//				depVersion = split[2];
 				break;
 			case 4:
 				depSymbol = split[0];
 				depMod = split[1];
-				depCompare = split[2];
-				depVersion = split[3];
+//				depCompare = split[2];
+//				depVersion = split[3];
 				break;
 			}
 			if (!depSymbol.isBlank()) {

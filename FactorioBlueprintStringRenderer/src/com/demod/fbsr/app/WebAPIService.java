@@ -20,22 +20,22 @@ import org.json.JSONObject;
 import org.rapidoid.http.MediaType;
 import org.rapidoid.setup.App;
 import org.rapidoid.setup.On;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.demod.dcba.CommandReporting;
 import com.demod.factorio.Config;
 import com.demod.factorio.Utils;
 import com.demod.fbsr.BlueprintFinder;
+import com.demod.fbsr.BlueprintFinder.FindBlueprintResult;
 import com.demod.fbsr.FBSR;
 import com.demod.fbsr.RenderRequest;
 import com.demod.fbsr.RenderResult;
 import com.demod.fbsr.WebUtils;
 import com.demod.fbsr.bs.BSBlueprint;
-import com.demod.fbsr.bs.BSBlueprintString;
 import com.google.common.util.concurrent.AbstractIdleService;
 
 import net.dv8tion.jda.api.entities.MessageEmbed.Field;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class WebAPIService extends AbstractIdleService {
 
@@ -123,9 +123,11 @@ public class WebAPIService extends AbstractIdleService {
 
 					String content = body.getString("blueprint");
 
-					List<BSBlueprintString> blueprintStrings = BlueprintFinder.search(content, reporting);
-					List<BSBlueprint> blueprints = blueprintStrings.stream()
-							.flatMap(s -> s.findAllBlueprints().stream()).collect(Collectors.toList());
+					List<FindBlueprintResult> blueprintStrings = BlueprintFinder.search(content);
+					blueprintStrings.forEach(f -> f.failureCause.ifPresent(e -> reporting.addException(e)));
+					List<BSBlueprint> blueprints = blueprintStrings.stream().filter(f -> f.blueprintString.isPresent())
+							.flatMap(f -> f.blueprintString.get().findAllBlueprints().stream())
+							.collect(Collectors.toList());
 					List<Long> renderTimes = new ArrayList<>();
 
 					for (BSBlueprint blueprint : blueprints) {

@@ -1,14 +1,13 @@
 package com.demod.fbsr.entity;
 
 import com.demod.factorio.fakelua.LuaTable;
-import com.demod.fbsr.bs.BSEntity;
 
-public class CarRendering extends SimpleEntityRendering<BSEntity> {
+public class CarRendering extends SimpleEntityRendering {
 
 	@Override
 	public void defineEntity(Bindings bind, LuaTable lua) {
-		bind.rotatedAnimation(lua.get("animation"));
-		bind.rotatedAnimation(lua.get("turret_animation"));
+		bind.rotatedAnimationLimited(lua.get("animation"), 8);
+		bind.rotatedAnimationLimited(lua.get("turret_animation"), 8);
 	}
 
 }

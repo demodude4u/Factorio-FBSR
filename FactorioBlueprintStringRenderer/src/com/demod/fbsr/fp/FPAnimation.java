@@ -1,17 +1,15 @@
 package com.demod.fbsr.fp;
 
-import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.function.Consumer;
 
-import com.demod.factorio.FactorioData;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.FPUtils;
-import com.demod.fbsr.RenderUtils;
-import com.demod.fbsr.Sprite;
+import com.demod.fbsr.def.SpriteDef;
+import com.google.common.collect.ImmutableList;
 
 public class FPAnimation extends FPAnimationParameters {
 
@@ -21,6 +19,8 @@ public class FPAnimation extends FPAnimationParameters {
 	public final int slice;
 	public final int linesPerFile;
 
+	private final List<List<SpriteDef>> defs;
+
 	public FPAnimation(LuaValue lua) {
 		super(lua);
 
@@ -29,55 +29,70 @@ public class FPAnimation extends FPAnimationParameters {
 		filenames = FPUtils.optList(lua.get("filenames"), LuaValue::toString);
 		slice = lua.get("slice").optint(frameCount);
 		linesPerFile = lua.get("lines_per_file").optint(1);
+
+		defs = createDefs();
 	}
 
-	public void createSprites(Consumer<Sprite> consumer, FactorioData data, int frame) {
+	private List<List<SpriteDef>> createDefs() {
 		if (layers.isPresent()) {
-			for (FPAnimation animation : layers.get()) {
-				animation.createSprites(consumer, data, frame);
-			}
-			return;
+			return ImmutableList.of();
 
 		} else if (stripes.isPresent()) {
-			for (FPStripe stripe : stripes.get()) {
 
-				// XXX at least it is cached
-				BufferedImage image = data.getModImage(stripe.filename);
+			List<List<SpriteDef>> defs = new ArrayList<>();
+			for (int frame = 0; frame < frameCount; frame++) {
 
-				// TODO do I ignore width/height in Animation proto?
-				int width = image.getWidth() / stripe.widthInFrames;
-				int height = image.getHeight() / stripe.heightInFrames;
+				List<SpriteDef> stripeDefs = new ArrayList<>();
+				for (FPStripe stripe : stripes.get()) {
 
-				int x = stripe.x + width * (frame % stripe.widthInFrames);
-				int y = stripe.y + height * (frame / stripe.heightInFrames);
+					int x = stripe.x + width * (frame % stripe.widthInFrames);
+					int y = stripe.y + height * (frame / stripe.widthInFrames);
 
-				consumer.accept(RenderUtils.createSprite(data, stripe.filename, drawAsShadow, blendMode,
-						getEffectiveTint(), x, y, width, height, shift.x, shift.y, scale));
+					stripeDefs.add(SpriteDef.fromFP(stripe.filename, drawAsShadow, blendMode, tint, tintAsOverlay,
+							applyRuntimeTint, x, y, width, height, shift.x, shift.y, scale));
+				}
+				defs.add(stripeDefs);
 			}
 
-			return;
+			return defs;
 
 		} else if (filenames.isPresent()) {
 
-			// TODO how do I use slice?
+			List<List<SpriteDef>> defs = new ArrayList<>();
+			for (int frame = 0; frame < frameCount; frame++) {
+				int fileFrameCount = (linesPerFile * lineLength);
+				int fileFrame = frame % fileFrameCount;
+				int fileIndex = frame / fileFrameCount;
+				int x = this.x + width * (fileFrame % lineLength);
+				int y = this.y + height * (fileFrame / lineLength);
 
-			int fileFrameCount = (linesPerFile * lineLength);
-			int fileFrame = frame % fileFrameCount;
-			int fileIndex = frame / fileFrameCount;
-			int x = this.x + width * (fileFrame % lineLength);
-			int y = this.y + height * (fileFrame / lineLength);
+				defs.add(ImmutableList.of(SpriteDef.fromFP(filenames.get().get(fileIndex), drawAsShadow, blendMode,
+						tint, tintAsOverlay, applyRuntimeTint, x, y, width, height, shift.x, shift.y, scale)));
+			}
+			return defs;
+		}
 
-			consumer.accept(RenderUtils.createSprite(data, filenames.get().get(fileIndex), drawAsShadow, blendMode,
-					getEffectiveTint(), x, y, width, height, shift.x, shift.y, scale));
+		return ImmutableList.of();
+	}
+
+	public void defineSprites(Consumer<? super SpriteDef> consumer, int frame) {
+		if (layers.isPresent()) {
+			for (FPAnimation animation : layers.get()) {
+				animation.defineSprites(consumer, frame);
+			}
+			return;
+
+		} else if (stripes.isPresent() || filenames.isPresent()) {
+			defs.get(frame).forEach(consumer);
 			return;
 		}
 
-		consumer.accept(createSprite(data, frame));
+		consumer.accept(defineSprite(frame));
 	}
 
-	public List<Sprite> createSprites(FactorioData data, int frame) {
-		List<Sprite> ret = new ArrayList<>();
-		createSprites(ret::add, data, frame);
+	public List<SpriteDef> defineSprites(int frame) {
+		List<SpriteDef> ret = new ArrayList<>();
+		defineSprites(ret::add, frame);
 		return ret;
 	}
 }

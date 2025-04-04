@@ -1,6 +1,5 @@
 package com.demod.fbsr.entity;
 
-import java.awt.geom.Point2D;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -13,18 +12,15 @@ import com.demod.factorio.fakelua.LuaTable;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.EntityRendererFactory;
-import com.demod.fbsr.FBSR.EntityRenderingTuple;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.RenderUtils;
-import com.demod.fbsr.Renderer;
-import com.demod.fbsr.Sprite;
-import com.demod.fbsr.SpriteWithLayer;
-import com.demod.fbsr.SpritesWithLayer;
 import com.demod.fbsr.WirePoints;
 import com.demod.fbsr.WirePoints.WireColor;
 import com.demod.fbsr.WorldMap;
-import com.demod.fbsr.bs.BSEntity;
+import com.demod.fbsr.def.ImageDef;
+import com.demod.fbsr.def.LayeredSpriteDef;
+import com.demod.fbsr.def.SpriteDef;
 import com.demod.fbsr.entity.SimpleEntityRendering.BindDirAction.BindDirNoAction;
 import com.demod.fbsr.entity.SimpleEntityRendering.BindDirFrameAction.BindDirFrameNoAction;
 import com.demod.fbsr.entity.SimpleEntityRendering.BindFrameAction.BindFrameNoAction;
@@ -47,32 +43,43 @@ import com.demod.fbsr.fp.FPRotatedSprite;
 import com.demod.fbsr.fp.FPSprite;
 import com.demod.fbsr.fp.FPSprite4Way;
 import com.demod.fbsr.fp.FPSpriteVariations;
-import com.demod.fbsr.fp.FPVector;
 import com.demod.fbsr.fp.FPWireConnectionPoint;
+import com.demod.fbsr.map.MapEntity;
+import com.demod.fbsr.map.MapPosition;
+import com.demod.fbsr.map.MapRenderable;
+import com.demod.fbsr.map.MapSprite;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 //TODO needs to be renamed not to be confused with SimpleEntityPrototype...
-public abstract class SimpleEntityRendering<E extends BSEntity> extends EntityRendererFactory<E> {
+public abstract class SimpleEntityRendering extends EntityRendererFactory {
 
 	public static abstract class BindAction<T> {
 		public static class BindNoAction<T> extends BindAction<T> {
 			@Override
-			public List<SpritesWithLayer> createLayeredSprites(BSEntity entity) {
-				return ImmutableList.of();
+			public void defineLayeredSprites(Consumer<LayeredSpriteDef> consumer, MapEntity entity) {
+			}
+
+			@Override
+			public void initAtlas(Consumer<ImageDef> register) {
 			}
 		}
 
 		protected T proto;
 
-		public abstract List<SpritesWithLayer> createLayeredSprites(BSEntity entity);
+		public abstract void defineLayeredSprites(Consumer<LayeredSpriteDef> consumer, MapEntity entity);
+
+		public abstract void initAtlas(Consumer<ImageDef> register);
 	}
 
 	public static abstract class BindDirAction<T> extends BindLayerAction<T> {
 		public static class BindDirNoAction<T> extends BindDirAction<T> {
 			@Override
-			public List<Sprite> createSprites(BSEntity entity) {
-				return ImmutableList.of();
+			public void defineSprites(Consumer<SpriteDef> consumer, MapEntity entity) {
+			}
+
+			@Override
+			public void initAtlas(Consumer<ImageDef> register) {
 			}
 		}
 
@@ -93,8 +100,11 @@ public abstract class SimpleEntityRendering<E extends BSEntity> extends EntityRe
 	public static abstract class BindDirFrameAction<T> extends BindLayerAction<T> {
 		public static class BindDirFrameNoAction<T> extends BindDirFrameAction<T> {
 			@Override
-			public List<Sprite> createSprites(BSEntity entity) {
-				return ImmutableList.of();
+			public void defineSprites(Consumer<SpriteDef> consumer, MapEntity entity) {
+			}
+
+			@Override
+			public void initAtlas(Consumer<ImageDef> register) {
 			}
 		}
 
@@ -121,8 +131,11 @@ public abstract class SimpleEntityRendering<E extends BSEntity> extends EntityRe
 	public static abstract class BindFrameAction<T> extends BindLayerAction<T> {
 		public static class BindFrameNoAction<T> extends BindFrameAction<T> {
 			@Override
-			public List<Sprite> createSprites(BSEntity entity) {
-				return ImmutableList.of();
+			public void defineSprites(Consumer<SpriteDef> consumer, MapEntity entity) {
+			}
+
+			@Override
+			public void initAtlas(Consumer<ImageDef> register) {
 			}
 		}
 
@@ -153,8 +166,13 @@ public abstract class SimpleEntityRendering<E extends BSEntity> extends EntityRe
 			}
 			BindFrameAction<FPAnimation> ret = new BindFrameAction<FPAnimation>() {
 				@Override
-				public List<Sprite> createSprites(BSEntity entity) {
-					return proto.createSprites(data, frame);
+				public void defineSprites(Consumer<SpriteDef> consumer, MapEntity entity) {
+					proto.defineSprites(consumer, frame);
+				}
+
+				@Override
+				public void initAtlas(Consumer<ImageDef> register) {
+					proto.defineSprites(register, frame);
 				}
 			};
 			ret.proto = new FPAnimation(lua);
@@ -168,8 +186,17 @@ public abstract class SimpleEntityRendering<E extends BSEntity> extends EntityRe
 			}
 			BindDirFrameAction<FPAnimation4Way> ret = new BindDirFrameAction<FPAnimation4Way>() {
 				@Override
-				public List<Sprite> createSprites(BSEntity entity) {
-					return proto.createSprites(data, direction.orElse(entity.direction), frame);
+				public void defineSprites(Consumer<SpriteDef> consumer, MapEntity entity) {
+					proto.defineSprites(consumer, direction.orElse(entity.getDirection()), frame);
+				}
+
+				@Override
+				public void initAtlas(Consumer<ImageDef> register) {
+					if (direction.isPresent()) {
+						proto.defineSprites(register, direction.get(), frame);
+					} else {
+						proto.getDefs(register, frame);
+					}
 				}
 			};
 			ret.proto = new FPAnimation4Way(lua);
@@ -183,8 +210,13 @@ public abstract class SimpleEntityRendering<E extends BSEntity> extends EntityRe
 			}
 			BindVarFrameAction<FPAnimationVariations> ret = new BindVarFrameAction<FPAnimationVariations>() {
 				@Override
-				public List<Sprite> createSprites(BSEntity entity) {
-					return proto.createSprites(data, variation, frame);
+				public void defineSprites(Consumer<SpriteDef> consumer, MapEntity entity) {
+					proto.defineSprites(consumer, variation, frame);
+				}
+
+				@Override
+				public void initAtlas(Consumer<ImageDef> register) {
+					proto.defineSprites(register, variation, frame);
 				}
 			};
 			ret.proto = new FPAnimationVariations(lua);
@@ -248,8 +280,13 @@ public abstract class SimpleEntityRendering<E extends BSEntity> extends EntityRe
 		public void layeredSprite(LuaValue lua) {
 			BindAction<FPLayeredSprite> ret = new BindAction<FPLayeredSprite>() {
 				@Override
-				public List<SpritesWithLayer> createLayeredSprites(BSEntity entity) {
-					return SpriteWithLayer.groupByLayer(proto.createSpritesWithLayers(data));
+				public void defineLayeredSprites(Consumer<LayeredSpriteDef> consumer, MapEntity entity) {
+					proto.defineLayeredSprites(consumer);
+				}
+
+				@Override
+				public void initAtlas(Consumer<ImageDef> register) {
+					proto.defineLayeredSprites(register);
 				}
 			};
 			ret.proto = new FPLayeredSprite(lua);
@@ -262,19 +299,61 @@ public abstract class SimpleEntityRendering<E extends BSEntity> extends EntityRe
 			}
 			BindRotateFrameAction<FPRotatedAnimation> ret = new BindRotateFrameAction<FPRotatedAnimation>() {
 				@Override
-				public List<Sprite> createSprites(BSEntity entity) {
+				public void defineSprites(Consumer<SpriteDef> consumer, MapEntity entity) {
 					double orientation;
 					if (this.orientation.isPresent()) {
 						orientation = this.orientation.getAsDouble();
-					} else if (entity.orientation.isPresent()) {
-						orientation = entity.orientation.getAsDouble();
+					} else if (entity.fromBlueprint().orientation.isPresent()) {
+						orientation = entity.fromBlueprint().orientation.getAsDouble();
 					} else {
-						orientation = entity.directionRaw / 16.0;
+						orientation = entity.fromBlueprint().directionRaw / 16.0;
 					}
-					return proto.createSprites(data, orientation, frame);
+					proto.defineSprites(consumer, orientation, frame);
+				}
+
+				@Override
+				public void initAtlas(Consumer<ImageDef> register) {
+					if (orientation.isPresent()) {
+						proto.defineSprites(register, orientation.getAsDouble(), frame);
+					} else {
+						proto.getDefs(register, frame);
+					}
 				}
 			};
 			ret.proto = new FPRotatedAnimation(lua);
+			bindings.add(ret);
+			return ret;
+		}
+
+		public BindRotateFrameAction<FPRotatedAnimation> rotatedAnimationLimited(LuaValue lua,
+				int limitDirectionCount) {
+			if (lua.isnil()) {
+				return new BindRotateFrameNoAction<>();
+			}
+			BindRotateFrameAction<FPRotatedAnimation> ret = new BindRotateFrameAction<FPRotatedAnimation>() {
+				@Override
+				public void defineSprites(Consumer<SpriteDef> consumer, MapEntity entity) {
+					double orientation;
+					if (this.orientation.isPresent()) {
+						orientation = this.orientation.getAsDouble();
+					} else if (entity.fromBlueprint().orientation.isPresent()) {
+						orientation = entity.fromBlueprint().orientation.getAsDouble();
+					} else {
+						orientation = entity.fromBlueprint().directionRaw / 16.0;
+					}
+					proto.defineSprites(consumer, orientation, frame);
+				}
+
+				@Override
+				public void initAtlas(Consumer<ImageDef> register) {
+					if (orientation.isPresent()) {
+						proto.defineSprites(register, orientation.getAsDouble(), frame);
+					} else {
+						proto.getDefs(register, frame);
+					}
+				}
+			};
+			ret.proto = new FPRotatedAnimation(lua, limitDirectionCount);
 			bindings.add(ret);
 			return ret;
 		}
@@ -285,16 +364,29 @@ public abstract class SimpleEntityRendering<E extends BSEntity> extends EntityRe
 			}
 			BindRotateDirFrameAction<FPRotatedAnimation8Way> ret = new BindRotateDirFrameAction<FPRotatedAnimation8Way>() {
 				@Override
-				public List<Sprite> createSprites(BSEntity entity) {
+				public void defineSprites(Consumer<SpriteDef> consumer, MapEntity entity) {
 					double orientation;
 					if (this.orientation.isPresent()) {
 						orientation = this.orientation.getAsDouble();
-					} else if (entity.orientation.isPresent()) {
-						orientation = entity.orientation.getAsDouble();
+					} else if (entity.fromBlueprint().orientation.isPresent()) {
+						orientation = entity.fromBlueprint().orientation.getAsDouble();
 					} else {
-						orientation = entity.direction.getOrientation();
+						orientation = entity.getDirection().getOrientation();
 					}
-					return proto.createSprites(data, direction.orElse(entity.direction), orientation, frame);
+					proto.defineSprites(consumer, direction.orElse(entity.getDirection()), orientation, frame);
+				}
+
+				@Override
+				public void initAtlas(Consumer<ImageDef> register) {
+					if (direction.isPresent() && orientation.isPresent()) {
+						proto.defineSprites(register, direction.get(), orientation.getAsDouble(), frame);
+					} else if (direction.isPresent()) {
+						proto.getDefs(register, direction.get(), frame);
+					} else if (orientation.isPresent()) {
+						proto.getDefs(register, orientation.getAsDouble(), frame);
+					} else {
+						proto.getDefs(register, frame);
+					}
 				}
 			};
 			ret.proto = new FPRotatedAnimation8Way(lua);
@@ -308,19 +400,60 @@ public abstract class SimpleEntityRendering<E extends BSEntity> extends EntityRe
 			}
 			BindRotateAction<FPRotatedSprite> ret = new BindRotateAction<FPRotatedSprite>() {
 				@Override
-				public List<Sprite> createSprites(BSEntity entity) {
+				public void defineSprites(Consumer<SpriteDef> consumer, MapEntity entity) {
 					double orientation;
 					if (this.orientation.isPresent()) {
 						orientation = this.orientation.getAsDouble();
-					} else if (entity.orientation.isPresent()) {
-						orientation = entity.orientation.getAsDouble();
+					} else if (entity.fromBlueprint().orientation.isPresent()) {
+						orientation = entity.fromBlueprint().orientation.getAsDouble();
 					} else {
-						orientation = entity.direction.getOrientation();
+						orientation = entity.getDirection().getOrientation();
 					}
-					return proto.createSprites(data, orientation);
+					proto.defineSprites(consumer, orientation);
+				}
+
+				@Override
+				public void initAtlas(Consumer<ImageDef> register) {
+					if (orientation.isPresent()) {
+						proto.defineSprites(register, orientation.getAsDouble());
+					} else {
+						proto.getDefs(register);
+					}
 				}
 			};
 			ret.proto = new FPRotatedSprite(lua);
+			bindings.add(ret);
+			return ret;
+		}
+
+		public BindRotateAction<FPRotatedSprite> rotatedSpriteLimited(LuaValue lua, int limitDirectionCount) {
+			if (lua.isnil()) {
+				return new BindRotateNoAction<>();
+			}
+			BindRotateAction<FPRotatedSprite> ret = new BindRotateAction<FPRotatedSprite>() {
+				@Override
+				public void defineSprites(Consumer<SpriteDef> consumer, MapEntity entity) {
+					double orientation;
+					if (this.orientation.isPresent()) {
+						orientation = this.orientation.getAsDouble();
+					} else if (entity.fromBlueprint().orientation.isPresent()) {
+						orientation = entity.fromBlueprint().orientation.getAsDouble();
+					} else {
+						orientation = entity.getDirection().getOrientation();
+					}
+					proto.defineSprites(consumer, orientation);
+				}
+
+				@Override
+				public void initAtlas(Consumer<ImageDef> register) {
+					if (orientation.isPresent()) {
+						proto.defineSprites(register, orientation.getAsDouble());
+					} else {
+						proto.getDefs(register);
+					}
+				}
+			};
+			ret.proto = new FPRotatedSprite(lua, limitDirectionCount);
 			bindings.add(ret);
 			return ret;
 		}
@@ -331,8 +464,13 @@ public abstract class SimpleEntityRendering<E extends BSEntity> extends EntityRe
 			}
 			BindLayerAction<FPSprite> ret = new BindLayerAction<FPSprite>() {
 				@Override
-				public List<Sprite> createSprites(BSEntity entity) {
-					return proto.createSprites(data);
+				public void defineSprites(Consumer<SpriteDef> consumer, MapEntity entity) {
+					proto.defineSprites(consumer);
+				}
+
+				@Override
+				public void initAtlas(Consumer<ImageDef> register) {
+					proto.defineSprites(register);
 				}
 			};
 			ret.proto = new FPSprite(lua);
@@ -346,8 +484,17 @@ public abstract class SimpleEntityRendering<E extends BSEntity> extends EntityRe
 			}
 			BindDirAction<FPSprite4Way> ret = new BindDirAction<FPSprite4Way>() {
 				@Override
-				public List<Sprite> createSprites(BSEntity entity) {
-					return proto.createSprites(data, direction.orElse(entity.direction));
+				public void defineSprites(Consumer<SpriteDef> consumer, MapEntity entity) {
+					proto.defineSprites(consumer, direction.orElse(entity.getDirection()));
+				}
+
+				@Override
+				public void initAtlas(Consumer<ImageDef> register) {
+					if (direction.isPresent()) {
+						proto.defineSprites(register, direction.get());
+					} else {
+						proto.getDefs(register);
+					}
 				}
 			};
 			ret.proto = new FPSprite4Way(lua);
@@ -361,8 +508,13 @@ public abstract class SimpleEntityRendering<E extends BSEntity> extends EntityRe
 			}
 			BindVarAction<FPSpriteVariations> ret = new BindVarAction<FPSpriteVariations>() {
 				@Override
-				public List<Sprite> createSprites(BSEntity entity) {
-					return proto.createSprites(data, variation);
+				public void defineSprites(Consumer<SpriteDef> consumer, MapEntity entity) {
+					proto.defineSprites(consumer, variation);
+				}
+
+				@Override
+				public void initAtlas(Consumer<ImageDef> register) {
+					proto.defineSprites(register, variation);
 				}
 			};
 			ret.proto = new FPSpriteVariations(lua);
@@ -374,40 +526,42 @@ public abstract class SimpleEntityRendering<E extends BSEntity> extends EntityRe
 	public static abstract class BindLayerAction<T> extends BindAction<T> {
 		public static class BindLayerNoAction<T> extends BindLayerAction<T> {
 			@Override
-			public List<Sprite> createSprites(BSEntity entity) {
-				return ImmutableList.of();
+			public void defineSprites(Consumer<SpriteDef> consumer, MapEntity entity) {
+			}
+
+			@Override
+			public void initAtlas(Consumer<ImageDef> register) {
 			}
 		}
 
 		protected Layer layer = Layer.OBJECT;
-		protected Optional<FPVector> offset = Optional.empty();
+		protected Optional<MapPosition> offset = Optional.empty();
 
 		@Override
-		public List<SpritesWithLayer> createLayeredSprites(BSEntity entity) {
-			List<Sprite> sprites = createSprites(entity);
-			if (offset.isPresent()) {
-				FPVector offset = this.offset.get();
-				for (Sprite sprite : sprites) {
-					sprite.bounds.x += offset.x;
-					sprite.bounds.y += offset.y;
+		public void defineLayeredSprites(Consumer<LayeredSpriteDef> consumer, MapEntity entity) {
+			// XXX I don't like these transient instances
+			defineSprites(s -> {
+				LayeredSpriteDef sprite = new LayeredSpriteDef(s, layer);
+				if (offset.isPresent()) {
+					sprite.offset(offset.get());
 				}
-			}
-			return ImmutableList.of(new SpritesWithLayer(layer, sprites));
+				consumer.accept(sprite);
+			}, entity);
 		}
 
-		public abstract List<Sprite> createSprites(BSEntity entity);
+		public abstract void defineSprites(Consumer<SpriteDef> consumer, MapEntity entity);
 
 		public BindLayerAction<T> layer(Layer layer) {
 			this.layer = layer;
 			return this;
 		}
 
-		public BindLayerAction<T> offset(FPVector offset) {
+		public BindLayerAction<T> offset(MapPosition offset) {
 			this.offset = Optional.of(offset);
 			return this;
 		}
 
-		public BindLayerAction<T> offset(Optional<FPVector> offset) {
+		public BindLayerAction<T> offset(Optional<MapPosition> offset) {
 			this.offset = offset;
 			return this;
 		}
@@ -416,8 +570,11 @@ public abstract class SimpleEntityRendering<E extends BSEntity> extends EntityRe
 	public static abstract class BindRotateAction<T> extends BindLayerAction<T> {
 		public static class BindRotateNoAction<T> extends BindRotateAction<T> {
 			@Override
-			public List<Sprite> createSprites(BSEntity entity) {
-				return ImmutableList.of();
+			public void defineSprites(Consumer<SpriteDef> consumer, MapEntity entity) {
+			}
+
+			@Override
+			public void initAtlas(Consumer<ImageDef> register) {
 			}
 		}
 
@@ -438,8 +595,11 @@ public abstract class SimpleEntityRendering<E extends BSEntity> extends EntityRe
 	public static abstract class BindRotateDirFrameAction<T> extends BindLayerAction<T> {
 		public static class BindRotateDirFrameNoAction<T> extends BindRotateDirFrameAction<T> {
 			@Override
-			public List<Sprite> createSprites(BSEntity entity) {
-				return ImmutableList.of();
+			public void defineSprites(Consumer<SpriteDef> consumer, MapEntity entity) {
+			}
+
+			@Override
+			public void initAtlas(Consumer<ImageDef> register) {
 			}
 		}
 
@@ -472,8 +632,11 @@ public abstract class SimpleEntityRendering<E extends BSEntity> extends EntityRe
 	public static abstract class BindRotateFrameAction<T> extends BindLayerAction<T> {
 		public static class BindRotateFrameNoAction<T> extends BindRotateFrameAction<T> {
 			@Override
-			public List<Sprite> createSprites(BSEntity entity) {
-				return ImmutableList.of();
+			public void defineSprites(Consumer<SpriteDef> consumer, MapEntity entity) {
+			}
+
+			@Override
+			public void initAtlas(Consumer<ImageDef> register) {
 			}
 		}
 
@@ -500,8 +663,11 @@ public abstract class SimpleEntityRendering<E extends BSEntity> extends EntityRe
 	public static abstract class BindVarAction<T> extends BindLayerAction<T> {
 		public static class BindVarNoAction<T> extends BindVarAction<T> {
 			@Override
-			public List<Sprite> createSprites(BSEntity entity) {
-				return ImmutableList.of();
+			public void defineSprites(Consumer<SpriteDef> consumer, MapEntity entity) {
+			}
+
+			@Override
+			public void initAtlas(Consumer<ImageDef> register) {
 			}
 		}
 
@@ -522,8 +688,11 @@ public abstract class SimpleEntityRendering<E extends BSEntity> extends EntityRe
 	public static abstract class BindVarFrameAction<T> extends BindFrameAction<T> {
 		public static class BindVarFrameNoAction<T> extends BindVarFrameAction<T> {
 			@Override
-			public List<Sprite> createSprites(BSEntity entity) {
-				return ImmutableList.of();
+			public void defineSprites(Consumer<SpriteDef> consumer, MapEntity entity) {
+			}
+
+			@Override
+			public void initAtlas(Consumer<ImageDef> register) {
 			}
 		}
 
@@ -546,16 +715,14 @@ public abstract class SimpleEntityRendering<E extends BSEntity> extends EntityRe
 	private List<FPFluidBox> fluidBoxes;
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, E entity) {
+	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
+		Consumer<LayeredSpriteDef> entityRegister = entity.spriteRegister(register);
+
 		for (BindAction<?> bindAction : bindings) {
-			List<SpritesWithLayer> sprites = bindAction.createLayeredSprites(entity);
-			for (SpritesWithLayer spritesWithLayer : sprites) {
-				register.accept(RenderUtils.spriteRenderer(spritesWithLayer.getLayer(), spritesWithLayer.getSprites(),
-						entity, drawBounds));
-			}
+			bindAction.defineLayeredSprites(entityRegister, entity);
 		}
 
-		Direction dir = entity.direction;
+		Direction dir = entity.getDirection();
 		for (FPFluidBox fluidBox : fluidBoxes) {
 			if (fluidBox.pipeCovers.isPresent() || fluidBox.pipePicture.isPresent()) {
 				for (FPPipeConnectionDefinition conn : fluidBox.pipeConnections) {
@@ -564,29 +731,22 @@ public abstract class SimpleEntityRendering<E extends BSEntity> extends EntityRe
 					}
 					Direction facing = conn.direction.get().rotate(dir);
 
-					Point2D.Double pos;
+					MapPosition offset;
 					if (conn.position.isPresent()) {
-						pos = dir.rotatePoint(conn.position.get().createPoint());
+						offset = dir.rotate(MapPosition.convert(conn.position.get()));
 					} else {
-						pos = conn.positions.get().get(dir.cardinal()).createPoint();
+						offset = MapPosition.convert(conn.positions.get().get(dir.cardinal()));
 					}
+					MapPosition pos = entity.getPosition().add(offset);
 
 					if (fluidBox.pipePicture.isPresent()) {
-						List<Sprite> sprites = fluidBox.pipePicture.get().createSprites(data, facing);
-						for (Sprite sprite : sprites) {
-							sprite.bounds.x += pos.x;
-							sprite.bounds.y += pos.y;
-						}
-						register.accept(RenderUtils.spriteRenderer(sprites, entity, drawBounds));
+						fluidBox.pipePicture.get()
+								.defineSprites(s -> register.accept(new MapSprite(s, Layer.OBJECT, pos)), facing);
 					}
 
 					if (fluidBox.pipeCovers.isPresent() && map.isPipe(facing.offset(pos, 1.0), facing)) {
-						List<Sprite> sprites = fluidBox.pipeCovers.get().createSprites(data, facing);
-						for (Sprite sprite : sprites) {
-							sprite.bounds.x += pos.x;
-							sprite.bounds.y += pos.y;
-						}
-						register.accept(RenderUtils.spriteRenderer(sprites, entity, drawBounds));
+						fluidBox.pipeCovers.get()
+								.defineSprites(s -> register.accept(new MapSprite(s, Layer.OBJECT, pos)), facing);
 					}
 				}
 			}
@@ -608,6 +768,37 @@ public abstract class SimpleEntityRendering<E extends BSEntity> extends EntityRe
 	}
 
 	@Override
+	public void initAtlas(Consumer<ImageDef> register) {
+
+		for (BindAction<?> bindAction : bindings) {
+			bindAction.initAtlas(register);
+		}
+
+		for (FPFluidBox fluidBox : fluidBoxes) {
+			if (fluidBox.pipeCovers.isPresent() || fluidBox.pipePicture.isPresent()) {
+				for (FPPipeConnectionDefinition conn : fluidBox.pipeConnections) {
+					if (!conn.connectionType.equals("normal")) {
+						continue;
+					}
+					fluidBox.pipePicture.ifPresent(fp -> fp.getDefs(register));
+					fluidBox.pipeCovers.ifPresent(fp -> fp.getDefs(register));
+				}
+			}
+		}
+
+		if (circuitConnectors.isPresent()) {
+			for (FPCircuitConnectorDefinition circuitConnector : circuitConnectors.get()) {
+				circuitConnector.sprites.ifPresent(sprites -> {
+					sprites.connectorMain.ifPresent(fp -> fp.defineSprites(register));
+					sprites.connectorShadow.ifPresent(fp -> fp.defineSprites(register));
+					sprites.wirePins.ifPresent(fp -> fp.defineSprites(register));
+					sprites.wirePinsShadow.ifPresent(fp -> fp.defineSprites(register));
+				});
+			}
+		}
+	}
+
+	@Override
 	public void initFromPrototype() {
 		List<BindAction<?>> bindings = new ArrayList<>();
 		fluidBoxes = new ArrayList<>();
@@ -616,47 +807,34 @@ public abstract class SimpleEntityRendering<E extends BSEntity> extends EntityRe
 		this.bindings = bindings;
 	}
 
-	@SuppressWarnings("rawtypes")
 	@Override
-	public double initWireConnector(Consumer<Renderer> register, E entity, List<EntityRenderingTuple> wired) {
+	public double initWireConnector(Consumer<MapRenderable> register, MapEntity entity, List<MapEntity> wired) {
 
-		if (circuitConnectors.isPresent()) {
+		if (circuitConnectors.isPresent() && !wired.isEmpty()) {
 			FPCircuitConnectorDefinition circuitConnector = RenderUtils.pickDirectional(circuitConnectors.get(),
 					entity);
 
+			Consumer<SpriteDef> entityRegister = entity.spriteRegister(register, Layer.OBJECT);
+
 			circuitConnector.sprites.ifPresent(sprites -> {
-				if (sprites.connectorMain.isPresent()) {
-					register.accept(RenderUtils.spriteRenderer(sprites.connectorMain.get().createSprites(data), entity,
-							drawBounds));
-				}
-				if (sprites.connectorShadow.isPresent()) {
-					register.accept(RenderUtils.spriteRenderer(sprites.connectorShadow.get().createSprites(data),
-							entity, drawBounds));
-				}
-				if (sprites.wirePins.isPresent()) {
-					register.accept(RenderUtils.spriteRenderer(sprites.wirePins.get().createSprites(data), entity,
-							drawBounds));
-				}
-				if (sprites.wirePinsShadow.isPresent()) {
-					register.accept(RenderUtils.spriteRenderer(sprites.wirePinsShadow.get().createSprites(data), entity,
-							drawBounds));
-				}
+				sprites.connectorMain.ifPresent(fp -> fp.defineSprites(entityRegister));
+				sprites.connectorShadow.ifPresent(fp -> fp.defineSprites(entityRegister));
+				sprites.wirePins.ifPresent(fp -> fp.defineSprites(entityRegister));
+				sprites.wirePinsShadow.ifPresent(fp -> fp.defineSprites(entityRegister));
 			});
 		}
 
-		return entity.directionRaw / 16.0;
+		return entity.fromBlueprint().directionRaw / 16.0;
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, E entity) {
-		Direction dir = entity.direction;
+	public void populateWorldMap(WorldMap map, MapEntity entity) {
+		Direction dir = entity.getDirection();
 		for (FPFluidBox fluidBox : fluidBoxes) {
 			for (FPPipeConnectionDefinition conn : fluidBox.pipeConnections) {
 				if (conn.direction.isPresent() && conn.position.isPresent()) {
 					Direction facing = conn.direction.get().rotate(dir);
-					Point2D.Double pos = dir.rotatePoint(conn.position.get().createPoint());
-					pos.x += entity.position.x;
-					pos.y += entity.position.y;
+					MapPosition pos = dir.rotate(MapPosition.convert(conn.position.get())).add(entity.getPosition());
 					// TODO use flow direction for pipe arrow logistics
 					map.setPipe(pos, facing);
 				}

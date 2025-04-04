@@ -5,15 +5,17 @@ import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.StringWriter;
+import java.net.MalformedURLException;
 import java.nio.charset.StandardCharsets;
-import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -22,18 +24,20 @@ import java.util.OptionalInt;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import javax.imageio.ImageIO;
 
-import org.apache.commons.text.similarity.LevenshteinDistance;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.demod.dcba.AutoCompleteEvent;
 import com.demod.dcba.AutoCompleteHandler;
 import com.demod.dcba.CommandReporting;
+import com.demod.dcba.CommandReporting.Level;
 import com.demod.dcba.DCBA;
 import com.demod.dcba.DiscordBot;
 import com.demod.dcba.EventReply;
@@ -44,9 +48,13 @@ import com.demod.factorio.FactorioData;
 import com.demod.factorio.Utils;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.factorio.prototype.DataPrototype;
+import com.demod.fbsr.BlendMode;
 import com.demod.fbsr.BlueprintFinder;
+import com.demod.fbsr.BlueprintFinder.FindBlueprintRawResult;
 import com.demod.fbsr.BlueprintFinder.FindBlueprintResult;
+import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.FBSR;
+import com.demod.fbsr.FBSR.RenderDebugLayersResult;
 import com.demod.fbsr.FactorioManager;
 import com.demod.fbsr.RenderRequest;
 import com.demod.fbsr.RenderResult;
@@ -58,11 +66,18 @@ import com.demod.fbsr.bs.BSBlueprintBook;
 import com.demod.fbsr.bs.BSBlueprintString;
 import com.demod.fbsr.bs.BSDeconstructionPlanner;
 import com.demod.fbsr.bs.BSUpgradePlanner;
+import com.demod.fbsr.def.SpriteDef;
 import com.demod.fbsr.gui.layout.GUILayoutBlueprint;
 import com.demod.fbsr.gui.layout.GUILayoutBook;
+import com.demod.fbsr.map.MapRenderable;
+import com.demod.fbsr.map.MapSprite;
+import com.demod.fbsr.map.MapTintOverrideSprite;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.LinkedHashMultiset;
+import com.google.common.collect.Multiset;
 import com.google.common.util.concurrent.AbstractIdleService;
 
 import net.dv8tion.jda.api.EmbedBuilder;
@@ -120,12 +135,18 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 	}
 
 	public static final Emoji EMOJI_BLUEPRINT = Emoji.fromFormatted("<:blueprint:1316556635761672244>");
+	public static final Emoji EMOJI_BLUEPRINT_MODDED = Emoji.fromFormatted("<:blueprint_modded:1351627725059784895>");
+	public static final Emoji EMOJI_BLUEPRINT_SPACEAGE = Emoji
+			.fromFormatted("<:blueprint_spaceage:1351627802239307816>");
+
 	public static final Emoji EMOJI_BLUEPRINTBOOK = Emoji.fromFormatted("<:blueprintbook:1316556633073258569>");
+	public static final Emoji EMOJI_BLUEPRINTBOOK_MODDED = Emoji.fromFormatted("<:blueprintbook:1352366675588157492>");
+	public static final Emoji EMOJI_BLUEPRINTBOOK_SPACEAGE = Emoji
+			.fromFormatted("<:blueprintbook:1352366716876755025>");
+
 	public static final Emoji EMOJI_DECONSTRUCTIONPLANNER = Emoji
 			.fromFormatted("<:deconstructionplanner:1316556636621508688>");
-
 	public static final Emoji EMOJI_UPGRADEPLANNER = Emoji.fromFormatted("<:upgradeplanner:1316556634528546887>");
-
 	public static final Emoji EMOJI_SEARCH = Emoji.fromFormatted("<:search:1319740035825799259>");
 
 	private static Cache<String, CachedMessageImageResult> recentLazyLoadedMessages = CacheBuilder.newBuilder()//
@@ -205,54 +226,54 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 	private String hostingChannelID;
 
-	private AutoCompleteHandler createDataRawAutoCompleteHandler() {
-		return (event) -> {
-			event.reply(FactorioManager.getDatas().stream().map(d -> d.getFolderMods().getName())
-					.collect(Collectors.toList()));
-		};
+	private void handleDataRawAutoComplete(AutoCompleteEvent event) {
+		event.reply(
+				FactorioManager.getDatas().stream().map(d -> d.getFolderMods().getName()).collect(Collectors.toList()));
 	}
 
-	private SlashCommandHandler createDataRawCommandHandler() {
-		return (event) -> {
-			String profile = event.getParamString("profile");
-			Optional<FactorioData> data = FactorioManager.getDatas().stream()
-					.filter(d -> d.getFolderMods().getName().equals(profile)).findAny();
-			if (data.isEmpty()) {
-				event.reply("Could not find profile!");
-				return;
-			}
+	private void handleDataRawCommand(SlashCommandEvent event) throws IOException {
+		String profile = event.getParamString("profile");
+		Optional<FactorioData> data = FactorioManager.getDatas().stream()
+				.filter(d -> d.getFolderMods().getName().equals(profile)).findAny();
+		if (data.isEmpty()) {
+			event.reply("Could not find profile!");
+			return;
+		}
 
-			String key = event.getParamString("path");
-			String[] path = key.split("\\.");
-			Optional<LuaValue> lua = data.get().getTable().getRaw(path);
-			if (!lua.isPresent()) {
-				event.reply("I could not find a lua table for the path [`"
-						+ Arrays.asList(path).stream().collect(Collectors.joining(", ")) + "`] :frowning:");
-				return;
-			}
-			sendLuaDumpFile(event, "raw", key, lua.get());
-		};
+		String key = event.getParamString("path");
+		String[] path = key.split("\\.");
+		Optional<LuaValue> lua = data.get().getTable().getRaw(path);
+		if (!lua.isPresent()) {
+			event.reply("I could not find a lua table for the path [`"
+					+ Arrays.asList(path).stream().collect(Collectors.joining(", ")) + "`] :frowning:");
+			return;
+		}
+		sendLuaDumpFile(event, "raw", key, lua.get());
 	}
 
-	private AutoCompleteHandler createPrototypeAutoCompleteHandler(Map<String, ? extends DataPrototype> map) {
+	private AutoCompleteHandler createPrototypeAutoCompleteHandler(List<? extends DataPrototype> options) {
 		return (event) -> {
-			String name = event.getParamString("name").trim().toLowerCase();
+			String search = event.getParamString("name").trim().toLowerCase();
 
-			if (name.isEmpty()) {
+			if (search.isEmpty()) {
 				event.reply(ImmutableList.of());
 				return;
 			}
 
 			List<String> nameStartsWith = new ArrayList<>();
 			List<String> nameContains = new ArrayList<>();
-			map.keySet().stream().sorted().forEach(n -> {
-				String lowerCase = n.toLowerCase();
-				if (lowerCase.startsWith(name)) {
-					nameStartsWith.add(n);
-				} else if (lowerCase.contains(name)) {
-					nameContains.add(n);
+			for (DataPrototype proto : options) {
+				String name = proto.getName();
+				String lowerCase = name.toLowerCase();
+				if (lowerCase.startsWith(search)) {
+					nameStartsWith.add(name);
+				} else if (lowerCase.contains(search)) {
+					nameContains.add(name);
 				}
-			});
+				if (nameStartsWith.size() + nameContains.size() >= OptionData.MAX_CHOICES) {
+					break;
+				}
+			}
 
 			List<String> choices = ImmutableList.<String>builder().addAll(nameStartsWith).addAll(nameContains).build()
 					.stream().limit(OptionData.MAX_CHOICES).collect(Collectors.toList());
@@ -261,19 +282,12 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 	}
 
 	private SlashCommandHandler createPrototypeCommandHandler(String category,
-			Map<String, ? extends DataPrototype> map) {
+			Function<String, Optional<? extends DataPrototype>> lookup) {
 		return (event) -> {
 			String search = event.getParamString("name");
-			Optional<? extends DataPrototype> prototype = Optional.ofNullable(map.get(search));
+			Optional<? extends DataPrototype> prototype = lookup.apply(search);
 			if (!prototype.isPresent()) {
-				LevenshteinDistance levenshteinDistance = LevenshteinDistance.getDefaultInstance();
-				List<String> suggestions = map.keySet().stream()
-						.map(k -> new SimpleEntry<>(k, levenshteinDistance.apply(search, k)))
-						.sorted((p1, p2) -> Integer.compare(p1.getValue(), p2.getValue())).limit(5).map(p -> p.getKey())
-						.collect(Collectors.toList());
-				event.reply("I could not find the " + category + " prototype for `" + search
-						+ "`. :frowning:\nDid you mean:\n"
-						+ suggestions.stream().map(s -> "\t - " + s).collect(Collectors.joining("\n")));
+				event.reply("I could not find the " + category + " prototype for `" + search);
 				return;
 			}
 
@@ -295,20 +309,40 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			content += " " + attachment.get().getUrl();
 		}
 
-		Optional<BSBlueprintString> optBlueprintString = BlueprintFinder.search(content, event.getReporting()).stream()
-				.findFirst();
+		List<FindBlueprintResult> searchResults = BlueprintFinder.search(content);
 
-		if (optBlueprintString.isEmpty()) {
+		List<BSBlueprintString> blueprintStrings = searchResults.stream().flatMap(f -> f.blueprintString.stream())
+				.collect(Collectors.toList());
+
+		if (blueprintStrings.size() > 1) {
 			event.replyEmbed(new EmbedBuilder()//
-					.setColor(Color.red)//
-					.setDescription("Blueprint string not found!")//
+					.setColor(Color.yellow)//
+					.setDescription("Multiple blueprint strings found! Please specify only one.")//
 					.build());
 			return;
 		}
 
-		BSBlueprintString blueprintString = optBlueprintString.get();
+		if (blueprintStrings.isEmpty()) {
+			List<Exception> failures = searchResults.stream().flatMap(f -> f.failureCause.stream())
+					.collect(Collectors.toList());
+
+			if (failures.isEmpty()) {
+				event.replyEmbed(new EmbedBuilder()//
+						.setColor(Color.yellow)//
+						.setDescription("Blueprint string not found!")//
+						.build());
+				return;
+
+			} else {
+				event.replyEmbed(createFailuresEmbed(failures));
+				return;
+			}
+		}
+
+		BSBlueprintString blueprintString = blueprintStrings.get(0);
 		CommandReporting reporting = event.getReporting();
 
+		Multiset<String> unknownNames = LinkedHashMultiset.create();
 		List<Long> renderTimes = new ArrayList<>();
 
 		Optional<MessageEmbed> embed = Optional.empty();
@@ -323,27 +357,31 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				WebUtils.formatBlueprintFilename(blueprintString.findFirstLabel(), "txt"),
 				blueprintString.getRaw().get());
 
+		boolean spaceAge = false;
+		Set<String> mods = new HashSet<>();
+
 		if (blueprintString.blueprint.isPresent()) {
 			BSBlueprint blueprint = blueprintString.blueprint.get();
 
-			if (event.optParamBoolean("simple").orElse(false)) {
-				RenderRequest request = new RenderRequest(blueprint, reporting);
-				RenderResult result = FBSR.renderBlueprint(request);
-				image = result.image;
-				renderTimes.add(result.renderTime);
+			GUILayoutBlueprint layout = new GUILayoutBlueprint();
+			layout.setBlueprint(blueprint);
+			layout.setReporting(reporting);
+			image = layout.generateDiscordImage();
+			unknownNames.addAll(layout.getResult().unknownNames);
+			renderTimes.add(layout.getResult().renderTime);
 
-			} else {
-				GUILayoutBlueprint layout = new GUILayoutBlueprint();
-				layout.setBlueprint(blueprint);
-				layout.setReporting(reporting);
-				image = layout.generateDiscordImage();
-				renderTimes.add(layout.getResult().renderTime);
+			Set<String> groups = new LinkedHashSet<>();
+			blueprint.entities.stream().map(e -> FactorioManager.lookupEntityFactoryForName(e.name))
+					.map(e -> e.isUnknown() ? "Modded" : e.getGroupName()).forEach(groups::add);
+			blueprint.tiles.stream().map(t -> FactorioManager.lookupTileFactoryForName(t.name))
+					.filter(t -> !t.isUnknown()).map(t -> t.getGroupName()).forEach(groups::add);
+			spaceAge = groups.contains("Space Age");
+			groups.removeAll(Arrays.asList("Base", "Space Age"));
+			mods.addAll(groups.stream().sorted().collect(Collectors.toList()));
 
-				if (layout.getResult().renderScale < 0.501) {
-					actionButtonRow
-							.add(Button.secondary("reply-zoom|" + futBlueprintStringUpload.get().getId(), "Zoom In")
-									.withEmoji(EMOJI_SEARCH));
-				}
+			if (layout.getResult().renderScale < 0.501) {
+				actionButtonRow.add(Button.secondary("reply-zoom|" + futBlueprintStringUpload.get().getId(), "Zoom In")
+						.withEmoji(EMOJI_SEARCH));
 			}
 
 			label = blueprint.label;
@@ -363,9 +401,22 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			layout.setBook(book);
 			layout.setReporting(reporting);
 			image = layout.generateDiscordImage();
+			layout.getResults().stream().forEach(r -> unknownNames.addAll(r.unknownNames));
 			renderTimes.add(layout.getResults().stream().mapToLong(r -> r.renderTime).sum());
 
 			List<BSBlueprint> blueprints = book.getAllBlueprints();
+
+			Set<String> groups = new LinkedHashSet<>();
+			blueprints.stream().flatMap(b -> b.entities.stream().map(e -> e.name)).distinct()
+					.map(n -> FactorioManager.lookupEntityFactoryForName(n))
+					.map(e -> e.isUnknown() ? "Modded" : e.getGroupName()).forEach(groups::add);
+			blueprints.stream().flatMap(b -> b.tiles.stream().map(t -> t.name)).distinct()
+					.map(n -> FactorioManager.lookupTileFactoryForName(n)).filter(t -> !t.isUnknown())
+					.map(t -> t.getGroupName()).forEach(groups::add);
+			spaceAge = groups.contains("Space Age");
+			groups.removeAll(Arrays.asList("Base", "Space Age"));
+			mods.addAll(groups.stream().sorted().collect(Collectors.toList()));
+
 			StringSelectMenu.Builder menuBuilder = StringSelectMenu.create("reply-book-blueprint");
 			for (int i = 0; i < blueprints.size(); i++) {
 				if (i < 25) {
@@ -410,8 +461,20 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		}
 
 		Emoji emoji = EMOJI_BLUEPRINT;
-		if (blueprintString.blueprintBook.isPresent()) {
-			emoji = EMOJI_BLUEPRINTBOOK;
+		if (blueprintString.blueprint.isPresent()) {
+			if (!mods.isEmpty()) {
+				emoji = EMOJI_BLUEPRINT_MODDED;
+			} else if (spaceAge) {
+				emoji = EMOJI_BLUEPRINT_SPACEAGE;
+			}
+		} else if (blueprintString.blueprintBook.isPresent()) {
+			if (!mods.isEmpty()) {
+				emoji = EMOJI_BLUEPRINTBOOK_MODDED;
+			} else if (spaceAge) {
+				emoji = EMOJI_BLUEPRINTBOOK_SPACEAGE;
+			} else {
+				emoji = EMOJI_BLUEPRINTBOOK;
+			}
 		} else if (blueprintString.deconstructionPlanner.isPresent()) {
 			emoji = EMOJI_DECONSTRUCTIONPLANNER;
 		} else if (blueprintString.upgradePlanner.isPresent()) {
@@ -424,6 +487,19 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			actionId = actionId.substring(0, 100);// XXX need a better solution
 		}
 		actionButtonRow.add(Button.secondary(actionId, "Download").withEmoji(emoji));
+
+		reporting.addField(
+				new Field("Blueprint", futBlueprintStringUpload.get().getAttachments().get(0).getUrl(), false));
+
+		if (!unknownNames.isEmpty()) {
+			String unknownNamesMsg = unknownNames.entrySet().stream().map(e -> e.getElement() + ": " + e.getCount())
+					.collect(Collectors.joining("\n"));
+			if (unknownNamesMsg.length() > 1000) {
+				unknownNamesMsg = unknownNamesMsg.substring(0, 1000) + "...";
+			}
+			event.getReporting().addField(new Field("Unknown Names", unknownNamesMsg, false));
+			event.getReporting().setLevel(Level.DEBUG);
+		}
 
 		if (!renderTimes.isEmpty()) {
 			String renderTimesStr = renderTimes.stream().mapToLong(l1 -> l1).sum() + " ms" + (renderTimes.size() > 1
@@ -449,6 +525,34 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		}
 	}
 
+	private MessageEmbed createFailuresEmbed(List<Exception> failureExceptions) {
+		Multiset<String> reasons = HashMultiset.create();
+		for (Exception e : failureExceptions) {
+			e.printStackTrace();
+
+			if (e instanceof EOFException) {
+				reasons.add("Partial or corrupted blueprint string.");
+			} else if (e instanceof JSONException) {
+				reasons.add("JSON is malformed.");
+			} else if (e instanceof MalformedURLException) {
+				reasons.add("URL is malformed.");
+			} else {
+				String message = e.getMessage();
+				if (message.length() > 100) {
+					message = message.substring(0, 100) + "...";
+				}
+				reasons.add("[" + e.getClass().getSimpleName() + "] " + message);
+			}
+		}
+
+		return new EmbedBuilder()//
+				.setColor(Color.red)//
+				.setDescription("Unable to parse blueprint string:\n\n" + reasons.entrySet().stream()
+						.map(e -> "-- " + e.getElement() + (e.getCount() > 1 ? (" (" + e.getCount() + "x)") : ""))
+						.collect(Collectors.joining("\n")))//
+				.build();
+	}
+
 	private void handleBlueprintCustomCommand(SlashCommandEvent event)
 			throws IOException, InterruptedException, ExecutionException {
 
@@ -459,11 +563,20 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			content += " " + attachment.get().getUrl();
 		}
 
-		List<BSBlueprintString> blueprintStrings = BlueprintFinder.search(content, event.getReporting());
+		List<FindBlueprintResult> searchResults = BlueprintFinder.search(content);
+		List<BSBlueprintString> blueprintStrings = searchResults.stream().flatMap(f -> f.blueprintString.stream())
+				.collect(Collectors.toList());
+		List<Exception> failures = searchResults.stream().flatMap(f -> f.failureCause.stream())
+				.collect(Collectors.toList());
 
 		if (blueprintStrings.isEmpty()) {
-			event.reply("No blueprint string was found. Make sure to specify a string, url, or file.");
-			return;
+			if (failures.isEmpty()) {
+				event.reply("No blueprint string was found. Make sure to specify a string, url, or file.");
+				return;
+			} else {
+				event.replyEmbed(createFailuresEmbed(failures));
+				return;
+			}
 		}
 
 		if (blueprintStrings.size() > 1) {
@@ -567,6 +680,15 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 		RenderResult result = FBSR.renderBlueprint(request);
 
+		if (!result.unknownNames.isEmpty()) {
+			event.getReporting()
+					.addField(new Field(
+							"Unknown Names", result.unknownNames.entrySet().stream()
+									.map(e -> e.getElement() + ": " + e.getCount()).collect(Collectors.joining("\n")),
+							true));
+			event.getReporting().setLevel(Level.DEBUG);
+		}
+
 		event.getReporting().addField(new Field("Render Time", result.renderTime + " ms", true));
 
 		Emoji emoji = EMOJI_BLUEPRINT;
@@ -585,6 +707,9 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		Button btnDownload = Button.secondary(actionId, "Download").withEmoji(emoji);
 		List<List<ItemComponent>> actionRows = ImmutableList.of(ImmutableList.of(btnDownload));
 
+		event.getReporting().addField(
+				new Field("Blueprint", futBlueprintStringUpload.get().getAttachments().get(0).getUrl(), false));
+
 		ImageShrinkResult shrinkResult = shrinkImageToFitUploadLimit(result.image);
 		String imageFilename = WebUtils.formatBlueprintFilename(blueprint.label, shrinkResult.extension);
 		event.replyFile(shrinkResult.data, imageFilename, actionRows);
@@ -598,7 +723,16 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			content += " " + attachment.get().getUrl();
 		}
 
-		List<BSBlueprintString> blueprintStrings = BlueprintFinder.search(content, event.getReporting());
+		List<FindBlueprintResult> searchResults = BlueprintFinder.search(content);
+		List<BSBlueprintString> blueprintStrings = searchResults.stream().flatMap(f -> f.blueprintString.stream())
+				.collect(Collectors.toList());
+		List<Exception> failures = searchResults.stream().flatMap(f -> f.failureCause.stream())
+				.collect(Collectors.toList());
+
+		if (blueprintStrings.isEmpty() && !failures.isEmpty()) {
+			event.replyEmbed(createFailuresEmbed(failures));
+			return;
+		}
 
 		Map<String, Double> totalItems = new LinkedHashMap<>();
 		for (BSBlueprintString bs : blueprintStrings) {
@@ -641,7 +775,16 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			content += " " + attachment.get().getUrl();
 		}
 
-		List<BSBlueprintString> blueprintStrings = BlueprintFinder.search(content, event.getReporting());
+		List<FindBlueprintResult> searchResults = BlueprintFinder.search(content);
+		List<BSBlueprintString> blueprintStrings = searchResults.stream().flatMap(f -> f.blueprintString.stream())
+				.collect(Collectors.toList());
+		List<Exception> failures = searchResults.stream().flatMap(f -> f.failureCause.stream())
+				.collect(Collectors.toList());
+
+		if (blueprintStrings.isEmpty() && !failures.isEmpty()) {
+			event.replyEmbed(createFailuresEmbed(failures));
+			return;
+		}
 
 		Map<String, Double> totalItems = new LinkedHashMap<>();
 		for (BSBlueprintString bs : blueprintStrings) {
@@ -684,19 +827,30 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			content += " " + attachment.get().getUrl();
 		}
 
-		List<FindBlueprintResult> results = BlueprintFinder.searchRaw(content, event.getReporting());
+		List<FindBlueprintRawResult> searchResults = BlueprintFinder.searchRaw(content);
+		List<JSONObject> decodedDatas = searchResults.stream().flatMap(f -> f.decodedData.stream())
+				.collect(Collectors.toList());
+		List<String> encodedDatas = searchResults.stream().flatMap(f -> f.encodedData.stream())
+				.collect(Collectors.toList());
+		List<Exception> failures = searchResults.stream().flatMap(f -> f.failureCause.stream())
+				.collect(Collectors.toList());
 
-		if (results.isEmpty()) {
-			event.replyIfNoException("No blueprint string found!");
+		if (decodedDatas.isEmpty() && encodedDatas.isEmpty()) {
 
-		} else if (results.size() > 1) {
+			if (failures.isEmpty()) {
+				event.replyIfNoException("No blueprint string found!");
+			} else {
+				event.replyEmbed(createFailuresEmbed(failures));
+			}
+
+		} else if (decodedDatas.size() + encodedDatas.size() > 1) {
 			event.replyIfNoException("More than one blueprint string was found, please only specify one.");
 
-		} else if (!results.get(0).encoded) {
+		} else if (decodedDatas.size() > 1) {
 			event.replyIfNoException("Blueprint is already in json format!");
 
-		} else if (results.get(0).encoded) {
-			JSONObject json = BSBlueprintString.decodeRaw(results.get(0).encodedData.get());
+		} else {
+			JSONObject json = BSBlueprintString.decodeRaw(encodedDatas.get(0));
 			Optional<String> label;
 			try {
 				label = new BSBlueprintString(json).findFirstLabel();
@@ -704,7 +858,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				label = Optional.empty();
 			}
 			byte[] bytes = json.toString(2).getBytes();
-			event.replyFile(bytes, WebUtils.formatBlueprintFilename(label, ".json"));
+			event.replyFile(bytes, WebUtils.formatBlueprintFilename(label, "json"));
 		}
 	}
 
@@ -716,14 +870,28 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			content += " " + attachment.get().getUrl();
 		}
 
-		List<BSBlueprintString> blueprintStrings = BlueprintFinder.search(content, event.getReporting());
+		List<FindBlueprintResult> searchResults = BlueprintFinder.search(content);
+		List<BSBlueprintString> blueprintStrings = searchResults.stream().flatMap(f -> f.blueprintString.stream())
+				.collect(Collectors.toList());
+		List<Exception> failures = searchResults.stream().flatMap(f -> f.failureCause.stream())
+				.collect(Collectors.toList());
+
+		if (blueprintStrings.isEmpty() && !failures.isEmpty()) {
+			event.replyEmbed(createFailuresEmbed(failures));
+			return;
+		}
 
 		try (StringWriter sw = new StringWriter()) {
 			for (BSBlueprintString blueprintString : blueprintStrings) {
 				handleBookDirectoryCommand_dirWalk(0, false, sw, blueprintString);
 			}
 
-			event.reply(sw.toString());
+			String response = sw.toString();
+			if (response.isBlank()) {
+				event.reply("No blueprint book found! Please specify a `string`, `file`, or `url`!");
+			} else {
+				event.reply(response);
+			}
 		}
 	}
 
@@ -784,6 +952,131 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		}
 	}
 
+	private void handleShowEntityCommand(SlashCommandEvent event) {
+		String entityName = event.getParamString("entity");
+		boolean debug = event.optParamBoolean("debug").orElse(false);
+
+		EntityRendererFactory factory = FactorioManager.lookupEntityFactoryForName(entityName);
+		if (factory.isUnknown()) {
+			event.reply("I could not find a way to display a `" + entityName);
+			return;
+		}
+
+		String jsonRaw;
+		try {
+			JSONObject json = new JSONObject("{\"blueprint\":{\"entities\":[{\"entity_number\":1,\"name\":\""
+					+ entityName + "\",\"position\":{\"x\":0,\"y\":0}}],\"version\":562949955649542}}");
+			JSONObject jsonEntity = json.getJSONObject("blueprint").getJSONArray("entities").getJSONObject(0);
+			JSONObject jsonCustom = new JSONObject(event.optParamString("json").orElse("{}"));
+			Utils.forEach(jsonCustom, (k, v) -> jsonEntity.put(k, v));
+
+			if (event.optParamBoolean("debug-layers").orElse(false)) {
+				handleShowEntityCommand_DebugLayers(event, factory, jsonEntity);
+				return;
+			}
+
+			jsonRaw = json.toString();
+		} catch (Exception e) {
+			event.reply("Malformed json!");
+			return;
+		}
+
+		List<FindBlueprintResult> searchResults = BlueprintFinder.search(jsonRaw);
+		searchResults.forEach(f -> f.failureCause.ifPresent(e -> event.getReporting().addException(e)));
+		BSBlueprint blueprint = searchResults.get(0).blueprintString.get().findAllBlueprints().get(0);
+
+		RenderRequest request = new RenderRequest(blueprint, event.getReporting());
+		request.setBackground(Optional.empty());
+		request.setGridLines(Optional.empty());
+		request.setDontClipSprites(true);
+		request.debug.entityPlacement = debug;
+
+		RenderResult result = FBSR.renderBlueprint(request);
+
+		ImageShrinkResult shrinkResult = shrinkImageToFitUploadLimit(result.image);
+		String imageFilename = WebUtils.formatBlueprintFilename(Optional.of(entityName), shrinkResult.extension);
+		event.replyFile(shrinkResult.data, imageFilename);
+	}
+
+	private void handleShowEntityCommand_DebugLayers(SlashCommandEvent event, EntityRendererFactory factory,
+			JSONObject jsonEntity) {
+
+		RenderDebugLayersResult result;
+		try {
+			result = FBSR.renderDebugLayers(factory, jsonEntity);
+		} catch (Exception e) {
+			e.printStackTrace();
+
+			event.reply("There was a problem fulfilling your request!");
+			return;
+		}
+
+		ImageShrinkResult shrinkResult = shrinkImageToFitUploadLimit(result.image);
+		String imageFilename = WebUtils.formatBlueprintFilename(Optional.of(factory.getName()), shrinkResult.extension);
+		event.replyFile(shrinkResult.data, imageFilename);
+
+		List<String> infos = new ArrayList<>();
+		for (int i = 0; i < result.renderables.size(); i++) {
+			MapRenderable renderable = result.renderables.get(i);
+			String detail = " LAYER[" + renderable.getLayer().name() + "]";
+			if (renderable instanceof MapSprite) {
+				SpriteDef def = ((MapSprite) renderable).getDef();
+				if (def.getBlendMode() != BlendMode.NORMAL) {
+					detail += " " + def.getBlendMode().name();
+				}
+				if (def.getTint().isPresent()) {
+					Color c = def.getTint().get();
+					detail += " TINT[" + c.getRed() + "," + c.getGreen() + "," + c.getBlue() + "," + c.getAlpha() + "]";
+				}
+				if (def.isTintAsOverlay()) {
+					detail += " TINT_AS_OVERLAY";
+				}
+				if (def.applyRuntimeTint()) {
+					detail += " APPLY_RUNTIME_TINT";
+				}
+				if (def.isShadow()) {
+					detail += " SHADOW";
+				}
+			}
+			if (renderable instanceof MapTintOverrideSprite) {
+				Color c = ((MapTintOverrideSprite) renderable).getTint();
+				detail += " TINT_OVERRIDE[" + c.getRed() + "," + c.getGreen() + "," + c.getBlue() + "," + c.getAlpha()
+						+ "]";
+			}
+			infos.add((i + 1) + " " + renderable.getClass().getSimpleName() + detail);
+		}
+		event.reply(infos.stream().collect(Collectors.joining("\n")));
+
+	}
+
+	private void handleShowEntityAutoComplete(AutoCompleteEvent event) {
+		String search = event.getParamString("entity").trim().toLowerCase();
+
+		if (search.isEmpty()) {
+			event.reply(ImmutableList.of());
+			return;
+		}
+
+		List<String> nameStartsWith = new ArrayList<>();
+		List<String> nameContains = new ArrayList<>();
+		for (EntityRendererFactory factory : FactorioManager.getEntityFactories()) {
+			String name = factory.getName();
+			String lowerCase = name.toLowerCase();
+			if (lowerCase.startsWith(search)) {
+				nameStartsWith.add(name);
+			} else if (lowerCase.contains(search)) {
+				nameContains.add(name);
+			}
+			if (nameStartsWith.size() + nameContains.size() >= OptionData.MAX_CHOICES) {
+				break;
+			}
+		}
+
+		List<String> choices = ImmutableList.<String>builder().addAll(nameStartsWith).addAll(nameContains).build()
+				.stream().limit(OptionData.MAX_CHOICES).collect(Collectors.toList());
+		event.reply(choices);
+	}
+
 	public void onBlueprintContextInteraction(MessageContextInteractionEvent event, CommandReporting reporting)
 			throws InterruptedException, ExecutionException, IOException {
 
@@ -802,7 +1095,9 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			content += " " + attachment.getUrl();
 		}
 
-		Optional<BSBlueprintString> optBlueprintString = BlueprintFinder.search(content, reporting).stream()
+		List<FindBlueprintResult> searchResults = BlueprintFinder.search(content);
+		searchResults.forEach(f -> f.failureCause.ifPresent(e -> reporting.addException(e)));
+		Optional<BSBlueprintString> optBlueprintString = searchResults.stream().flatMap(f -> f.blueprintString.stream())
 				.findFirst();
 
 		if (optBlueprintString.isEmpty()) {
@@ -971,25 +1266,18 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			replyContent = label.map(s -> s + " ").orElse("") + message.getAttachments().get(0).getUrl();
 
 		} else if (command.equals("reply-zoom")) {
-
 			String cacheKey = raw;
-			CachedMessageImageResult cachedResult = recentLazyLoadedMessages.getIfPresent(cacheKey);
-
-			if (cachedResult != null) {
-				TextChannel hostingChannel = bot.getJDA().getTextChannelById(hostingChannelID);
-				Message messageImage = hostingChannel.retrieveMessageById(cachedResult.messageId).complete();
-
-				replyContent = cachedResult.label.map(s -> s + " ").orElse("")
-						+ messageImage.getAttachments().get(0).getUrl();
-
-			} else {
+			CachedMessageImageResult cachedResult = recentLazyLoadedMessages.get(cacheKey, () -> {
 				String messageId = split[1];
 
 				TextChannel hostingChannel = bot.getJDA().getTextChannelById(hostingChannelID);
 				Message message = hostingChannel.retrieveMessageById(messageId).complete();
 
-				BSBlueprintString blueprintString = BlueprintFinder
-						.search(message.getAttachments().get(0).getUrl(), reporting).get(0);
+				List<FindBlueprintResult> searchResults = BlueprintFinder
+						.search(message.getAttachments().get(0).getUrl());
+				searchResults.forEach(f -> f.failureCause.ifPresent(e -> reporting.addException(e)));
+				BSBlueprintString blueprintString = searchResults.stream().flatMap(f -> f.blueprintString.stream())
+						.findFirst().get();
 				BSBlueprint blueprint = blueprintString.blueprint.get();
 
 				RenderRequest request = new RenderRequest(blueprint, reporting);
@@ -1002,12 +1290,14 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 				Message messageImage = useDiscordForFileHosting(imageFilename, shrinkResult.data).get();
 
-				recentLazyLoadedMessages.put(cacheKey,
-						new CachedMessageImageResult(blueprint.label, messageImage.getId()));
+				return new CachedMessageImageResult(blueprint.label, messageImage.getId());
+			});
 
-				replyContent = blueprint.label.map(s -> s + " ").orElse("")
-						+ messageImage.getAttachments().get(0).getUrl();
-			}
+			TextChannel hostingChannel = bot.getJDA().getTextChannelById(hostingChannelID);
+			Message messageImage = hostingChannel.retrieveMessageById(cachedResult.messageId).complete();
+
+			replyContent = cachedResult.label.map(s -> s + " ").orElse("")
+					+ messageImage.getAttachments().get(0).getUrl();
 
 		} else {
 			LOGGER.warn("UNKNOWN COMMAND {}", command);
@@ -1046,17 +1336,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			String raw = event.getValues().get(0);
 
 			String cacheKey = command + "|" + raw;
-			CachedMessageImageResult cachedResult = recentLazyLoadedMessages.getIfPresent(cacheKey);
-
-			if (cachedResult != null) {
-				TextChannel hostingChannel = bot.getJDA().getTextChannelById(hostingChannelID);
-				Message messageImage = hostingChannel.retrieveMessageById(cachedResult.messageId).complete();
-
-				replyContent = cachedResult.label.map(s -> s + " ").orElse("")
-						+ messageImage.getAttachments().get(0).getUrl();
-
-			} else {
-
+			CachedMessageImageResult cachedResult = recentLazyLoadedMessages.get(cacheKey, () -> {
 				String[] split = raw.split("\\|");
 				String messageId = split[0];
 				int index = Integer.parseInt(split[1]);
@@ -1064,8 +1344,11 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				TextChannel hostingChannel = bot.getJDA().getTextChannelById(hostingChannelID);
 				Message message = hostingChannel.retrieveMessageById(messageId).complete();
 
-				BSBlueprintString blueprintString = BlueprintFinder
-						.search(message.getAttachments().get(0).getUrl(), reporting).get(0);
+				List<FindBlueprintResult> searchResults = BlueprintFinder
+						.search(message.getAttachments().get(0).getUrl());
+				searchResults.forEach(f -> f.failureCause.ifPresent(e -> reporting.addException(e)));
+				BSBlueprintString blueprintString = searchResults.stream().flatMap(f -> f.blueprintString.stream())
+						.findFirst().get();
 				BSBlueprint blueprint = blueprintString.blueprintBook.get().getAllBlueprints().get(index);
 
 				RenderRequest request = new RenderRequest(blueprint, reporting);
@@ -1078,13 +1361,14 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 				Message messageImage = useDiscordForFileHosting(imageFilename, shrinkResult.data).get();
 
-				recentLazyLoadedMessages.put(cacheKey,
-						new CachedMessageImageResult(blueprint.label, messageImage.getId()));
+				return new CachedMessageImageResult(blueprint.label, messageImage.getId());
+			});
 
-				replyContent = blueprint.label.map(s -> s + " ").orElse("")
-						+ messageImage.getAttachments().get(0).getUrl();
+			TextChannel hostingChannel = bot.getJDA().getTextChannelById(hostingChannelID);
+			Message messageImage = hostingChannel.retrieveMessageById(cachedResult.messageId).complete();
 
-			}
+			replyContent = cachedResult.label.map(s -> s + " ").orElse("")
+					+ messageImage.getAttachments().get(0).getUrl();
 
 		} else {
 			LOGGER.info("UNKNOWN COMMAND {}", command);
@@ -1177,32 +1461,33 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				.withCustomField("Mods Loaded",
 						groups.stream().sorted(Comparator.comparing(s -> s.toLowerCase()))
 								.collect(Collectors.joining(", ")))
-				.addSlashCommand("bp/string", "Renders an image of the blueprint string.",
-						event -> handleBlueprintCommand(event))//
+				//
+				.async(true)//
+				//
+				.addSlashCommand("bp/string", "Renders an image of the blueprint string.", this::handleBlueprintCommand)//
 				.withParam(OptionType.STRING, "string", "Blueprint string.")//
 				//
-				.addSlashCommand("bp/url", "Renders an image of the blueprint url.",
-						event -> handleBlueprintCommand(event))//
+				.addSlashCommand("bp/url", "Renders an image of the blueprint url.", this::handleBlueprintCommand)//
 				.withParam(OptionType.STRING, "url", "Url containing blueprint string.")//
 				//
 				.addSlashCommand("bp/file", "Renders an image of the blueprint attachment.",
-						event -> handleBlueprintCommand(event))//
+						this::handleBlueprintCommand)//
 				.withParam(OptionType.ATTACHMENT, "file", "File containing blueprint string.")//
 				//
 				.addSlashCommand("blueprint/string", "Renders an image of the blueprint string.",
-						event -> handleBlueprintCommand(event))//
+						this::handleBlueprintCommand)//
 				.withParam(OptionType.STRING, "string", "Blueprint string.")//
 				//
 				.addSlashCommand("blueprint/url", "Renders an image of the blueprint url.",
-						event -> handleBlueprintCommand(event))//
+						this::handleBlueprintCommand)//
 				.withParam(OptionType.STRING, "url", "Url containing blueprint string.")//
 				//
 				.addSlashCommand("blueprint/file", "Renders an image of the blueprint attachment.",
-						event -> handleBlueprintCommand(event))//
+						this::handleBlueprintCommand)//
 				.withParam(OptionType.ATTACHMENT, "file", "File containing blueprint string.")//
 				//
 				.addSlashCommand("blueprint/custom", "Alternative rendering options to display a blueprint.",
-						event -> handleBlueprintCustomCommand(event))//
+						this::handleBlueprintCustomCommand)//
 				.withOptionalParam(OptionType.STRING, "string", "Blueprint string.")//
 				.withOptionalParam(OptionType.STRING, "url", "Url containing blueprint string.")//
 				.withOptionalParam(OptionType.ATTACHMENT, "file", "File containing blueprint string.")//
@@ -1232,74 +1517,83 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 						"Show debug markers for entity position, direction, and bounds.")//
 				//
 				.addSlashCommand("json", "Provides a dump of the json data in the specified blueprint string.",
-						event -> handleBlueprintJsonCommand(event))//
+						this::handleBlueprintJsonCommand)//
 				.withOptionalParam(OptionType.STRING, "string", "Blueprint string.")//
 				.withOptionalParam(OptionType.STRING, "url", "Url containing blueprint string.")//
 				.withOptionalParam(OptionType.ATTACHMENT, "file", "File containing blueprint string.")//
 				//
 				.addSlashCommand("items", "Prints out all of the items needed by the blueprint.",
-						event -> handleBlueprintItemsCommand(event))//
+						this::handleBlueprintItemsCommand)//
 				.withOptionalParam(OptionType.STRING, "string", "Blueprint string.")//
 				.withOptionalParam(OptionType.STRING, "url", "Url containing blueprint string.")//
 				.withOptionalParam(OptionType.ATTACHMENT, "file", "File containing blueprint string.")//
 				//
 				.addSlashCommand("raw/items", "Prints out all of the raw items needed by the blueprint.",
-						event -> handleBlueprintItemsRawCommand(event))//
+						this::handleBlueprintItemsRawCommand)//
 				.withOptionalParam(OptionType.STRING, "string", "Blueprint string.")//
 				.withOptionalParam(OptionType.STRING, "url", "Url containing blueprint string.")//
 				.withOptionalParam(OptionType.ATTACHMENT, "file", "File containing blueprint string.")//
 				//
 				.addSlashCommand("book/directory", "Prints out list of all blueprints in a blueprint book.",
-						event -> handleBookDirectoryCommand(event))
+						this::handleBookDirectoryCommand)
 				.withOptionalParam(OptionType.STRING, "string", "Blueprint string.")//
 				.withOptionalParam(OptionType.STRING, "url", "Url containing blueprint string.")//
 				.withOptionalParam(OptionType.ATTACHMENT, "file", "File containing blueprint string.")//
 				//
 				.addSlashCommand("prototype/entity", "Lua data for the specified entity prototype.",
-						createPrototypeCommandHandler("entity", FactorioManager.getEntities()),
+						createPrototypeCommandHandler("entity", FactorioManager::lookupEntityByName),
 						createPrototypeAutoCompleteHandler(FactorioManager.getEntities()))//
 				.withAutoParam(OptionType.STRING, "name", "Prototype name of the entity.")//
 				//
 				.addSlashCommand("prototype/recipe", "Lua data for the specified recipe prototype.",
-						createPrototypeCommandHandler("recipe", FactorioManager.getRecipes()),
+						createPrototypeCommandHandler("recipe", FactorioManager::lookupRecipeByName),
 						createPrototypeAutoCompleteHandler(FactorioManager.getRecipes()))//
 				.withAutoParam(OptionType.STRING, "name", "Prototype name of the recipe.")//
 				//
 				.addSlashCommand("prototype/fluid", "Lua data for the specified fluid prototype.",
-						createPrototypeCommandHandler("fluid", FactorioManager.getFluids()),
+						createPrototypeCommandHandler("fluid", FactorioManager::lookupFluidByName),
 						createPrototypeAutoCompleteHandler(FactorioManager.getFluids()))//
 				.withAutoParam(OptionType.STRING, "name", "Prototype name of the fluid.")//
 				//
 				.addSlashCommand("prototype/item", "Lua data for the specified item prototype.",
-						createPrototypeCommandHandler("item", FactorioManager.getItems()),
+						createPrototypeCommandHandler("item", FactorioManager::lookupItemByName),
 						createPrototypeAutoCompleteHandler(FactorioManager.getItems()))//
 				.withAutoParam(OptionType.STRING, "name", "Prototype name of the item.")//
 				//
 				.addSlashCommand("prototype/technology", "Lua data for the specified technology prototype.",
-						createPrototypeCommandHandler("technology", FactorioManager.getTechnologies()),
+						createPrototypeCommandHandler("technology", FactorioManager::lookupTechnologyByName),
 						createPrototypeAutoCompleteHandler(FactorioManager.getTechnologies()))//
 				.withAutoParam(OptionType.STRING, "name", "Prototype name of the technology.")//
 				//
 				.addSlashCommand("prototype/equipment", "Lua data for the specified equipment prototype.",
-						createPrototypeCommandHandler("equipment", FactorioManager.getEquipments()),
+						createPrototypeCommandHandler("equipment", FactorioManager::lookupEquipmentByName),
 						createPrototypeAutoCompleteHandler(FactorioManager.getEquipments()))//
 				.withAutoParam(OptionType.STRING, "name", "Prototype name of the equipment.")//
 				//
 				.addSlashCommand("prototype/tile", "Lua data for the specified tile prototype.",
-						createPrototypeCommandHandler("tile", FactorioManager.getTiles()),
+						createPrototypeCommandHandler("tile", FactorioManager::lookupTileByName),
 						createPrototypeAutoCompleteHandler(FactorioManager.getTiles()))//
 				.withAutoParam(OptionType.STRING, "name", "Prototype name of the tile.")//
 				//
 				//
-				.addSlashCommand("data/raw", "Lua from `data.raw` for the specified key.",
-						createDataRawCommandHandler(), createDataRawAutoCompleteHandler())//
+				.addSlashCommand("show/entity", "Display an example of the specified entity.",
+						this::handleShowEntityCommand, this::handleShowEntityAutoComplete)//
+				.withAutoParam(OptionType.STRING, "entity", "Entity name to be shown.")
+				.withOptionalParam(OptionType.STRING, "json", "JSON properties to add to the entity.")
+				.withOptionalParam(OptionType.BOOLEAN, "debug", "Show debug markers.")
+				.withOptionalParam(OptionType.BOOLEAN, "debug-layers",
+						"Show details on the layers that make up this entity. (Internal Testing)")
+				//
+				//
+				.addSlashCommand("data/raw", "Lua from `data.raw` for the specified key.", this::handleDataRawCommand,
+						this::handleDataRawAutoComplete)//
 				.withAutoParam(OptionType.STRING, "profile", "Which factorio profile to load from.")
 				.withParam(OptionType.STRING, "path", "Path to identify which key.")//
 				//
 				//
 				.addButtonHandler(this::onButtonInteraction)//
 				.addStringSelectHandler(this::onSelectionInteraction)//
-				.setMessageContextHandler("Generate Blueprint Image", this::onBlueprintContextInteraction)
+				.setMessageContextHandler("Generate Blueprint Image", this::onBlueprintContextInteraction)//
 				//
 				//
 				.withCustomSetup(builder -> {

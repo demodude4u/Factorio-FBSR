@@ -7,11 +7,11 @@ import java.util.function.Consumer;
 
 import org.json.JSONObject;
 
-import com.demod.factorio.FactorioData;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.FPUtils;
-import com.demod.fbsr.Sprite;
+import com.demod.fbsr.def.ImageDef;
+import com.demod.fbsr.def.SpriteDef;
 import com.google.common.collect.ImmutableList;
 
 public class FPWorkingVisualisations {
@@ -56,24 +56,30 @@ public class FPWorkingVisualisations {
 		});
 	}
 
-	public void createSprites(Consumer<Sprite> consumer, FactorioData data, Direction direction, int frame) {
-		animation.ifPresent(animation -> animation.createSprites(consumer, data, direction, frame));
+	public void defineSprites(Consumer<? super SpriteDef> consumer, Direction direction, int frame) {
+		animation.ifPresent(animation -> animation.defineSprites(consumer, direction, frame));
 		workingVisualisations.ifPresent(list -> {
 			for (Optional<FPWorkingVisualisation> workingVisualisation : list) {
 				if (!workingVisualisation.isPresent()) {
 					continue;
 				}
 				if (workingVisualisation.get().alwaysDraw) {
-					workingVisualisation.get().createSprites(consumer, data, direction, frame);
+					workingVisualisation.get().defineSprites(consumer, direction, frame);
 				}
 			}
 		});
-		integrationPatch.ifPresent(sprite -> sprite.createSprites(consumer, data, direction));
+		integrationPatch.ifPresent(sprite -> sprite.defineSprites(consumer, direction));
 	}
 
-	public List<Sprite> createSprites(FactorioData data, Direction direction, int frame) {
-		List<Sprite> ret = new ArrayList<>();
-		createSprites(ret::add, data, direction, frame);
+	public List<SpriteDef> defineSprites(Direction direction, int frame) {
+		List<SpriteDef> ret = new ArrayList<>();
+		defineSprites(ret::add, direction, frame);
 		return ret;
+	}
+
+	public void getDefs(Consumer<ImageDef> register, int frame) {
+		for (Direction direction : Direction.cardinals()) {
+			defineSprites(register, direction, frame);
+		}
 	}
 }

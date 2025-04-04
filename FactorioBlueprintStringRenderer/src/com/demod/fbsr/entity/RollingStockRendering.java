@@ -1,48 +1,49 @@
 package com.demod.fbsr.entity;
 
-import java.awt.geom.Point2D;
-import java.util.List;
+import java.awt.Color;
 import java.util.Optional;
 import java.util.function.Consumer;
 
-import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.Layer;
-import com.demod.fbsr.RenderUtils;
-import com.demod.fbsr.Renderer;
-import com.demod.fbsr.Sprite;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.bs.BSEntity;
-import com.demod.fbsr.fp.FPRotatedSprite;
+import com.demod.fbsr.bs.entity.BSRollingStockEntity;
+import com.demod.fbsr.def.ImageDef;
+import com.demod.fbsr.def.SpriteDef;
+import com.demod.fbsr.fp.FPColor;
+import com.demod.fbsr.fp.FPRollingStockRotatedSlopedGraphics;
+import com.demod.fbsr.map.MapEntity;
+import com.demod.fbsr.map.MapPosition;
+import com.demod.fbsr.map.MapRect3D;
+import com.demod.fbsr.map.MapRenderable;
+import com.demod.fbsr.map.MapSprite;
 
-public class RollingStockRendering extends EntityRendererFactory<BSEntity> {
+public class RollingStockRendering extends EntityRendererFactory {
 
-	public static class FPRollingStockRotatedSlopedGraphics {
-		public final FPRotatedSprite rotated;
-		public final double slopeAngleBetweenFrames;
-		public final boolean slopeBackEqualsFront;
-		public final FPRotatedSprite sloped;
-
-		public FPRollingStockRotatedSlopedGraphics(LuaValue lua) {
-			rotated = new FPRotatedSprite(lua.get("rotated"));
-			slopeAngleBetweenFrames = lua.get("slope_angle_between_frames").optdouble(1.333);
-			slopeBackEqualsFront = lua.get("slope_back_equals_front").optboolean(false);
-			sloped = new FPRotatedSprite(lua.get("sloped"));
-		}
-	}
-
+	private FPColor protoColor;
 	private double protoJointDistance;
 	private FPRollingStockRotatedSlopedGraphics protoPictures;
 	private Optional<FPRollingStockRotatedSlopedGraphics> protoWheels;
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, BSEntity entity) {
+	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
 
 		// TODO sloped
 		// TODO mask tinting with entity color
 
-		double orientation = entity.orientation.getAsDouble();
+		BSRollingStockEntity bsEntity = entity.fromBlueprint();
+
+		Color color;
+		if (bsEntity.color.isPresent()) {
+			color = bsEntity.color.get().createColor();
+		} else {
+			color = protoColor.createColor();
+//			color = new FPColor(0.92, 0.07, 0, 0.5).createColor();
+		}
+
+		double orientation = entity.fromBlueprint().orientation.orElse(0);
 		double orientation180 = orientation < 0.5 ? orientation + 0.5 : orientation - 0.5;
 		double rotation = orientation * Math.PI * 2 + Math.PI * 0.5;
 		double jointX = (protoJointDistance / 2.0) * Math.cos(rotation);
@@ -50,27 +51,48 @@ public class RollingStockRendering extends EntityRendererFactory<BSEntity> {
 		double railShift = 0.25 * Math.abs(Math.cos(rotation));
 
 		if (protoWheels.isPresent()) {
-			List<Sprite> wheelSprites1 = protoWheels.get().rotated.createSprites(data, orientation);
-			List<Sprite> wheelSprites2 = protoWheels.get().rotated.createSprites(data, orientation180);
+			MapPosition shiftPos1 = entity.getPosition().addUnit(-jointX, -jointY - railShift);
+			MapPosition shiftPos2 = entity.getPosition().addUnit(jointX, jointY - railShift);
 
-			RenderUtils.shiftSprites(wheelSprites1, new Point2D.Double(-jointX, -jointY - railShift));
-			RenderUtils.shiftSprites(wheelSprites2, new Point2D.Double(jointX, jointY - railShift));
-
-			register.accept(
-					RenderUtils.spriteRenderer(Layer.HIGHER_OBJECT_UNDER, wheelSprites1, entity, drawBounds));
-			register.accept(
-					RenderUtils.spriteRenderer(Layer.HIGHER_OBJECT_UNDER, wheelSprites2, entity, drawBounds));
+			protoWheels.get().rotated.defineSprites(s -> {
+				register.accept(new MapSprite(s, Layer.HIGHER_OBJECT_UNDER, shiftPos1));
+			}, orientation);
+			protoWheels.get().rotated.defineSprites(s -> {
+				register.accept(new MapSprite(s, Layer.HIGHER_OBJECT_UNDER, shiftPos2));
+			}, orientation180);
 		}
 
-		register.accept(RenderUtils.spriteRenderer(Layer.HIGHER_OBJECT_UNDER,
-				protoPictures.rotated.createSprites(data, orientation), entity, drawBounds));
+		Consumer<SpriteDef> spriteRegister = entity.spriteRegisterWithTintOverride(register, Layer.HIGHER_OBJECT_UNDER,
+				color);
+		protoPictures.rotated.defineSprites(spriteRegister, orientation);
+	}
+
+	@Override
+	public MapRect3D getDrawBounds(MapEntity entity) {
+		return drawBounds.rotateOrientation(entity.fromBlueprint().orientation.orElse(0), true)
+				.shift(entity.getPosition());
+	}
+
+	@Override
+	public void initAtlas(Consumer<ImageDef> register) {
+		protoPictures.rotated.getDefs(register);
+		protoPictures.sloped.ifPresent(fp -> fp.getDefs(register));
+		if (protoWheels.isPresent()) {
+			protoWheels.get().rotated.getDefs(register);
+			protoWheels.get().sloped.ifPresent(fp -> fp.getDefs(register));
+		}
 	}
 
 	@Override
 	public void initFromPrototype() {
-
+		protoColor = new FPColor(prototype.lua().get("color"));
 		protoJointDistance = prototype.lua().get("joint_distance").todouble();
 		protoPictures = new FPRollingStockRotatedSlopedGraphics(prototype.lua().get("pictures"));
 		protoWheels = FPUtils.opt(prototype.lua().get("wheels"), FPRollingStockRotatedSlopedGraphics::new);
+	}
+
+	@Override
+	public Class<? extends BSEntity> getEntityClass() {
+		return BSRollingStockEntity.class;
 	}
 }

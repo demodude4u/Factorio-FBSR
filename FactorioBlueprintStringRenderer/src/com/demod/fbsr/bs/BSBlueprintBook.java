@@ -10,7 +10,7 @@ import java.util.function.Consumer;
 import org.json.JSONObject;
 
 import com.demod.fbsr.BSUtils;
-import com.demod.fbsr.MapVersion;
+import com.demod.fbsr.map.MapVersion;
 
 public class BSBlueprintBook {
 	public final Optional<String> label;

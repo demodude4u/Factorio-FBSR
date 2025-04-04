@@ -8,13 +8,14 @@ import java.util.stream.Collectors;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.EntityRendererFactory;
-import com.demod.fbsr.RenderUtils;
-import com.demod.fbsr.Renderer;
+import com.demod.fbsr.Layer;
 import com.demod.fbsr.WorldMap;
-import com.demod.fbsr.bs.BSEntity;
+import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.fp.FPSprite;
+import com.demod.fbsr.map.MapEntity;
+import com.demod.fbsr.map.MapRenderable;
 
-public class PipeRendering extends EntityRendererFactory<BSEntity> {
+public class PipeRendering extends EntityRendererFactory {
 
 	public static final String[] pipeSpriteNameMapping = //
 			new String[/* bits WSEN */] { //
@@ -39,31 +40,34 @@ public class PipeRendering extends EntityRendererFactory<BSEntity> {
 	private List<FPSprite> protoPipeSprites;
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, BSEntity entity) {
+	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
 		int adjCode = 0;
 		adjCode |= ((pipeFacingMeFrom(Direction.NORTH, map, entity) ? 1 : 0) << 0);
 		adjCode |= ((pipeFacingMeFrom(Direction.EAST, map, entity) ? 1 : 0) << 1);
 		adjCode |= ((pipeFacingMeFrom(Direction.SOUTH, map, entity) ? 1 : 0) << 2);
 		adjCode |= ((pipeFacingMeFrom(Direction.WEST, map, entity) ? 1 : 0) << 3);
-		register.accept(RenderUtils.spriteRenderer(protoPipeSprites.get(adjCode).createSprites(data), entity,
-				drawBounds));
+
+		protoPipeSprites.get(adjCode).defineSprites(entity.spriteRegister(register, Layer.OBJECT));
+	}
+
+	@Override
+	public void initAtlas(Consumer<ImageDef> register) {
+		protoPipeSprites.forEach(fp -> fp.defineSprites(register));
 	}
 
 	@Override
 	public void initFromPrototype() {
-
 		LuaValue luaPictures = prototype.lua().get("pictures");
 		protoPipeSprites = Arrays.stream(pipeSpriteNameMapping).map(s -> new FPSprite(luaPictures.get(s)))
 				.collect(Collectors.toList());
 	}
 
-	public boolean pipeFacingMeFrom(Direction direction, WorldMap map, BSEntity entity) {
-		return map.isPipe(direction.offset(entity.position.createPoint()), direction.back());
+	public boolean pipeFacingMeFrom(Direction direction, WorldMap map, MapEntity entity) {
+		return map.isPipe(direction.offset(entity.getPosition()), direction.back());
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, BSEntity entity) {
-		map.setPipe(entity.position.createPoint());
+	public void populateWorldMap(WorldMap map, MapEntity entity) {
+		map.setPipe(entity.getPosition());
 	}
-
 }

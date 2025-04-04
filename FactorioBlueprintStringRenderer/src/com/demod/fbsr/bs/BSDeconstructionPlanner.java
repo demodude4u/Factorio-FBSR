@@ -6,7 +6,7 @@ import java.util.Optional;
 import org.json.JSONObject;
 
 import com.demod.fbsr.BSUtils;
-import com.demod.fbsr.MapVersion;
+import com.demod.fbsr.map.MapVersion;
 import com.google.common.collect.ImmutableList;
 
 public class BSDeconstructionPlanner {

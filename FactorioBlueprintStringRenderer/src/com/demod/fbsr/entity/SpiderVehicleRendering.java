@@ -1,32 +1,37 @@
 package com.demod.fbsr.entity;
 
-import java.awt.Color;
+import java.util.Optional;
+import java.util.OptionalDouble;
 import java.util.function.Consumer;
 
 import com.demod.fbsr.EntityRendererFactory;
-import com.demod.fbsr.RenderUtils;
-import com.demod.fbsr.Renderer;
-import com.demod.fbsr.Sprite;
+import com.demod.fbsr.IconManager;
 import com.demod.fbsr.WorldMap;
-import com.demod.fbsr.bs.BSEntity;
+import com.demod.fbsr.def.IconDef;
+import com.demod.fbsr.def.ImageDef;
+import com.demod.fbsr.map.MapEntity;
+import com.demod.fbsr.map.MapIcon;
+import com.demod.fbsr.map.MapRenderable;
 
-public class SpiderVehicleRendering extends EntityRendererFactory<BSEntity> {
+public class SpiderVehicleRendering extends EntityRendererFactory {
 
 	// TODO rendering spider hard, just use icon for now
-	private String protoIcon;
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, BSEntity entity) {
+	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
+		Optional<IconDef> icon = IconManager.lookupEntity(entity.fromBlueprint().name);
+		if (icon.isPresent()) {
+			register.accept(
+					new MapIcon(entity.getPosition(), icon.get(), 2, OptionalDouble.of(0.2), false, Optional.empty()));
+		}
+	}
 
-		// XXX this is hard-coded and wrong
-		Sprite sprite = RenderUtils.createSprite(data, protoIcon, false, "normal", Color.white, 0, 0, 64, 64, -1, -1,
-				2);
-		register.accept(RenderUtils.spriteRenderer(sprite, entity, drawBounds));
+	@Override
+	public void initAtlas(Consumer<ImageDef> register) {
 	}
 
 	@Override
 	public void initFromPrototype() {
-		protoIcon = prototype.lua().get("icon").checkjstring();
 	}
 
 }

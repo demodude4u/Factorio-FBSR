@@ -1,12 +1,13 @@
 package com.demod.fbsr.entity;
 
 import com.demod.factorio.fakelua.LuaTable;
-import com.demod.fbsr.bs.BSEntity;
 
-public class RadarRendering extends SimpleEntityRendering<BSEntity> {
+public class RadarRendering extends SimpleEntityRendering {
+	private static final double ORIENTATION = 0.375;
+
 	@Override
 	public void defineEntity(Bindings bind, LuaTable lua) {
-		bind.rotatedSprite(lua.get("pictures"));
+		bind.rotatedSprite(lua.get("pictures")).orientation(ORIENTATION);
 		bind.circuitConnector(lua.get("circuit_connector"));
 	}
 }

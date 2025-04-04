@@ -100,7 +100,7 @@ public class GUIPipeFeature extends GUISourcedFeature {
 		super(filename, source);
 		size = source.height;
 		this.indices = indices;
-		sx = IntStream.of(indices).map(i -> source.x + size * i).toArray();
+		sx = IntStream.of(indices).map(i -> size * i).toArray();
 	}
 
 	public void renderBox(Graphics2D g, GUIBox r) {
@@ -113,33 +113,33 @@ public class GUIPipeFeature extends GUISourcedFeature {
 		int y3 = r.y + r.height - size;
 		int y4 = r.y + r.height;
 
-		int sy1 = source.y;
-		int sy2 = source.y + size;
+		int sy1 = 0;
+		int sy2 = size;
 
 		// Top Left Corner
-		g.drawImage(image, x1, y1, x2, y2, sx[SE], sy1, sx[SE] + size, sy2, null);
+		drawImage(g, x1, y1, x2, y2, sx[SE], sy1, sx[SE] + size, sy2);
 		// Top Side
-		g.drawImage(image, x2, y1, x3, y2, sx[EW], sy1, sx[EW] + 1, sy2, null);
+		drawImage(g, x2, y1, x3, y2, sx[EW], sy1, sx[EW] + 1, sy2);
 		// Top Right Corner
-		g.drawImage(image, x3, y1, x4, y2, sx[SW], sy1, sx[SW] + size, sy2, null);
+		drawImage(g, x3, y1, x4, y2, sx[SW], sy1, sx[SW] + size, sy2);
 		// Right Side
-		g.drawImage(image, x3, y2, x4, y3, sx[NS], sy1, sx[NS] + size, sy1 + 1, null);
+		drawImage(g, x3, y2, x4, y3, sx[NS], sy1, sx[NS] + size, sy1 + 1);
 		// Bottom Right Corner
-		g.drawImage(image, x3, y3, x4, y4, sx[NW], sy1, sx[NW] + size, sy2, null);
+		drawImage(g, x3, y3, x4, y4, sx[NW], sy1, sx[NW] + size, sy2);
 		// Bottom Side
-		g.drawImage(image, x2, y3, x3, y4, sx[EW], sy1, sx[EW] + 1, sy2, null);
+		drawImage(g, x2, y3, x3, y4, sx[EW], sy1, sx[EW] + 1, sy2);
 		// Bottom Left Corner
-		g.drawImage(image, x1, y3, x2, y4, sx[NE], sy1, sx[NE] + size, sy2, null);
+		drawImage(g, x1, y3, x2, y4, sx[NE], sy1, sx[NE] + size, sy2);
 		// Left Side
-		g.drawImage(image, x1, y2, x2, y3, sx[NS], sy1, sx[NS] + size, sy1 + 1, null);
+		drawImage(g, x1, y2, x2, y3, sx[NS], sy1, sx[NS] + size, sy1 + 1);
 	}
 
 	// Draws pipes based on matching cell grouping numbers in the grouping grid.
 	public void renderDynamicGrid(Graphics2D g, int x, int y, double cellWidth, double cellHeight, Rectangle bounds,
 			Table<Integer, Integer, Integer> groupings) {
 
-		int sy1 = source.y;
-		int sy2 = source.y + size;
+		int sy1 = 0;
+		int sy2 = size;
 
 		final int boundsX1 = bounds.x;
 		final int boundsY1 = bounds.y;
@@ -183,7 +183,7 @@ public class GUIPipeFeature extends GUISourcedFeature {
 					int y1 = lineY;
 					int x2 = lineX + size;
 					int y2 = lineY + size;
-					g.drawImage(image, x1, y1, x2, y2, sx[mode], sy1, sx[mode] + size, sy2, null);
+					drawImage(g, x1, y1, x2, y2, sx[mode], sy1, sx[mode] + size, sy2);
 
 					lineX += size;
 					lineY += size;
@@ -194,7 +194,7 @@ public class GUIPipeFeature extends GUISourcedFeature {
 					int y1 = lineY;
 					int x2 = x1 + size;
 					int y2 = (int) (y + (row + 1 - boundsY1) * cellHeight);
-					g.drawImage(image, x1, y1, x2, y2, sx[NS], sy1, sx[NS] + size, sy1 + 1, null);
+					drawImage(g, x1, y1, x2, y2, sx[NS], sy1, sx[NS] + size, sy1 + 1);
 				}
 
 				if (diffE) { // horizontal line
@@ -202,7 +202,7 @@ public class GUIPipeFeature extends GUISourcedFeature {
 					int y1 = (int) (y + (row - boundsY1) * cellHeight);
 					int x2 = (int) (x + (col + 1 - boundsX1) * cellWidth);
 					int y2 = y1 + size;
-					g.drawImage(image, x1, y1, x2, y2, sx[EW], sy1, sx[EW] + 1, sy2, null);
+					drawImage(g, x1, y1, x2, y2, sx[EW], sy1, sx[EW] + 1, sy2);
 				}
 			}
 		}
@@ -216,14 +216,14 @@ public class GUIPipeFeature extends GUISourcedFeature {
 		int y3 = yEnd - size;
 		int y4 = yEnd;
 
-		int sy1 = source.y;
-		int sy2 = source.y + size;
+		int sy1 = 0;
+		int sy2 = size;
 
 		// Top
-		g.drawImage(image, x1, y1, x2, y2, sx[S], sy1, sx[S] + size, sy2, null);
+		drawImage(g, x1, y1, x2, y2, sx[S], sy1, sx[S] + size, sy2);
 		// Middle
-		g.drawImage(image, x1, y2, x2, y3, sx[NS], sy1, sx[NS] + size, sy1 + 1, null);
+		drawImage(g, x1, y2, x2, y3, sx[NS], sy1, sx[NS] + size, sy1 + 1);
 		// Bottom
-		g.drawImage(image, x1, y3, x2, y4, sx[N], sy1, sx[N] + size, sy2, null);
+		drawImage(g, x1, y3, x2, y4, sx[N], sy1, sx[N] + size, sy2);
 	}
 }

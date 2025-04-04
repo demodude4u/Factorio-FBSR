@@ -1,9 +1,9 @@
 package com.demod.fbsr.bs;
 
-import java.awt.geom.Point2D;
-
 import org.json.JSONArray;
 import org.json.JSONObject;
+
+import com.demod.fbsr.map.MapPosition;
 
 public class BSPosition {
 	public static BSPosition parse(Object object /* JSONObject or JSONArray */) {
@@ -35,11 +35,15 @@ public class BSPosition {
 		y = json.getDouble("y");
 	}
 
-	public Point2D.Double createPoint() {
-		return new Point2D.Double(x, y);
+	public MapPosition createPoint() {
+		return MapPosition.byUnit(x, y);
 	}
 
-	public Point2D.Double createPoint(Point2D.Double shift) {
-		return new Point2D.Double(x + shift.x, y + shift.y);
+	public MapPosition createPoint(MapPosition shift) {
+		return shift.addUnit(x, y);
+	}
+
+	public MapPosition createPoint(double x, double y) {
+		return MapPosition.byUnit(this.x + x, this.y + y);
 	}
 }

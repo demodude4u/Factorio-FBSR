@@ -55,6 +55,7 @@ public enum Layer {
 	TRAIN_STOP_TOP, //
 	ITEM_IN_INSERTER_HAND, //
 	ABOVE_INSERTERS, //
+	INSERTER_INDICATORS, // Custom
 	WIRE, //
 	UNDER_ELEVATED, //
 	ELEVATED_RAIL_STONE_PATH_LOWER, //
@@ -69,11 +70,6 @@ public enum Layer {
 	FLUID_VISUALIZATION, //
 	WIRES_ABOVE, //
 	DEBUG, // Custom
-	DEBUG_RAIL1, // Custom
-	DEBUG_RAIL2, // Custom
-	DEBUG_LA1, // Custom
-	DEBUG_LA2, // Custom
-	DEBUG_P, // Custom
 	ENTITY_INFO_ICON, //
 	ENTITY_INFO_ICON_ABOVE, //
 	ENTITY_INFO_TEXT, // Custom

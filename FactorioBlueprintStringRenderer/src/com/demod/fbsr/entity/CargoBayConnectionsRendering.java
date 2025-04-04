@@ -12,34 +12,34 @@ import java.util.stream.Collectors;
 
 import com.demod.factorio.Utils;
 import com.demod.factorio.fakelua.LuaValue;
-import com.demod.fbsr.BoundingBoxWithHeight;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.Layer;
-import com.demod.fbsr.RenderUtils;
-import com.demod.fbsr.Renderer;
-import com.demod.fbsr.SpriteWithLayer;
 import com.demod.fbsr.WorldMap;
-import com.demod.fbsr.bs.BSEntity;
-import com.demod.fbsr.bs.BSPosition;
-import com.demod.fbsr.fp.FPAnimation;
+import com.demod.fbsr.def.ImageDef;
+import com.demod.fbsr.def.LayeredSpriteDef;
 import com.demod.fbsr.fp.FPBoundingBox;
-import com.demod.fbsr.fp.FPLayeredSprite;
+import com.demod.fbsr.fp.FPCargoBayConnectableGraphicsSet;
+import com.demod.fbsr.fp.FPCargoBayConnections;
 import com.demod.fbsr.fp.FPLayeredSpriteVariations;
 import com.demod.fbsr.fp.FPVector;
+import com.demod.fbsr.map.MapEntity;
+import com.demod.fbsr.map.MapPosition;
+import com.demod.fbsr.map.MapRenderable;
+import com.demod.fbsr.map.MapSprite;
 
 //Not a real prototype, but to render cargo bay connection tilings
-public abstract class CargoBayConnectionsRendering extends SimpleEntityRendering<BSEntity> {
+public abstract class CargoBayConnectionsRendering extends SimpleEntityRendering {
 
 	private static class ElCon {
 		public final ElType type;
-		public final Point2D.Double shift;
+		public final MapPosition shift;
 		public final Direction direction;
 		public final Function<FPCargoBayConnections, FPLayeredSpriteVariations> protoSpritesFunc;
 
 		public ElCon(ElType type, double dx, double dy, Direction direction,
 				Function<FPCargoBayConnections, FPLayeredSpriteVariations> protoSpritesFunc) {
-			this.shift = new Point2D.Double(dx, dy);
+			this.shift = MapPosition.byUnit(dx, dy);
 			this.type = type;
 			this.direction = direction;
 			this.protoSpritesFunc = protoSpritesFunc;
@@ -56,12 +56,12 @@ public abstract class CargoBayConnectionsRendering extends SimpleEntityRendering
 		BRIDGE_CROSSING(-1, 1, "N|NE|E", ""),//
 		;
 
-		public final Point2D.Double cellOffset;
+		public final MapPosition cellOffset;
 		public final List<Direction> requireOccupied;
 		public final List<Direction> requireEmpty;
 
 		private ElType(double cellDx, double cellDy, String requireOccupiedSymbols, String requireEmptySymbols) {
-			cellOffset = new Point2D.Double(cellDx, cellDy);
+			cellOffset = MapPosition.byUnit(cellDx, cellDy);
 			requireOccupied = Arrays.asList(requireOccupiedSymbols.split("\\|")).stream()
 					.filter(s -> !s.trim().isEmpty()).map(Direction::fromSymbol).collect(Collectors.toList());
 			requireEmpty = Arrays.asList(requireEmptySymbols.split("\\|")).stream().filter(s -> !s.trim().isEmpty())
@@ -69,68 +69,16 @@ public abstract class CargoBayConnectionsRendering extends SimpleEntityRendering
 		}
 	}
 
-	public static class FPCargoBayConnectableGraphicsSet {
-		public final Optional<FPLayeredSprite> picture;
-		public final Optional<FPAnimation> animation;
-		public final Optional<FPCargoBayConnections> connections;
-
-		public FPCargoBayConnectableGraphicsSet(LuaValue lua) {
-			picture = FPUtils.opt(lua.get("picture"), FPLayeredSprite::new);
-			animation = FPUtils.opt(lua.get("animation"), FPAnimation::new);
-			connections = FPUtils.opt(lua.get("connections"), FPCargoBayConnections::new);
-		}
-	}
-
-	public static class FPCargoBayConnections {
-		public final FPLayeredSpriteVariations topWall;
-		public final FPLayeredSpriteVariations rightWall;
-		public final FPLayeredSpriteVariations bottomWall;
-		public final FPLayeredSpriteVariations leftWall;
-		public final FPLayeredSpriteVariations topLeftOuterCorner;
-		public final FPLayeredSpriteVariations topRightOuterCorner;
-		public final FPLayeredSpriteVariations bottomLeftOuterCorner;
-		public final FPLayeredSpriteVariations bottomRightOuterCorner;
-		public final FPLayeredSpriteVariations topLeftInnerCorner;
-		public final FPLayeredSpriteVariations topRightInnerCorner;
-		public final FPLayeredSpriteVariations bottomLeftInnerCorner;
-		public final FPLayeredSpriteVariations bottomRightInnerCorner;
-		public final FPLayeredSpriteVariations bridgeHorizontalNarrow;
-		public final FPLayeredSpriteVariations bridgeHorizontalWide;
-		public final FPLayeredSpriteVariations bridgeVerticalNarrow;
-		public final FPLayeredSpriteVariations bridgeVerticalWide;
-		public final FPLayeredSpriteVariations bridgeCrossing;
-
-		public FPCargoBayConnections(LuaValue lua) {
-			topWall = new FPLayeredSpriteVariations(lua.get("top_wall"));
-			rightWall = new FPLayeredSpriteVariations(lua.get("right_wall"));
-			bottomWall = new FPLayeredSpriteVariations(lua.get("bottom_wall"));
-			leftWall = new FPLayeredSpriteVariations(lua.get("left_wall"));
-			topLeftOuterCorner = new FPLayeredSpriteVariations(lua.get("top_left_outer_corner"));
-			topRightOuterCorner = new FPLayeredSpriteVariations(lua.get("top_right_outer_corner"));
-			bottomLeftOuterCorner = new FPLayeredSpriteVariations(lua.get("bottom_left_outer_corner"));
-			bottomRightOuterCorner = new FPLayeredSpriteVariations(lua.get("bottom_right_outer_corner"));
-			topLeftInnerCorner = new FPLayeredSpriteVariations(lua.get("top_left_inner_corner"));
-			topRightInnerCorner = new FPLayeredSpriteVariations(lua.get("top_right_inner_corner"));
-			bottomLeftInnerCorner = new FPLayeredSpriteVariations(lua.get("bottom_left_inner_corner"));
-			bottomRightInnerCorner = new FPLayeredSpriteVariations(lua.get("bottom_right_inner_corner"));
-			bridgeHorizontalNarrow = new FPLayeredSpriteVariations(lua.get("bridge_horizontal_narrow"));
-			bridgeHorizontalWide = new FPLayeredSpriteVariations(lua.get("bridge_horizontal_wide"));
-			bridgeVerticalNarrow = new FPLayeredSpriteVariations(lua.get("bridge_vertical_narrow"));
-			bridgeVerticalWide = new FPLayeredSpriteVariations(lua.get("bridge_vertical_wide"));
-			bridgeCrossing = new FPLayeredSpriteVariations(lua.get("bridge_crossing"));
-		}
-	}
-
-	public static long getRandomSeed(Point2D.Double point, ElType type, Direction direction) {
-		int x = (int) Math.floor(point.x);
-		int y = (int) Math.floor(point.y);
+	public static long getRandomSeed(MapPosition point, ElType type, Direction direction) {
+		int x = point.getXCell();
+		int y = point.getYCell();
 		return ((y * 73856093) ^ (x * 19349663) ^ (type.ordinal() * 83492791) ^ (direction.ordinal() * 123456789));
 	}
 
 	private FPCargoBayConnectableGraphicsSet protoGraphicsSet;
 
 	private Optional<FPCargoBayConnectableGraphicsSet> protoPlatformGraphicsSet;
-	private List<Point2D.Double> protoConnectionPoints;
+	private List<MapPosition> protoConnectionPoints;
 	private List<ElCon> protoElCons;
 
 	protected void bindCargoStationParameters(Bindings bind, LuaValue lua) {
@@ -160,15 +108,17 @@ public abstract class CargoBayConnectionsRendering extends SimpleEntityRendering
 				if (!luaHatchGraphics.isnil()) {
 					Layer layer = FPUtils.optLayer(l.get("hatch_render_layer")).orElse(Layer.CARGO_HATCH);
 					Optional<FPVector> offset = FPUtils.opt(l.get("offset"), FPVector::new);
-					bind.animation(luaHatchGraphics).layer(layer).offset(offset);
+					bind.animation(luaHatchGraphics).layer(layer).offset(offset.map(MapPosition::convert));
 				}
 			});
 		}
 	}
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, BSEntity entity) {
+	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
 		super.createRenderers(register, map, entity);
+
+		Consumer<LayeredSpriteDef> spriteRegister = entity.spriteRegister(register);
 
 		FPCargoBayConnectableGraphicsSet protoSelectedGraphicsSet;
 
@@ -179,10 +129,7 @@ public abstract class CargoBayConnectionsRendering extends SimpleEntityRendering
 		}
 
 		if (protoSelectedGraphicsSet.picture.isPresent()) {
-			List<SpriteWithLayer> sprites = protoSelectedGraphicsSet.picture.get().createSpritesWithLayers(data);
-			for (SpriteWithLayer swl : sprites) {
-				register.accept(RenderUtils.spriteRenderer(swl.getLayer(), swl.getSprite(), entity, drawBounds));
-			}
+			protoSelectedGraphicsSet.picture.get().defineLayeredSprites(spriteRegister);
 		}
 
 		FPCargoBayConnections protoCargoBayConnections = protoSelectedGraphicsSet.connections.get();
@@ -195,10 +142,10 @@ public abstract class CargoBayConnectionsRendering extends SimpleEntityRendering
 			Direction direction = elementCondition.direction;
 			FPLayeredSpriteVariations protoSprites = elementCondition.protoSpritesFunc.apply(protoCargoBayConnections);
 
-			Point2D.Double shift = elementCondition.shift;
-			Point2D.Double rco = direction.rotatePoint(type.cellOffset);
-			Point2D.Double point = entity.position.createPoint(shift);
-			Point2D.Double cellPoint = new Point2D.Double(point.x + rco.x, point.y + rco.y);
+			MapPosition shift = elementCondition.shift;
+			MapPosition rco = direction.rotate(type.cellOffset);
+			MapPosition point = entity.getPosition().add(shift);
+			MapPosition cellPoint = point.add(rco);
 
 //			System.out.println("DEBUG ELCON ATTEMPT - " + entity.name + "#" + entity.entityNumber + " - " + type.name()
 //					+ " " + direction.name() + "\n\t\t\tSHIFT " + shift + "\n\t\t\tRCO " + rco + "\n\t\t\tPOINT "
@@ -206,7 +153,7 @@ public abstract class CargoBayConnectionsRendering extends SimpleEntityRendering
 
 			for (Direction dirOccupied : type.requireOccupied) {
 				Direction rotatedDirOccupied = direction.rotate(dirOccupied);
-				Point2D.Double checkPoint = rotatedDirOccupied.offset(cellPoint, 2);
+				MapPosition checkPoint = rotatedDirOccupied.offset(cellPoint, 2);
 //				System.out.println("DEBUG\t\tOCCUPIED? - " + rotatedDirOccupied.name() + " - " + checkPoint + " "
 //						+ map.isCargoBayConnectable(checkPoint));
 				if (!map.isCargoBayConnectable(checkPoint)) {
@@ -216,7 +163,7 @@ public abstract class CargoBayConnectionsRendering extends SimpleEntityRendering
 
 			for (Direction dirEmpty : type.requireEmpty) {
 				Direction rotatedDirEmpty = direction.rotate(dirEmpty);
-				Point2D.Double checkPoint = rotatedDirEmpty.offset(cellPoint, 2);
+				MapPosition checkPoint = rotatedDirEmpty.offset(cellPoint, 2);
 //				System.out.println("DEBUG\t\tEMPTY? - " + rotatedDirEmpty.name() + " - " + checkPoint + " "
 //						+ !map.isCargoBayConnectable(checkPoint));
 				if (map.isCargoBayConnectable(checkPoint)) {
@@ -228,17 +175,36 @@ public abstract class CargoBayConnectionsRendering extends SimpleEntityRendering
 
 			rand.setSeed(getRandomSeed(point, type, direction));
 			int variation = rand.nextInt(protoSprites.getVariationCount());
-			for (SpriteWithLayer swl : protoSprites.createSpritesWithLayers(data, variation)) {
-				register.accept(RenderUtils.spriteRenderer(swl.getLayer(), swl.getSprite(), point,
-						new BoundingBoxWithHeight(0, 0, 0, 0, 0)));
-			}
 
+			Consumer<LayeredSpriteDef> pointRegister = s -> register.accept(new MapSprite(s, point));
+			protoSprites.defineLayeredSprites(pointRegister, variation);
 		}
+	}
+
+	@Override
+	public void initAtlas(Consumer<ImageDef> register) {
+		super.initAtlas(register);
+
+		if (protoPlatformGraphicsSet.isPresent()) {
+			FPCargoBayConnectableGraphicsSet graphicsSet = protoPlatformGraphicsSet.get();
+			if (graphicsSet.picture.isPresent()) {
+				graphicsSet.picture.get().defineLayeredSprites(register);
+			}
+			graphicsSet.connections.get().getDefs(register);
+		}
+
+		if (protoGraphicsSet.picture.isPresent()) {
+			protoGraphicsSet.picture.get().defineLayeredSprites(register);
+		}
+		protoGraphicsSet.connections.get().getDefs(register);
+
 	}
 
 	@Override
 	public void initFromPrototype() {
 		super.initFromPrototype();
+
+		FPBoundingBox protoSelectionBox = new FPBoundingBox(prototype.lua().get("selection_box"));
 
 		// TODO CargoBay also has platform_graphics_set, need to figure out if needed
 		protoGraphicsSet = new FPCargoBayConnectableGraphicsSet(prototype.lua().get("graphics_set"));
@@ -318,23 +284,23 @@ public abstract class CargoBayConnectionsRendering extends SimpleEntityRendering
 		{
 			protoConnectionPoints = new ArrayList<>();
 			for (double x = p1.x + 1; x < p2.x; x += 2) {
-				protoConnectionPoints.add(new Point2D.Double(x, p1.y + 1));
-				protoConnectionPoints.add(new Point2D.Double(x, p2.y - 1));
+				protoConnectionPoints.add(MapPosition.byUnit(x, p1.y + 1));
+				protoConnectionPoints.add(MapPosition.byUnit(x, p2.y - 1));
 			}
 			for (double y = p1.y + 3; y < p2.y - 2; y += 2) {
-				protoConnectionPoints.add(new Point2D.Double(p1.x + 1, y));
-				protoConnectionPoints.add(new Point2D.Double(p2.x - 1, y));
+				protoConnectionPoints.add(MapPosition.byUnit(p1.x + 1, y));
+				protoConnectionPoints.add(MapPosition.byUnit(p2.x - 1, y));
 			}
 		}
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, BSEntity entity) {
+	public void populateWorldMap(WorldMap map, MapEntity entity) {
 		super.populateWorldMap(map, entity);
 
-		BSPosition pos = entity.position;
-		for (Point2D.Double dcp : protoConnectionPoints) {
-			map.setCargoBayConnectable(pos.createPoint(dcp), entity);
+		MapPosition pos = entity.getPosition();
+		for (MapPosition dcp : protoConnectionPoints) {
+			map.setCargoBayConnectable(pos.add(dcp), entity);
 		}
 	}
 

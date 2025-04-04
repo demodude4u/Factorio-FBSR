@@ -46,7 +46,7 @@ public class LegacyBlueprintEntity {
 
 		id = json.getInt("entity_number");
 		name = json.getString("name");
-		position = Utils.parsePoint2D(json.getJSONObject("position"));
+		position = Utils.parsePoint2D(json.get("position"));
 		direction = LegacyDirection.fromEntityJSON(json);
 		orientation = BSUtils.optDouble(json, "orientation");
 

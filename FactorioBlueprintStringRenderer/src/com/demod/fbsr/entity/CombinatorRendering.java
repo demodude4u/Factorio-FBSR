@@ -10,28 +10,33 @@ import java.util.function.Consumer;
 
 import com.demod.factorio.fakelua.LuaTable;
 import com.demod.fbsr.FPUtils;
-import com.demod.fbsr.RenderUtils;
-import com.demod.fbsr.Renderer;
+import com.demod.fbsr.Layer;
 import com.demod.fbsr.WirePoints;
 import com.demod.fbsr.WirePoints.WireColor;
 import com.demod.fbsr.WorldMap;
-import com.demod.fbsr.bs.BSEntity;
+import com.demod.fbsr.def.ImageDef;
+import com.demod.fbsr.def.SpriteDef;
 import com.demod.fbsr.fp.FPSprite4Way;
 import com.demod.fbsr.fp.FPWireConnectionPoint;
+import com.demod.fbsr.map.MapEntity;
+import com.demod.fbsr.map.MapRenderable;
 
-public abstract class CombinatorRendering<E extends BSEntity> extends SimpleEntityRendering<E> {
+public abstract class CombinatorRendering extends SimpleEntityRendering {
 
 	private Map<String, FPSprite4Way> protoOperationSprites;
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, E entity) {
+	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
 		super.createRenderers(register, map, entity);
 
 		Optional<String> operation = getOperation(entity);
 		if (operation.isPresent()) {
-			register.accept(RenderUtils.spriteRenderer(
-					protoOperationSprites.get(operation.get()).createSprites(data, entity.direction), entity,
-					drawBounds));
+			Consumer<SpriteDef> spriteRegister = entity.spriteRegister(register, Layer.OBJECT);
+
+			FPSprite4Way fp = protoOperationSprites.get(operation.get());
+			if (fp != null) {
+				fp.defineSprites(spriteRegister, entity.getDirection());
+			}
 		}
 	}
 
@@ -55,7 +60,14 @@ public abstract class CombinatorRendering<E extends BSEntity> extends SimpleEnti
 		consumer.accept(4, WirePoints.fromWireConnectionPoints(protoOutputConnectionPoints, WireColor.GREEN, false));
 	}
 
-	public abstract Optional<String> getOperation(E entity);
+	public abstract Optional<String> getOperation(MapEntity entity);
+
+	@Override
+	public void initAtlas(Consumer<ImageDef> register) {
+		super.initAtlas(register);
+
+		protoOperationSprites.values().forEach(fp -> fp.getDefs(register));
+	}
 
 	@Override
 	public void initFromPrototype() {

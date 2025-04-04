@@ -1,20 +1,20 @@
 package com.demod.fbsr.entity;
 
-import java.util.List;
 import java.util.function.Consumer;
 
 import com.demod.factorio.fakelua.LuaTable;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.Direction;
-import com.demod.fbsr.RenderUtils;
-import com.demod.fbsr.Renderer;
-import com.demod.fbsr.Sprite;
+import com.demod.fbsr.Layer;
 import com.demod.fbsr.WorldMap;
-import com.demod.fbsr.bs.BSEntity;
+import com.demod.fbsr.def.ImageDef;
+import com.demod.fbsr.def.SpriteDef;
 import com.demod.fbsr.fp.FPAnimation;
-import com.google.common.collect.ImmutableList;
+import com.demod.fbsr.map.MapEntity;
+import com.demod.fbsr.map.MapRenderable;
 
-public class FusionGeneratorRendering extends SimpleEntityRendering<BSEntity> {
+public class FusionGeneratorRendering extends SimpleEntityRendering {
+	private static final int FRAME = 0;
 
 	private FPAnimation protoNorthAnimation;
 	private FPAnimation protoEastAnimation;
@@ -22,28 +22,38 @@ public class FusionGeneratorRendering extends SimpleEntityRendering<BSEntity> {
 	private FPAnimation protoWestAnimation;
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, BSEntity entity) {
+	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
 		super.createRenderers(register, map, entity);
 
-		Direction dir = entity.direction;
+		Direction dir = entity.getDirection();
 
-		List<Sprite> sprites = ImmutableList.of();
+		Consumer<SpriteDef> entityRegister = entity.spriteRegister(register, Layer.OBJECT);
+
 		if (dir == Direction.NORTH) {
-			sprites = protoNorthAnimation.createSprites(data, 0);
+			protoNorthAnimation.defineSprites(entityRegister, FRAME);
 		} else if (dir == Direction.EAST) {
-			sprites = protoEastAnimation.createSprites(data, 0);
+			protoEastAnimation.defineSprites(entityRegister, FRAME);
 		} else if (dir == Direction.SOUTH) {
-			sprites = protoSouthAnimation.createSprites(data, 0);
+			protoSouthAnimation.defineSprites(entityRegister, FRAME);
 		} else if (dir == Direction.WEST) {
-			sprites = protoWestAnimation.createSprites(data, 0);
+			protoWestAnimation.defineSprites(entityRegister, FRAME);
 		}
-		register.accept(RenderUtils.spriteRenderer(sprites, entity, drawBounds));
 	}
 
 	@Override
 	public void defineEntity(Bindings bind, LuaTable lua) {
 		bind.fluidBox(lua.get("input_fluid_box"));
 		bind.fluidBox(lua.get("output_fluid_box"));
+	}
+
+	@Override
+	public void initAtlas(Consumer<ImageDef> register) {
+		super.initAtlas(register);
+
+		protoNorthAnimation.defineSprites(register, FRAME);
+		protoEastAnimation.defineSprites(register, FRAME);
+		protoSouthAnimation.defineSprites(register, FRAME);
+		protoWestAnimation.defineSprites(register, FRAME);
 	}
 
 	@Override

@@ -5,14 +5,17 @@ import java.util.function.Consumer;
 
 import com.demod.factorio.fakelua.LuaTable;
 import com.demod.fbsr.FPUtils;
-import com.demod.fbsr.RenderUtils;
-import com.demod.fbsr.Renderer;
+import com.demod.fbsr.Layer;
 import com.demod.fbsr.WorldMap;
-import com.demod.fbsr.bs.BSEntity;
+import com.demod.fbsr.def.ImageDef;
+import com.demod.fbsr.def.SpriteDef;
 import com.demod.fbsr.fp.FPSprite4Way;
 import com.demod.fbsr.fp.FPWorkingVisualisations;
+import com.demod.fbsr.map.MapEntity;
+import com.demod.fbsr.map.MapRenderable;
 
-public class MiningDrillRendering extends SimpleEntityRendering<BSEntity> {
+public class MiningDrillRendering extends SimpleEntityRendering {
+	private static final int FRAME = 0;
 
 	private Optional<FPSprite4Way> protoBasePicture;
 	private Optional<FPWorkingVisualisations> protoGraphicsSet;
@@ -29,18 +32,13 @@ public class MiningDrillRendering extends SimpleEntityRendering<BSEntity> {
 	// - graphics_set.animation
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, BSEntity entity) {
+	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
 		super.createRenderers(register, map, entity);
 
-		if (protoBasePicture.isPresent()) {
-			register.accept(RenderUtils.spriteRenderer(protoBasePicture.get().createSprites(data, entity.direction),
-					entity, drawBounds));
-		}
+		Consumer<SpriteDef> entityRegister = entity.spriteRegister(register, Layer.OBJECT);
 
-		if (protoGraphicsSet.isPresent()) {
-			register.accept(RenderUtils.spriteRenderer(protoGraphicsSet.get().createSprites(data, entity.direction, 0),
-					entity, drawBounds));
-		}
+		protoBasePicture.ifPresent(fp -> fp.defineSprites(entityRegister, entity.getDirection()));
+		protoGraphicsSet.ifPresent(fp -> fp.defineSprites(entityRegister, entity.getDirection(), FRAME));
 	}
 
 	@Override
@@ -48,6 +46,14 @@ public class MiningDrillRendering extends SimpleEntityRendering<BSEntity> {
 		bind.circuitConnector4Way(lua.get("circuit_connector"));
 		bind.fluidBox(lua.get("input_fluid_box"));
 		bind.fluidBox(lua.get("output_fluid_box"));
+	}
+
+	@Override
+	public void initAtlas(Consumer<ImageDef> register) {
+		super.initAtlas(register);
+
+		protoBasePicture.ifPresent(fp -> fp.getDefs(register));
+		protoGraphicsSet.ifPresent(fp -> fp.getDefs(register, FRAME));
 	}
 
 	@Override

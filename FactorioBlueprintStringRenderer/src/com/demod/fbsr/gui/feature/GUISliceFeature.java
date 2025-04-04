@@ -26,10 +26,8 @@ public class GUISliceFeature extends GUISourcedFeature {
 
 		dx = new int[] { -margin.left, padding.left, -padding.right, margin.right };
 		dy = new int[] { -margin.top, padding.top, -padding.bottom, margin.bottom };
-		sx = new int[] { source.x, source.x + slice.left, source.x + source.width - slice.right,
-				source.x + source.width };
-		sy = new int[] { source.y, source.y + slice.top, source.y + source.height - slice.bottom,
-				source.y + source.height };
+		sx = new int[] { 0, slice.left, source.width - slice.right, source.width };
+		sy = new int[] { 0, slice.top, source.height - slice.bottom, source.height };
 	}
 
 	public void render(Graphics2D g, GUIBox r) {
@@ -50,7 +48,7 @@ public class GUISliceFeature extends GUISourcedFeature {
 				int sx2 = sx[col + 1];
 				int sy1 = sy[row];
 				int sy2 = sy[row + 1];
-				g.drawImage(image, dx1, dy1, dx2, dy2, sx1, sy1, sx2, sy2, null);
+				drawImage(g, dx1, dy1, dx2, dy2, sx1, sy1, sx2, sy2);
 			}
 		}
 	}

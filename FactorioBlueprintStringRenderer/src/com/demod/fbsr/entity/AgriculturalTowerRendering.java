@@ -3,28 +3,38 @@ package com.demod.fbsr.entity;
 import java.util.function.Consumer;
 
 import com.demod.factorio.fakelua.LuaTable;
-import com.demod.fbsr.RenderUtils;
-import com.demod.fbsr.Renderer;
+import com.demod.fbsr.Layer;
 import com.demod.fbsr.WorldMap;
-import com.demod.fbsr.bs.BSEntity;
+import com.demod.fbsr.def.ImageDef;
+import com.demod.fbsr.def.SpriteDef;
 import com.demod.fbsr.fp.FPWorkingVisualisations;
+import com.demod.fbsr.map.MapEntity;
+import com.demod.fbsr.map.MapRenderable;
 
-public class AgriculturalTowerRendering extends SimpleEntityRendering<BSEntity> {
+public class AgriculturalTowerRendering extends SimpleEntityRendering {
+	private static final int FRAME = 0;
 
 	private FPWorkingVisualisations protoGraphicsSet;
 
 	// TODO the crane
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, BSEntity entity) {
+	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
 		super.createRenderers(register, map, entity);
 
-		register.accept(RenderUtils.spriteRenderer(protoGraphicsSet.createSprites(data, entity.direction, 0), entity,
-				drawBounds));
+		Consumer<SpriteDef> spriteRegister = entity.spriteRegister(register, Layer.OBJECT);
+		protoGraphicsSet.defineSprites(spriteRegister, entity.getDirection(), FRAME);
 	}
 
 	@Override
-	public void defineEntity(SimpleEntityRendering<BSEntity>.Bindings bind, LuaTable lua) {
+	public void defineEntity(SimpleEntityRendering.Bindings bind, LuaTable lua) {
+	}
+
+	@Override
+	public void initAtlas(Consumer<ImageDef> register) {
+		super.initAtlas(register);
+
+		protoGraphicsSet.getDefs(register, FRAME);
 	}
 
 	@Override

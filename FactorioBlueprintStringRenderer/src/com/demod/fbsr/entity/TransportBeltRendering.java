@@ -1,48 +1,24 @@
 package com.demod.fbsr.entity;
 
-import java.awt.geom.Point2D;
-import java.awt.geom.Point2D.Double;
-import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 
-import org.json.JSONObject;
-
 import com.demod.factorio.fakelua.LuaValue;
-import com.demod.fbsr.BSUtils;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.Layer;
-import com.demod.fbsr.RenderUtils;
-import com.demod.fbsr.Renderer;
-import com.demod.fbsr.Sprite;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.WorldMap.BeltBend;
 import com.demod.fbsr.WorldMap.BeltCell;
-import com.demod.fbsr.bs.BSControlBehavior;
 import com.demod.fbsr.bs.BSEntity;
-import com.demod.fbsr.entity.TransportBeltRendering.BSTransportBeltEntity;
+import com.demod.fbsr.bs.entity.BSTransportBeltEntity;
+import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.fp.FPAnimationVariations;
-import com.demod.fbsr.legacy.LegacyBlueprintEntity;
+import com.demod.fbsr.map.MapEntity;
+import com.demod.fbsr.map.MapPosition;
+import com.demod.fbsr.map.MapRenderable;
 
-public class TransportBeltRendering extends TransportBeltConnectableRendering<BSTransportBeltEntity> {
-
-	public static class BSTransportBeltEntity extends BSEntity {
-		public final Optional<BSControlBehavior> controlBehavior;
-
-		public BSTransportBeltEntity(JSONObject json) {
-			super(json);
-
-			controlBehavior = BSUtils.opt(json, "control_behavior", BSControlBehavior::new);
-		}
-
-		public BSTransportBeltEntity(LegacyBlueprintEntity legacy) {
-			super(legacy);
-
-			// TODO need to figure out what is important here
-			// constructing with empty json object on purpose
-			controlBehavior = BSUtils.opt(legacy.json(), "connections", j -> new BSControlBehavior(new JSONObject()));
-		}
-	}
+public class TransportBeltRendering extends TransportBeltConnectableRendering {
+	private static final int CONTROL_FRAME = 0;
 
 	private FPAnimationVariations protoConnectorFrameMain;
 	private FPAnimationVariations protoConnectorFrameShadow;
@@ -50,34 +26,34 @@ public class TransportBeltRendering extends TransportBeltConnectableRendering<BS
 	// TODO circuit connectors
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, BSTransportBeltEntity entity) {
-		Double pos = entity.position.createPoint();
+	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
+		BSTransportBeltEntity bsEntity = entity.<BSTransportBeltEntity>fromBlueprint();
+		MapPosition pos = entity.getPosition();
 		BeltBend bend = map.getBeltBend(pos).get();
-		int frame = getAlternatingFrame(pos, 0);
+		int frame = getAlternatingFrame(pos);
 
-		List<Sprite> beltSprites = createBeltSprites(entity.direction.cardinal(), bend.ordinal(), frame);
-		register.accept(RenderUtils.spriteRenderer(Layer.TRANSPORT_BELT, beltSprites, entity, drawBounds));
+		defineBeltSprites(entity.spriteRegister(register, Layer.TRANSPORT_BELT), entity.getDirection().cardinal(),
+				bend.ordinal(), frame);
 
-		Point2D.Double forwardPos = entity.direction.offset(pos);
+		MapPosition forwardPos = entity.getDirection().offset(pos);
 		boolean ending = true;
 		Optional<BeltCell> optForwardBelt = map.getBelt(forwardPos);
 		if (optForwardBelt.isPresent()) {
 			Direction forwardBeltDir = optForwardBelt.get().getFacing();
 			BeltBend forwardBeltBend = map.getBeltBend(forwardPos, optForwardBelt.get());
 			Direction forwardBeltBackDir = forwardBeltBend.reverse(forwardBeltDir);
-			if (entity.direction == forwardBeltDir.back() || entity.direction == forwardBeltBackDir.back()) {
+			if (entity.getDirection() == forwardBeltDir.back() || entity.getDirection() == forwardBeltBackDir.back()) {
 				ending = false;
 			}
 		}
 		if (ending) {
-			List<Sprite> endingSprites = createBeltEndingSprites(entity.direction.cardinal(), frame);
-			RenderUtils.shiftSprites(endingSprites, entity.direction.offset());
-			register.accept(
-					RenderUtils.spriteRenderer(Layer.TRANSPORT_BELT_ENDINGS, endingSprites, entity, drawBounds));
+			defineBeltEndingSprites(
+					entity.spriteRegister(register, Layer.TRANSPORT_BELT_ENDINGS, entity.getDirection().offset()),
+					entity.getDirection().cardinal(), frame);
 		}
 
-		Direction backDir = bend.reverse(entity.direction);
-		Point2D.Double backPos = backDir.offset(pos);
+		Direction backDir = bend.reverse(entity.getDirection());
+		MapPosition backPos = backDir.offset(pos);
 		boolean starting = true;
 		Optional<BeltCell> optBackBelt = map.getBelt(backPos);
 		if (optBackBelt.isPresent()) {
@@ -89,20 +65,31 @@ public class TransportBeltRendering extends TransportBeltConnectableRendering<BS
 			}
 		}
 		if (starting) {
-			List<Sprite> startingSprites = createBeltStartingSprites(backDir.cardinal(), frame);
-			RenderUtils.shiftSprites(startingSprites, backDir.offset());
-			register.accept(RenderUtils.spriteRenderer(Layer.TRANSPORT_BELT_ENDINGS, startingSprites, entity,
-					drawBounds));
+			defineBeltStartingSprites(entity.spriteRegister(register, Layer.TRANSPORT_BELT_ENDINGS, backDir.offset()),
+					backDir.cardinal(), frame);
 		}
 
 		// TODO switch this over to the wire connector logic
-		if (entity.controlBehavior.isPresent()) {
-			int index = transportBeltConnectorFrameMappingIndex[entity.direction.cardinal()][bend.ordinal()];
-			register.accept(RenderUtils.spriteRenderer(protoConnectorFrameShadow.createSprites(data, index, 0), entity,
-					drawBounds));
-			register.accept(RenderUtils.spriteRenderer(protoConnectorFrameMain.createSprites(data, index, 0), entity,
-					drawBounds));
+		if (bsEntity.controlBehavior.isPresent()) {
+			int index = transportBeltConnectorFrameMappingIndex[entity.getDirection().cardinal()][bend.ordinal()];
+			protoConnectorFrameShadow.defineSprites(entity.spriteRegister(register, Layer.HIGHER_OBJECT_UNDER), index,
+					CONTROL_FRAME);
+			protoConnectorFrameMain.defineSprites(entity.spriteRegister(register, Layer.HIGHER_OBJECT_UNDER), index,
+					CONTROL_FRAME);
 		}
+	}
+
+	@Override
+	public Class<? extends BSEntity> getEntityClass() {
+		return BSTransportBeltEntity.class;
+	}
+
+	@Override
+	public void initAtlas(Consumer<ImageDef> register) {
+		super.initAtlas(register);
+
+		protoConnectorFrameMain.getDefs(register, CONTROL_FRAME);
+		protoConnectorFrameShadow.getDefs(register, CONTROL_FRAME);
 	}
 
 	@Override
@@ -115,9 +102,9 @@ public class TransportBeltRendering extends TransportBeltConnectableRendering<BS
 	}
 
 	@Override
-	public void populateLogistics(WorldMap map, BSTransportBeltEntity entity) {
-		Direction dir = entity.direction;
-		Point2D.Double pos = entity.position.createPoint();
+	public void populateLogistics(WorldMap map, MapEntity entity) {
+		Direction dir = entity.getDirection();
+		MapPosition pos = entity.getPosition();
 
 		setLogisticMove(map, pos, dir.frontLeft(), dir);
 		setLogisticMove(map, pos, dir.frontRight(), dir);
@@ -140,8 +127,8 @@ public class TransportBeltRendering extends TransportBeltConnectableRendering<BS
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, BSTransportBeltEntity entity) {
-		map.setBelt(entity.position.createPoint(), entity.direction, true, true);
+	public void populateWorldMap(WorldMap map, MapEntity entity) {
+		map.setBelt(entity.getPosition(), entity.getDirection(), true, true);
 	}
 
 }

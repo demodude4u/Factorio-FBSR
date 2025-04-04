@@ -5,12 +5,16 @@ import java.awt.Graphics2D;
 import com.demod.fbsr.gui.GUIBox;
 
 public class GUIStaticFeature extends GUISourcedFeature {
+	private final int width;
+	private final int height;
+
 	public GUIStaticFeature(String filename, GUIBox source) {
 		super(filename, source);
+		width = source.width;
+		height = source.height;
 	}
 
 	public void render(Graphics2D g, GUIBox rect) {
-		g.drawImage(image, rect.x, rect.y, rect.x + rect.width, rect.y + rect.height, //
-				source.x, source.y, source.x + source.width, source.y + source.height, null);
+		drawImage(g, rect.x, rect.y, rect.x + rect.width, rect.y + rect.height, 0, 0, width, height);
 	}
 }

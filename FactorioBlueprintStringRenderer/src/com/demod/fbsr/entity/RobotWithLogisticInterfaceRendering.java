@@ -1,11 +1,12 @@
 package com.demod.fbsr.entity;
 
 import com.demod.factorio.fakelua.LuaTable;
-import com.demod.fbsr.bs.BSEntity;
 
-public class RobotWithLogisticInterfaceRendering extends SimpleEntityRendering<BSEntity> {
+public class RobotWithLogisticInterfaceRendering extends SimpleEntityRendering {
+	private static final double ORIENTATION = 0.375;
+
 	@Override
 	public void defineEntity(Bindings bind, LuaTable lua) {
-		bind.rotatedAnimation(lua.get("idle"));
+		bind.rotatedAnimation(lua.get("idle")).orientation(ORIENTATION);
 	}
 }

@@ -1,61 +1,57 @@
 package com.demod.fbsr.entity;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalDouble;
+import java.util.function.Consumer;
 
-import org.json.JSONObject;
-
-import com.demod.fbsr.BSUtils;
-import com.demod.fbsr.bs.BSConditionOutput;
-import com.demod.fbsr.bs.BSDeciderCondition;
+import com.demod.fbsr.IconDefWithQuality;
+import com.demod.fbsr.IconManager;
+import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.bs.BSEntity;
-import com.demod.fbsr.entity.DeciderCombinatorRendering.BSDeciderCombinatorEntity;
-import com.demod.fbsr.legacy.LegacyBlueprintEntity;
-import com.google.common.collect.ImmutableList;
+import com.demod.fbsr.bs.entity.BSDeciderCombinatorEntity;
+import com.demod.fbsr.map.MapEntity;
+import com.demod.fbsr.map.MapPosition;
+import com.demod.fbsr.map.MapRenderable;
 
-public class DeciderCombinatorRendering extends CombinatorRendering<BSDeciderCombinatorEntity> {
+public class DeciderCombinatorRendering extends CombinatorRendering {
 
-	public static class BSDeciderCombinatorEntity extends BSEntity {
-		public final Optional<String> playerDescription;
-		public final Optional<BSDeciderConditions> deciderConditions;
+	@Override
+	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
+		super.createRenderers(register, map, entity);
 
-		public BSDeciderCombinatorEntity(JSONObject json) {
-			super(json);
+		MapPosition pos = entity.getPosition();
+		BSDeciderCombinatorEntity bsEntity = entity.fromBlueprint();
 
-			playerDescription = BSUtils.optString(json, "player_description");
+		if (bsEntity.deciderConditions.isPresent()) {
 
-			if (json.has("control_behavior")) {
-				JSONObject jsonControlBehavior = json.getJSONObject("control_behavior");
-				deciderConditions = BSUtils.opt(jsonControlBehavior, "decider_conditions", BSDeciderConditions::new);
-			} else {
-				deciderConditions = Optional.empty();
+			List<IconDefWithQuality> inputIcons = new ArrayList<>();
+			bsEntity.deciderConditions.get().conditions.stream()
+					.flatMap(bs -> Arrays.asList(bs.firstSignal, bs.secondSignal).stream().flatMap(s -> s.stream()))
+					.limit(2)
+					.forEach(s -> IconManager.lookupSignalID(s.type, s.name, s.quality).ifPresent(inputIcons::add));
+
+			List<IconDefWithQuality> outputIcons = new ArrayList<>();
+			bsEntity.deciderConditions.get().outputs.stream().flatMap(bs -> bs.signal.stream()).limit(2)
+					.forEach(s -> IconManager.lookupSignalID(s.type, s.name, s.quality).ifPresent(outputIcons::add));
+
+			double iconStartY = entity.getDirection().isHorizontal() ? -0.5 : -0.25;
+
+			List<List<IconDefWithQuality>> iconRows = Arrays.asList(inputIcons, outputIcons);
+			for (int row = 0; row < iconRows.size(); row++) {
+				List<IconDefWithQuality> icons = iconRows.get(row);
+				if (!icons.isEmpty()) {
+					MapPosition rowPos = pos.addUnit(-(icons.size() - 1) * 0.25, iconStartY + row * 0.5);
+					for (int i = 0; i < icons.size(); i++) {
+						IconDefWithQuality icon = icons.get(i);
+						MapPosition iconPos = rowPos.addUnit(i * 0.5, 0);
+						register.accept(icon.createMapIcon(iconPos, 0.4, OptionalDouble.of(0.05), false));
+					}
+				}
 			}
-		}
-
-		public BSDeciderCombinatorEntity(LegacyBlueprintEntity legacy) {
-			super(legacy);
-
-			playerDescription = Optional.empty();
-
-			String comparatorString = legacy.json().getJSONObject("control_behavior")
-					.getJSONObject("decider_conditions").getString("comparator");
-			deciderConditions = Optional.of(new BSDeciderConditions(comparatorString));
-		}
-	}
-
-	public static class BSDeciderConditions {
-		public final List<BSDeciderCondition> conditions;
-		public final List<BSConditionOutput> outputs;
-
-		public BSDeciderConditions(JSONObject json) {
-			conditions = BSUtils.list(json, "conditions", BSDeciderCondition::new);
-			outputs = BSUtils.list(json, "outputs", BSConditionOutput::new);
-		}
-
-		public BSDeciderConditions(String legacyComparatorString) {
-			conditions = ImmutableList.of(new BSDeciderCondition(legacyComparatorString));
-			outputs = ImmutableList.of();
 		}
 	}
 
@@ -71,7 +67,13 @@ public class DeciderCombinatorRendering extends CombinatorRendering<BSDeciderCom
 	}
 
 	@Override
-	public Optional<String> getOperation(BSDeciderCombinatorEntity entity) {
-		return entity.deciderConditions.flatMap(bs -> bs.conditions.stream().findFirst()).map(bs -> bs.comparator);
+	public Class<? extends BSEntity> getEntityClass() {
+		return BSDeciderCombinatorEntity.class;
+	}
+
+	@Override
+	public Optional<String> getOperation(MapEntity entity) {
+		return entity.<BSDeciderCombinatorEntity>fromBlueprint().deciderConditions
+				.flatMap(bs -> bs.conditions.stream().findFirst()).map(bs -> bs.comparator);
 	}
 }

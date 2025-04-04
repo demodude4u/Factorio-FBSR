@@ -25,7 +25,7 @@ public class FBSRScratchPad {
 //		FactorioManager.initializeFactories();
 
 		Multiset<String> keyBags = HashMultiset.create();
-		for (EntityPrototype entity : FactorioManager.getEntities().values().stream()
+		for (EntityPrototype entity : FactorioManager.getEntities().stream()
 				.sorted(Comparator.comparing(e -> e.getName())).collect(Collectors.toList())) {
 			LuaValue lua = entity.lua().get("graphics_set").get("working_visualisations");
 			if (!lua.isnil() && lua.isobject()) {

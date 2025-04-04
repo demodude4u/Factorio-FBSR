@@ -1,9 +1,8 @@
 package com.demod.fbsr.entity;
 
 import com.demod.factorio.fakelua.LuaTable;
-import com.demod.fbsr.bs.BSEntity;
 
-public class StorageTankRendering extends SimpleEntityRendering<BSEntity> {
+public class StorageTankRendering extends SimpleEntityRendering {
 	@Override
 	public void defineEntity(Bindings bind, LuaTable lua) {
 		bind.sprite(lua.get("pictures").get("window_background"));

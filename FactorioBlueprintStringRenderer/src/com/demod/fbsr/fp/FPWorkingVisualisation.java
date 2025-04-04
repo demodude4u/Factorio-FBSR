@@ -5,11 +5,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 
-import com.demod.factorio.FactorioData;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.FPUtils;
-import com.demod.fbsr.Sprite;
+import com.demod.fbsr.def.SpriteDef;
 import com.google.common.collect.ImmutableList;
 
 public class FPWorkingVisualisation {
@@ -30,16 +29,16 @@ public class FPWorkingVisualisation {
 		westAnimation = FPUtils.opt(lua.get("west_animation"), FPAnimation::new).or(() -> animation);
 	}
 
-	public void createSprites(Consumer<Sprite> consumer, FactorioData data, Direction direction, int frame) {
+	public void defineSprites(Consumer<? super SpriteDef> consumer, Direction direction, int frame) {
 		ImmutableList.of(northAnimation, eastAnimation, southAnimation, westAnimation).get(direction.cardinal())
 				.ifPresent(animation -> {
-					animation.createSprites(consumer, data, frame);
+					animation.defineSprites(consumer, frame);
 				});
 	}
 
-	public List<Sprite> createSprites(FactorioData data, Direction direction, int frame) {
-		List<Sprite> ret = new ArrayList<>();
-		createSprites(ret::add, data, direction, frame);
+	public List<SpriteDef> defineSprites(Direction direction, int frame) {
+		List<SpriteDef> ret = new ArrayList<>();
+		defineSprites(ret::add, direction, frame);
 		return ret;
 	}
 }

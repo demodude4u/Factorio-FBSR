@@ -1,101 +1,98 @@
 package com.demod.fbsr.entity;
 
 import java.awt.Color;
-import java.awt.geom.Point2D;
-import java.util.List;
-import java.util.Optional;
+import java.awt.Font;
 import java.util.function.Consumer;
 
-import org.json.JSONObject;
-
-import com.demod.factorio.Utils;
 import com.demod.factorio.fakelua.LuaTable;
-import com.demod.fbsr.BSUtils;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.Layer;
-import com.demod.fbsr.RenderUtils;
-import com.demod.fbsr.Renderer;
-import com.demod.fbsr.Sprite;
 import com.demod.fbsr.WorldMap;
-import com.demod.fbsr.bs.BSColor;
 import com.demod.fbsr.bs.BSEntity;
-import com.demod.fbsr.entity.TrainStopRendering.BSTrainStopEntity;
+import com.demod.fbsr.bs.entity.BSTrainStopEntity;
+import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.fp.FPAnimation4Way;
-import com.demod.fbsr.legacy.LegacyBlueprintEntity;
+import com.demod.fbsr.fp.FPColor;
+import com.demod.fbsr.gui.GUIStyle;
+import com.demod.fbsr.map.MapEntity;
+import com.demod.fbsr.map.MapPosition;
+import com.demod.fbsr.map.MapRenderable;
+import com.demod.fbsr.map.MapText;
 
-public class TrainStopRendering extends SimpleEntityRendering<BSTrainStopEntity> {
+public class TrainStopRendering extends SimpleEntityRendering {
+	public static final Font FONT = GUIStyle.FONT_BP_BOLD.deriveFont(0.5f);
+	private static final int FRAME = 0;
 
-	public static class BSTrainStopEntity extends BSEntity {
-		public final Optional<BSColor> color;
-		public final Optional<String> station;
-
-		public BSTrainStopEntity(JSONObject json) {
-			super(json);
-
-			color = BSUtils.opt(json, "color", BSColor::new);
-			station = BSUtils.optString(json, "station");
-		}
-
-		public BSTrainStopEntity(LegacyBlueprintEntity legacy) {
-			super(legacy);
-
-			color = BSUtils.opt(legacy.json(), "color", BSColor::new);
-			station = BSUtils.optString(legacy.json(), "station");
-		}
-	}
-
+	private FPColor protoColor;
 	private FPAnimation4Way protoRailOverlayAnimations;
 	private FPAnimation4Way protoAnimations;
 	private FPAnimation4Way protoTopAnimations;
 
 	@Override
-	public void createRenderers(Consumer<Renderer> register, WorldMap map, BSTrainStopEntity entity) {
+	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
 		super.createRenderers(register, map, entity);
 
+		BSTrainStopEntity bsEntity = entity.<BSTrainStopEntity>fromBlueprint();
+
 		Color color;
-		if (entity.color.isPresent()) {
-			color = entity.color.get().createColor();
+		if (bsEntity.color.isPresent()) {
+			color = bsEntity.color.get().createColor();
 		} else {
-			color = new Color(242, 0, 0, 127);
+			color = protoColor.createColor();
 		}
 
-		List<Sprite> topSprites = protoTopAnimations.createSprites(data, entity.direction, 0);
-		// FIXME find a more correct way to apply tint
-		topSprites.get(1).image = Utils.tintImage(topSprites.get(1).image, color);
+		protoRailOverlayAnimations.defineSprites(
+				entity.spriteRegisterWithTintOverride(register, Layer.RAIL_SCREW, color), entity.getDirection(), FRAME);
+		protoAnimations.defineSprites(entity.spriteRegisterWithTintOverride(register, Layer.OBJECT, color),
+				entity.getDirection(), FRAME);
+		protoTopAnimations.defineSprites(
+				entity.spriteRegisterWithTintOverride(register, Layer.HIGHER_OBJECT_UNDER, color),
+				entity.getDirection(), FRAME);
 
-		register.accept(RenderUtils.spriteRenderer(Layer.RAIL_SCREW,
-				protoRailOverlayAnimations.createSprites(data, entity.direction, 0), entity, drawBounds));
-		register.accept(RenderUtils.spriteRenderer(protoAnimations.createSprites(data, entity.direction, 0), entity,
-				drawBounds));
-		register.accept(RenderUtils.spriteRenderer(Layer.HIGHER_OBJECT_UNDER, topSprites, entity, drawBounds));
-
-		if (entity.station.isPresent() && map.isAltMode()) {
-			String stationName = entity.station.get();
-			register.accept(RenderUtils.drawString(Layer.ENTITY_INFO_TEXT, entity.position.createPoint(), Color.white,
-					stationName));
+		if (bsEntity.station.isPresent() && map.isAltMode()) {
+			String stationName = bsEntity.station.get();
+			register.accept(
+					new MapText(Layer.ENTITY_INFO_TEXT, entity.getPosition(), 30, FONT, Color.white, stationName));
 		}
 	}
 
 	@Override
 	public void defineEntity(Bindings bind, LuaTable lua) {
 		bind.circuitConnector4Way(lua.get("circuit_connector"));
+		bind.sprite4Way(lua.get("light1").get("picture")).layer(Layer.HIGHER_OBJECT_ABOVE);
+		bind.sprite4Way(lua.get("light2").get("picture")).layer(Layer.HIGHER_OBJECT_ABOVE);
+	}
+
+	@Override
+	public Class<? extends BSEntity> getEntityClass() {
+		return BSTrainStopEntity.class;
+	}
+
+	@Override
+	public void initAtlas(Consumer<ImageDef> register) {
+		super.initAtlas(register);
+
+		protoRailOverlayAnimations.getDefs(register, FRAME);
+		protoAnimations.getDefs(register, FRAME);
+		protoTopAnimations.getDefs(register, FRAME);
 	}
 
 	@Override
 	public void initFromPrototype() {
 		super.initFromPrototype();
 
+		protoColor = new FPColor(prototype.lua().get("color"));
 		protoRailOverlayAnimations = new FPAnimation4Way(prototype.lua().get("rail_overlay_animations"));
 		protoAnimations = new FPAnimation4Way(prototype.lua().get("animations"));
 		protoTopAnimations = new FPAnimation4Way(prototype.lua().get("top_animations"));
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, BSTrainStopEntity entity) {
+	public void populateWorldMap(WorldMap map, MapEntity entity) {
 		super.populateWorldMap(map, entity);
 
-		Point2D.Double pos = entity.position.createPoint();
-		Direction dir = entity.direction;
+		MapPosition pos = entity.getPosition();
+		Direction dir = entity.getDirection();
 
 		map.getOrCreateRailNode(dir.offset(dir.left().offset(pos, 2), 0.5)).setStation(dir);
 	}

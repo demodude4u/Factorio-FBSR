@@ -5,11 +5,10 @@ import java.util.function.BiConsumer;
 import com.demod.factorio.fakelua.LuaTable;
 import com.demod.fbsr.WirePoints;
 import com.demod.fbsr.WirePoints.WireColor;
-import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.fp.FPWireConnectionPoint;
 import com.google.common.collect.ImmutableList;
 
-public class PowerSwitchRendering extends SimpleEntityRendering<BSEntity> {
+public class PowerSwitchRendering extends SimpleEntityRendering {
 	@Override
 	public void defineEntity(Bindings bind, LuaTable lua) {
 		bind.animation(lua.get("power_on_animation"));

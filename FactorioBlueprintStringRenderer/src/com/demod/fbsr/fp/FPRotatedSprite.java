@@ -4,15 +4,16 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.demod.factorio.FactorioData;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.FPUtils;
-import com.demod.fbsr.RenderUtils;
-import com.demod.fbsr.Sprite;
+import com.demod.fbsr.def.ImageDef;
+import com.demod.fbsr.def.SpriteDef;
 import com.google.common.collect.ImmutableList;
 
 public class FPRotatedSprite extends FPSpriteParameters {
@@ -28,14 +29,27 @@ public class FPRotatedSprite extends FPSpriteParameters {
 	public final int lineLength;
 	public final Optional<List<FPRotatedSpriteFrame>> frames;
 
+	private final List<SpriteDef> defs;
+
+	private final int limitedDirectionCount;
+
 	public FPRotatedSprite(LuaValue lua) {
-		this(lua, Optional.empty());
+		this(lua, Optional.empty(), Integer.MAX_VALUE);
+	}
+
+	public FPRotatedSprite(LuaValue lua, int limitDirectionCount) {
+		this(lua, Optional.empty(), limitDirectionCount);
 	}
 
 	public FPRotatedSprite(LuaValue lua, Optional<Boolean> overrideBackEqualsFront) {
+		this(lua, overrideBackEqualsFront, Integer.MAX_VALUE);
+	}
+
+	public FPRotatedSprite(LuaValue lua, Optional<Boolean> overrideBackEqualsFront, int limitDirectionCount) {
 		super(lua);
 
-		layers = FPUtils.optList(lua.get("layers"), l -> new FPRotatedSprite(l, overrideBackEqualsFront));
+		layers = FPUtils.optList(lua.get("layers"),
+				l -> new FPRotatedSprite(l, overrideBackEqualsFront, limitDirectionCount));
 		directionCount = lua.get("direction_count").optint(1);
 		Optional<List<String>> filenames = FPUtils.optList(lua.get("filenames"), LuaValue::tojstring);
 		if (!filenames.isPresent() && filename.isPresent()) {
@@ -53,71 +67,105 @@ public class FPRotatedSprite extends FPSpriteParameters {
 		counterclockwise = lua.get("counterclockwise").optboolean(false);
 		lineLength = lua.get("line_length").optint(0);
 		frames = FPUtils.optList(lua.get("frames"), l -> new FPRotatedSpriteFrame(lua, width, height));
+
+		this.limitedDirectionCount = Math.min(limitDirectionCount, directionCount);
+		List<SpriteDef> allDefs = createDefs();
+		defs = limitedDirectionDefs(allDefs);
 	}
 
-	public void createSprites(Consumer<Sprite> consumer, FactorioData data, double orientation) {
+	private List<SpriteDef> createDefs() {
+		if (layers.isPresent()) {
+			return ImmutableList.of();
+		}
+
+		List<SpriteDef> defs = new ArrayList<>();
+
+		for (int index = 0; index < directionCount; index++) {
+
+			int x = this.x;
+			int y = this.y;
+			int fileIndex;
+			int tileIndex;
+			if (lineLength == 0 || linesPerFile == 0) {
+				fileIndex = 0;
+				tileIndex = index;
+			} else {
+				int fileLength = lineLength * linesPerFile;
+				fileIndex = index / fileLength;
+				tileIndex = index % fileLength;
+			}
+			if (fileIndex >= filenames.get().size()) {
+				LOGGER.warn("Warning: Trying to access sprite {} in {} files", index, filenames.get().size());
+			}
+			String filename = filenames.get().get(fileIndex);
+			if (lineLength > 0) {
+				x += (tileIndex % lineLength) * width;
+				y += (tileIndex / lineLength) * height;
+			} else {
+				x += tileIndex * width;
+			}
+
+			int width = this.width;
+			int height = this.height;
+			double shiftX = shift.x;
+			double shiftY = shift.y;
+			if (frames.isPresent()) {
+				FPRotatedSpriteFrame frame = frames.get().get(index);
+				x += frame.x;
+				y += frame.y;
+				width = frame.width;
+				height = frame.height;
+				shiftX += frame.shift.x;
+				shiftY += frame.shift.y;
+			}
+
+			defs.add(SpriteDef.fromFP(filename, drawAsShadow, blendMode, tint, tintAsOverlay, applyRuntimeTint, x, y,
+					width, height, shiftX, shiftY, scale));
+		}
+
+		return defs;
+	}
+
+	private List<SpriteDef> limitedDirectionDefs(List<SpriteDef> allDefs) {
+		if (limitedDirectionCount == directionCount || allDefs.isEmpty()) {
+			return allDefs;
+		}
+
+		return IntStream.range(0, limitedDirectionCount).map(i -> (i * directionCount) / limitedDirectionCount)
+				.mapToObj(allDefs::get).collect(Collectors.toList());
+	}
+
+	public void defineSprites(Consumer<? super SpriteDef> consumer, double orientation) {
 		if (layers.isPresent()) {
 			for (FPRotatedSprite layer : layers.get()) {
-				layer.createSprites(consumer, data, orientation);
+				layer.defineSprites(consumer, orientation);
 			}
 			return;
 		}
 
 		int index = getIndex(orientation);
-
-		int x = this.x;
-		int y = this.y;
-		int fileIndex;
-		int tileIndex;
-		if (lineLength == 0 || linesPerFile == 0) {
-			fileIndex = 0;
-			tileIndex = index;
-		} else {
-			int fileLength = lineLength * linesPerFile;
-			fileIndex = index / fileLength;
-			tileIndex = index % fileLength;
-		}
-		if (fileIndex >= filenames.get().size()) {
-			LOGGER.warn("Warning: Trying to access sprite " + index + " in " + filenames.get().size() + " files");
-		}
-		String filename = filenames.get().get(fileIndex);
-		if (lineLength > 0) {
-			x += (tileIndex % lineLength) * width;
-			y += (tileIndex / lineLength) * height;
-		} else {
-			x += tileIndex * width;
-		}
-
-		int width = this.width;
-		int height = this.height;
-		double shiftX = shift.x;
-		double shiftY = shift.y;
-		if (frames.isPresent()) {
-			FPRotatedSpriteFrame frame = frames.get().get(index);
-			x += frame.x;
-			y += frame.y;
-			width = frame.width;
-			height = frame.height;
-			shiftX += frame.shift.x;
-			shiftY += frame.shift.y;
-		}
-
-		Sprite sprite = RenderUtils.createSprite(data, filename, drawAsShadow, blendMode, getEffectiveTint(), x, y,
-				width, height, shiftX, shiftY, scale);
-		consumer.accept(sprite);
+		consumer.accept(defs.get(index));
 	}
 
-	public List<Sprite> createSprites(FactorioData data, double orientation) {
-		List<Sprite> ret = new ArrayList<>();
-		createSprites(ret::add, data, orientation);
+	public List<SpriteDef> defineSprites(double orientation) {
+		List<SpriteDef> ret = new ArrayList<>();
+		defineSprites(ret::add, orientation);
 		return ret;
+	}
+
+	public void getDefs(Consumer<ImageDef> register) {
+		if (layers.isPresent()) {
+			layers.get().forEach(fp -> fp.getDefs(register));
+		}
+
+		defs.forEach(register);
 	}
 
 	private int getIndex(double orientation) {
 		if (counterclockwise) {
 			orientation = 1 - orientation;
 		}
-		int directionCount = this.directionCount;
+		int directionCount = this.limitedDirectionCount;
 		if (backEqualsFront) {
 			directionCount *= 2;
 		}
