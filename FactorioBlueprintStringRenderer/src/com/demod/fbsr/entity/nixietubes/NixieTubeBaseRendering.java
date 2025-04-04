@@ -52,12 +52,12 @@ public abstract class NixieTubeBaseRendering extends LampRendering {
 		if (small) {
 			protoSymbols.get(symbolIndex).defineSprites(def -> {
 				MapSprite sprite = new MapSprite(def, Layer.OBJECT, entity.getPosition());
-				sprite.setBounds(sprite.getBounds().scale(0.5).addUnit(-9.0 / 64.0, 3.0 / 64.0));
+				sprite.setBounds(sprite.getBounds().scale(0.5).addUnit(-8.0 / 64.0, 12.0 / 64.0));
 				register.accept(sprite);
 			});
 			protoSymbols.get((symbolIndex + 1) % protoSymbols.size()).defineSprites(def -> {
 				MapSprite sprite = new MapSprite(def, Layer.OBJECT, entity.getPosition());
-				sprite.setBounds(sprite.getBounds().scale(0.5).addUnit(11.0 / 64.0, 3.0 / 64.0));
+				sprite.setBounds(sprite.getBounds().scale(0.5).addUnit(12.0 / 64.0, 12.0 / 64.0));
 				register.accept(sprite);
 			});
 		} else {
