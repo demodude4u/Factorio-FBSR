@@ -60,11 +60,13 @@ public class SelectorCombinatorRendering extends CombinatorRendering {
 				icons = icons.stream().sorted(Comparator.comparing(iwq -> iwq.getDef().getPrototype())).limit(4)
 						.collect(Collectors.toList());
 
+				double iconStartY = entity.getDirection().isHorizontal() ? -0.25 : 0;
+
 				MapPosition iconStartPos;
 				if (icons.size() == 2) {
-					iconStartPos = pos.addUnit(-0.25, 0);
+					iconStartPos = pos.addUnit(-0.25, iconStartY);
 				} else if (icons.size() > 2) {
-					iconStartPos = pos.addUnit(-0.25, -0.25);
+					iconStartPos = pos.addUnit(-0.25, iconStartY - 0.25);
 				} else {
 					iconStartPos = pos;
 				}
