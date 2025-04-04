@@ -64,7 +64,7 @@ public class LaneSplitterRendering extends TransportBeltConnectableRendering {
 				MapPosition iconPos = right ? rightPos : leftPos;
 				BSFilter filter = bsEntity.filter.get();
 				IconManager.lookupFilter(filter.type, filter.name, filter.quality)
-						.ifPresent(i -> register.accept(i.createMapIcon(iconPos, 0.6, OptionalDouble.of(0.1), false)));
+						.ifPresent(i -> register.accept(i.createMapIcon(iconPos, 0.4, OptionalDouble.of(0.05), false)));
 			} else {
 				register.accept(new MapLaneArrow(outputPos, dir));
 			}
