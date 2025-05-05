@@ -23,6 +23,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -257,6 +259,9 @@ public class AtlasManager {
 		return ret;
 	}
 
+	private static final int MAX_PARALLEL_LOADS = Runtime.getRuntime().availableProcessors() * 2;
+	private static final Semaphore loadingSemaphore = new Semaphore(MAX_PARALLEL_LOADS);
+
 	private static JSONArray generateAtlases(File folderAtlas, File fileManifest) throws IOException {
 		Map<String, ImageSheetLoader> loaders = new LinkedHashMap<>();
 		for (ImageDef def : defs) {
@@ -272,18 +277,31 @@ public class AtlasManager {
 				});
 
 		LOGGER.info("Trimming Images...");
+		AtomicInteger processedCount = new AtomicInteger(0);
 		defs.parallelStream().forEach(def -> {
 			if (def.isTrimmable()) {
-				BufferedImage imageSheet;
 				try {
-					imageSheet = imageSheets.get(def.getPath());
+					loadingSemaphore.acquire();
+					BufferedImage imageSheet;
+					try {
+						imageSheet = imageSheets.get(def.getPath());
+						Rectangle trimmed = trimEmptyRect(imageSheet, def.getSource());
+						def.setTrimmed(trimmed);
+					} finally {
+						loadingSemaphore.release();
+						// Do cleanup when releasing permit
+						if (processedCount.incrementAndGet() % 10000 == 0) {
+							imageSheets.cleanUp();
+							LOGGER.info("Trimming Images... {}/{}", processedCount.get(), defs.size());
+						}
+					}
+				} catch (InterruptedException e) {
+					Thread.currentThread().interrupt();
+					throw new RuntimeException("Interrupted while processing images", e);
 				} catch (ExecutionException e) {
 					e.printStackTrace();
 					System.exit(-1);
-					return;
 				}
-				Rectangle trimmed = trimEmptyRect(imageSheet, def.getSource());
-				def.setTrimmed(trimmed);
 			} else {
 				def.setTrimmed(def.getSource());
 			}
@@ -377,7 +395,6 @@ public class AtlasManager {
 		LOGGER.info("Freeing Image Sheets...");
 		imageSheets.invalidateAll();
 		imageSheets.cleanUp();
-		System.gc();
 
 		folderAtlas.mkdirs();
 		for (File file : folderAtlas.listFiles()) {
