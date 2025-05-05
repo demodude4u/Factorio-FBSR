@@ -9,7 +9,9 @@ import java.awt.image.DataBufferInt;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileReader;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -27,6 +29,9 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
+import java.util.zip.ZipOutputStream;
 
 import javax.imageio.IIOImage;
 import javax.imageio.ImageIO;
@@ -453,7 +458,12 @@ public class AtlasManager {
 			LOGGER.info("Write Atlas: {}", fileAtlas.getAbsolutePath());
 		});
 
-		Files.write(jsonManifest.toString(2), fileManifest, StandardCharsets.UTF_8);
+		Files.createParentDirs(fileManifest);
+		try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(fileManifest))) {
+			zos.putNextEntry(new ZipEntry("atlas-manifest.json"));
+			zos.write(jsonManifest.toString(2).getBytes(StandardCharsets.UTF_8));
+			zos.closeEntry();
+		}
 		LOGGER.info("Write Manifest: {} ({} entries)", fileManifest.getAbsolutePath(), defs.size());
 
 		LOGGER.info("Atlas generation complete.");
@@ -462,12 +472,11 @@ public class AtlasManager {
 
 	public static void initialize() throws IOException {
 		File folderAtlas = new File(FactorioManager.getFolderDataRoot(), "atlas");
-		File fileManifest = new File(folderAtlas, "atlas-manifest.txt");
+		File fileManifest = new File(folderAtlas, "atlas-manifest.zip");
 
 		JSONArray jsonManifest = null;
 		if (!fileManifest.exists() || !checkValidManifest(jsonManifest = readManifest(fileManifest))) {
 			jsonManifest = generateAtlases(folderAtlas, fileManifest);
-
 		}
 
 		if (jsonManifest == null) {
@@ -478,8 +487,14 @@ public class AtlasManager {
 
 	private static JSONArray readManifest(File fileManifest) throws IOException {
 		JSONArray jsonManifest;
-		try (FileReader fr = new FileReader(fileManifest)) {
-			jsonManifest = new JSONArray(new JSONTokener(fr));
+		try (ZipFile zipFile = new ZipFile(fileManifest)) {
+			ZipEntry entry = zipFile.getEntry("atlas-manifest.json");
+			if (entry == null) {
+				throw new IOException("Missing atlas-manifest.json in zip file");
+			}
+			try (var reader = new InputStreamReader(zipFile.getInputStream(entry), StandardCharsets.UTF_8)) {
+				jsonManifest = new JSONArray(new JSONTokener(reader));
+			}
 		}
 		LOGGER.info("Read Manifest: {} ({} entries)", fileManifest.getAbsolutePath(), jsonManifest.length());
 		return jsonManifest;
