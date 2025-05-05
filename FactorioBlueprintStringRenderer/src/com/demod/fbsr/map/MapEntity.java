@@ -110,4 +110,15 @@ public class MapEntity {
 			}
 		};
 	}
+
+	public Consumer<SpriteDef> spriteRegisterWithTintOverride(Consumer<MapRenderable> register, Layer layer,
+			MapPosition offset, Color tint) {
+		return s -> {
+			if (s.applyRuntimeTint()) {
+				register.accept(new MapTintOverrideSprite(s, layer, position.add(offset), tint));
+			} else {
+				register.accept(new MapSprite(s, layer, position.add(offset)));
+			}
+		};
+	}
 }

@@ -5,6 +5,8 @@ import static com.demod.fbsr.MapUtils.*;
 import java.awt.Rectangle;
 import java.util.Collection;
 
+import com.demod.fbsr.MapUtils;
+
 public class MapRect {
 
 	public static MapRect byFixedPoint(int x, int y, int width, int height) {
@@ -151,5 +153,17 @@ public class MapRect {
 
 	public MapRect addUnit(double x, double y) {
 		return new MapRect(xfp + unitToFixedPoint(x), yfp + unitToFixedPoint(y), widthfp, heightfp);
+	}
+
+	public MapRect3D as3DUnit(double height) {
+		return MapRect3D.byFixedPoint(xfp, yfp, xfp + widthfp, yfp + heightfp, MapUtils.unitToFixedPoint(height));
+	}
+
+	public MapRect flipX() {
+		return new MapRect(-widthfp - xfp, yfp, widthfp, heightfp);
+	}
+
+	public MapRect flipY() {
+		return new MapRect(xfp, -heightfp - yfp, widthfp, heightfp);
 	}
 }

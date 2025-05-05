@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -11,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.demod.factorio.fakelua.LuaValue;
+import com.demod.fbsr.Direction;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.def.SpriteDef;
@@ -29,10 +31,10 @@ public class FPRotatedSprite extends FPSpriteParameters {
 	public final int lineLength;
 	public final Optional<List<FPRotatedSpriteFrame>> frames;
 
-	private final List<SpriteDef> defs;
+	protected final List<SpriteDef> defs;
 
 	private final int limitedDirectionCount;
-
+	
 	public FPRotatedSprite(LuaValue lua) {
 		this(lua, Optional.empty(), Integer.MAX_VALUE);
 	}
@@ -46,10 +48,18 @@ public class FPRotatedSprite extends FPSpriteParameters {
 	}
 
 	public FPRotatedSprite(LuaValue lua, Optional<Boolean> overrideBackEqualsFront, int limitDirectionCount) {
+		this(lua, overrideBackEqualsFront, limitDirectionCount, l -> new FPRotatedSprite(l, overrideBackEqualsFront, limitDirectionCount));
+	}
+
+	//For Sloped Sprites
+	protected FPRotatedSprite(LuaValue lua, Function<LuaValue, FPRotatedSprite> layerFactory) {
+		this(lua, Optional.empty(), Integer.MAX_VALUE, layerFactory);
+	}
+
+	private FPRotatedSprite(LuaValue lua, Optional<Boolean> overrideBackEqualsFront, int limitDirectionCount, Function<LuaValue, FPRotatedSprite> layerFactory) {
 		super(lua);
 
-		layers = FPUtils.optList(lua.get("layers"),
-				l -> new FPRotatedSprite(l, overrideBackEqualsFront, limitDirectionCount));
+		layers = FPUtils.optList(lua.get("layers"),layerFactory);
 		directionCount = lua.get("direction_count").optint(1);
 		Optional<List<String>> filenames = FPUtils.optList(lua.get("filenames"), LuaValue::tojstring);
 		if (!filenames.isPresent() && filename.isPresent()) {
@@ -184,4 +194,14 @@ public class FPRotatedSprite extends FPSpriteParameters {
 		return index;
 	}
 
+	public int getLimitedDirectionCount() {
+		return limitedDirectionCount;
+	}
+
+	public double getAlignedOrientation(double orientation) {
+		if (layers.isPresent()) {
+			return layers.get().get(0).getAlignedOrientation(orientation);
+		}
+		return getIndex(orientation) / (double) limitedDirectionCount;
+	}
 }

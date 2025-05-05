@@ -94,6 +94,7 @@ public class TrainStopRendering extends SimpleEntityRendering {
 		MapPosition pos = entity.getPosition();
 		Direction dir = entity.getDirection();
 
-		map.getOrCreateRailNode(dir.offset(dir.left().offset(pos, 2), 0.5)).setStation(dir);
+		// TODO
+//		map.getOrCreateRailNode(dir.offset(dir.left().offset(pos, 2), 0.5)).setStation(dir);
 	}
 }

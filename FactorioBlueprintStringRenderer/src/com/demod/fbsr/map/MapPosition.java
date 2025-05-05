@@ -83,7 +83,7 @@ public class MapPosition {
 	}
 
 	public int getXCell() {
-		return truncate(xfp);
+		return softTruncate(xfp);
 	}
 
 	public int getXFP() {
@@ -95,7 +95,7 @@ public class MapPosition {
 	}
 
 	public int getYCell() {
-		return truncate(yfp);
+		return softTruncate(yfp);
 	}
 
 	public int getYFP() {
@@ -146,4 +146,25 @@ public class MapPosition {
 		return yfp >> (MapUtils.FRACTIONAL_BITS - 1);
 	}
 
+	public MapPosition flipX() {
+		return new MapPosition(-xfp, yfp);
+	}
+
+	public MapPosition flipY() {
+		return new MapPosition(xfp, -yfp);
+	}
+
+	public double distance(MapPosition other) {
+		int dxfp = other.xfp - xfp;
+		int dyfp = other.yfp - yfp;
+		return MapUtils.fixedPointToUnit((int) Math.round(Math.sqrt(dxfp * dxfp + dyfp * dyfp)));
+	}
+
+	public MapPosition subtract(MapPosition position) {
+		return new MapPosition(xfp - position.xfp, yfp - position.yfp);
+	}
+
+	public static MapPosition average(MapPosition p1, MapPosition p2) {
+		return new MapPosition((p1.xfp + p2.xfp) / 2, (p1.yfp + p2.yfp) / 2);
+	}
 }

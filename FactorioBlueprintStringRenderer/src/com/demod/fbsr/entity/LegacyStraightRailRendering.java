@@ -1,49 +1,66 @@
 package com.demod.fbsr.entity;
 
+import java.util.List;
+
 import com.demod.fbsr.Direction;
+import com.demod.fbsr.Dir16;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapPosition;
+import com.demod.fbsr.map.MapPosition3D;
+import com.google.common.collect.ImmutableList;
 
 public class LegacyStraightRailRendering extends RailRendering {
 
-	private static final int[][][] pathEnds = //
-			new int[/* dir */][/* points */][/* x,y,dir */] { //
-					{ { 0, -1, 4 }, { 0, 1, 0 } }, // N
-					{ { 0, -1, 3 }, { 1, 0, 7 } }, // NE
-					{ { -1, 0, 2 }, { 1, 0, 6 } }, // E
-					{ { 0, 1, 1 }, { 1, 0, 5 } }, // SE
-					{ { 0, -1, 4 }, { 0, 1, 0 } }, // S
-					{ { -1, 0, 3 }, { 0, 1, 7 } }, // SW
-					{ { -1, 0, 2 }, { 1, 0, 6 } }, // W
-					{ { -1, 0, 1 }, { 0, -1, 5 } }, // NW
-			};
+	public static final RailSpliner SPLINER = new RailSpliner() {
+		@Override
+		public double calculateSplineLength(RailDef rail) {
+			return rail.A.pos.distance(rail.B.pos);
+		}
+
+		@Override
+		public MapPosition3D splinePoint(RailDef rail, double distance) {
+			MapPosition p1 = rail.A.pos;
+			MapPosition p2 = rail.B.pos;
+			
+			double length = rail.length;
+			double x = p1.getX() + (p2.getX() - p1.getX()) * distance / length;
+			double y = p1.getY() + (p2.getY() - p1.getY()) * distance / length;
+			
+			return MapPosition3D.byUnit(x, y, rail.A.elevated ? ELEVATED_HEIGHT : 0);
+		}
+	};
+
+	private final List<RailDef> railDefs;
 
 	public LegacyStraightRailRendering() {
-		super(false);
+		super(false, Dir16.N, Dir16.NE, Dir16.E, Dir16.SE, Dir16.SW, Dir16.NW);
+
+		railDefs = createRailDefs();
+	}
+
+	private List<RailDef> createRailDefs() {
+		RailDef defN = new RailDef(0, 1, "S", false, 0, -1, "N", false, SPLINER, //
+				-2, 0, "S", false, 2, 0, "N", false, //
+				group(-1.5, 0.5, "N", false, 1.5, 0.5, "S", false), //
+				group(-1.5, -0.5, "N", false, 1.5, -0.5, "S", false));
+		RailDef defNW = new RailDef(1,0,"SE",false,0, -1, "NW", false, SPLINER, //
+				group(-0.5, 0.5, "NW", false, 1.5, -1.5, "SE", false));
+
+		return ImmutableList.of(
+			defN, //0
+			defNW, //1
+			defN.rotate90(), //2
+			defNW.flipY(), //3
+			defN, //4
+			defNW.flipX().flipY(), //5
+			defN.rotate90(), //6
+			defNW.flipX() //7
+		);
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, MapEntity entity) {
-		MapPosition pos = entity.getPosition();
-		Direction dir = entity.getDirection();
-
-		int[][] points = pathEnds[dir.ordinal()];
-		MapPosition p1 = pos.addUnit(points[0][0], points[0][1]);
-		Direction d1 = Direction.values()[points[0][2]];
-		MapPosition p2 = pos.addUnit(points[1][0], points[1][1]);
-		Direction d2 = Direction.values()[points[1][2]];
-		MapPosition cp1 = d1.offset(p1, 0.5);
-		MapPosition cp2 = d2.offset(p2, 0.5);
-
-		if (dir.isCardinal()) {
-			map.setRailEdge(p1, d1, cp1, d2, false);
-			map.setRailEdge(cp1, d1, cp2, d2, false);
-			map.setRailEdge(cp2, d1, p2, d2, false);
-		} else {
-			map.setRailEdge(p1, d1, cp1, d2, false);
-			map.setRailEdge(cp1, d1, p2, d2, false);
-		}
-
+	protected RailDef getRailDef(MapEntity entity) {
+		return railDefs.get(entity.getDirection().ordinal());
 	}
 }

@@ -273,15 +273,15 @@ public class AtlasManager {
 
 		LOGGER.info("Trimming Images...");
 		defs.parallelStream().forEach(def -> {
-			BufferedImage imageSheet;
-			try {
-				imageSheet = imageSheets.get(def.getPath());
-			} catch (ExecutionException e) {
-				e.printStackTrace();
-				System.exit(-1);
-				return;
-			}
 			if (def.isTrimmable()) {
+				BufferedImage imageSheet;
+				try {
+					imageSheet = imageSheets.get(def.getPath());
+				} catch (ExecutionException e) {
+					e.printStackTrace();
+					System.exit(-1);
+					return;
+				}
 				Rectangle trimmed = trimEmptyRect(imageSheet, def.getSource());
 				def.setTrimmed(trimmed);
 			} else {
@@ -374,10 +374,15 @@ public class AtlasManager {
 			md5Check.put(md5key, def.getAtlasRef());
 		}
 
+		LOGGER.info("Freeing Image Sheets...");
+		imageSheets.invalidateAll();
+		imageSheets.cleanUp();
+		System.gc();
+
 		folderAtlas.mkdirs();
 		for (File file : folderAtlas.listFiles()) {
 			file.delete();
-		}
+		}		
 
 		JSONArray jsonManifest = new JSONArray();
 		for (ImageDef def : defs) {

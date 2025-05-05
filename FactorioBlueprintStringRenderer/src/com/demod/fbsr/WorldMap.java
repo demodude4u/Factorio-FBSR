@@ -3,21 +3,24 @@ package com.demod.fbsr;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.EnumMap;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
+import com.demod.fbsr.entity.RailRendering.RailDef;
+import com.demod.fbsr.entity.RailRendering.RailPoint;
 import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapPosition;
+import com.demod.fbsr.map.MapRail;
 import com.demod.fbsr.map.MapRect;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Table;
@@ -96,173 +99,162 @@ public class WorldMap {
 		}
 	}
 
-	public static class RailEdge {
-		private final MapPosition startPos;
-		private final Direction startDir;
-		private final MapPosition endPos;
-		private final Direction endDir;
-		private final boolean curved;
+	// public static class RailEdge {
+	// 	private final RailPoint start;
+	// 	private final RailPoint end;
 
-		private boolean blocked = false;
-		private boolean input = false;
-		private boolean output = false;
+	// 	private boolean blocked = false;
+	// 	private boolean input = false;
+	// 	private boolean output = false;
 
-		public RailEdge(MapPosition startPos, Direction startDir, MapPosition endPos, Direction endDir,
-				boolean curved) {
-			this.startPos = startPos;
-			this.startDir = startDir;
-			this.endPos = endPos;
-			this.endDir = endDir;
-			this.curved = curved;
-		}
+	// 	private final List<List<RailSlot>> signalGroups = new ArrayList<>();
+	// 	private final List<RailSlot> stationSlots = new ArrayList<>();
 
-		public Direction getEndDir() {
-			return endDir;
-		}
+	// 	public RailEdge(RailPoint start, RailPoint end) {
+	// 		this.start = start;
+	// 		this.end = end;
+	// 	}
 
-		public MapPosition getEndPos() {
-			return endPos;
-		}
+	// 	public RailPoint getStart() {
+	// 		return start;
+	// 	}
 
-		public Direction getStartDir() {
-			return startDir;
-		}
+	// 	public RailPoint getEnd() {
+	// 		return end;
+	// 	}
 
-		public MapPosition getStartPos() {
-			return startPos;
-		}
+	// 	public boolean isBlocked() {
+	// 		return blocked;
+	// 	}
 
-		public boolean isBlocked() {
-			return blocked;
-		}
+	// 	public boolean isInput() {
+	// 		return input;
+	// 	}
 
-		public boolean isCurved() {
-			return curved;
-		}
+	// 	public boolean isOutput() {
+	// 		return output;
+	// 	}
 
-		public boolean isInput() {
-			return input;
-		}
+	// 	public void setBlocked(boolean blocked) {
+	// 		this.blocked = blocked;
+	// 	}
 
-		public boolean isOutput() {
-			return output;
-		}
+	// 	public void setInput(boolean input) {
+	// 		this.input = input;
+	// 	}
 
-		public void setBlocked(boolean blocked) {
-			this.blocked = blocked;
-		}
+	// 	public void setOutput(boolean output) {
+	// 		this.output = output;
+	// 	}
 
-		public void setInput(boolean input) {
-			this.input = input;
-		}
+	// 	public void addSignalGroup(List<RailSlot> slots) {
+	// 		signalGroups.add(slots);
+	// 	}
 
-		public void setOutput(boolean output) {
-			this.output = output;
-		}
+	// 	public void addStation(RailSlot station) {
+	// 		stationSlots.add(station);
+	// 	}
 
-	}
+	// 	public List<List<RailSlot>> getSignalGroups() {
+	// 		return signalGroups;
+	// 	}
 
-	public static class RailNode {
-		private static class EdgeMap {
-			private Optional<EdgePair> edgePair = Optional.empty();
-			private Optional<Multimap<Direction, RailEdge>> edgeIntersection = Optional.empty();
+	// 	public List<RailSlot> getStationSlots() {
+	// 		return stationSlots;
+	// 	}
 
-			public void addEdge(Direction dir, RailEdge edge) {
-				if (!edgeIntersection.isPresent() && !edgePair.isPresent()) {
-					edgePair = Optional.of(new EdgePair(dir, edge));
-				} else if (edgePair.isPresent() && (dir == edgePair.get().dir.back())
-						&& !edgePair.get().rev.isPresent()) {
-					edgePair.get().rev = Optional.of(edge);
-				} else {
-					if (!edgeIntersection.isPresent()) {
-						EdgePair old = edgePair.get();
-						edgePair = Optional.empty();
-						LinkedHashMultimap<Direction, RailEdge> map = LinkedHashMultimap.create();
-						edgeIntersection = Optional.of(map);
-						map.put(old.dir, old.fwd);
-						old.rev.ifPresent(e -> map.put(old.dir.back(), e));
-					}
-					edgeIntersection.get().put(dir, edge);
-				}
-			}
+	// }
 
-			public Collection<RailEdge> getEdges(Direction dir) {
-				if (edgePair.isPresent()) {
-					EdgePair p = edgePair.get();
-					if (p.dir == dir) {
-						return ImmutableList.of(p.fwd);
-					} else if (p.rev.isPresent() && dir == p.dir.back()) {
-						return ImmutableList.of(p.rev.get());
-					} else {
-						return ImmutableList.of();
-					}
-				} else if (edgeIntersection.isPresent()) {
-					return edgeIntersection.get().get(dir);
-				} else {
-					return ImmutableList.of();
-				}
-			}
-		}
+	// public static class RailNode {
+	// 	private static class EdgeMap {
+	// 		private Optional<EdgePair> edgePair = Optional.empty();
+	// 		private Optional<Multimap<RailDirection, RailEdge>> edgeIntersection = Optional.empty();
 
-		private static class EdgePair {
-			private final Direction dir;
-			private final RailEdge fwd;
-			private Optional<RailEdge> rev = Optional.empty();
+	// 		public void addEdge(RailDirection dir, RailEdge edge) {
+	// 			if (!edgeIntersection.isPresent() && !edgePair.isPresent()) {
+	// 				edgePair = Optional.of(new EdgePair(dir, edge));
+	// 			} else if (edgePair.isPresent() && (dir == edgePair.get().dir.back())
+	// 					&& !edgePair.get().rev.isPresent()) {
+	// 				edgePair.get().rev = Optional.of(edge);
+	// 			} else {
+	// 				if (!edgeIntersection.isPresent()) {
+	// 					EdgePair old = edgePair.get();
+	// 					edgePair = Optional.empty();
+	// 					LinkedHashMultimap<RailDirection, RailEdge> map = LinkedHashMultimap.create();
+	// 					edgeIntersection = Optional.of(map);
+	// 					map.put(old.dir, old.fwd);
+	// 					old.rev.ifPresent(e -> map.put(old.dir.back(), e));
+	// 				}
+	// 				edgeIntersection.get().put(dir, edge);
+	// 			}
+	// 		}
 
-			public EdgePair(Direction dir, RailEdge fwd) {
-				this.dir = dir;
-				this.fwd = fwd;
-			}
-		}
+	// 		public Collection<RailEdge> getEdges(RailDirection dir) {
+	// 			if (edgePair.isPresent()) {
+	// 				EdgePair p = edgePair.get();
+	// 				if (p.dir == dir) {
+	// 					return ImmutableList.of(p.fwd);
+	// 				} else if (p.rev.isPresent() && dir == p.dir.back()) {
+	// 					return ImmutableList.of(p.rev.get());
+	// 				} else {
+	// 					return ImmutableList.of();
+	// 				}
+	// 			} else if (edgeIntersection.isPresent()) {
+	// 				return edgeIntersection.get().get(dir);
+	// 			} else {
+	// 				return ImmutableList.of();
+	// 			}
+	// 		}
+	// 	}
 
-		private final EdgeMap outgoingEdgeMap = new EdgeMap();
-		private final EdgeMap incomingEdgeMap = new EdgeMap();
-		private Optional<Set<Direction>> signals = Optional.empty();
-		private Optional<Direction> station = Optional.empty();
+	// 	private static class EdgePair {
+	// 		private final RailDirection dir;
+	// 		private final RailEdge fwd;
+	// 		private Optional<RailEdge> rev = Optional.empty();
 
-		public void addIncomingEdge(RailEdge edge) {
-			incomingEdgeMap.addEdge(edge.getEndDir(), edge);
-		}
+	// 		public EdgePair(RailDirection dir, RailEdge fwd) {
+	// 			this.dir = dir;
+	// 			this.fwd = fwd;
+	// 		}
+	// 	}
 
-		public void addOutgoingEdge(RailEdge edge) {
-			outgoingEdgeMap.addEdge(edge.getStartDir(), edge);
-		}
+	// 	private final EdgeMap outgoingEdgeMap = new EdgeMap();
+	// 	private final EdgeMap incomingEdgeMap = new EdgeMap();
 
-		public Collection<RailEdge> getIncomingEdges(Direction dir) {
-			return incomingEdgeMap.getEdges(dir);
-		}
+	// 	public void addIncomingEdge(RailEdge edge) {
+	// 		incomingEdgeMap.addEdge(edge.getEnd().dir, edge);
+	// 	}
 
-		public Collection<RailEdge> getOutgoingEdges(Direction dir) {
-			return outgoingEdgeMap.getEdges(dir);
-		}
+	// 	public void addOutgoingEdge(RailEdge edge) {
+	// 		outgoingEdgeMap.addEdge(edge.getStart().dir, edge);
+	// 	}
 
-		public Set<Direction> getSignals() {
-			return signals.orElse(ImmutableSet.of());
-		}
+	// 	public Collection<RailEdge> getIncomingEdges(RailDirection dir) {
+	// 		return incomingEdgeMap.getEdges(dir);
+	// 	}
 
-		public Optional<Direction> getStation() {
-			return station;
-		}
+	// 	public Collection<RailEdge> getOutgoingEdges(RailDirection dir) {
+	// 		return outgoingEdgeMap.getEdges(dir);
+	// 	}
+	// }
 
-		public boolean hasSignals() {
-			return signals.isPresent();
-		}
+	// public static class RailSlot {
+	// 	private EnumMap<RailDirection, MapEntity> entities = null;
 
-		public boolean isSignal(Direction dir) {
-			return signals.map(s -> s.contains(dir)).orElse(false);
-		}
+	// 	public Optional<MapEntity> get(RailDirection dir) {
+	// 		if (entities == null) {
+	// 			return Optional.empty();
+	// 		}
+	// 		return Optional.ofNullable(entities.get(dir));
+	// 	}
 
-		public void setSignal(Direction dir) {
-			if (!signals.isPresent()) {
-				signals = Optional.of(new LinkedHashSet<>());
-			}
-			signals.get().add(dir);
-		}
-
-		public void setStation(Direction dir) {
-			station = Optional.of(dir);
-		}
-	}
+	// 	public void set(RailDirection dir, MapEntity entity) {
+	// 		if (entities == null) {
+	// 			entities = new EnumMap<>(RailDirection.class);
+	// 		}
+	// 		entities.put(dir, entity);
+	// 	}
+	// }
 
 	// XXX Hash-based tables are not the most efficient here
 	// Row: X
@@ -275,6 +267,13 @@ public class WorldMap {
 	private final Table<Integer, Integer, Entry<String, Direction>> undergroundBeltEndings = HashBasedTable.create();
 	private final Table<Integer, Integer, List<BeaconSource>> beaconed = HashBasedTable.create();
 	private final Table<Integer, Integer, MapEntity> cargoBayConnectables = HashBasedTable.create();
+	private final Table<Integer, Integer, List<RailPoint>> railConnectionsGrounded = HashBasedTable.create();
+	private final Table<Integer, Integer, List<RailPoint>> railConnectionsElevated = HashBasedTable.create();
+	// private final Table<Integer, Integer, RailSlot> railSignalSlots = HashBasedTable.create();
+	// private final Table<Integer, Integer, RailSlot> elevatedRailSignalSlots = HashBasedTable.create();
+	// private final Table<Integer, Integer, RailNode> railNodes = HashBasedTable.create();
+	// private final Table<Integer, Integer, RailNode> elevatedRailNodes = HashBasedTable.create();
+	// private final Table<Integer, Integer, RailSlot> railStationSlots = HashBasedTable.create();
 
 	// TODO a more generalized approach
 	private final Table<Integer, Integer, MapEntity> nixieTubes = HashBasedTable.create();
@@ -282,9 +281,10 @@ public class WorldMap {
 	// Row: X*2
 	// Column: Y*2
 	private final Table<Integer, Integer, LogisticGridCell> logisticGrid = HashBasedTable.create();
-	private final Table<Integer, Integer, RailNode> railNodes = HashBasedTable.create();
 
-	private final List<Entry<RailEdge, RailEdge>> railEdges = new ArrayList<>();
+	// private final List<Entry<RailEdge, RailEdge>> railEdges = new ArrayList<>();
+
+	private final List<MapRail> rails = new ArrayList<>();
 
 	private final Set<String> unknownEntities = new HashSet<>();
 	private final Set<String> unknownTiles = new HashSet<>();
@@ -389,29 +389,63 @@ public class WorldMap {
 		return ret;
 	}
 
-	public RailNode getOrCreateRailNode(MapPosition pos) {
-		int kr = pos.getXHalfCell();
-		int kc = pos.getYHalfCell();
-		RailNode ret = railNodes.get(kr, kc);
-		if (ret == null) {
-			railNodes.put(kr, kc, ret = new RailNode());
-		}
-		return ret;
-	}
+	// public RailNode getOrCreateRailNode(MapPosition pos, boolean elevated) {
+	// 	int kr = pos.getXCell();
+	// 	int kc = pos.getYCell();
+	// 	Table<Integer, Integer, RailNode> table = elevated ? elevatedRailNodes : railNodes;
+	// 	RailNode ret = table.get(kr, kc);
+	// 	if (ret == null) {
+	// 		table.put(kr, kc, ret = new RailNode());
+	// 	}
+	// 	return ret;
+	// }
 
-	public List<Entry<RailEdge, RailEdge>> getRailEdges() {
-		return railEdges;
-	}
+	// public RailSlot getOrCreateSignalSlot(MapPosition pos, boolean elevated) {
+	// 	int kr = pos.getXCell();
+	// 	int kc = pos.getYCell();
+	// 	Table<Integer, Integer, RailSlot> table = elevated ? elevatedRailSignalSlots : railSignalSlots;
+	// 	RailSlot ret = table.get(kr, kc);
+	// 	if (ret == null) {
+	// 		table.put(kr, kc, ret = new RailSlot());
+	// 	}
+	// 	return ret;
+	// }
 
-	public Optional<RailNode> getRailNode(MapPosition pos) {
-		int kr = pos.getXHalfCell();
-		int kc = pos.getYHalfCell();
-		return Optional.ofNullable(railNodes.get(kr, kc));
-	}
+	// public RailSlot getOrCreateStationSlot(MapPosition pos) {
+	// 	int kr = pos.getXCell();
+	// 	int kc = pos.getYCell();
+	// 	RailSlot ret = railStationSlots.get(kr, kc);
+	// 	if (ret == null) {
+	// 		railStationSlots.put(kr, kc, ret = new RailSlot());
+	// 	}
+	// 	return ret;
+	// }
 
-	public Table<Integer, Integer, RailNode> getRailNodes() {
-		return railNodes;
-	}
+	// public List<Entry<RailEdge, RailEdge>> getRailEdges() {
+	// 	return railEdges;
+	// }
+
+	// public Optional<RailNode> getRailNode(MapPosition pos, boolean elevated) {
+	// 	int kr = pos.getXCell();
+	// 	int kc = pos.getYCell();
+	// 	return Optional.ofNullable(elevated ? elevatedRailNodes.get(kr, kc) : railNodes.get(kr, kc));
+	// }
+
+	// public Optional<RailSlot> getRailSignalSlot(MapPosition pos, boolean elevated) {
+	// 	int kr = pos.getXCell();
+	// 	int kc = pos.getYCell();
+	// 	return Optional.ofNullable(elevated ? elevatedRailSignalSlots.get(kr, kc) : railSignalSlots.get(kr, kc));
+	// }
+
+	// public Optional<RailSlot> getRailStationSlot(MapPosition pos) {
+	// 	int kr = pos.getXCell();
+	// 	int kc = pos.getYCell();
+	// 	return Optional.ofNullable(railStationSlots.get(kr, kc));
+	// }
+
+	// public Table<Integer, Integer, RailNode> getRailNodes(boolean elevated) {
+	// 	return elevated ? railNodes : elevatedRailNodes;
+	// }
 
 	public boolean isAltMode() {
 		return altMode;
@@ -521,18 +555,6 @@ public class WorldMap {
 		pipes.put(pos.getXCell(), pos.getYCell(), flags);
 	}
 
-	public void setRailEdge(MapPosition p1, Direction d1, MapPosition p2, Direction d2, boolean curved) {
-		RailNode node1 = getOrCreateRailNode(p1);
-		RailNode node2 = getOrCreateRailNode(p2);
-		RailEdge edge1 = new RailEdge(p1, d1, p2, d2, curved);
-		node1.addOutgoingEdge(edge1);
-		node2.addIncomingEdge(edge1);
-		RailEdge edge2 = new RailEdge(p2, d2, p1, d1, curved);
-		node2.addOutgoingEdge(edge2);
-		node1.addIncomingEdge(edge2);
-		railEdges.add(new SimpleEntry<>(edge1, edge2));
-	}
-
 	public void setFoundation(boolean foundation) {
 		this.foundation = foundation;
 	}
@@ -547,5 +569,57 @@ public class WorldMap {
 
 	public void setWall(MapPosition pos) {
 		walls.put(pos.getXCell(), pos.getYCell(), pos);
+	}
+
+	public void setRail(MapRail rail) {
+		MapPosition pos = rail.getPos();
+		RailDef def = rail.getDef();
+
+		MapPosition p1 = def.A.pos.add(pos);
+		MapPosition p2 = def.B.pos.add(pos);
+
+		setRailConnection(rail, def.A);
+		setRailConnection(rail, def.B);
+
+		rails.add(rail);
+	}
+
+	public void setRailConnection(MapRail rail, RailPoint point) {
+		MapPosition pos = rail.getPos().add(point.pos);
+		int kr = pos.getXCell();
+		int kc = pos.getYCell();
+
+		Table<Integer, Integer, List<RailPoint>> railConnections = point.elevated ? railConnectionsElevated : railConnectionsGrounded;
+		List<RailPoint> list = railConnections.get(kr, kc);
+		if (list == null) {
+			railConnections.put(kr, kc, list = new ArrayList<>());
+		}
+		list.add(point);
+	}
+
+	public boolean isRailConnected(MapRail rail, RailPoint point) {
+		MapPosition pos = rail.getPos().add(point.pos);
+		int kr = pos.getXCell();
+		int kc = pos.getYCell();
+
+		Table<Integer, Integer, List<RailPoint>> railConnections = point.elevated ? railConnectionsElevated : railConnectionsGrounded;
+		List<RailPoint> list = railConnections.get(kr, kc);
+		if (list == null) {
+			return false;
+		}
+
+		boolean checkElevated = point.elevated;
+		Dir16 checkDir = point.dir.back();
+
+		for (RailPoint r : list) {
+			if (checkElevated == r.elevated && checkDir == r.dir) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	public List<MapRail> getRails() {
+		return rails;
 	}
 }

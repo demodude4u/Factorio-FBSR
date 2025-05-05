@@ -1,9 +1,11 @@
 package com.demod.fbsr.fp;
 
+import java.util.Optional;
 import java.util.function.Consumer;
 
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.Direction;
+import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.def.ImageDef;
 import com.google.common.collect.ImmutableList;
 
@@ -17,6 +19,9 @@ public class FPRailPictureSet {
 	public final FPRailPieceLayers west;
 	public final FPRailPieceLayers northwest;
 
+	public final Optional<FPSprite16Way> frontRailEndings;
+	public final Optional<FPSprite16Way> backRailEndings;
+	
 	private final ImmutableList<FPRailPieceLayers> dirs;
 
 	public FPRailPictureSet(LuaValue lua) {
@@ -29,6 +34,10 @@ public class FPRailPictureSet {
 		west = new FPRailPieceLayers(lua.get("west"));
 		northwest = new FPRailPieceLayers(lua.get("northwest"));
 
+		Optional<FPSprite16Way> railEndings = FPUtils.opt(lua.get("rail_endings"), FPSprite16Way::new);
+		frontRailEndings = FPUtils.opt(lua.get("front_rail_endings"), FPSprite16Way::new).or(() -> railEndings);
+		backRailEndings = FPUtils.opt(lua.get("back_rail_endings"), FPSprite16Way::new).or(() -> railEndings);
+
 		dirs = ImmutableList.of(north, northeast, east, southeast, south, southwest, west, northwest);
 	}
 
@@ -37,6 +46,8 @@ public class FPRailPictureSet {
 	}
 
 	public void getDefs(Consumer<ImageDef> register, int variation) {
+		frontRailEndings.ifPresent(fp -> fp.getDefs(register));
+		backRailEndings.ifPresent(fp -> fp.getDefs(register));
 		dirs.forEach(fp -> fp.getDefs(register, variation));
 	}
 }

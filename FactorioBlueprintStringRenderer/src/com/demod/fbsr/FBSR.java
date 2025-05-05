@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
-import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -53,8 +52,6 @@ import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.factorio.prototype.RecipePrototype;
 import com.demod.factorio.prototype.TilePrototype;
 import com.demod.fbsr.WirePoints.WirePoint;
-import com.demod.fbsr.WorldMap.RailEdge;
-import com.demod.fbsr.WorldMap.RailNode;
 import com.demod.fbsr.bs.BSBlueprint;
 import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.bs.BSMetaEntity;
@@ -237,7 +234,8 @@ public class FBSR {
 			populateReverseLogistics(map);
 			populateTransitLogistics(map, request.show.pathInputs, request.show.pathOutputs);
 
-			populateRailBlocking(map);
+			populateRailBlocking(map, false);
+			populateRailBlocking(map, true);
 			populateRailStationLogistics(map);
 		}
 
@@ -611,131 +609,136 @@ public class FBSR {
 		AtlasManager.initialize();
 	}
 
-	private static void populateRailBlocking(WorldMap map) {
-		map.getRailNodes().cellSet().stream().filter(c -> c.getValue().hasSignals()).forEach(c -> {
-			RailNode blockingNode = c.getValue();
-			Set<Direction> signals = blockingNode.getSignals();
-			for (Direction signalDir : signals) {
-				Direction blockingDir = signalDir.back();
-				if (signals.contains(blockingDir)) {
-					continue;
-				}
+	private static void populateRailBlocking(WorldMap map, boolean elevated) {
+		// TODO fix rail logistics, redesign nodes as a virtual structure of the rails
 
-				{
-					Queue<RailEdge> work = new ArrayDeque<>();
-					work.addAll(blockingNode.getOutgoingEdges(blockingDir));
-					while (!work.isEmpty()) {
-						RailEdge edge = work.poll();
-						if (edge.isBlocked()) {
-							continue;
-						}
-						edge.setBlocked(true);
-						RailNode node = map.getRailNode(edge.getEndPos()).get();
-						if (node.hasSignals()) {
-							continue;
-						}
-						if (node.getIncomingEdges(edge.getEndDir()).stream().allMatch(e -> e.isBlocked())) {
-							work.addAll(node.getOutgoingEdges(edge.getEndDir().back()));
-						}
-					}
-				}
-
-				{
-					Queue<RailEdge> work = new ArrayDeque<>();
-					work.addAll(blockingNode.getIncomingEdges(blockingDir.back()));
-					while (!work.isEmpty()) {
-						RailEdge edge = work.poll();
-						if (edge.isBlocked()) {
-							continue;
-						}
-						edge.setBlocked(true);
-						RailNode node = map.getRailNode(edge.getStartPos()).get();
-						if (node.hasSignals()) {
-							continue;
-						}
-						if (node.getOutgoingEdges(edge.getStartDir()).stream().allMatch(e -> e.isBlocked())) {
-							work.addAll(node.getIncomingEdges(edge.getStartDir().back()));
-						}
-					}
-				}
-
-				// for (RailEdge startEdge :
-				// blockingNode.getOutgoingEdges(blockingDir)) {
-				// startEdge.setBlocked(true);
-				// RailNode node = map.getRailNode(startEdge.getEndPos()).get();
-				// Direction dir = startEdge.getEndDir();
-				// Collection<RailEdge> edges;
-				// while (!node.hasSignals() && ((edges =
-				// node.getOutgoingEdges(dir)).size() == 1)) {
-				// RailEdge edge = edges.iterator().next();
-				// if (edge.isBlocked()) {
-				// break;
-				// }
-				// edge.setBlocked(true);
-				// node = map.getRailNode(edge.getEndPos()).get();
-				// dir = edge.getEndDir();
-				// }
-				// }
-				//
-				// for (RailEdge startEdge :
-				// blockingNode.getIncomingEdges(blockingDir)) {
-				// startEdge.setBlocked(true);
-				// RailNode node = map.getRailNode(startEdge.getEndPos()).get();
-				// Direction dir = startEdge.getEndDir();
-				// Collection<RailEdge> edges;
-				// while (!node.hasSignals() && ((edges =
-				// node.getIncomingEdges(dir)).size() == 1)) {
-				// RailEdge edge = edges.iterator().next();
-				// if (edge.isBlocked()) {
-				// break;
-				// }
-				// edge.setBlocked(true);
-				// node = map.getRailNode(edge.getEndPos()).get();
-				// dir = edge.getEndDir();
-				// }
-				// }
-			}
-		});
+//		map.getRailNodes(elevated).cellSet().stream().filter(c -> c.getValue().hasSignals()).forEach(c -> {
+//			RailNode blockingNode = c.getValue();
+//			Set<RailDirection> signals = blockingNode.getSignals();
+//			for (RailDirection signalDir : signals) {
+//				RailDirection blockingDir = signalDir.back();
+//				if (signals.contains(blockingDir)) {
+//					continue;
+//				}
+//
+//
+//				{
+//					Queue<RailEdge> work = new ArrayDeque<>();
+//					work.addAll(blockingNode.getOutgoingEdges(blockingDir));
+//					while (!work.isEmpty()) {
+//						RailEdge edge = work.poll();
+//						if (edge.isBlocked()) {
+//							continue;
+//						}
+//						edge.setBlocked(true);
+//						RailNode node = map.getRailNode(edge.getEnd().pos, elevated).get();
+//						if (node.hasSignals()) {
+//							continue;
+//						}
+//						if (node.getIncomingEdges(edge.getEnd().dir).stream().allMatch(e -> e.isBlocked())) {
+//							work.addAll(node.getOutgoingEdges(edge.getEnd().dir.back()));
+//						}
+//					}
+//				}
+//
+//				{
+//					Queue<RailEdge> work = new ArrayDeque<>();
+//					work.addAll(blockingNode.getIncomingEdges(blockingDir.back()));
+//					while (!work.isEmpty()) {
+//						RailEdge edge = work.poll();
+//						if (edge.isBlocked()) {
+//							continue;
+//						}
+//						edge.setBlocked(true);
+//						RailNode node = map.getRailNode(edge.getStart().pos, elevated).get();
+//						if (node.hasSignals()) {
+//							continue;
+//						}
+//						if (node.getOutgoingEdges(edge.getStart().dir).stream().allMatch(e -> e.isBlocked())) {
+//							work.addAll(node.getIncomingEdges(edge.getStart().dir.back()));
+//						}
+//					}
+//				}
+//
+//				// for (RailEdge startEdge :
+//				// blockingNode.getOutgoingEdges(blockingDir)) {
+//				// startEdge.setBlocked(true);
+//				// RailNode node = map.getRailNode(startEdge.getEndPos()).get();
+//				// Direction dir = startEdge.getEndDir();
+//				// Collection<RailEdge> edges;
+//				// while (!node.hasSignals() && ((edges =
+//				// node.getOutgoingEdges(dir)).size() == 1)) {
+//				// RailEdge edge = edges.iterator().next();
+//				// if (edge.isBlocked()) {
+//				// break;
+//				// }
+//				// edge.setBlocked(true);
+//				// node = map.getRailNode(edge.getEndPos()).get();
+//				// dir = edge.getEndDir();
+//				// }
+//				// }
+//				//
+//				// for (RailEdge startEdge :
+//				// blockingNode.getIncomingEdges(blockingDir)) {
+//				// startEdge.setBlocked(true);
+//				// RailNode node = map.getRailNode(startEdge.getEndPos()).get();
+//				// Direction dir = startEdge.getEndDir();
+//				// Collection<RailEdge> edges;
+//				// while (!node.hasSignals() && ((edges =
+//				// node.getIncomingEdges(dir)).size() == 1)) {
+//				// RailEdge edge = edges.iterator().next();
+//				// if (edge.isBlocked()) {
+//				// break;
+//				// }
+//				// edge.setBlocked(true);
+//				// node = map.getRailNode(edge.getEndPos()).get();
+//				// dir = edge.getEndDir();
+//				// }
+//				// }
+//			}
+//		});
 	}
 
 	private static void populateRailStationLogistics(WorldMap map) {
-		map.getRailNodes().cellSet().stream().filter(c -> c.getValue().getStation().isPresent()).forEach(c -> {
-			RailNode stationNode = c.getValue();
-			Direction stationDir = stationNode.getStation().get();
+		// TODO fix rail logistics, redesign nodes as a virtual structure of the rails
 
-			{
-				Queue<RailEdge> work = new ArrayDeque<>();
-				work.addAll(stationNode.getOutgoingEdges(stationDir));
-				work.addAll(stationNode.getOutgoingEdges(stationDir.back()));
-				while (!work.isEmpty()) {
-					RailEdge edge = work.poll();
-					if (edge.isBlocked() || edge.isOutput()) {
-						continue;
-					}
-					edge.setOutput(true);
-					RailNode node = map.getRailNode(edge.getEndPos()).get();
-					if (node.getIncomingEdges(edge.getEndDir()).stream().allMatch(e -> e.isOutput())) {
-						work.addAll(node.getOutgoingEdges(edge.getEndDir().back()));
-					}
-				}
-			}
-
-			{
-				Queue<RailEdge> work = new ArrayDeque<>();
-				work.addAll(stationNode.getIncomingEdges(stationDir.back()));
-				while (!work.isEmpty()) {
-					RailEdge edge = work.poll();
-					if (edge.isBlocked() || edge.isInput()) {
-						continue;
-					}
-					edge.setInput(true);
-					RailNode node = map.getRailNode(edge.getStartPos()).get();
-					if (node.getOutgoingEdges(edge.getStartDir()).stream().allMatch(e -> e.isInput())) {
-						work.addAll(node.getIncomingEdges(edge.getStartDir().back()));
-					}
-				}
-			}
-		});
+//		map.getRailNodes(false).cellSet().stream().filter(c -> c.getValue().getStation().isPresent()).forEach(c -> {
+//			RailNode stationNode = c.getValue();
+//			RailDirection stationDir = stationNode.getStation().get();
+//
+//			{
+//				Queue<RailEdge> work = new ArrayDeque<>();
+//				work.addAll(stationNode.getOutgoingEdges(stationDir));
+//				work.addAll(stationNode.getOutgoingEdges(stationDir.back()));
+//				while (!work.isEmpty()) {
+//					RailEdge edge = work.poll();
+//					if (edge.isBlocked() || edge.isOutput()) {
+//						continue;
+//					}
+//					edge.setOutput(true);
+//					RailNode node = map.getRailNode(edge.getEnd().pos, false).get();
+//					if (node.getIncomingEdges(edge.getEnd().dir).stream().allMatch(e -> e.isOutput())) {
+//						work.addAll(node.getOutgoingEdges(edge.getEnd().dir.back()));
+//					}
+//				}
+//			}
+//
+//			{
+//				Queue<RailEdge> work = new ArrayDeque<>();
+//				work.addAll(stationNode.getIncomingEdges(stationDir.back()));
+//				while (!work.isEmpty()) {
+//					RailEdge edge = work.poll();
+//					if (edge.isBlocked() || edge.isInput()) {
+//						continue;
+//					}
+//					edge.setInput(true);
+//					RailNode node = map.getRailNode(edge.getStart().pos, false).get();
+//					if (node.getOutgoingEdges(edge.getStart().dir).stream().allMatch(e -> e.isInput())) {
+//						work.addAll(node.getIncomingEdges(edge.getStart().dir.back()));
+//					}
+//				}
+//			}
+//		});
 	}
 
 	private static void populateReverseLogistics(WorldMap map) {

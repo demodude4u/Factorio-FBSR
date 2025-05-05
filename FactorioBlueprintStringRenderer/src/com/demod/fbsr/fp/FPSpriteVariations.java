@@ -20,14 +20,12 @@ public class FPSpriteVariations {
 			sheet = Optional.empty();
 			sprites = FPUtils.optList(lua, FPSprite::new);
 
-		} else if (!lua.get("filename").isnil() //
-				|| !lua.get("filenames").isnil() //
-				|| !lua.get("layers").isnil()) {// This is a SpriteSheet
-			sheet = Optional.of(new FPSpriteSheet(lua));
-			sprites = Optional.empty();
-
-		} else {// This is a SpriteVariations
+		} else if (!lua.get("sheet").isnil()) {// This is a SpriteVariations
 			sheet = Optional.of(new FPSpriteSheet(lua.get("sheet")));
+			sprites = Optional.empty();
+		
+		} else {// This is a SpriteSheet
+			sheet = Optional.of(new FPSpriteSheet(lua));
 			sprites = Optional.empty();
 		}
 	}

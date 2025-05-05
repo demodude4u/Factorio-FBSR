@@ -22,8 +22,15 @@ public final class MapUtils {
 		return fp / (double) SCALING_FACTOR;
 	}
 
-	public static int truncate(int fp) {
+	public static int hardTruncate(int fp) {
 		return fp >> FRACTIONAL_BITS;
+	}
+
+	public static int softTruncate(int fp) {
+		int ret = fp >> FRACTIONAL_BITS;
+		int subState = (fp >> (FRACTIONAL_BITS - 3)) & 0b111;
+		// Round up if .875 or higher to the next number
+		return (subState == 0b111) ? ret + 1 : ret;
 	}
 
 }

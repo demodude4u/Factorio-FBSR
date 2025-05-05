@@ -37,6 +37,9 @@ public final class FPUtils {
 		if (lua.isnil()) {
 			return Optional.empty();
 		}
+		if ((lua.isobject() || lua.isarray()) && lua.length() == 0) {
+			return Optional.empty();
+		}
 		return Optional.of(factory.apply(lua));
 	}
 

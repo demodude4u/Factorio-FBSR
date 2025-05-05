@@ -189,4 +189,8 @@ public class MapRect3D {
 	public MapRect asMapRect() {
 		return new MapRect(x1fp, y1fp, x2fp - x1fp, y2fp - y1fp);
 	}
+
+    public boolean contains(MapPosition pos) {
+		return x1fp <= pos.xfp && pos.xfp <= x2fp && y1fp <= pos.yfp && pos.yfp <= y2fp;
+    }
 }

@@ -1,0 +1,14 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Launch Blueprint Bot",
+            "request": "launch",
+            "mainClass": "com.demod.fbsr.app.StartAllServices",
+            "projectName": "FactorioBlueprintStringRenderer",
+            "cwd": "${workspaceFolder}/FactorioBlueprintStringRenderer",
+            "vmArgs": "-Dfile.encoding=UTF-8 -Xmx12g"
+        }
+    ]
+}

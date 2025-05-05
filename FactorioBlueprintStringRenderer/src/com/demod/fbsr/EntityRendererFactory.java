@@ -62,6 +62,10 @@ public abstract class EntityRendererFactory {
 	}
 
 	protected MapRect3D computeBounds() {
+		return defaultComputeBounds();
+	}
+
+	protected MapRect3D defaultComputeBounds() {
 		LuaTable lua = prototype.lua();
 		Optional<FPBoundingBox> selectionBox = FPUtils.opt(lua.get("selection_box"), FPBoundingBox::new);
 		Optional<FPBoundingBox> collisionBox = FPUtils.opt(lua.get("collision_box"), FPBoundingBox::new);
