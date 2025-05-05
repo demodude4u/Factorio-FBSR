@@ -261,6 +261,7 @@ public class AtlasManager {
 
 	private static final int MAX_PARALLEL_LOADS = Runtime.getRuntime().availableProcessors() * 2;
 	private static final Semaphore loadingSemaphore = new Semaphore(MAX_PARALLEL_LOADS);
+	private static final int CLEANUP_INTERVAL = 1000;
 
 	private static JSONArray generateAtlases(File folderAtlas, File fileManifest) throws IOException {
 		Map<String, ImageSheetLoader> loaders = new LinkedHashMap<>();
@@ -268,7 +269,14 @@ public class AtlasManager {
 			loaders.put(def.getPath(), def.getLoader());
 		}
 
-		LoadingCache<String, BufferedImage> imageSheets = CacheBuilder.newBuilder().softValues()
+		LoadingCache<String, BufferedImage> imageSheets = CacheBuilder.newBuilder()
+				.softValues()
+				.maximumSize(MAX_PARALLEL_LOADS * 100)
+				.removalListener(notification -> {
+					if (notification.getValue() instanceof BufferedImage) {
+						((BufferedImage) notification.getValue()).flush();
+					}
+				})
 				.build(new CacheLoader<String, BufferedImage>() {
 					@Override
 					public BufferedImage load(String key) throws Exception {
@@ -289,9 +297,9 @@ public class AtlasManager {
 						def.setTrimmed(trimmed);
 					} finally {
 						loadingSemaphore.release();
-						// Do cleanup when releasing permit
-						if (processedCount.incrementAndGet() % 10000 == 0) {
+						if (processedCount.incrementAndGet() % CLEANUP_INTERVAL == 0) {
 							imageSheets.cleanUp();
+							imageSheets.invalidateAll();
 							LOGGER.info("Trimming Images... {}/{}", processedCount.get(), defs.size());
 						}
 					}
