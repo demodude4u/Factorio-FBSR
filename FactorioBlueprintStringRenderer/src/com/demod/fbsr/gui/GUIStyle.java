@@ -81,7 +81,7 @@ public final class GUIStyle {
 		File fileFont = new File(folderFonts, filename);
 
 		try {
-			if (FactorioManager.hasFactorioInstall()) {
+			if (FactorioManager.hasFactorioInstall() && !fileFont.exists()) {
 				InputStream inputStream = FactorioManager.getBaseData().getModResource(folder + "/" + filename).get();
 				Files.copy(inputStream, fileFont.toPath(), StandardCopyOption.REPLACE_EXISTING);
 			}
