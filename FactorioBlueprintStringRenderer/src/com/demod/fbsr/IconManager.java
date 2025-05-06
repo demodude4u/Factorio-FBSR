@@ -1,5 +1,10 @@
 package com.demod.fbsr;
 
+import java.awt.Color;
+import java.awt.Composite;
+import java.awt.Graphics2D;
+import java.awt.Rectangle;
+import java.awt.image.BufferedImage;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -9,6 +14,8 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import javax.swing.FocusManager;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,46 +27,18 @@ import com.demod.factorio.prototype.DataPrototype;
 import com.demod.factorio.prototype.ItemSubGroupPrototype;
 import com.demod.factorio.prototype.RecipePrototype;
 import com.demod.fbsr.RichText.TagToken;
+import com.demod.fbsr.composite.TintComposite;
 import com.demod.fbsr.def.IconDef;
+import com.demod.fbsr.def.ImageDef;
+import com.demod.fbsr.def.SpriteDef;
+import com.demod.fbsr.fp.FPSprite;
+import com.demod.fbsr.fp.FPUtilitySprites;
 import com.google.common.collect.ImmutableMap;
 
 public class IconManager {
 	private static final Logger LOGGER = LoggerFactory.getLogger(IconManager.class);
 
 	public static final int ICON_SIZE = 64;
-
-//	private static final Map<String, IconCategory> tagCategories = new HashMap<>();
-//	static {
-//		tagCategories.put("item", IconCategory.ITEM);
-//		tagCategories.put("entity", IconCategory.ENTITY);
-//		tagCategories.put("technology", IconCategory.TECHNOLOGY);
-//		tagCategories.put("recipe", IconCategory.RECIPE);
-//		tagCategories.put("item-group", IconCategory.ITEM_GROUP);
-//		tagCategories.put("fluid", IconCategory.FLUID);
-//		tagCategories.put("tile", IconCategory.TILE);
-//		tagCategories.put("virtual-signal", IconCategory.VIRTUAL_SIGNAL);
-//		tagCategories.put("achievement", IconCategory.ACHIEVEMENT);
-//		tagCategories.put("armor", IconCategory.ARMOR);
-//		tagCategories.put("shortcut", IconCategory.SHORTCUT);
-//		tagCategories.put("quality", IconCategory.QUALITY);
-//		tagCategories.put("planet", IconCategory.PLANET);
-//		tagCategories.put("space-location", IconCategory.SPACE_LOCATION);
-//	}
-//	private static final Map<String, Supplier<ImageDef>> tagPlaceholders = new HashMap<>();
-//	static {
-//
-//	}
-	// Details found at https://wiki.factorio.com/rich_text
-	// Tags that need placeholders or fancy parsing:
-	// TODO img
-	// TODO gps
-	// TODO special-item
-	// TODO train
-	// TODO train-stop
-	// TODO tip
-	// TODO tooltip
-	// TODO space-platform
-	// TODO space-age
 
 	public static class PrototypeResolver extends IconResolver {
 		protected final Map<String, ? extends DataPrototype> map;
@@ -207,6 +186,69 @@ public class IconManager {
 		}
 	}
 
+	public static abstract class TagResolver {
+		public abstract Optional<TagWithQuality> lookup(TagToken tag);
+	}
+
+	public static class DelegateTagResolver extends TagResolver {
+		private final IconResolver resolver;
+
+		public DelegateTagResolver(IconResolver resolver) {
+			this.resolver = resolver;
+		}
+
+		@Override
+		public Optional<TagWithQuality> lookup(TagToken tag) {
+			return resolver.lookup(tag.value).map(def -> new TagWithQuality(def, tag.quality));
+		}
+	}
+
+	public static class PlaceholderTagResolver extends TagResolver {
+		private final ImageDef def;
+
+		public PlaceholderTagResolver(FPSprite sprite){
+			def = new ImageDef("[TAG]" + sprite.filename.get() + "/" + ICON_SIZE, k -> convertSprite(sprite), new Rectangle(ICON_SIZE, ICON_SIZE));
+			
+			AtlasManager.registerDef(def);
+		}
+
+		public PlaceholderTagResolver(IconResolver resolver, String name) {
+			def = resolver.lookup(name).get();
+		}
+
+		private BufferedImage convertSprite(FPSprite sprite) {
+			BufferedImage icon = new BufferedImage(ICON_SIZE, ICON_SIZE, BufferedImage.TYPE_INT_ARGB);
+			Graphics2D g = icon.createGraphics();
+			Composite pc = g.getComposite();
+
+			List<SpriteDef> defs = sprite.defineSprites();
+			if (defs.size() != 1) {
+				throw new IllegalArgumentException("Placeholder tag resolver only supports single layer sprites!");
+			}
+			SpriteDef def = defs.get(0);
+
+			BufferedImage imageSheet = FactorioManager.lookupModImage(def.getPath());
+
+			if (def.getTint().isPresent() && !def.getTint().get().equals(Color.white)) {
+				g.setComposite(new TintComposite(def.getTint().get()));
+			} else {
+				g.setComposite(pc);
+			}
+
+			Rectangle source = def.getSource();
+			g.drawImage(imageSheet, 0, 0, ICON_SIZE, ICON_SIZE,
+					source.x, source.y, source.x + source.width, source.y + source.height, null);
+			g.dispose();
+
+			return icon;
+		}
+
+		@Override
+		public Optional<TagWithQuality> lookup(TagToken tag) {
+			return Optional.of(new TagWithQuality(def, tag.quality));
+		}
+	}
+
 	private static final Map<String, Function<String, Optional<IconDef>>> signalResolvers = ImmutableMap
 			.<String, Function<String, Optional<IconDef>>>builder()//
 			.put("item", IconManager::lookupItem)//
@@ -237,6 +279,8 @@ public class IconManager {
 	private static IconResolver spaceLocationResolver;
 	private static IconResolver asteroidChunkResolver;
 
+	private static Map<String, TagResolver> tagResolvers = new HashMap<>();
+
 	public static void initialize() {
 		if (initialized) {
 			return;
@@ -258,6 +302,34 @@ public class IconManager {
 		planetResolver = IconResolver.forPath("planet");
 		spaceLocationResolver = IconResolver.forPath("space-location", "planet");
 		asteroidChunkResolver = IconResolver.forPath("asteroid-chunk");
+
+		FPUtilitySprites utilitySprites = FactorioManager.getUtilitySprites();
+		//TODO img should at least resolve class.name format
+		tagResolvers.put("img", new PlaceholderTagResolver(utilitySprites.questionmark));
+		tagResolvers.put("item", new DelegateTagResolver(itemResolver));
+		tagResolvers.put("entity", new DelegateTagResolver(entityResolver));
+		tagResolvers.put("technology", new DelegateTagResolver(technologyResolver));
+		tagResolvers.put("recipe", new DelegateTagResolver(recipeResolver));
+		tagResolvers.put("item-group", new DelegateTagResolver(itemGroupResolver));
+		tagResolvers.put("fluid", new DelegateTagResolver(fluidResolver));
+		tagResolvers.put("tile", new DelegateTagResolver(tileResolver));
+		tagResolvers.put("virtual-signal", new DelegateTagResolver(virtualSignalResolver));
+		tagResolvers.put("virtual", new DelegateTagResolver(virtualSignalResolver));
+		tagResolvers.put("achievement", new DelegateTagResolver(achievementResolver));
+		tagResolvers.put("gps", new PlaceholderTagResolver(utilitySprites.gpsMapIcon));
+		tagResolvers.put("special-item", new PlaceholderTagResolver(itemResolver, "blueprint"));
+		tagResolvers.put("armor", new DelegateTagResolver(armorResolver));
+		tagResolvers.put("train", new PlaceholderTagResolver(itemResolver, "locomotive"));
+		tagResolvers.put("train-stop", new PlaceholderTagResolver(itemResolver, "train-stop"));
+		tagResolvers.put("shortcut", new DelegateTagResolver(shortcutResolver));
+		tagResolvers.put("tip", new PlaceholderTagResolver(utilitySprites.tipIcon));
+		tagResolvers.put("tooltip", new PlaceholderTagResolver(utilitySprites.customTagIcon));
+		tagResolvers.put("quality", new DelegateTagResolver(qualityResolver));
+		tagResolvers.put("space-platform", new PlaceholderTagResolver(itemResolver, "space-platform-hub"));
+		tagResolvers.put("planet", new DelegateTagResolver(planetResolver));
+		tagResolvers.put("space-location", new DelegateTagResolver(spaceLocationResolver));
+		tagResolvers.put("space-age", new PlaceholderTagResolver(utilitySprites.spaceAgeIcon));
+		tagResolvers.put("asteroid-chunk", new DelegateTagResolver(asteroidChunkResolver));
 	}
 
 	public static Optional<IconDef> lookupItem(String name) {
@@ -329,9 +401,8 @@ public class IconManager {
 		}
 	}
 
-	public static Optional<IconDefWithQuality> lookupTag(TagToken tag) {
-		// TODO
-		return Optional.empty();
+	public static Optional<TagWithQuality> lookupTag(TagToken tag) {
+		return Optional.ofNullable(tagResolvers.get(tag.name)).flatMap(r-> r.lookup(tag));
 	}
 
 	public static Optional<IconDefWithQuality> lookupFilter(Optional<String> type, Optional<String> name,

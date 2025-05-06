@@ -8,6 +8,7 @@ import java.awt.Shape;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalDouble;
@@ -21,16 +22,20 @@ import com.demod.dcba.CommandReporting;
 import com.demod.fbsr.FBSR;
 import com.demod.fbsr.RenderRequest;
 import com.demod.fbsr.RenderResult;
+import com.demod.fbsr.RichText;
+import com.demod.fbsr.RichText.TagToken;
 import com.demod.fbsr.bs.BSBlueprint;
 import com.demod.fbsr.bs.BSBlueprintBook;
+import com.demod.fbsr.bs.BSIcon;
+import com.demod.fbsr.gui.GUIAlign;
 import com.demod.fbsr.gui.GUIBox;
 import com.demod.fbsr.gui.GUISize;
 import com.demod.fbsr.gui.GUIStyle;
 import com.demod.fbsr.gui.feature.GUIPipeFeature;
 import com.demod.fbsr.gui.part.GUIImage;
 import com.demod.fbsr.gui.part.GUILabel;
-import com.demod.fbsr.gui.part.GUILabel.Align;
 import com.demod.fbsr.gui.part.GUIPanel;
+import com.demod.fbsr.gui.part.GUIRichText;
 import com.google.common.collect.ArrayTable;
 import com.google.common.collect.Table;
 
@@ -40,14 +45,16 @@ public class GUILayoutBook {
 		public final int rows;
 		public final int cols;
 		public final Optional<String> label;
+		public final List<BSIcon> icons;
 		public final BufferedImage image;
 
 		private final Rectangle location;
 
-		public ImageBlock(int rows, int cols, Optional<String> label, BufferedImage image) {
+		public ImageBlock(int rows, int cols, Optional<String> label, List<BSIcon> icons, BufferedImage image) {
 			this.rows = rows;
 			this.cols = cols;
 			this.label = label;
+			this.icons = icons;
 			this.image = image;
 
 			location = new Rectangle(cols, rows);
@@ -187,7 +194,7 @@ public class GUILayoutBook {
 		GUIPanel creditPanel = new GUIPanel(creditBounds, GUIStyle.FRAME_TAB);
 		creditPanel.render(g);
 		GUILabel lblCredit = new GUILabel(creditBounds, "BlueprintBot " + FBSR.getVersion(),
-				GUIStyle.FONT_BP_BOLD.deriveFont(16f), Color.GRAY, Align.TOP_CENTER);
+				GUIStyle.FONT_BP_BOLD.deriveFont(16f), Color.GRAY, GUIAlign.TOP_CENTER);
 		lblCredit.render(g);
 	}
 
@@ -228,9 +235,23 @@ public class GUILayoutBook {
 			GUIImage image = new GUIImage(new GUIBox(centerX, centerY, 0, 0), block.image, true);
 			image.render(g);
 
+			StringBuilder labelText = new StringBuilder();
+
+			block.icons.stream().sorted(Comparator.comparing(i -> i.index)).forEach(i -> {
+				TagToken tag = new TagToken(i.signal.type, i.signal.name, i.signal.quality);
+				labelText.append(tag.formatted());
+			});
+
 			if (block.label.isPresent()) {
-				String label = block.label.get();
-				g.drawString(label, x + 25, y + 35);
+				if (!labelText.isEmpty()) {
+					labelText.append(" ");
+				}
+				labelText.append(block.label.get());
+			}
+
+			if (!labelText.isEmpty()) {
+				RichText label = new RichText(labelText.toString());
+				label.draw(g, x + 25, y + 35);
 			}
 		}
 
@@ -257,13 +278,22 @@ public class GUILayoutBook {
 	}
 
 	private void drawTitleBar(Graphics2D g, GUIBox bounds) {
-		GUILabel lblTitle = new GUILabel(bounds.shrinkBottom(8).shrinkLeft(24),
+		GUIRichText lblTitle = new GUIRichText(bounds.shrinkBottom(6).shrinkLeft(24),
 				book.label.orElse("Untitled Blueprint Book"), GUIStyle.FONT_BP_BOLD.deriveFont(24f),
-				GUIStyle.FONT_BP_COLOR, Align.CENTER_LEFT);
+				GUIStyle.FONT_BP_COLOR, GUIAlign.CENTER_LEFT);
 		lblTitle.render(g);
 
+		StringBuilder iconText = new StringBuilder();
+		book.icons.ifPresent(l -> l.stream().sorted(Comparator.comparing(i -> i.index)).forEach(i -> {
+			TagToken tag = new TagToken(i.signal.type, i.signal.name, i.signal.quality);
+			iconText.append(tag.formatted());
+		}));
+		GUIRichText lblIcons = new GUIRichText(bounds.shrinkBottom(6).shrinkRight(22),
+				iconText.toString(), GUIStyle.FONT_BP_BOLD.deriveFont(24f), GUIStyle.FONT_BP_COLOR, GUIAlign.CENTER_RIGHT);
+		lblIcons.render(g);
+
 		int startX = bounds.x + (int) (lblTitle.getTextWidth(g) + 44);
-		int endX = bounds.x + bounds.width - 24;
+		int endX = bounds.x + bounds.width - (int)lblIcons.getTextWidth(g) - (iconText.isEmpty() ? 24 : 46);
 		GUIPipeFeature pipe = GUIStyle.DRAG_LINES;
 		for (int x = endX - pipe.size; x >= startX; x -= pipe.size) {
 			pipe.renderVertical(g, x, bounds.y + 10, bounds.y + bounds.height - 10);
@@ -316,7 +346,8 @@ public class GUILayoutBook {
 
 			int rows = (result.image.getHeight() + BP_CELL_SIZE.height - 1) / BP_CELL_SIZE.height;
 			int cols = (result.image.getWidth() + BP_CELL_SIZE.width - 1) / BP_CELL_SIZE.width;
-			blocks.add(new ImageBlock(rows, cols, result.request.getBlueprint().label, result.image));
+			BSBlueprint blueprint = result.request.getBlueprint();
+			blocks.add(new ImageBlock(rows, cols, blueprint.label, blueprint.icons, result.image));
 		}
 
 		packBounds = packBlocks(blocks, DISCORD_IMAGE_RATIO);

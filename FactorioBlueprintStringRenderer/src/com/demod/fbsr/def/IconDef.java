@@ -5,6 +5,7 @@ import java.util.List;
 
 import com.demod.factorio.prototype.DataPrototype;
 import com.demod.fbsr.IconLayer;
+import com.demod.fbsr.fp.FPSprite;
 
 public class IconDef extends ImageDef {
 

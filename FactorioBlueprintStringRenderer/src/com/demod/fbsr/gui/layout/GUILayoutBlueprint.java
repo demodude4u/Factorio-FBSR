@@ -30,11 +30,13 @@ import com.demod.fbsr.FactorioManager;
 import com.demod.fbsr.RenderRequest;
 import com.demod.fbsr.RenderResult;
 import com.demod.fbsr.RenderUtils;
+import com.demod.fbsr.RichText.TagToken;
 import com.demod.fbsr.IconManager;
 import com.demod.fbsr.bs.BSBlueprint;
 import com.demod.fbsr.composite.TintComposite;
 import com.demod.fbsr.def.IconDef;
 import com.demod.fbsr.def.ImageDef;
+import com.demod.fbsr.gui.GUIAlign;
 import com.demod.fbsr.gui.GUIBox;
 import com.demod.fbsr.gui.GUISize;
 import com.demod.fbsr.gui.GUISpacing;
@@ -43,9 +45,9 @@ import com.demod.fbsr.gui.feature.GUIPipeFeature;
 import com.demod.fbsr.gui.part.GUIImage;
 import com.demod.fbsr.gui.part.GUIImageDef;
 import com.demod.fbsr.gui.part.GUILabel;
-import com.demod.fbsr.gui.part.GUILabel.Align;
 import com.demod.fbsr.gui.part.GUIPanel;
 import com.demod.fbsr.gui.part.GUIPart;
+import com.demod.fbsr.gui.part.GUIRichText;
 import com.google.common.collect.ImmutableMap;
 
 public class GUILayoutBlueprint {
@@ -91,7 +93,7 @@ public class GUILayoutBlueprint {
 		GUIPanel creditPanel = new GUIPanel(creditBounds, GUIStyle.FRAME_TAB);
 		renderTinted(creditPanel);
 		GUILabel lblCredit = new GUILabel(creditBounds, "BlueprintBot " + FBSR.getVersion(),
-				GUIStyle.FONT_BP_BOLD.deriveFont(16f), Color.GRAY, Align.TOP_CENTER);
+				GUIStyle.FONT_BP_BOLD.deriveFont(16f), Color.GRAY, GUIAlign.TOP_CENTER);
 		renderTinted(lblCredit);
 	}
 
@@ -136,7 +138,7 @@ public class GUILayoutBlueprint {
 
 		if (spaceAge) {
 			GUIStyle.CIRCLE_WHITE.render(g, boundsCell);
-			GUILabel label = new GUILabel(boundsCell, "Space Age", fontMod, Color.black, Align.CENTER);
+			GUILabel label = new GUILabel(boundsCell, "Space Age", fontMod, Color.black, GUIAlign.CENTER);
 			label.render(g);
 			boundsCell = boundsCell.indexed(1, 0);
 		}
@@ -147,7 +149,7 @@ public class GUILayoutBlueprint {
 			GUIBox boundsLabel = (minWidth > boundsCell.width) ? boundsCell.expandLeft(minWidth - boundsCell.width)
 					: boundsCell;
 			GUIStyle.CIRCLE_YELLOW.render(g, boundsLabel);
-			GUILabel label = new GUILabel(boundsLabel, mod, fontMod, Color.black, Align.CENTER);
+			GUILabel label = new GUILabel(boundsLabel, mod, fontMod, Color.black, GUIAlign.CENTER);
 			label.render(g);
 			boundsCell = boundsCell.indexed(1, 0);
 		}
@@ -180,7 +182,7 @@ public class GUILayoutBlueprint {
 				g.setComposite(pc);
 
 				GUILabel lblTitle = new GUILabel(bounds.cutTop(subPanelInset.top).shrink(20, 24, 8, 24), title,
-						GUIStyle.FONT_BP_BOLD.deriveFont(18f), GUIStyle.FONT_BP_COLOR, Align.CENTER);
+						GUIStyle.FONT_BP_BOLD.deriveFont(18f), GUIStyle.FONT_BP_COLOR, GUIAlign.CENTER);
 				lblTitle.render(g);
 			}
 		}
@@ -345,13 +347,22 @@ public class GUILayoutBlueprint {
 	}
 
 	private void drawTitleBar(GUIBox bounds) {
-		GUILabel lblTitle = new GUILabel(bounds.shrinkBottom(8).shrinkLeft(24),
+		GUIRichText lblTitle = new GUIRichText(bounds.shrinkBottom(6).shrinkLeft(24),
 				blueprint.label.orElse("Untitled Blueprint"), GUIStyle.FONT_BP_BOLD.deriveFont(24f),
-				GUIStyle.FONT_BP_COLOR, Align.CENTER_LEFT);
+				GUIStyle.FONT_BP_COLOR, GUIAlign.CENTER_LEFT);
 		lblTitle.render(g);
 
-		int startX = bounds.x + (int) (lblTitle.getTextWidth(g) + 44);
-		int endX = bounds.x + bounds.width - 24;
+		StringBuilder iconText = new StringBuilder();
+		blueprint.icons.stream().sorted(Comparator.comparing(i -> i.index)).forEach(i -> {
+			TagToken tag = new TagToken(i.signal.type, i.signal.name, i.signal.quality);
+			iconText.append(tag.formatted());
+		});
+		GUIRichText lblIcons = new GUIRichText(bounds.shrinkBottom(6).shrinkRight(22),
+				iconText.toString(), GUIStyle.FONT_BP_BOLD.deriveFont(24f), GUIStyle.FONT_BP_COLOR, GUIAlign.CENTER_RIGHT);
+		lblIcons.render(g);
+
+		int startX = bounds.x + (int)lblTitle.getTextWidth(g) + 44;
+		int endX = bounds.x + bounds.width - (int)lblIcons.getTextWidth(g) - (iconText.isEmpty() ? 24 : 46);
 		GUIPipeFeature pipe = GUIStyle.DRAG_LINES;
 		g.setComposite(tint);
 		for (int x = endX - pipe.size; x >= startX; x -= pipe.size) {
