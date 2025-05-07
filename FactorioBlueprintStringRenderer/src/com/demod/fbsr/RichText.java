@@ -19,6 +19,8 @@ import com.demod.fbsr.map.MapRect;
 
 public class RichText {
 
+	private static final Pattern TOKEN_PATTERN = Pattern.compile("\\[(?<name>/?[^\\]=]+)(=(?<value>[^\\]]*?)(,quality=(?<quality>[^\\]]+))?)?\\]");
+
 	public interface Token {
 	}
 
@@ -89,8 +91,7 @@ public class RichText {
 
 	private List<Token> parse(String raw) {
 		List<Token> tokens = new ArrayList<>();
-		Pattern pattern = Pattern.compile("\\[(?<name>/?[^\\]=]+)(=(?<value>[^,\\]]+)(,quality=(?<quality>[^\\]]+))?)?\\]");
-		Matcher matcher = pattern.matcher(raw);
+		Matcher matcher = TOKEN_PATTERN.matcher(raw);
 		int lastIndex = 0;
 		while (matcher.find()) {
 			if (matcher.start() > lastIndex) {
