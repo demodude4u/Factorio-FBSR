@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 
 import com.demod.fbsr.IconDefWithQuality;
 import com.demod.fbsr.IconManager;
+import com.demod.fbsr.LogisticGridCell;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapPosition;
@@ -22,12 +23,13 @@ public class BasicContainerRendering extends ContainerRendering {
 
 		MapPosition pos = entity.getPosition();
 
-		List<String> outputs = map.getLogisticGridCells(getDrawBounds(entity).asMapRect()).stream()
-				.flatMap(c -> c.getOutputs().stream().flatMap(o -> o.stream())).distinct().collect(Collectors.toList());
+		List<LogisticGridCell> cells = map.getLogisticGridCells(entity.getBounds().asMapRect());
+		List<String> items = cells.stream()
+				.flatMap(c -> c.getTransits().stream().flatMap(o -> o.stream())).distinct().collect(Collectors.toList());
 
-		if (outputs.size() > 0 && map.isAltMode()) {
+		if (items.size() > 0 && map.isAltMode()) {
 
-			List<IconDefWithQuality> icons = outputs.stream()
+			List<IconDefWithQuality> icons = items.stream()
 					.flatMap(i -> IconManager.lookupItem(i).stream()
 							.map(d -> new IconDefWithQuality(d, Optional.empty())))
 					.sorted(Comparator.comparing(iwq -> iwq.getDef().getPrototype())).limit(4)
