@@ -59,6 +59,7 @@ import com.demod.fbsr.bs.BSItemStack;
 import com.demod.fbsr.bs.BSItemStackItem;
 import com.demod.fbsr.bs.BSItemWithQualityID;
 import com.demod.fbsr.bs.BSMetaEntity;
+import com.demod.fbsr.bs.BSPosition;
 import com.demod.fbsr.bs.BSTile;
 import com.demod.fbsr.bs.BSWire;
 import com.demod.fbsr.entity.ErrorRendering;
@@ -75,6 +76,7 @@ import com.demod.fbsr.map.MapRailLogistics;
 import com.demod.fbsr.map.MapRect;
 import com.demod.fbsr.map.MapRect3D;
 import com.demod.fbsr.map.MapRenderable;
+import com.demod.fbsr.map.MapSnapToGrid;
 import com.demod.fbsr.map.MapText;
 import com.demod.fbsr.map.MapTile;
 import com.demod.fbsr.map.MapWire;
@@ -332,6 +334,11 @@ public class FBSR {
 				}
 			}
 
+			if (map.isAltMode() && blueprint.snapToGrid.isPresent()) {
+				BSPosition dim = blueprint.snapToGrid.get();
+				register.accept(new MapSnapToGrid(MapRect.byUnit(0, 0, dim.x, dim.y)));
+			}
+
 			register.accept(new MapDebug(request.debug, map, mapEntities, mapTiles));
 
 			register.accept(new MapItemLogistics(map));
@@ -347,7 +354,7 @@ public class FBSR {
 			double gridPadding = (showGrid && gridShowNumbers) ? 1 : 0;
 			double worldPadding = 0.1;
 
-			MapRect3D gridBounds = calculateGridBounds(mapEntities, mapTiles);
+			MapRect3D gridBounds = calculateGridBounds(mapEntities, mapTiles, blueprint.snapToGrid);
 
 			screenBounds = new Rectangle2D.Double();
 			screenBounds.setFrameFromDiagonal(gridBounds.getX1() - worldPadding - gridPadding,
@@ -840,7 +847,7 @@ public class FBSR {
 		return executor.submit(new ImageRenderer(request));
 	}
 
-	private static MapRect3D calculateGridBounds(List<MapEntity> mapEntities, List<MapTile> mapTiles) {
+	private static MapRect3D calculateGridBounds(List<MapEntity> mapEntities, List<MapTile> mapTiles, Optional<BSPosition> snapToGrid) {
 
 		int tilefp = MapUtils.unitToFixedPoint(1.0);
 
@@ -880,6 +887,14 @@ public class FBSR {
 				x2fp = Math.max(x2fp, xfp + wfp);
 				y2fp = Math.max(y2fp, yfp + hfp);
 			}
+		}
+
+		if (snapToGrid.isPresent()) {
+			MapPosition dim = snapToGrid.get().createPoint();
+			x1fp = Math.min(x1fp, 0);
+			y1fp = Math.min(y1fp, 0);
+			x2fp = Math.max(x2fp, dim.getXFP());
+			y2fp = Math.max(y2fp, dim.getYFP());
 		}
 
 		return MapRect3D.byFixedPoint(x1fp, y1fp, x2fp, y2fp, heightfp);

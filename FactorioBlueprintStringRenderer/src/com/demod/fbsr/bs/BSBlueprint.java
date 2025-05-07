@@ -25,6 +25,7 @@ public class BSBlueprint {
 	public final List<BSSchedule> schedules;
 	public final List<BSParameter> parameters;
 	public final Optional<BSPosition> snapToGrid;
+	public final Optional<BSPosition> positionRelativeToGrid;
 	public final boolean absoluteSnapping;
 	public final List<BSWire> wires;
 
@@ -44,6 +45,7 @@ public class BSBlueprint {
 			schedules = ImmutableList.of();
 			parameters = ImmutableList.of();
 			snapToGrid = Optional.empty();
+			positionRelativeToGrid = Optional.empty();
 			absoluteSnapping = false;
 			wires = ImmutableList.of();// TODO
 
@@ -55,8 +57,9 @@ public class BSBlueprint {
 			tiles = BSUtils.list(json, "tiles", BSTile::new);
 			schedules = BSUtils.list(json, "schedules", BSSchedule::new);
 			parameters = BSUtils.list(json, "parameters", BSParameter::new);
-			snapToGrid = BSUtils.optPosition(json, "snap_to_grid");
-			absoluteSnapping = json.optBoolean("absolute_snapping");
+			snapToGrid = BSUtils.optPosition(json, "snap-to-grid");
+			positionRelativeToGrid = BSUtils.optPosition(json, "position-relative-to-grid");
+			absoluteSnapping = json.optBoolean("absolute-snapping");
 
 			if (json.has("wires")) {
 				Builder<BSWire> wires = ImmutableList.builder();
