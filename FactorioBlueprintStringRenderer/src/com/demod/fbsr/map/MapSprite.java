@@ -9,6 +9,7 @@ import java.awt.geom.AffineTransform;
 import java.util.Optional;
 
 import com.demod.fbsr.AtlasManager.AtlasRef;
+import com.demod.fbsr.BlendMode;
 import com.demod.fbsr.composite.TintComposite;
 import com.demod.fbsr.composite.TintOverlayComposite;
 import com.demod.fbsr.def.LayeredSpriteDef;
@@ -55,9 +56,10 @@ public class MapSprite extends MapRenderable implements MapBounded {
 		Composite pc = g.getComposite();
 		AffineTransform pat = g.getTransform();
 
+		BlendMode blendMode = def.getBlendMode();
 		Optional<Color> tint = tintOverride(def.getTint());
-		// TODO tint with blending
-		if (tint.isPresent()) {
+		// TODO tint with additive blending
+		if (tint.isPresent() && blendMode == BlendMode.NORMAL) {
 			if (def.isTintAsOverlay()) {
 				g.setComposite(new TintOverlayComposite(tint.get()));
 			} else {
@@ -65,7 +67,7 @@ public class MapSprite extends MapRenderable implements MapBounded {
 			}
 
 		} else {
-			g.setComposite(def.getBlendMode().getComposite());
+			g.setComposite(blendMode.getComposite());
 		}
 
 		// TODO change the approach to eliminate transforming on every sprite
