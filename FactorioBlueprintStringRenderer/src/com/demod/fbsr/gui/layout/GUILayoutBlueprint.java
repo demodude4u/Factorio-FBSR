@@ -362,7 +362,7 @@ public class GUILayoutBlueprint {
 		lblIcons.render(g);
 
 		int startX = bounds.x + (int)lblTitle.getTextWidth(g) + 44;
-		int endX = bounds.x + bounds.width - (int)lblIcons.getTextWidth(g) - (iconText.isEmpty() ? 24 : 46);
+		int endX = bounds.x + bounds.width - (int)lblIcons.getTextWidth(g) - (iconText.length() == 0 ? 24 : 46);
 		GUIPipeFeature pipe = GUIStyle.DRAG_LINES;
 		g.setComposite(tint);
 		for (int x = endX - pipe.size; x >= startX; x -= pipe.size) {

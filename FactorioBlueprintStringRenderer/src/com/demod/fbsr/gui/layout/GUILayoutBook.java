@@ -228,7 +228,7 @@ public class GUILayoutBook {
 			int w = (int) (block.location.width * cellWidth);
 			int h = (int) (block.location.height * cellHeight);
 			g.setClip(new Rectangle(x, y, w, h));
-
+ 
 			int centerX = x + w / 2 + centerShiftX;
 			int centerY = y + h / 2 + centerShiftY;
 
@@ -243,13 +243,13 @@ public class GUILayoutBook {
 			});
 
 			if (block.label.isPresent()) {
-				if (!labelText.isEmpty()) {
+				if (labelText.length() > 0) {
 					labelText.append(" ");
 				}
 				labelText.append(block.label.get());
 			}
 
-			if (!labelText.isEmpty()) {
+			if (labelText.length() > 0) {
 				RichText label = new RichText(labelText.toString());
 				label.draw(g, x + 25, y + 35);
 			}
@@ -293,7 +293,7 @@ public class GUILayoutBook {
 		lblIcons.render(g);
 
 		int startX = bounds.x + (int) (lblTitle.getTextWidth(g) + 44);
-		int endX = bounds.x + bounds.width - (int)lblIcons.getTextWidth(g) - (iconText.isEmpty() ? 24 : 46);
+		int endX = bounds.x + bounds.width - (int)lblIcons.getTextWidth(g) - (iconText.length() == 0 ? 24 : 46);
 		GUIPipeFeature pipe = GUIStyle.DRAG_LINES;
 		for (int x = endX - pipe.size; x >= startX; x -= pipe.size) {
 			pipe.renderVertical(g, x, bounds.y + 10, bounds.y + bounds.height - 10);
