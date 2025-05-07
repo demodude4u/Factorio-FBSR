@@ -52,7 +52,7 @@ public class TrainStopRendering extends SimpleEntityRendering {
 		if (bsEntity.station.isPresent() && map.isAltMode()) {
 			String stationName = bsEntity.station.get();
 			register.accept(
-					new MapText(Layer.ENTITY_INFO_TEXT, entity.getPosition(), 30, FONT, Color.white, stationName));
+					new MapText(Layer.ENTITY_INFO_TEXT, entity.getPosition().addUnit(0.5, -2.0), -30, FONT, Color.white, stationName));
 		}
 	}
 
