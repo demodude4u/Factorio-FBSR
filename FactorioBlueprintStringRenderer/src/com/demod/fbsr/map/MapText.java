@@ -10,6 +10,8 @@ import com.demod.fbsr.RichText;
 
 public class MapText extends MapRenderable {
 
+	public static final int MIN_SCREEN_SIZE = 16;
+
 	private final MapPosition position;
 	private final int angle;
 	protected final Font font;
@@ -27,12 +29,26 @@ public class MapText extends MapRenderable {
 
 	@Override
 	public void render(Graphics2D g) {
-		if (angle != 0) {
-			AffineTransform pat = g.getTransform();
+		AffineTransform xform = g.getTransform();
+		double scaleX = xform.getScaleX();
+		double scaleY = xform.getScaleY();
+		double effectiveScale = Math.sqrt(scaleX * scaleX + scaleY * scaleY);
+		double minSize = MIN_SCREEN_SIZE / effectiveScale;
 
-			g.setFont(font);
-			float textX = position.xfp;
-			float textY = position.yfp;
+		// Adjust font size to ensure it is at least minSize
+		float adjustedFontSize = (float) Math.max(font.getSize2D(), minSize);
+
+		Font font = this.font;
+		if (font.getSize2D() != adjustedFontSize) {
+			font = font.deriveFont(adjustedFontSize);
+		}
+		g.setFont(font);
+
+		float textX = (float) position.getX();
+		float textY = (float) position.getY();
+
+		if (angle != 0) {
+			AffineTransform pat = xform;
 
 			g.translate(textX, textY);
 			g.rotate(angle / 180f * Math.PI);
@@ -41,13 +57,10 @@ public class MapText extends MapRenderable {
 			text.drawShadow(g, 0.05f, 0.05f);
 			g.setColor(color);
 			text.draw(g, 0f, 0f);
-			
+
 			g.setTransform(pat);
 
 		} else {
-			g.setFont(font);
-			float textX = (float) position.getX();
-			float textY = (float) position.getY();
 			g.setColor(Color.darkGray);
 			text.drawShadow(g, textX + 0.05f, textY + 0.05f);
 			g.setColor(color);
