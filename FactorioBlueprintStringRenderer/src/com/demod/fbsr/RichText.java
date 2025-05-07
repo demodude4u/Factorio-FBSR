@@ -1,5 +1,7 @@
 package com.demod.fbsr;
 
+import java.awt.Color;
+import java.awt.Composite;
 import java.awt.Font;
 import java.awt.Graphics2D;
 import java.awt.Image;
@@ -14,6 +16,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.demod.fbsr.AtlasManager.AtlasRef;
+import com.demod.fbsr.composite.ShadowComposite;
 import com.demod.fbsr.def.IconDef;
 import com.demod.fbsr.map.MapRect;
 
@@ -121,7 +124,23 @@ public class RichText {
 	private static final float ICON_OFFSET_Y = 0.175f;
 
 	public void draw(Graphics2D g, double x, double y) {
+		draw(g, x, y, false);
+	}
+
+	public void drawShadow(Graphics2D g, double x, double y) {
+		draw(g, x, y, true);
+	}
+
+	private void draw(Graphics2D g, double x, double y, boolean shadow) {
 		AffineTransform pat = g.getTransform();
+		Composite pc = g.getComposite();
+		Color color = g.getColor();
+
+		ShadowComposite sc = null;
+		if (shadow) {
+			sc = new ShadowComposite(color);
+		}
+
 		try {
 			Font font = g.getFont();
 			FontRenderContext frc = g.getFontRenderContext();
@@ -129,6 +148,10 @@ public class RichText {
 
 			for (Token token : tokens) {
 				if (token instanceof TextToken) {
+					if (shadow) {
+						g.setComposite(pc);
+					}
+
 					TextToken textToken = (TextToken) token;
 					g.drawString(textToken.text, (float) x, (float) y);
 					TextLayout layout = new TextLayout(textToken.text, font, frc);
@@ -139,6 +162,10 @@ public class RichText {
 
 					if (tagToken.name.equals("color") || tagToken.name.equals("font")) {
 						continue; //TODO handle color and font changes
+					}
+					
+					if (shadow) {
+						g.setComposite(sc);
 					}
 
 					Optional<TagWithQuality> lookupTag = IconManager.lookupTag(tagToken);
@@ -181,6 +208,10 @@ public class RichText {
 
 		} finally {
 			g.setTransform(pat);
+
+			if (shadow) {
+				g.setComposite(pc);
+			}
 		}
 	}
 

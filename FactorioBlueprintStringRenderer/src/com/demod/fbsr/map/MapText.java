@@ -6,6 +6,7 @@ import java.awt.Graphics2D;
 import java.awt.geom.AffineTransform;
 
 import com.demod.fbsr.Layer;
+import com.demod.fbsr.RichText;
 
 public class MapText extends MapRenderable {
 
@@ -13,7 +14,7 @@ public class MapText extends MapRenderable {
 	private final int angle;
 	protected final Font font;
 	protected final Color color;
-	protected String string;
+	protected RichText text;
 
 	public MapText(Layer layer, MapPosition position, int angle, Font font, Color color, String string) {
 		super(layer);
@@ -21,7 +22,7 @@ public class MapText extends MapRenderable {
 		this.angle = angle;
 		this.font = font;
 		this.color = color;
-		this.string = string;
+		text = new RichText(string);
 	}
 
 	@Override
@@ -37,10 +38,10 @@ public class MapText extends MapRenderable {
 			g.rotate(angle);
 
 			g.setColor(Color.darkGray);
-			g.drawString(string, 0.05f, 0.05f);
+			text.drawShadow(g, 0.05f, 0.05f);
 			g.setColor(color);
-			g.drawString(string, 0f, 0f);
-
+			text.draw(g, 0f, 0f);
+			
 			g.setTransform(pat);
 
 		} else {
@@ -48,14 +49,13 @@ public class MapText extends MapRenderable {
 			float textX = (float) position.getX();
 			float textY = (float) position.getY();
 			g.setColor(Color.darkGray);
-			g.drawString(string, textX + 0.05f, textY + 0.05f);
+			text.drawShadow(g, textX + 0.05f, textY + 0.05f);
 			g.setColor(color);
-			g.drawString(string, textX, textY);
+			text.draw(g, textX, textY);
 		}
 	}
 
 	public void setString(String string) {
-		this.string = string;
+		this.text = new RichText(string);
 	}
-
 }
