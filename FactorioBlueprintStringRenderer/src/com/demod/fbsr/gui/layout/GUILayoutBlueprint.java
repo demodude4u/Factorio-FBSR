@@ -33,6 +33,7 @@ import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.RichText.TagToken;
 import com.demod.fbsr.IconManager;
 import com.demod.fbsr.bs.BSBlueprint;
+import com.demod.fbsr.bs.BSItemWithQualityID;
 import com.demod.fbsr.composite.TintComposite;
 import com.demod.fbsr.def.IconDef;
 import com.demod.fbsr.def.ImageDef;
@@ -60,8 +61,8 @@ public class GUILayoutBlueprint {
 	private CommandReporting reporting;
 	private RenderResult result;
 
-	private Map<String, Double> totalItems;
-	private Map<String, Double> totalRawItems;
+	private Map<BSItemWithQualityID, Double> totalItems;
+	private Map<BSItemWithQualityID, Double> totalRawItems;
 
 	private int itemColumns;
 	private int itemCellSize;
@@ -215,13 +216,13 @@ public class GUILayoutBlueprint {
 						}
 					}
 
-					List<Entry<String, Double>> itemOrder = totalItems.entrySet().stream()
-							.sorted(Comparator.comparing((Entry<String, Double> e) -> e.getValue()).reversed())
+					List<Entry<BSItemWithQualityID, Double>> itemOrder = totalItems.entrySet().stream()
+							.sorted(Comparator.comparing((Entry<BSItemWithQualityID, Double> e) -> e.getValue()).reversed())
 							.collect(Collectors.toList());
 
 					for (int i = 0; i < itemOrder.size(); i++) {
-						Entry<String, Double> entry = itemOrder.get(i);
-						String item = entry.getKey();
+						Entry<BSItemWithQualityID, Double> entry = itemOrder.get(i);
+						BSItemWithQualityID item = entry.getKey();
 						double quantity = entry.getValue();
 						int col = i % itemColumns;
 						int row = i / itemColumns;
@@ -232,12 +233,23 @@ public class GUILayoutBlueprint {
 						int iconShrink = (int) (itemCellSize * 0.15);
 						GUIBox iconBounds = cellBounds.shrink(iconShrink, iconShrink, iconShrink, iconShrink);
 
-						Optional<IconDef> icon = IconManager.lookupItem(item);
+						Optional<IconDef> icon = IconManager.lookupItem(item.name);
 						if (icon.isPresent()) {
 							GUIImageDef imgIcon = new GUIImageDef(iconBounds, icon.get());
 							imgIcon.render(g);
+
+							if (item.quality.isPresent() && !item.quality.get().equals("normal")) {
+								Optional<IconDef> qualityIcon = IconManager.lookupQuality(item.quality.get());
+								if (qualityIcon.isPresent()) {
+									int qSize = (int) (0.4 * iconBounds.width);
+									GUIBox iconQualityBounds = iconBounds.cutLeft(qSize).cutBottom(qSize);
+									GUIImageDef imgQualityIcon = new GUIImageDef(iconQualityBounds, qualityIcon.get());
+									imgQualityIcon.render(g);
+								}
+							}
+							
 						} else {
-							g.setColor(RenderUtils.getUnknownColor(item).brighter());
+							g.setColor(RenderUtils.getUnknownColor(item.name).brighter());
 							g.fillOval(iconBounds.x, iconBounds.y, iconBounds.width, iconBounds.height);
 						}
 
@@ -283,13 +295,13 @@ public class GUILayoutBlueprint {
 						}
 					}
 
-					List<Entry<String, Double>> itemOrder = totalRawItems.entrySet().stream()
-							.sorted(Comparator.comparing((Entry<String, Double> e) -> e.getValue()).reversed())
+					List<Entry<BSItemWithQualityID, Double>> itemOrder = totalRawItems.entrySet().stream()
+							.sorted(Comparator.comparing((Entry<BSItemWithQualityID, Double> e) -> e.getValue()).reversed())
 							.collect(Collectors.toList());
 
 					for (int i = 0; i < itemOrder.size(); i++) {
-						Entry<String, Double> entry = itemOrder.get(i);
-						String item = entry.getKey();
+						Entry<BSItemWithQualityID, Double> entry = itemOrder.get(i);
+						BSItemWithQualityID item = entry.getKey();
 						double quantity = entry.getValue();
 						int col = i % itemColumns;
 						int row = i / itemColumns;
@@ -302,12 +314,12 @@ public class GUILayoutBlueprint {
 								cellBounds.y + cellBounds.height / 2 - iconSize / 2, iconSize, iconSize);
 
 						Optional<? extends ImageDef> image = null;
-						if (item.equals(TotalRawCalculator.RAW_TIME)) {
+						if (item.name.equals(TotalRawCalculator.RAW_TIME)) {
 							image = Optional.of(GUIStyle.DEF_CLOCK);
 						} else {
-							image = IconManager.lookupItem(item);
+							image = IconManager.lookupItem(item.name);
 							if (image.isEmpty()) {
-								image = IconManager.lookupFluid(item);
+								image = IconManager.lookupFluid(item.name);
 							}
 						}
 
@@ -315,7 +327,7 @@ public class GUILayoutBlueprint {
 							GUIImageDef imgIcon = new GUIImageDef(iconBounds, image.get());
 							imgIcon.render(g);
 						} else {
-							g.setColor(RenderUtils.getUnknownColor(item));
+							g.setColor(RenderUtils.getUnknownColor(item.name));
 							g.fillOval(iconBounds.x, iconBounds.y, iconBounds.width, iconBounds.height);
 						}
 

@@ -65,6 +65,7 @@ import com.demod.fbsr.bs.BSBlueprint;
 import com.demod.fbsr.bs.BSBlueprintBook;
 import com.demod.fbsr.bs.BSBlueprintString;
 import com.demod.fbsr.bs.BSDeconstructionPlanner;
+import com.demod.fbsr.bs.BSItemWithQualityID;
 import com.demod.fbsr.bs.BSUpgradePlanner;
 import com.demod.fbsr.def.SpriteDef;
 import com.demod.fbsr.gui.layout.GUILayoutBlueprint;
@@ -737,10 +738,10 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			return;
 		}
 
-		Map<String, Double> totalItems = new LinkedHashMap<>();
+		Map<BSItemWithQualityID, Double> totalItems = new LinkedHashMap<>();
 		for (BSBlueprintString bs : blueprintStrings) {
 			for (BSBlueprint blueprint : bs.findAllBlueprints()) {
-				Map<String, Double> items = FBSR.generateTotalItems(blueprint);
+				Map<BSItemWithQualityID, Double> items = FBSR.generateTotalItems(blueprint);
 				items.forEach((k, v) -> {
 					totalItems.compute(k, ($, old) -> old == null ? v : old + v);
 				});
@@ -748,12 +749,9 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		}
 
 		if (!totalItems.isEmpty()) {
-			// TODO figure out wiki naming to include modded
-//			DataTable table = FactorioData.getTable();
 			String responseContent = totalItems.entrySet().stream()
-					.sorted((e1, e2) -> e1.getKey().compareTo(e2.getKey()))
-//					.map(e -> table.getWikiItemName(e.getKey()) + ": " + RenderUtils.fmtDouble2(e.getValue()))
-					.map(e -> e.getKey() + ": " + RenderUtils.fmtDouble2(e.getValue()))
+					.map(e -> e.getKey().formatted() + ": " + RenderUtils.fmtDouble2(e.getValue()))
+					.sorted()
 					.collect(Collectors.joining("\n"));
 
 			String response = "```ldif\n" + responseContent + "```";
@@ -789,24 +787,22 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			return;
 		}
 
-		Map<String, Double> totalItems = new LinkedHashMap<>();
+		Map<BSItemWithQualityID, Double> totalItems = new LinkedHashMap<>();
 		for (BSBlueprintString bs : blueprintStrings) {
 			for (BSBlueprint blueprint : bs.findAllBlueprints()) {
-				Map<String, Double> items = FBSR.generateTotalItems(blueprint);
+				Map<BSItemWithQualityID, Double> items = FBSR.generateTotalItems(blueprint);
 				items.forEach((k, v) -> {
 					totalItems.compute(k, ($, old) -> old == null ? v : old + v);
 				});
 			}
 		}
 
-		Map<String, Double> rawItems = FBSR.generateTotalRawItems(totalItems);
+		Map<BSItemWithQualityID, Double> rawItems = FBSR.generateTotalRawItems(totalItems);
 
 		if (!rawItems.isEmpty()) {
-			// TODO figure out wiki naming to include modded
-//			DataTable table = FactorioData.getTable();
-			String responseContent = rawItems.entrySet().stream().sorted((e1, e2) -> e1.getKey().compareTo(e2.getKey()))
-//					.map(e -> table.getWikiItemName(e.getKey()) + ": " + RenderUtils.fmtDouble2(e.getValue()))
-					.map(e -> e.getKey() + ": " + RenderUtils.fmtDouble2(e.getValue()))
+			String responseContent = rawItems.entrySet().stream()
+					.map(e -> e.getKey().formatted() + ": " + RenderUtils.fmtDouble2(e.getValue()))
+					.sorted()
 					.collect(Collectors.joining("\n"));
 
 			String response = "```ldif\n" + responseContent + "```";

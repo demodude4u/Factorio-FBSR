@@ -147,12 +147,12 @@ public abstract class EntityRendererFactory {
 	}
 
 	public void createQualityIcon(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
-		String quality = entity.fromBlueprint().quality;
-		if (quality.equals("normal")) {
+		Optional<String> quality = entity.fromBlueprint().quality;
+		if (quality.isEmpty() || quality.get().equals("normal")) {
 			return;
 		}
 
-		Optional<IconDef> optDef = IconManager.lookupQuality(quality);
+		Optional<IconDef> optDef = IconManager.lookupQuality(quality.get());
 		if (optDef.isEmpty()) {
 			return;
 		}

@@ -3,6 +3,7 @@ package com.demod.fbsr.bs;
 import java.awt.geom.Point2D;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.stream.Collectors;
 
@@ -32,7 +33,7 @@ public class BSEntity {
 	public final BSPosition position;
 	public final Direction direction;
 	public final int directionRaw;
-	public final String quality;
+	public final Optional<String> quality;
 
 	public final OptionalDouble orientation;
 
@@ -44,7 +45,7 @@ public class BSEntity {
 		position = BSUtils.position(json, "position");
 		direction = BSUtils.direction(json, "direction");
 		directionRaw = json.optInt("direction");
-		quality = BSUtils.optString(json, "quality").orElse("normal");
+		quality = BSUtils.optString(json, "quality");
 
 		orientation = BSUtils.optDouble(json, "orientation");
 
@@ -62,7 +63,7 @@ public class BSEntity {
 		position = new BSPosition(pos.x, pos.y);
 		direction = legacy.direction.toNewDirection();
 		directionRaw = direction.ordinal() * 2;
-		quality = "normal";
+		quality = Optional.empty();
 
 		orientation = legacy.orientation;
 

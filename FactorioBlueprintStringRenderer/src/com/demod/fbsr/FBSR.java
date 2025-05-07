@@ -49,11 +49,15 @@ import com.demod.factorio.ModInfo;
 import com.demod.factorio.TotalRawCalculator;
 import com.demod.factorio.Utils;
 import com.demod.factorio.prototype.EntityPrototype;
+import com.demod.factorio.prototype.ItemPrototype;
 import com.demod.factorio.prototype.RecipePrototype;
 import com.demod.factorio.prototype.TilePrototype;
 import com.demod.fbsr.WirePoints.WirePoint;
 import com.demod.fbsr.bs.BSBlueprint;
 import com.demod.fbsr.bs.BSEntity;
+import com.demod.fbsr.bs.BSItemStack;
+import com.demod.fbsr.bs.BSItemStackItem;
+import com.demod.fbsr.bs.BSItemWithQualityID;
 import com.demod.fbsr.bs.BSMetaEntity;
 import com.demod.fbsr.bs.BSTile;
 import com.demod.fbsr.bs.BSWire;
@@ -502,20 +506,19 @@ public class FBSR {
 		}
 	}
 
-	private static void addToItemAmount(Map<String, Double> items, String itemName, double add) {
-		double amount = items.getOrDefault(itemName, 0.0);
+	private static void addToItemAmount(Map<BSItemWithQualityID, Double> items, BSItemWithQualityID item, double add) {
+		double amount = items.getOrDefault(item, 0.0);
 		amount += add;
-		items.put(itemName, amount);
+		items.put(item, amount);
 	}
 
-	public static Map<String, Double> generateTotalItems(BSBlueprint blueprint) {
+	public static Map<BSItemWithQualityID, Double> generateTotalItems(BSBlueprint blueprint) {
 
-		Map<String, Double> ret = new LinkedHashMap<>();
+		Map<BSItemWithQualityID, Double> ret = new LinkedHashMap<>();
 		for (BSEntity entity : blueprint.entities) {
-			String entityName = entity.name;
-			EntityRendererFactory entityFactory = FactorioManager.lookupEntityFactoryForName(entityName);
+			EntityRendererFactory entityFactory = FactorioManager.lookupEntityFactoryForName(entity.name);
 			if (entityFactory.isUnknown()) {
-				addToItemAmount(ret, entity.name, 1);
+				addToItemAmount(ret, new BSItemWithQualityID(entity.name, entity.quality), 1);
 				continue;
 			}
 
@@ -523,20 +526,24 @@ public class FBSR {
 
 			Optional<ItemToPlace> primaryItem = entityPrototype.getPrimaryItem();
 			if (primaryItem.isEmpty()) {
-				LOGGER.warn("MISSING ENTITY ITEM: {}", entityName);
+				LOGGER.warn("MISSING ENTITY ITEM: {}", entity.name);
 				continue;
 			}
 
-			addToItemAmount(ret, primaryItem.get().getItem(), primaryItem.get().getCount());
+			addToItemAmount(ret, new BSItemWithQualityID(primaryItem.get().getItem(), entity.quality), primaryItem.get().getCount());
 
-			List<EntityModule> modules = MapEntity.findModules(entity);
-			for (EntityModule module : modules) {
-				addToItemAmount(ret, module.name, 1);
+			for (BSItemStack itemStack : entity.items) {
+				addToItemAmount(ret, itemStack.id, itemStack.getTotalCount());
 			}
 		}
 		for (BSTile tile : blueprint.tiles) {
 			String tileName = tile.name;
 			TileRendererFactory tileFactory = FactorioManager.lookupTileFactoryForName(tileName);
+			if (tileFactory.isUnknown()) {
+				addToItemAmount(ret, new BSItemWithQualityID(tile.name, Optional.empty()), 1);
+				continue;
+			}
+
 			TilePrototype tilePrototype = tileFactory.getPrototype();
 
 			Optional<ItemToPlace> primaryItem = tilePrototype.getPrimaryItem();
@@ -545,28 +552,28 @@ public class FBSR {
 				continue;
 			}
 
-			addToItemAmount(ret, primaryItem.get().getItem(), primaryItem.get().getCount());
+			addToItemAmount(ret, new BSItemWithQualityID(primaryItem.get().getItem(), Optional.empty()), primaryItem.get().getCount());
 		}
 		return ret;
 	}
 
-	public static Map<String, Double> generateTotalRawItems(Map<String, Double> totalItems) {
+	public static Map<BSItemWithQualityID, Double> generateTotalRawItems(Map<BSItemWithQualityID, Double> totalItems) {
 		DataTable baseTable = FactorioManager.getBaseData().getTable();
 		Map<String, RecipePrototype> recipes = baseTable.getRecipes();
-		Map<String, Double> ret = new LinkedHashMap<>();
+		Map<BSItemWithQualityID, Double> ret = new LinkedHashMap<>();
 		TotalRawCalculator calculator = new TotalRawCalculator(recipes);
-		for (Entry<String, Double> entry : totalItems.entrySet()) {
-			String recipeName = entry.getKey();
+		for (Entry<BSItemWithQualityID, Double> entry : totalItems.entrySet()) {
+			BSItemWithQualityID recipeItem = entry.getKey();
 			double recipeAmount = entry.getValue();
-			baseTable.getRecipe(recipeName).ifPresent(r -> {
+			baseTable.getRecipe(recipeItem.name).ifPresent(r -> {
 				Map<String, Double> outputs = r.getOutputs();
-				if (outputs.containsKey(recipeName)) {
-					double multiplier = recipeAmount / outputs.get(recipeName);
+				if (outputs.containsKey(recipeItem.name)) {
+					double multiplier = recipeAmount / outputs.get(recipeItem.name);
 					Map<String, Double> totalRaw = calculator.compute(r);
 					for (Entry<String, Double> entry2 : totalRaw.entrySet()) {
 						String itemName = entry2.getKey();
 						double itemAmount = entry2.getValue();
-						addToItemAmount(ret, itemName, itemAmount * multiplier);
+						addToItemAmount(ret, new BSItemWithQualityID(itemName, Optional.empty()), itemAmount * multiplier);
 					}
 				}
 			});
