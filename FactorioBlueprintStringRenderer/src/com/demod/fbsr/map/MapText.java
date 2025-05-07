@@ -35,7 +35,7 @@ public class MapText extends MapRenderable {
 			float textY = position.yfp;
 
 			g.translate(textX, textY);
-			g.rotate(angle);
+			g.rotate(angle / 180f * Math.PI);
 
 			g.setColor(Color.darkGray);
 			text.drawShadow(g, 0.05f, 0.05f);
