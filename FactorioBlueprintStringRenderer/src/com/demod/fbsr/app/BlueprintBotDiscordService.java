@@ -421,8 +421,11 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			for (int i = 0; i < blueprints.size(); i++) {
 				if (i < 25) {
 					BSBlueprint blueprint = blueprints.get(i);
-					menuBuilder.addOption(blueprint.label.orElse("Untitled Blueprint " + (i + 1)),
-							futBlueprintStringUpload.get().getId() + "|" + i);
+					String optionLabel = blueprint.label.orElse("Untitled Blueprint " + (i + 1));
+					if (optionLabel.length() > 100) {
+						optionLabel = optionLabel.substring(0, 97) + "...";
+					}
+					menuBuilder.addOption(optionLabel, futBlueprintStringUpload.get().getId() + "|" + i);
 				}
 				// TODO figure out how to handle more than 25 blueprint options
 			}
