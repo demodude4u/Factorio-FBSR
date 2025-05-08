@@ -25,7 +25,6 @@ public class FPSpriteNWaySheet extends FPSpriteParameters {
 
 	private final List<SpriteDef> defs;
 
-
 	public FPSpriteNWaySheet(LuaValue lua, int directionCount) {
 		super(lua);
 		this.directionCount = directionCount;
@@ -56,7 +55,7 @@ public class FPSpriteNWaySheet extends FPSpriteParameters {
 	}
 
 	public SpriteDef defineSprite(Direction direction) {
-		return defs.get(direction.ordinal());
+		return defs.get(direction.ordinal() * 2);
 	}
 
 	public SpriteDef defineSprite(Dir16 direction) {
