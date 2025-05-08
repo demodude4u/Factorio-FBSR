@@ -11,6 +11,7 @@ import com.demod.factorio.fakelua.LuaTable;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.factorio.prototype.RecipePrototype;
 import com.demod.fbsr.Direction;
+import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.FactorioManager;
 import com.demod.fbsr.Layer;
@@ -23,6 +24,7 @@ import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.def.SpriteDef;
 import com.demod.fbsr.fp.FPFluidBox;
 import com.demod.fbsr.fp.FPPipeConnectionDefinition;
+import com.demod.fbsr.fp.FPVector;
 import com.demod.fbsr.fp.FPWorkingVisualisations;
 import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapIcon;
@@ -36,7 +38,9 @@ public abstract class CraftingMachineRendering extends SimpleEntityRendering {
 
 	private FPWorkingVisualisations protoGraphicsSet;
 	private Optional<FPWorkingVisualisations> protoGraphicsSetFlipped;
-	private List<FPFluidBox> protoConditionalFluidBoxes;
+	private boolean protoFluidBoxesOffWhenNoFluidRecipe;
+	private List<FPFluidBox> protoFluidBoxes;
+
 
 	@Override
 	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
@@ -52,75 +56,45 @@ public abstract class CraftingMachineRendering extends SimpleEntityRendering {
 			protoGraphicsSet.defineSprites(entityRegister, entity.getDirection(), FRAME);
 		}
 
-		// TODO need a better approach that doesn't involve searching recipe lua
-		Optional<String> recipe = bsEntity.recipe;
-		boolean hasFluidInput = false;
-		boolean hasFluidOutput = false;
-		if (recipe.isPresent()) {
-			Optional<RecipePrototype> optRecipe = FactorioManager.lookupRecipeByName(recipe.get());
-			if (optRecipe.isPresent()) {
-				RecipePrototype protoRecipe = optRecipe.get();
-
-				// XXX could be done better
-				List<LuaValue> inputs = new ArrayList<>();
-				List<LuaValue> outputs = new ArrayList<>();
-				LuaValue luaIngredients = protoRecipe.lua().get("ingredients");
-				if (!luaIngredients.isnil()) {
-					Utils.forEach(luaIngredients.checktable(), (Consumer<LuaValue>) inputs::add);
-				}
-				LuaValue resultsLua = protoRecipe.lua().get("results");
-				if (!resultsLua.isnil()) {
-					outputs.add(resultsLua);
-				}
-				hasFluidInput = inputs.stream().anyMatch(lua -> {
-					LuaValue typeLua = lua.get("type");
-					return typeLua != LuaValue.NIL && typeLua.toString().equals("fluid");
-				});
-				hasFluidOutput = outputs.stream().anyMatch(lua -> {
-					LuaValue typeLua = lua.get("type");
-					return typeLua != LuaValue.NIL && typeLua.toString().equals("fluid");
-				});
-			}
-		}
-
-		// TODO preload everything
 		Direction dir = entity.getDirection();
-		for (FPFluidBox fluidBox : protoConditionalFluidBoxes) {
+		for (FPFluidBox fluidBox : protoFluidBoxes) {
 			if (fluidBox.pipeCovers.isPresent() || fluidBox.pipePicture.isPresent()) {
 				for (FPPipeConnectionDefinition conn : fluidBox.pipeConnections) {
-					boolean visible = (hasFluidInput && conn.isInput()) || (hasFluidOutput && conn.isOutput());
+					boolean visible = !protoFluidBoxesOffWhenNoFluidRecipe 
+							|| (bsEntity.isFluidInput() && conn.isInput()) 
+							|| (bsEntity.isFluidOutput() && conn.isOutput());
 					if (!visible) {
 						continue;
 					}
 
-					Direction facing = conn.direction.get().rotate(dir);
-					MapPosition offset = dir.rotate(MapPosition.convert(conn.position.get()));
-					offset = facing.offset(offset, 1.0);
+					Direction connDir = conn.direction.get();
+					MapPosition connPos = MapPosition.convert(conn.position.get());
+					
 					if (bsEntity.mirror) {
-						offset = offset.multiplyUnit(-1, 0);
+						connDir = connDir.flipX();
+						connPos = connPos.flipX();
 					}
-
-					MapPosition point = offset.add(entity.getPosition());
+					
+					Direction facing = connDir.rotate(dir);
+					MapPosition point = facing.offset(dir.rotate(connPos).add(entity.getPosition()), 1);
 					Consumer<SpriteDef> pointRegister = s -> register.accept(new MapSprite(s, Layer.OBJECT, point));
 
 					if (fluidBox.pipePicture.isPresent()) {
 						fluidBox.pipePicture.get().defineSprites(pointRegister, facing);
 					}
 
-					if (fluidBox.pipeCovers.isPresent() && !map.isPipe(offset, facing)) {
+					if (fluidBox.pipeCovers.isPresent() && !map.isPipe(point, facing)) {
 						fluidBox.pipeCovers.get().defineSprites(pointRegister, facing);
 					}
 				}
 			}
 		}
 
-		// TODO need a better approach that doesn't involve searching recipe lua
-		if (recipe.isPresent() && map.isAltMode()) {
-			Optional<IconDef> icon = IconManager.lookupRecipe(recipe.get());
+		if (bsEntity.recipe.isPresent() && map.isAltMode()) {
+			Optional<IconDef> icon = IconManager.lookupRecipe(bsEntity.recipe.get());
 			if (icon.isEmpty()) {
-				Optional<RecipePrototype> optRecipe = FactorioManager.lookupRecipeByName(recipe.get());
-				if (optRecipe.isPresent()) {
-					RecipePrototype protoRecipe = optRecipe.get();
+				if (bsEntity.getProtoRecipe().isPresent()) {
+					RecipePrototype protoRecipe = bsEntity.getProtoRecipe().get();
 					String name;
 					if (protoRecipe.lua().get("results") != LuaValue.NIL) {
 						name = protoRecipe.lua().get("results").get(1).get("name").toString();
@@ -142,13 +116,6 @@ public abstract class CraftingMachineRendering extends SimpleEntityRendering {
 
 	@Override
 	public void defineEntity(Bindings bind, LuaTable lua) {
-		boolean fluidBoxesOffWhenNoFluidRecipe = lua.get("fluid_boxes_off_when_no_fluid_recipe").optboolean(false);
-		if (!fluidBoxesOffWhenNoFluidRecipe) {
-			bind.fluidBoxes(lua.get("fluid_boxes"));
-			protoConditionalFluidBoxes = ImmutableList.of();
-		} else {
-			protoConditionalFluidBoxes = FPUtils.list(lua.get("fluid_boxes"), FPFluidBox::new);
-		}
 	}
 
 	@Override
@@ -164,7 +131,7 @@ public abstract class CraftingMachineRendering extends SimpleEntityRendering {
 			protoGraphicsSetFlipped.get().getDefs(register, FRAME);
 		}
 		protoGraphicsSet.getDefs(register, FRAME);
-		protoConditionalFluidBoxes.forEach(fp -> fp.getDefs(register));
+		protoFluidBoxes.forEach(fp -> fp.getDefs(register));
 	}
 
 	@Override
@@ -174,10 +141,15 @@ public abstract class CraftingMachineRendering extends SimpleEntityRendering {
 		protoGraphicsSet = new FPWorkingVisualisations(prototype.lua().get("graphics_set"));
 		protoGraphicsSetFlipped = FPUtils.opt(prototype.lua().get("graphics_set_flipped"),
 				FPWorkingVisualisations::new);
+
+		protoFluidBoxesOffWhenNoFluidRecipe = prototype.lua().get("fluid_boxes_off_when_no_fluid_recipe").optboolean(false);
+		protoFluidBoxes = FPUtils.list(prototype.lua().get("fluid_boxes"), FPFluidBox::new);
 	}
 
 	@Override
 	public void populateLogistics(WorldMap map, MapEntity entity) {
+		super.populateLogistics(map, entity);
+
 		Optional<String> recipe = entity.<BSCraftingMachineEntity>fromBlueprint().recipe;
 		if (recipe.isPresent()) {
 			Optional<RecipePrototype> optRecipe = data.getTable().getRecipe(recipe.get());
@@ -192,41 +164,58 @@ public abstract class CraftingMachineRendering extends SimpleEntityRendering {
 	public void populateWorldMap(WorldMap map, MapEntity entity) {
 		super.populateWorldMap(map, entity);
 
-		if (!protoConditionalFluidBoxes.isEmpty()) {
-			Optional<String> recipe = entity.<BSCraftingMachineEntity>fromBlueprint().recipe;
-			boolean hasFluid = false;
-			if (recipe.isPresent()) {
-				Optional<RecipePrototype> optRecipe = data.getTable().getRecipe(recipe.get());
-				if (optRecipe.isPresent()) {
-					RecipePrototype protoRecipe = optRecipe.get();
+		BSCraftingMachineEntity bsEntity = entity.<BSCraftingMachineEntity>fromBlueprint();
 
-					List<LuaValue> items = new ArrayList<>();
-					LuaValue luaIngredients = protoRecipe.lua().get("ingredients");
-					if (!luaIngredients.isnil()) {
-						Utils.forEach(luaIngredients.checktable(), (Consumer<LuaValue>) items::add);
-					}
-					LuaValue resultsLua = protoRecipe.lua().get("results");
-					if (!resultsLua.isnil()) {
-						items.add(resultsLua);
-					}
-					hasFluid = items.stream().anyMatch(lua -> {
-						LuaValue typeLua = lua.get("type");
-						return typeLua != LuaValue.NIL && typeLua.toString().equals("fluid");
-					});
-				}
+		bsEntity.setProtoRecipe(bsEntity.recipe.flatMap(n -> FactorioManager.lookupRecipeByName(n)));
+
+		if (bsEntity.getProtoRecipe().isPresent()) {
+			RecipePrototype protoRecipe = bsEntity.getProtoRecipe().get();
+
+			List<LuaValue> inputs = new ArrayList<>();
+			List<LuaValue> outputs = new ArrayList<>();
+			LuaValue luaIngredients = protoRecipe.lua().get("ingredients");
+			if (!luaIngredients.isnil()) {
+				Utils.forEach(luaIngredients.checktable(), (Consumer<LuaValue>) inputs::add);
 			}
+			LuaValue resultsLua = protoRecipe.lua().get("results");
+			if (!resultsLua.isnil()) {
+				outputs.add(resultsLua);
+			}
+			boolean fluidInput = inputs.stream().anyMatch(lua -> {
+				LuaValue typeLua = lua.get("type");
+				return typeLua != LuaValue.NIL && typeLua.toString().equals("fluid");
+			});
+			boolean fluidOutput = outputs.stream().anyMatch(lua -> {
+				LuaValue typeLua = lua.get("type");
+				return typeLua != LuaValue.NIL && typeLua.toString().equals("fluid");
+			});
 
-			if (hasFluid) {
-				Direction dir = entity.getDirection();
-				for (FPFluidBox fluidBox : protoConditionalFluidBoxes) {
-					for (FPPipeConnectionDefinition conn : fluidBox.pipeConnections) {
-						if (conn.direction.isPresent() && conn.position.isPresent()) {
-							Direction facing = conn.direction.get().rotate(dir);
-							MapPosition pos = dir.rotate(MapPosition.convert(conn.position.get()))
-									.add(entity.getPosition());
-							map.setPipe(pos, facing);
-						}
+			bsEntity.setFluidInput(fluidInput);
+			bsEntity.setFluidOutput(fluidOutput);
+		}
+
+		Direction dir = entity.getDirection();
+		for (FPFluidBox fluidBox : protoFluidBoxes) {
+			for (FPPipeConnectionDefinition conn : fluidBox.pipeConnections) {
+				boolean visible = !protoFluidBoxesOffWhenNoFluidRecipe 
+						|| (bsEntity.isFluidInput() && conn.isInput()) 
+						|| (bsEntity.isFluidOutput() && conn.isOutput());
+				if (!visible) {
+					continue;
+				}
+
+				if (conn.direction.isPresent() && conn.position.isPresent()) {
+					Direction connDir = conn.direction.get();
+					MapPosition connPos = MapPosition.convert(conn.position.get());
+					
+					if (bsEntity.mirror) {
+						connDir = connDir.flipX();
+						connPos = connPos.flipX();
 					}
+
+					Direction facing = connDir.rotate(dir);
+					MapPosition pos = dir.rotate(connPos).add(entity.getPosition());
+					map.setPipe(pos, facing);
 				}
 			}
 		}

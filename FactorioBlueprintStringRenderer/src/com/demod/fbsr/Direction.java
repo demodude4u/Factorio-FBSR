@@ -15,6 +15,9 @@ public enum Direction {
 	NORTHWEST("NW", -1, -1);
 
 	private static Direction[] CARDINALS = { NORTH, EAST, SOUTH, WEST };
+	public static final int[] FLIP_X = { 0, 7, 6, 5, 4, 3, 2, 1 };
+	public static final int[] FLIP_Y = { 4, 3, 2, 1, 0, 7, 6, 5 };
+
 
 	public static Direction fromCardinal(int cardinal) {
 		return values()[cardinal * 2];
@@ -121,6 +124,14 @@ public enum Direction {
 
 	public Direction right() {
 		return rotate(2);
+	}
+
+	public Direction flipX() {
+		return values()[FLIP_X[ordinal()]];
+	}
+
+	public Direction flipY() {
+		return values()[FLIP_Y[ordinal()]];
 	}
 
 	public Direction rotate(Direction dir) {
