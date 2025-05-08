@@ -729,24 +729,20 @@ public abstract class SimpleEntityRendering extends EntityRendererFactory {
 					if (!conn.connectionType.equals("normal")) {
 						continue;
 					}
-					Direction facing = conn.direction.get().rotate(dir);
+					
+					Direction connDir = conn.direction.get();
+					MapPosition connPos = MapPosition.convert(conn.position.get());
 
-					MapPosition offset;
-					if (conn.position.isPresent()) {
-						offset = dir.rotate(MapPosition.convert(conn.position.get()));
-					} else {
-						offset = MapPosition.convert(conn.positions.get().get(dir.cardinal()));
-					}
-					MapPosition pos = entity.getPosition().add(offset);
+					Direction facing = connDir.rotate(dir);
+					MapPosition point = facing.offset(dir.rotate(connPos).add(entity.getPosition()), 1);
+					Consumer<SpriteDef> pointRegister = s -> register.accept(new MapSprite(s, Layer.OBJECT, point));
 
 					if (fluidBox.pipePicture.isPresent()) {
-						fluidBox.pipePicture.get()
-								.defineSprites(s -> register.accept(new MapSprite(s, Layer.OBJECT, pos)), facing);
+						fluidBox.pipePicture.get().defineSprites(pointRegister, facing);
 					}
 
-					if (fluidBox.pipeCovers.isPresent() && map.isPipe(facing.offset(pos, 1.0), facing)) {
-						fluidBox.pipeCovers.get()
-								.defineSprites(s -> register.accept(new MapSprite(s, Layer.OBJECT, pos)), facing);
+					if (fluidBox.pipeCovers.isPresent() && !map.isPipe(point, facing)) {
+						fluidBox.pipeCovers.get().defineSprites(pointRegister, facing);
 					}
 				}
 			}
