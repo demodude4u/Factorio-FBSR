@@ -44,7 +44,7 @@ public class UndergroundBeltRendering extends TransportBeltConnectableRendering 
 						: protoStructureDirectionOutSideLoading;
 			}
 		}
-		protoStructSprite.defineSprites(entity.spriteRegister(register, Layer.HIGHER_OBJECT_UNDER), structDir);
+		protoStructSprite.defineSprites(entity.spriteRegister(register, Layer.OBJECT), structDir);
 	}
 
 	@Override
