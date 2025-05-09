@@ -1,6 +1,7 @@
 package com.demod.fbsr.map;
 
 import com.demod.fbsr.MapUtils;
+import com.demod.fbsr.fp.FPVector3D;
 
 public class MapPosition3D {
     public static final double ELEVATED_HEIGHT = 3.0;
@@ -12,6 +13,14 @@ public class MapPosition3D {
     private MapPosition3D(MapPosition pos, int heightfp) {
         this.pos = pos;
         this.heightfp = heightfp;
+    }
+
+    public static MapPosition3D convert(FPVector3D v) {
+		return byUnit(v.x, v.y, v.z);
+    }
+
+    public MapPosition3D add(MapPosition3D position) {
+		return new MapPosition3D(pos.add(position.pos), heightfp + position.heightfp);
     }
 
     public MapPosition get2D() {
