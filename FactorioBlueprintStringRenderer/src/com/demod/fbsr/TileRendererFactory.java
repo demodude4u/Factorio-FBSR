@@ -59,7 +59,7 @@ public class TileRendererFactory {
 	public enum TileEdgeRule {
 		SIDE(NORTH.adjCode(), WEST.adjCode() | EAST.adjCode(), fp -> fp.side, 4, TileEdgeRuleMode.NO_DOUBLE,
 				TileEdgeRuleMode.MERGED_UO), //
-		SIDE_NO_FAR(NORTH.adjCode(), WEST.adjCode() | EAST.adjCode() | NORTH.adjCode(), fp -> fp.side, 4,
+		SIDE_NO_FAR(NORTH.adjCode(), WEST.adjCode() | EAST.adjCode() | SOUTH.adjCode(), fp -> fp.side, 4,
 				TileEdgeRuleMode.WITH_DOUBLE), //
 		DOUBLE_SIDE(NORTH.adjCode() | SOUTH.adjCode(), WEST.adjCode() | EAST.adjCode(), fp -> fp.doubleSide, 2,
 				TileEdgeRuleMode.WITH_DOUBLE), //
@@ -186,6 +186,17 @@ public class TileRendererFactory {
 		TileRendererFactory factory;
 		int adjCode = 0;
 		List<TileEdgeRuleParam> params = null;
+
+		@Override
+		public String toString() {
+			StringBuilder sb = new StringBuilder();
+			for (Direction dir : Direction.values()) {
+				if ((adjCode & dir.adjCode()) != 0) {
+					sb.append(dir.name()).append(" ");
+				}
+			}
+			return sb.toString();
+		}
 	}
 
 	public interface TileRenderProcess {
