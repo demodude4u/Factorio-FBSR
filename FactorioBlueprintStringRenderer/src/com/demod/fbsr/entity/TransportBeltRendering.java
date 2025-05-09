@@ -27,6 +27,8 @@ public class TransportBeltRendering extends TransportBeltConnectableRendering {
 
 	@Override
 	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
+		super.createRenderers(register, map, entity);
+
 		BSTransportBeltEntity bsEntity = entity.<BSTransportBeltEntity>fromBlueprint();
 		MapPosition pos = entity.getPosition();
 		BeltBend bend = map.getBeltBend(pos).get();
@@ -103,6 +105,8 @@ public class TransportBeltRendering extends TransportBeltConnectableRendering {
 
 	@Override
 	public void populateLogistics(WorldMap map, MapEntity entity) {
+		super.populateLogistics(map, entity);
+
 		Direction dir = entity.getDirection();
 		MapPosition pos = entity.getPosition();
 
@@ -128,6 +132,8 @@ public class TransportBeltRendering extends TransportBeltConnectableRendering {
 
 	@Override
 	public void populateWorldMap(WorldMap map, MapEntity entity) {
+		super.populateWorldMap(map, entity);
+		
 		map.setBelt(entity.getPosition(), entity.getDirection(), true, true);
 	}
 

@@ -15,7 +15,7 @@ import com.demod.fbsr.fp.FPSprite;
 import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapRenderable;
 
-public class PipeRendering extends EntityRendererFactory {
+public class PipeRendering extends EntityWithOwnerRendering {
 
 	public static final String[] pipeSpriteNameMapping = //
 			new String[/* bits WSEN */] { //
@@ -41,6 +41,8 @@ public class PipeRendering extends EntityRendererFactory {
 
 	@Override
 	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
+		super.createRenderers(register, map, entity);
+
 		int adjCode = 0;
 		adjCode |= ((pipeFacingMeFrom(Direction.NORTH, map, entity) ? 1 : 0) << 0);
 		adjCode |= ((pipeFacingMeFrom(Direction.EAST, map, entity) ? 1 : 0) << 1);
@@ -52,11 +54,15 @@ public class PipeRendering extends EntityRendererFactory {
 
 	@Override
 	public void initAtlas(Consumer<ImageDef> register) {
+		super.initAtlas(register);
+
 		protoPipeSprites.forEach(fp -> fp.defineSprites(register));
 	}
 
 	@Override
 	public void initFromPrototype() {
+		super.initFromPrototype();
+
 		LuaValue luaPictures = prototype.lua().get("pictures");
 		protoPipeSprites = Arrays.stream(pipeSpriteNameMapping).map(s -> new FPSprite(luaPictures.get(s)))
 				.collect(Collectors.toList());
@@ -68,6 +74,8 @@ public class PipeRendering extends EntityRendererFactory {
 
 	@Override
 	public void populateWorldMap(WorldMap map, MapEntity entity) {
+		super.populateWorldMap(map, entity);
+		
 		map.setPipe(entity.getPosition());
 	}
 }

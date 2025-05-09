@@ -19,7 +19,7 @@ import com.demod.fbsr.map.MapPosition;
 import com.demod.fbsr.map.MapRenderable;
 import com.demod.fbsr.map.MapText;
 
-public class TrainStopRendering extends SimpleEntityRendering {
+public class TrainStopRendering extends EntityWithOwnerRendering {
 	public static final Font FONT = GUIStyle.FONT_BP_BOLD.deriveFont(0.5f);
 	private static final int FRAME = 0;
 
@@ -58,6 +58,8 @@ public class TrainStopRendering extends SimpleEntityRendering {
 
 	@Override
 	public void defineEntity(Bindings bind, LuaTable lua) {
+		super.defineEntity(bind, lua);
+		
 		bind.circuitConnector4Way(lua.get("circuit_connector"));
 		bind.sprite4Way(lua.get("light1").get("picture")).layer(Layer.HIGHER_OBJECT_ABOVE);
 		bind.sprite4Way(lua.get("light2").get("picture")).layer(Layer.HIGHER_OBJECT_ABOVE);

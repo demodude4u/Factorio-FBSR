@@ -41,6 +41,8 @@ public abstract class LoaderRendering extends TransportBeltConnectableRendering 
 
 	@Override
 	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
+		super.createRenderers(register, map, entity);
+
 		MapPosition pos = entity.getPosition();
 
 		BSLoaderEntity bsEntity = entity.<BSLoaderEntity>fromBlueprint();
@@ -115,12 +117,15 @@ public abstract class LoaderRendering extends TransportBeltConnectableRendering 
 	@Override
 	public void initAtlas(Consumer<ImageDef> register) {
 		super.initAtlas(register);
+
 		protoStructureDirectionIn.getDefs(register);
 		protoStructureDirectionOut.getDefs(register);
 	}
 
 	@Override
 	public void populateLogistics(WorldMap map, MapEntity entity) {
+		super.populateLogistics(map, entity);
+
 		BSLoaderEntity bsEntity = entity.<BSLoaderEntity>fromBlueprint();
 
 		Direction dir = entity.getDirection();
@@ -197,6 +202,8 @@ public abstract class LoaderRendering extends TransportBeltConnectableRendering 
 
 	@Override
 	public void populateWorldMap(WorldMap map, MapEntity entity) {
+		super.populateWorldMap(map, entity);
+		
 		boolean input = entity.<BSLoaderEntity>fromBlueprint().type.get().equals("input");
 		MapPosition beltShift = getBeltShift(entity);
 

@@ -36,7 +36,7 @@ import com.demod.fbsr.map.MapRenderable;
 import com.demod.fbsr.map.MapSprite;
 import com.demod.fbsr.map.MapTintOverrideSprite;
 
-public class RollingStockRendering extends EntityRendererFactory {
+public class RollingStockRendering extends VehicleRendering {
 
 	public static final double ELEVATED_SHADOW_SHIFT_MULTIPLIER = 1.41421356237;
 
@@ -47,6 +47,7 @@ public class RollingStockRendering extends EntityRendererFactory {
 
 	@Override
 	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
+		super.createRenderers(register, map, entity);
 
 		BSRollingStockEntity bsEntity = entity.fromBlueprint();
 
@@ -445,6 +446,8 @@ public class RollingStockRendering extends EntityRendererFactory {
 
 	@Override
 	public void initAtlas(Consumer<ImageDef> register) {
+		super.initAtlas(register);
+
 		protoPictures.rotated.getDefs(register);
 		protoPictures.sloped.ifPresent(fp -> fp.getDefs(register));
 		if (protoWheels.isPresent()) {
@@ -455,6 +458,8 @@ public class RollingStockRendering extends EntityRendererFactory {
 
 	@Override
 	public void initFromPrototype() {
+		super.initFromPrototype();
+		
 		protoColor = new FPColor(prototype.lua().get("color"));
 		protoJointDistance = prototype.lua().get("joint_distance").todouble();
 		protoPictures = new FPRollingStockRotatedSlopedGraphics(prototype.lua().get("pictures"));

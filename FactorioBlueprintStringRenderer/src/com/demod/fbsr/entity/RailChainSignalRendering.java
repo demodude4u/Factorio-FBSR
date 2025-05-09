@@ -9,6 +9,8 @@ import com.demod.fbsr.map.MapPosition;
 public class RailChainSignalRendering extends RailSignalBaseRendering {
 	@Override
 	public void populateWorldMap(WorldMap map, MapEntity entity) {
+		super.populateWorldMap(map, entity);
+		
 		MapPosition pos = entity.getPosition();
 		Dir16 dir = Dir16.values()[entity.fromBlueprint().directionRaw];
 

@@ -30,7 +30,7 @@ import com.demod.fbsr.map.MapRenderable;
 import com.demod.fbsr.map.MapSprite;
 import com.google.common.collect.ImmutableList;
 
-public abstract class RailRendering extends EntityRendererFactory {
+public abstract class RailRendering extends EntityWithOwnerRendering {
 	private static final int VARIATION = 0;
 	// TODO add variation (or should we ignore variations to save atlas space?)
 
@@ -237,6 +237,8 @@ public abstract class RailRendering extends EntityRendererFactory {
 
 	@Override
 	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
+		super.createRenderers(register, map, entity);
+
 		FPRailPieceLayers railPieceLayers = protoPictures.get(entity.getDirection());
 		if (railPieceLayers.stonePathBackground.isPresent()) {
 			railPieceLayers.stonePathBackground.get()
@@ -277,12 +279,16 @@ public abstract class RailRendering extends EntityRendererFactory {
 
 	@Override
 	public void initAtlas(Consumer<ImageDef> register) {
+		super.initAtlas(register);
+
 		protoPictures.getDefs(register, VARIATION);
 		protoFencePictures.ifPresent(fp -> fp.getDefs(register));
 	}
 
 	@Override
 	public void initFromPrototype() {
+		super.initFromPrototype();
+
 		protoPictures = new FPRailPictureSet(prototype.lua().get("pictures"));
 		protoFencePictures = FPUtils.opt(prototype.lua().get("fence_pictures"), FPRailFenceGraphicsSet::new);
 
@@ -312,6 +318,8 @@ public abstract class RailRendering extends EntityRendererFactory {
 
 	@Override
 	public void populateWorldMap(WorldMap map, MapEntity entity) {
+		super.populateWorldMap(map, entity);
+		
 		MapRail rail = new MapRail(entity.getPosition(), getRailDef(entity));
 		map.setRail(rail);
 		entity.<BSRailEntity>fromBlueprint().setRail(rail);

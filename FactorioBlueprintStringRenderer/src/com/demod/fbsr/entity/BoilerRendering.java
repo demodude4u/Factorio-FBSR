@@ -13,7 +13,7 @@ import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapPosition;
 import com.demod.fbsr.map.MapRenderable;
 
-public class BoilerRendering extends SimpleEntityRendering {
+public class BoilerRendering extends EntityWithOwnerRendering {
 	private static final int FRAME = 0;
 
 	private FPBoilerPictureSet protoPictures;
@@ -29,6 +29,8 @@ public class BoilerRendering extends SimpleEntityRendering {
 
 	@Override
 	public void defineEntity(Bindings bind, LuaTable lua) {
+		super.defineEntity(bind, lua);
+		
 		bind.fluidBox(lua.get("fluid_box"));
 		bind.fluidBox(lua.get("output_fluid_box"));
 	}

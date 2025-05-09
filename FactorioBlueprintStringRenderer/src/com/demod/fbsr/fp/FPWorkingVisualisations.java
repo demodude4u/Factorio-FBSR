@@ -20,17 +20,10 @@ public class FPWorkingVisualisations {
 	public final Optional<FPAnimation4Way> idleAnimation;
 	public final Optional<List<FPWorkingVisualisation>> workingVisualisations;
 
-	public final Optional<FPSprite4Way> integrationPatch;
-	public final Layer integrationPatchRenderLayer;
-
 	public FPWorkingVisualisations(LuaValue lua) {
 		idleAnimation = FPUtils.opt(lua.get("idle_animation"), FPAnimation4Way::new);
 		animation = FPUtils.opt(lua.get("animation"), FPAnimation4Way::new).or(() -> idleAnimation);
 		workingVisualisations = FPUtils.optList(lua.get("working_visualisations"), FPWorkingVisualisation::new);
-
-		// Not mentioned in docs, found in py
-		integrationPatch = FPUtils.opt(lua.get("integration_patch"), FPSprite4Way::new);
-		integrationPatchRenderLayer = FPUtils.optLayer(lua.get("integration_patch_render_layer")).orElse(Layer.LOWER_OBJECT);
 	}
 
 	public void defineSprites(Consumer<? super SpriteDef> consumer, Direction direction, int frame) {
@@ -42,7 +35,6 @@ public class FPWorkingVisualisations {
 				}
 			}
 		});
-		integrationPatch.ifPresent(sprite -> sprite.defineSprites(consumer, direction));
 	}
 
 	public List<SpriteDef> defineSprites(Direction direction, int frame) {

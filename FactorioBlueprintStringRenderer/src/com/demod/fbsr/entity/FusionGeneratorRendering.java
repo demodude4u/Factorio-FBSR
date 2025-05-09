@@ -13,7 +13,7 @@ import com.demod.fbsr.fp.FPAnimation;
 import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapRenderable;
 
-public class FusionGeneratorRendering extends SimpleEntityRendering {
+public class FusionGeneratorRendering extends EntityWithOwnerRendering {
 	private static final int FRAME = 0;
 
 	private FPAnimation protoNorthAnimation;
@@ -42,6 +42,8 @@ public class FusionGeneratorRendering extends SimpleEntityRendering {
 
 	@Override
 	public void defineEntity(Bindings bind, LuaTable lua) {
+		super.defineEntity(bind, lua);
+		
 		bind.fluidBox(lua.get("input_fluid_box"));
 		bind.fluidBox(lua.get("output_fluid_box"));
 	}

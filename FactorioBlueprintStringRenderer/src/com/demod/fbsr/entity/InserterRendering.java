@@ -32,7 +32,7 @@ import com.demod.fbsr.map.MapInserterIndicators;
 import com.demod.fbsr.map.MapPosition;
 import com.demod.fbsr.map.MapRenderable;
 
-public class InserterRendering extends SimpleEntityRendering {
+public class InserterRendering extends EntityWithOwnerRendering {
 
 	private static final int[][] placeItemDir = //
 			new int[/* Cardinal */][/* Bend */] { //
@@ -147,6 +147,8 @@ public class InserterRendering extends SimpleEntityRendering {
 
 	@Override
 	public void defineEntity(Bindings bind, LuaTable lua) {
+		super.defineEntity(bind, lua);
+
 		bind.circuitConnector4Way(lua.get("circuit_connector"));
 	}
 
@@ -192,6 +194,8 @@ public class InserterRendering extends SimpleEntityRendering {
 
 	@Override
 	public void populateLogistics(WorldMap map, MapEntity entity) {
+		super.populateLogistics(map, entity);
+		
 		BSInserterEntity bsEntity = entity.<BSInserterEntity>fromBlueprint();
 
 		if (bsEntity.pickupPosition.isPresent() || bsEntity.dropPosition.isPresent()) {

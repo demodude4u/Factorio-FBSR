@@ -3,7 +3,7 @@ package com.demod.fbsr.entity;
 import com.demod.factorio.fakelua.LuaTable;
 import com.demod.factorio.fakelua.LuaValue;
 
-public class SimpleEntityWithOwnerRendering extends SimpleEntityRendering {
+public class SimpleEntityWithOwnerRendering extends EntityWithOwnerRendering {
 
 	@Override
 	public void defineEntity(Bindings bind, LuaTable lua) {

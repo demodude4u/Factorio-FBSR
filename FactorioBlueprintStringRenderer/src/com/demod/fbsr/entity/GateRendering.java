@@ -12,7 +12,7 @@ import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapPosition;
 import com.demod.fbsr.map.MapRenderable;
 
-public class GateRendering extends EntityRendererFactory {
+public class GateRendering extends EntityWithOwnerRendering {
 	private static final int FRAME = 0;
 
 	private FPAnimation protoVerticalAnimation;
@@ -20,6 +20,8 @@ public class GateRendering extends EntityRendererFactory {
 
 	@Override
 	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
+		super.createRenderers(register, map, entity);
+
 		Consumer<SpriteDef> entityRegister = entity.spriteRegister(register, Layer.OBJECT);
 		if (isVertical(entity)) {
 			protoVerticalAnimation.defineSprites(entityRegister, FRAME);
@@ -30,12 +32,16 @@ public class GateRendering extends EntityRendererFactory {
 
 	@Override
 	public void initAtlas(Consumer<ImageDef> register) {
+		super.initAtlas(register);
+
 		protoVerticalAnimation.defineSprites(register, FRAME);
 		protoHorizontalAnimation.defineSprites(register, FRAME);
 	}
 
 	@Override
 	public void initFromPrototype() {
+		super.initFromPrototype();
+
 		protoVerticalAnimation = new FPAnimation(prototype.lua().get("vertical_animation"));
 		protoHorizontalAnimation = new FPAnimation(prototype.lua().get("horizontal_animation"));
 	}
@@ -46,6 +52,8 @@ public class GateRendering extends EntityRendererFactory {
 
 	@Override
 	public void populateWorldMap(WorldMap map, MapEntity entity) {
+		super.populateWorldMap(map, entity);
+		
 		MapPosition pos = entity.getPosition();
 		if (isVertical(entity)) {
 			map.setVerticalGate(pos);

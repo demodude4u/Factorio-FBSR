@@ -33,7 +33,7 @@ import com.demod.fbsr.map.MapRenderable;
 import com.demod.fbsr.map.MapSprite;
 import com.google.common.collect.ImmutableList;
 
-public abstract class CraftingMachineRendering extends SimpleEntityRendering {
+public abstract class CraftingMachineRendering extends EntityWithOwnerRendering {
 	private static final int FRAME = 0;
 
 	private FPWorkingVisualisations protoGraphicsSet;
@@ -112,10 +112,6 @@ public abstract class CraftingMachineRendering extends SimpleEntityRendering {
 						OptionalDouble.of(0.1), false, bsEntity.recipeQuality.filter(s -> !s.equals("normal"))));
 			}
 		}
-	}
-
-	@Override
-	public void defineEntity(Bindings bind, LuaTable lua) {
 	}
 
 	@Override

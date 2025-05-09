@@ -18,7 +18,7 @@ import com.demod.fbsr.map.MapPosition;
 import com.demod.fbsr.map.MapRect;
 import com.demod.fbsr.map.MapRenderable;
 
-public class BeaconRendering extends EntityRendererFactory {
+public class BeaconRendering extends EntityWithOwnerRendering {
 
 	private FPBoundingBox protoSelectionBox;
 	private Optional<FPBeaconGraphicsSet> protoGraphicsSet;
@@ -28,6 +28,8 @@ public class BeaconRendering extends EntityRendererFactory {
 
 	@Override
 	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
+		super.createRenderers(register, map, entity);
+
 		Consumer<SpriteDef> spriteRegister = entity.spriteRegister(register, Layer.OBJECT);
 		if (protoGraphicsSet.isPresent()) {
 			protoGraphicsSet.get().defineSprites(spriteRegister, 0);
@@ -38,6 +40,8 @@ public class BeaconRendering extends EntityRendererFactory {
 
 	@Override
 	public void initAtlas(Consumer<ImageDef> register) {
+		super.initAtlas(register);
+
 		if (protoGraphicsSet.isPresent()) {
 			protoGraphicsSet.get().defineSprites(register, 0);
 		} else {
@@ -47,6 +51,8 @@ public class BeaconRendering extends EntityRendererFactory {
 
 	@Override
 	public void initFromPrototype() {
+		super.initFromPrototype();
+
 		protoSelectionBox = new FPBoundingBox(prototype.lua().get("selection_box"));
 		protoGraphicsSet = FPUtils.opt(prototype.lua().get("graphics_set"), FPBeaconGraphicsSet::new);
 		protoBasePicture = FPUtils.opt(prototype.lua().get("base_picture"), FPAnimation::new);
@@ -56,6 +62,8 @@ public class BeaconRendering extends EntityRendererFactory {
 
 	@Override
 	public void populateWorldMap(WorldMap map, MapEntity entity) {
+		super.populateWorldMap(map, entity);
+		
 		MapPosition pos = entity.getPosition();
 		MapRect supplyBounds = protoSelectionBox.createRect().expandUnit(protoSupplyAreaDistance).add(pos);
 

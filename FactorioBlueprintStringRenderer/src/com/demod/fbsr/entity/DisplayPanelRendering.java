@@ -15,9 +15,7 @@ import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapIcon;
 import com.demod.fbsr.map.MapRenderable;
 
-public class DisplayPanelRendering extends SimpleEntityRendering {
-
-	// TODO parse entity control_behavior, icon, always_show, text, etc...
+public class DisplayPanelRendering extends EntityWithOwnerRendering {
 
 	@Override
 	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
@@ -38,7 +36,9 @@ public class DisplayPanelRendering extends SimpleEntityRendering {
 	}
 
 	@Override
-	public void defineEntity(SimpleEntityRendering.Bindings bind, LuaTable lua) {
+	public void defineEntity(EntityRendering.Bindings bind, LuaTable lua) {
+		super.defineEntity(bind, lua);
+
 		bind.sprite4Way(lua.get("sprites"));
 		bind.circuitConnector4Way(lua.get("circuit_connector"));
 	}

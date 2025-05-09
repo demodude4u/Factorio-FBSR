@@ -16,12 +16,13 @@ import com.demod.fbsr.map.MapPosition;
 import com.demod.fbsr.map.MapRail;
 import com.demod.fbsr.map.MapRenderable;
 
-public class RailSupportRendering extends EntityRendererFactory {
+public class RailSupportRendering extends EntityWithOwnerRendering {
 	
 	private FPRotatedSprite protoStructure;
 
 	@Override
 	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
+		super.createRenderers(register, map, entity);
 
 		MapPosition pos = entity.getPosition();
 
@@ -50,11 +51,15 @@ public class RailSupportRendering extends EntityRendererFactory {
 
 	@Override
 	public void initFromPrototype() {
+		super.initFromPrototype();
+
 		protoStructure = new FPRotatedSprite(prototype.lua().get("graphics_set").get("structure"), 16);
 	}
 
 	@Override
 	public void initAtlas(Consumer<ImageDef> register) {
+		super.initAtlas(register);
+		
 		protoStructure.getDefs(register);
 	}
 }

@@ -14,7 +14,7 @@ import com.demod.fbsr.fp.FPSpriteVariations;
 import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapRenderable;
 
-public class HeatPipeRendering extends EntityRendererFactory {
+public class HeatPipeRendering extends EntityWithOwnerRendering {
 	private static final int VARIATION = 0;
 
 	public static final String[] heatPipeSpriteNameMapping = //
@@ -41,6 +41,8 @@ public class HeatPipeRendering extends EntityRendererFactory {
 
 	@Override
 	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
+		super.createRenderers(register, map, entity);
+
 		int adjCode = 0;
 		adjCode |= ((heatPipeFacingMeFrom(Direction.NORTH, map, entity) ? 1 : 0) << 0);
 		adjCode |= ((heatPipeFacingMeFrom(Direction.EAST, map, entity) ? 1 : 0) << 1);
@@ -56,11 +58,15 @@ public class HeatPipeRendering extends EntityRendererFactory {
 
 	@Override
 	public void initAtlas(Consumer<ImageDef> register) {
+		super.initAtlas(register);
+
 		protoConnectionSprites.forEach(fp -> fp.defineSprites(register, VARIATION));
 	}
 
 	@Override
 	public void initFromPrototype() {
+		super.initFromPrototype();
+
 		protoConnectionSprites = Arrays.stream(heatPipeSpriteNameMapping)
 				.map(s -> new FPSpriteVariations(prototype.lua().get("connection_sprites").get(s)))
 				.collect(Collectors.toList());
@@ -68,6 +74,8 @@ public class HeatPipeRendering extends EntityRendererFactory {
 
 	@Override
 	public void populateWorldMap(WorldMap map, MapEntity entity) {
+		super.populateWorldMap(map, entity);
+		
 		map.setHeatPipe(entity.getPosition());
 	}
 }

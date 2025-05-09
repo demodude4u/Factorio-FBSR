@@ -23,7 +23,7 @@ import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapPosition;
 import com.demod.fbsr.map.MapRenderable;
 
-public class ConstantCombinatorRendering extends SimpleEntityRendering {
+public class ConstantCombinatorRendering extends EntityWithOwnerRendering {
 
 	@Override
 	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
@@ -68,11 +68,7 @@ public class ConstantCombinatorRendering extends SimpleEntityRendering {
 
 	@Override
 	public void defineEntity(Bindings bind, LuaTable lua) {
-
-		// this is technically part of EntityWithHealth, but only py has used it here
-		Layer integrationPatchLayer = FPUtils.optLayer(lua.get("integration_patch_render_layer"))
-				.orElse(Layer.LOWER_OBJECT);
-		bind.sprite4Way(lua.get("integration_patch")).layer(integrationPatchLayer);
+		super.defineEntity(bind, lua);
 
 		bind.sprite4Way(lua.get("sprites"));
 	}

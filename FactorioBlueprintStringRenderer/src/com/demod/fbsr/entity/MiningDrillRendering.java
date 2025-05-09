@@ -14,7 +14,7 @@ import com.demod.fbsr.fp.FPWorkingVisualisations;
 import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapRenderable;
 
-public class MiningDrillRendering extends SimpleEntityRendering {
+public class MiningDrillRendering extends EntityWithOwnerRendering {
 	private static final int FRAME = 0;
 
 	private Optional<FPSprite4Way> protoBasePicture;
@@ -43,6 +43,8 @@ public class MiningDrillRendering extends SimpleEntityRendering {
 
 	@Override
 	public void defineEntity(Bindings bind, LuaTable lua) {
+		super.defineEntity(bind, lua);
+		
 		bind.circuitConnector4Way(lua.get("circuit_connector"));
 		bind.fluidBox(lua.get("input_fluid_box"));
 		bind.fluidBox(lua.get("output_fluid_box"));

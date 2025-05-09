@@ -4,10 +4,12 @@ import com.demod.factorio.fakelua.LuaTable;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.map.MapEntity;
 
-public class HeatInterfaceRendering extends SimpleEntityRendering {
+public class HeatInterfaceRendering extends EntityWithOwnerRendering {
 
 	@Override
 	public void defineEntity(Bindings bind, LuaTable lua) {
+		super.defineEntity(bind, lua);
+		
 		bind.sprite(lua.get("picture"));
 	}
 

@@ -21,7 +21,7 @@ import com.demod.fbsr.fp.FPWireConnectionPoint;
 import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapRenderable;
 
-public abstract class CombinatorRendering extends SimpleEntityRendering {
+public abstract class CombinatorRendering extends EntityWithOwnerRendering {
 
 	private Map<String, FPSprite4Way> protoOperationSprites;
 
@@ -42,6 +42,8 @@ public abstract class CombinatorRendering extends SimpleEntityRendering {
 
 	@Override
 	public void defineEntity(Bindings bind, LuaTable lua) {
+		super.defineEntity(bind, lua);
+
 		bind.sprite4Way(lua.get("sprites"));
 	}
 

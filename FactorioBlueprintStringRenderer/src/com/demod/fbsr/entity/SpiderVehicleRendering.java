@@ -13,25 +13,19 @@ import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapIcon;
 import com.demod.fbsr.map.MapRenderable;
 
-public class SpiderVehicleRendering extends EntityRendererFactory {
+public class SpiderVehicleRendering extends VehicleRendering {
 
 	// TODO rendering spider hard, just use icon for now
 
 	@Override
 	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
+		super.createRenderers(register, map, entity);
+
 		Optional<IconDef> icon = IconManager.lookupEntity(entity.fromBlueprint().name);
 		if (icon.isPresent()) {
 			register.accept(
 					new MapIcon(entity.getPosition(), icon.get(), 2, OptionalDouble.of(0.2), false, Optional.empty()));
 		}
-	}
-
-	@Override
-	public void initAtlas(Consumer<ImageDef> register) {
-	}
-
-	@Override
-	public void initFromPrototype() {
 	}
 
 }

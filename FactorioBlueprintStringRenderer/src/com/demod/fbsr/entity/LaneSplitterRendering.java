@@ -31,6 +31,8 @@ public class LaneSplitterRendering extends TransportBeltConnectableRendering {
 
 	@Override
 	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
+		super.createRenderers(register, map, entity);
+
 		Direction dir = entity.getDirection();
 		BSSplitterEntity bsEntity = entity.<BSSplitterEntity>fromBlueprint();
 
@@ -94,6 +96,8 @@ public class LaneSplitterRendering extends TransportBeltConnectableRendering {
 
 	@Override
 	public void populateLogistics(WorldMap map, MapEntity entity) {
+		super.populateLogistics(map, entity);
+
 		Direction dir = entity.getDirection();
 		MapPosition pos = entity.getPosition();
 		BSSplitterEntity bsEntity = entity.<BSSplitterEntity>fromBlueprint();
@@ -131,6 +135,8 @@ public class LaneSplitterRendering extends TransportBeltConnectableRendering {
 
 	@Override
 	public void populateWorldMap(WorldMap map, MapEntity entity) {
+		super.populateWorldMap(map, entity);
+		
 		Direction direction = entity.getDirection();
 		MapPosition pos = entity.getPosition();
 		MapPosition belt1Pos = direction.left().offset(pos, 0.5);

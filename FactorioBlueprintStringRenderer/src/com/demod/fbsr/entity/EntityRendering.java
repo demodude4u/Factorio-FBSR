@@ -21,15 +21,15 @@ import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.def.LayeredSpriteDef;
 import com.demod.fbsr.def.SpriteDef;
-import com.demod.fbsr.entity.SimpleEntityRendering.BindDirAction.BindDirNoAction;
-import com.demod.fbsr.entity.SimpleEntityRendering.BindDirFrameAction.BindDirFrameNoAction;
-import com.demod.fbsr.entity.SimpleEntityRendering.BindFrameAction.BindFrameNoAction;
-import com.demod.fbsr.entity.SimpleEntityRendering.BindLayerAction.BindLayerNoAction;
-import com.demod.fbsr.entity.SimpleEntityRendering.BindRotateAction.BindRotateNoAction;
-import com.demod.fbsr.entity.SimpleEntityRendering.BindRotateDirFrameAction.BindRotateDirFrameNoAction;
-import com.demod.fbsr.entity.SimpleEntityRendering.BindRotateFrameAction.BindRotateFrameNoAction;
-import com.demod.fbsr.entity.SimpleEntityRendering.BindVarAction.BindVarNoAction;
-import com.demod.fbsr.entity.SimpleEntityRendering.BindVarFrameAction.BindVarFrameNoAction;
+import com.demod.fbsr.entity.EntityRendering.BindDirAction.BindDirNoAction;
+import com.demod.fbsr.entity.EntityRendering.BindDirFrameAction.BindDirFrameNoAction;
+import com.demod.fbsr.entity.EntityRendering.BindFrameAction.BindFrameNoAction;
+import com.demod.fbsr.entity.EntityRendering.BindLayerAction.BindLayerNoAction;
+import com.demod.fbsr.entity.EntityRendering.BindRotateAction.BindRotateNoAction;
+import com.demod.fbsr.entity.EntityRendering.BindRotateDirFrameAction.BindRotateDirFrameNoAction;
+import com.demod.fbsr.entity.EntityRendering.BindRotateFrameAction.BindRotateFrameNoAction;
+import com.demod.fbsr.entity.EntityRendering.BindVarAction.BindVarNoAction;
+import com.demod.fbsr.entity.EntityRendering.BindVarFrameAction.BindVarFrameNoAction;
 import com.demod.fbsr.fp.FPAnimation;
 import com.demod.fbsr.fp.FPAnimation4Way;
 import com.demod.fbsr.fp.FPAnimationVariations;
@@ -51,8 +51,7 @@ import com.demod.fbsr.map.MapSprite;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
-//TODO needs to be renamed not to be confused with SimpleEntityPrototype...
-public abstract class SimpleEntityRendering extends EntityRendererFactory {
+public abstract class EntityRendering extends EntityRendererFactory {
 
 	public static abstract class BindAction<T> {
 		public static class BindNoAction<T> extends BindAction<T> {
@@ -226,7 +225,7 @@ public abstract class SimpleEntityRendering extends EntityRendererFactory {
 
 		public void circuitConnector(LuaValue lua) {
 			if (!lua.isnil()) {
-				SimpleEntityRendering.this.circuitConnectors = Optional
+				EntityRendering.this.circuitConnectors = Optional
 						.of(ImmutableList.of(new FPCircuitConnectorDefinition(lua)));
 			}
 		}
@@ -236,7 +235,7 @@ public abstract class SimpleEntityRendering extends EntityRendererFactory {
 				List<FPCircuitConnectorDefinition> list = FPUtils.list(lua, FPCircuitConnectorDefinition::new);
 				Preconditions.checkArgument(list.size() == 16,
 						"Expected 16 circuit connectors, but found " + list.size());
-				SimpleEntityRendering.this.circuitConnectors = Optional.of(list);
+				EntityRendering.this.circuitConnectors = Optional.of(list);
 			}
 		}
 
@@ -245,7 +244,7 @@ public abstract class SimpleEntityRendering extends EntityRendererFactory {
 				List<FPCircuitConnectorDefinition> list = FPUtils.list(lua, FPCircuitConnectorDefinition::new);
 				Preconditions.checkArgument(list.size() == 4,
 						"Expected 4 circuit connectors, but found " + list.size());
-				SimpleEntityRendering.this.circuitConnectors = Optional.of(list);
+				EntityRendering.this.circuitConnectors = Optional.of(list);
 			}
 		}
 
@@ -254,26 +253,26 @@ public abstract class SimpleEntityRendering extends EntityRendererFactory {
 				List<FPCircuitConnectorDefinition> list = FPUtils.list(lua, FPCircuitConnectorDefinition::new);
 				Preconditions.checkArgument(list.size() == 8,
 						"Expected 8 circuit connectors, but found " + list.size());
-				SimpleEntityRendering.this.circuitConnectors = Optional.of(list);
+				EntityRendering.this.circuitConnectors = Optional.of(list);
 			}
 		}
 
 		public void circuitConnectorNWay(LuaValue lua) {
 			if (!lua.isnil()) {
 				List<FPCircuitConnectorDefinition> list = FPUtils.list(lua, FPCircuitConnectorDefinition::new);
-				SimpleEntityRendering.this.circuitConnectors = Optional.of(list);
+				EntityRendering.this.circuitConnectors = Optional.of(list);
 			}
 		}
 
 		public void fluidBox(LuaValue lua) {
 			if (!lua.isnil()) {
-				SimpleEntityRendering.this.fluidBoxes.add(new FPFluidBox(lua));
+				EntityRendering.this.fluidBoxes.add(new FPFluidBox(lua));
 			}
 		}
 
 		public void fluidBoxes(LuaValue lua) {
 			if (!lua.isnil()) {
-				SimpleEntityRendering.this.fluidBoxes.addAll(FPUtils.list(lua, FPFluidBox::new));
+				EntityRendering.this.fluidBoxes.addAll(FPUtils.list(lua, FPFluidBox::new));
 			}
 		}
 
@@ -482,6 +481,10 @@ public abstract class SimpleEntityRendering extends EntityRendererFactory {
 			if (lua.isnil()) {
 				return new BindDirNoAction<>();
 			}
+			return sprite4Way(new FPSprite4Way(lua));
+		}
+
+		public BindDirAction<FPSprite4Way> sprite4Way(FPSprite4Way fp) {
 			BindDirAction<FPSprite4Way> ret = new BindDirAction<FPSprite4Way>() {
 				@Override
 				public void defineSprites(Consumer<SpriteDef> consumer, MapEntity entity) {
@@ -497,7 +500,7 @@ public abstract class SimpleEntityRendering extends EntityRendererFactory {
 					}
 				}
 			};
-			ret.proto = new FPSprite4Way(lua);
+			ret.proto = fp;
 			bindings.add(ret);
 			return ret;
 		}

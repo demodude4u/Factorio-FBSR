@@ -8,14 +8,18 @@ import com.demod.fbsr.WirePoints.WireColor;
 import com.demod.fbsr.fp.FPWireConnectionPoint;
 import com.google.common.collect.ImmutableList;
 
-public class PowerSwitchRendering extends SimpleEntityRendering {
+public class PowerSwitchRendering extends EntityWithOwnerRendering {
 	@Override
 	public void defineEntity(Bindings bind, LuaTable lua) {
+		super.defineEntity(bind, lua);
+
 		bind.animation(lua.get("power_on_animation"));
 	}
 
 	@Override
 	public void defineWirePoints(BiConsumer<Integer, WirePoints> consumer, LuaTable lua) {
+		super.defineWirePoints(consumer, lua);
+		
 		FPWireConnectionPoint circuitPoint = new FPWireConnectionPoint(lua.get("circuit_wire_connection_point"));
 		FPWireConnectionPoint leftPoint = new FPWireConnectionPoint(lua.get("left_wire_connection_point"));
 		FPWireConnectionPoint rightPoint = new FPWireConnectionPoint(lua.get("right_wire_connection_point"));

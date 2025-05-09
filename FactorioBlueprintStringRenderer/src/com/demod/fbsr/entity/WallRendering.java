@@ -17,7 +17,7 @@ import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapPosition;
 import com.demod.fbsr.map.MapRenderable;
 
-public class WallRendering extends SimpleEntityRendering {
+public class WallRendering extends EntityWithOwnerRendering {
 
 	public static final String[] wallSpriteNameMapping = //
 			new String[/* bits WSEN */] { //
@@ -75,6 +75,8 @@ public class WallRendering extends SimpleEntityRendering {
 
 	@Override
 	public void defineEntity(Bindings bind, LuaTable lua) {
+		super.defineEntity(bind, lua);
+		
 		bind.circuitConnector(lua.get("circuit_connector"));
 	}
 

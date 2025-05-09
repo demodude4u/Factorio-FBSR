@@ -25,6 +25,8 @@ public class UndergroundBeltRendering extends TransportBeltConnectableRendering 
 
 	@Override
 	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
+		super.createRenderers(register, map, entity);
+
 		BSUndergroundBeltEntity bsEntity = entity.<BSUndergroundBeltEntity>fromBlueprint();
 
 		defineBeltSprites(entity.spriteRegister(register, Layer.TRANSPORT_BELT), entity.getDirection().cardinal(),
@@ -77,6 +79,8 @@ public class UndergroundBeltRendering extends TransportBeltConnectableRendering 
 
 	@Override
 	public void populateLogistics(WorldMap map, MapEntity entity) {
+		super.populateLogistics(map, entity);
+
 		BSUndergroundBeltEntity bsEntity = entity.<BSUndergroundBeltEntity>fromBlueprint();
 
 		Direction dir = entity.getDirection();
@@ -110,6 +114,8 @@ public class UndergroundBeltRendering extends TransportBeltConnectableRendering 
 
 	@Override
 	public void populateWorldMap(WorldMap map, MapEntity entity) {
+		super.populateWorldMap(map, entity);
+		
 		BSUndergroundBeltEntity bsEntity = entity.<BSUndergroundBeltEntity>fromBlueprint();
 		boolean input = bsEntity.type.get().equals("input");
 

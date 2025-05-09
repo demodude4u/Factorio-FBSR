@@ -29,7 +29,7 @@ import com.demod.fbsr.map.MapRenderable;
 import com.demod.fbsr.map.MapSprite;
 
 //Not a real prototype, but to render cargo bay connection tilings
-public abstract class CargoBayConnectionsRendering extends SimpleEntityRendering {
+public abstract class CargoBayConnectionsRendering extends EntityWithOwnerRendering {
 
 	private static class ElCon {
 		public final ElType type;

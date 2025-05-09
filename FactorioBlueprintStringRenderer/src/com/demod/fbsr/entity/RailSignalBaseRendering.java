@@ -17,7 +17,7 @@ import com.demod.fbsr.map.MapRenderable;
 import com.demod.fbsr.map.MapSprite;
 import com.google.common.collect.ImmutableList;
 
-public abstract class RailSignalBaseRendering extends EntityRendererFactory {
+public abstract class RailSignalBaseRendering extends EntityWithOwnerRendering {
 	private static final int FRAME = 0;
 
 	protected FPRailSignalPictureSet groundPictureSet;
@@ -27,6 +27,8 @@ public abstract class RailSignalBaseRendering extends EntityRendererFactory {
 
 	@Override
 	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
+		super.createRenderers(register, map, entity);
+
 		BSRailSignalBaseEntity bsEntity = entity.<BSRailSignalBaseEntity>fromBlueprint();
 
 		boolean elevated = bsEntity.railLayer.filter(s -> s.equals("elevated")).isPresent();
@@ -78,6 +80,8 @@ public abstract class RailSignalBaseRendering extends EntityRendererFactory {
 
 	@Override
 	public void initAtlas(Consumer<ImageDef> register) {
+		super.initAtlas(register);
+
 		for (FPRailSignalPictureSet pictureSet : ImmutableList.of(groundPictureSet, elevatedPictureSet)) {
 			for (int direction = 0; direction < 16; direction++) {
 				int align = direction * 12;
@@ -93,6 +97,8 @@ public abstract class RailSignalBaseRendering extends EntityRendererFactory {
 
 	@Override
 	public void initFromPrototype() {
+		super.initFromPrototype();
+		
 		groundPictureSet = new FPRailSignalPictureSet(prototype.lua().get("ground_picture_set"));
 		elevatedPictureSet = new FPRailSignalPictureSet(prototype.lua().get("elevated_picture_set"));
 	}

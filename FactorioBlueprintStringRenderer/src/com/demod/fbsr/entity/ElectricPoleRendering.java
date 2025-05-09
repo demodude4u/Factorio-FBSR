@@ -20,7 +20,7 @@ import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapPosition;
 import com.demod.fbsr.map.MapRenderable;
 
-public class ElectricPoleRendering extends EntityRendererFactory {
+public class ElectricPoleRendering extends EntityWithOwnerRendering {
 
 	private FPRotatedSprite protoPictures;
 
@@ -63,11 +63,9 @@ public class ElectricPoleRendering extends EntityRendererFactory {
 	}
 
 	@Override
-	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
-	}
-
-	@Override
 	public void defineWirePoints(BiConsumer<Integer, WirePoints> consumer, LuaTable lua) {
+		super.defineWirePoints(consumer, lua);
+		
 		List<FPWireConnectionPoint> protoConnectionPoints = FPUtils.list(lua.get("connection_points"),
 				FPWireConnectionPoint::new);
 
@@ -78,17 +76,23 @@ public class ElectricPoleRendering extends EntityRendererFactory {
 
 	@Override
 	public void initAtlas(Consumer<ImageDef> register) {
+		super.initAtlas(register);
+
 		protoPictures.getDefs(register);
 	}
 
 	@Override
 	public void initFromPrototype() {
+		super.initFromPrototype();
+
 		// XXX strange that I have to force back_equals_front to be true
 		protoPictures = new FPRotatedSprite(prototype.lua().get("pictures"), Optional.of(true));
 	}
 
 	@Override
 	public double initWireConnector(Consumer<MapRenderable> register, MapEntity entity, List<MapEntity> wired) {
+		super.initWireConnector(register, entity, wired);
+
 		MapPosition p1 = entity.getPosition();
 		List<MapPosition> points = wired.stream().map(t -> {
 			MapPosition p2 = t.getPosition();

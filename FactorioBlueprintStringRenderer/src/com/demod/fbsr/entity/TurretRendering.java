@@ -4,7 +4,7 @@ import com.demod.factorio.Utils;
 import com.demod.factorio.fakelua.LuaTable;
 import com.demod.factorio.fakelua.LuaValue;
 
-public abstract class TurretRendering extends SimpleEntityRendering {
+public abstract class TurretRendering extends EntityWithOwnerRendering {
 
 	private boolean checkState(LuaValue lua, String flag) {
 		if (lua.isnil()) {
@@ -33,6 +33,8 @@ public abstract class TurretRendering extends SimpleEntityRendering {
 
 	@Override
 	public void defineEntity(Bindings bind, LuaTable lua) {
+		super.defineEntity(bind, lua);
+		
 		LuaValue luaBaseVis = lua.get("graphics_set").get("base_visualisation");
 		LuaValue luaBaseVisAnimation = luaBaseVis.get("animation");
 		if (luaBaseVisAnimation.isnil()) {

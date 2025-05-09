@@ -21,6 +21,8 @@ public class LinkedBeltRendering extends TransportBeltConnectableRendering {
 
 	@Override
 	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
+		super.createRenderers(register, map, entity);
+		
 		BSLinkedBeltEntity bsEntity = entity.<BSLinkedBeltEntity>fromBlueprint();
 
 		defineBeltSprites(entity.spriteRegister(register, Layer.TRANSPORT_BELT), entity.getDirection().cardinal(),

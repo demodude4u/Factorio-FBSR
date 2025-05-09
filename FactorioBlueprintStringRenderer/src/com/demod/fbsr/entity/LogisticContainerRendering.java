@@ -49,6 +49,8 @@ public class LogisticContainerRendering extends ContainerRendering {
 
 	@Override
 	public void populateLogistics(WorldMap map, MapEntity entity) {
+		super.populateLogistics(map, entity);
+		
 		MapPosition pos = entity.getPosition();
 		BSLogisticContainerEntity bsEntity = entity.<BSLogisticContainerEntity>fromBlueprint();
 

@@ -16,9 +16,11 @@ import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapPosition;
 import com.demod.fbsr.map.MapRenderable;
 
-public class LabRendering extends SimpleEntityRendering {
+public class LabRendering extends EntityWithOwnerRendering {
 	@Override
 	public void defineEntity(Bindings bind, LuaTable lua) {
+		super.defineEntity(bind, lua);
+		
 		bind.animation(lua.get("off_animation"));
 	}
 

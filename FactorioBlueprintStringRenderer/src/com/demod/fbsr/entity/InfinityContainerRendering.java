@@ -49,6 +49,8 @@ public class InfinityContainerRendering extends ContainerRendering {
 
 	@Override
 	public void populateLogistics(WorldMap map, MapEntity entity) {
+		super.populateLogistics(map, entity);
+		
 		MapPosition pos = entity.getPosition();
 
 		BSInfinityContainerEntity bsEntity = entity.<BSInfinityContainerEntity>fromBlueprint();

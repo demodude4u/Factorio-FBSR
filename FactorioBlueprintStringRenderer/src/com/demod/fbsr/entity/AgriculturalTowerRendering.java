@@ -11,7 +11,7 @@ import com.demod.fbsr.fp.FPWorkingVisualisations;
 import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapRenderable;
 
-public class AgriculturalTowerRendering extends SimpleEntityRendering {
+public class AgriculturalTowerRendering extends EntityWithOwnerRendering {
 	private static final int FRAME = 0;
 
 	private FPWorkingVisualisations protoGraphicsSet;
@@ -24,10 +24,6 @@ public class AgriculturalTowerRendering extends SimpleEntityRendering {
 
 		Consumer<SpriteDef> spriteRegister = entity.spriteRegister(register, Layer.OBJECT);
 		protoGraphicsSet.defineSprites(spriteRegister, entity.getDirection(), FRAME);
-	}
-
-	@Override
-	public void defineEntity(SimpleEntityRendering.Bindings bind, LuaTable lua) {
 	}
 
 	@Override

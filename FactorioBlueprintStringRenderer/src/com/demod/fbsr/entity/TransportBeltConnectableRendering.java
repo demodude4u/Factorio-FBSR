@@ -10,7 +10,7 @@ import com.demod.fbsr.def.SpriteDef;
 import com.demod.fbsr.fp.FPRotatedAnimation;
 import com.demod.fbsr.map.MapPosition;
 
-public abstract class TransportBeltConnectableRendering extends EntityRendererFactory {
+public abstract class TransportBeltConnectableRendering extends EntityWithOwnerRendering {
 	private static final int FRAME = 0;
 
 	public static final String[][] indexNames = //
@@ -103,6 +103,8 @@ public abstract class TransportBeltConnectableRendering extends EntityRendererFa
 
 	@Override
 	public void initAtlas(Consumer<ImageDef> register) {
+		super.initAtlas(register);
+
 		if (protoHasBeltAnimationSet) {
 			protoBeltAnimationSet.getDefs(register, FRAME);
 			if (protoBeltAlternate) {
@@ -115,6 +117,7 @@ public abstract class TransportBeltConnectableRendering extends EntityRendererFa
 
 	@Override
 	public void initFromPrototype() {
+		super.initFromPrototype();
 
 		LuaValue luaBeltAnimationSet = prototype.lua().get("belt_animation_set");
 
