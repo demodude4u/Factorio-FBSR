@@ -267,6 +267,7 @@ public class WorldMap {
 	private final Table<Integer, Integer, Entry<String, Direction>> undergroundBeltEndings = HashBasedTable.create();
 	private final Table<Integer, Integer, List<BeaconSource>> beaconed = HashBasedTable.create();
 	private final Table<Integer, Integer, MapEntity> cargoBayConnectables = HashBasedTable.create();
+	private final Table<Integer, Integer, List<Boolean>> fusionConnections = HashBasedTable.create();
 	private final Table<Integer, Integer, List<RailPoint>> railConnectionsGrounded = HashBasedTable.create();
 	private final Table<Integer, Integer, List<RailPoint>> railConnectionsElevated = HashBasedTable.create();
 	// private final Table<Integer, Integer, RailSlot> railSignalSlots = HashBasedTable.create();
@@ -340,6 +341,20 @@ public class WorldMap {
 
 	public Optional<Direction> getBeltFacing(MapPosition pos) {
 		return Optional.ofNullable(belts.get(pos.getXCell(), pos.getYCell())).map(BeltCell::getFacing);
+	}
+
+	public List<Boolean> getFusionConnections(MapPosition pos) {
+		return Optional.ofNullable(fusionConnections.get(pos.getXCell(), pos.getYCell())).orElse(ImmutableList.of());
+	}
+
+	public List<Boolean> getOrCreateFusionConnections(MapPosition pos) {
+		int kr = pos.getXCell();
+		int kc = pos.getYCell();
+		List<Boolean> ret = fusionConnections.get(kr, kc);
+		if (ret == null) {
+			fusionConnections.put(kr, kc, ret = new ArrayList<>());
+		}
+		return ret;
 	}
 
 	public MapPosition getLogisticCellPosition(Cell<Integer, Integer, LogisticGridCell> c) {
