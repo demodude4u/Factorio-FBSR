@@ -3,6 +3,14 @@
     "configurations": [
         {
             "type": "java",
+            "name": "FBSRModDumperTask",
+            "request": "launch",
+            "mainClass": "com.demod.fbsr.task.FBSRModDumperTask",
+            "projectName": "FactorioBlueprintStringRenderer",
+            "cwd": "${workspaceFolder}/FactorioBlueprintStringRenderer"
+        },
+        {
+            "type": "java",
             "name": "Launch Blueprint Bot",
             "request": "launch",
             "mainClass": "com.demod.fbsr.app.StartAllServices",
