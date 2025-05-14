@@ -729,7 +729,7 @@ public abstract class EntityRendering extends EntityRendererFactory {
 		for (FPFluidBox fluidBox : fluidBoxes) {
 			if (fluidBox.pipeCovers.isPresent() || fluidBox.pipePicture.isPresent()) {
 				for (FPPipeConnectionDefinition conn : fluidBox.pipeConnections) {
-					if (!conn.connectionType.equals("normal")) {
+					if (!conn.connectionType.equals("normal") || conn.position.isEmpty() || conn.direction.isEmpty()) {
 						continue;
 					}
 					
