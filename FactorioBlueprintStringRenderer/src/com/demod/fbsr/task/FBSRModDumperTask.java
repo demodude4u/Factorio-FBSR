@@ -104,11 +104,11 @@ public class FBSRModDumperTask {
 	}
 
 	public static void main(String[] args) throws IOException {
-		String[] mods = { "aai-containers", "aai-industry", "aai-loaders", "aai-programmable-structures",
-				"aai-programmable-vehicles", "aai-signal-transmission", "aai-signals", "aai-vehicles-chaingunner",
-				"aai-vehicles-flame-tank", "aai-vehicles-flame-tumbler", "aai-vehicles-hauler", "aai-vehicles-ironclad",
-				"aai-vehicles-laser-tank", "aai-vehicles-miner", "aai-vehicles-warden", "aai-zones", "equipment-gantry",
-				"informatron", "shield-projector" };
+		String[] mods = { "bobassembly", "bobclasses", "bobelectronics", "bobenemies",
+				"bobequipment", "bobgreenhouse", "bobinserters", "boblibrary",
+				"boblogistics", "bobmining", "bobmodules", "bobores",
+				"bobplates", "bobpower", "bobrevamp", "bobtech", "bobvehicleequipment",
+				"bobwarfare" };
 
 		JSONObject cfgFactorioManager = Config.get().getJSONObject("factorio_manager");
 		JSONObject cfgModPortalApi = cfgFactorioManager.getJSONObject("mod_portal_api");
