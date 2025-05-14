@@ -19,6 +19,10 @@ public class MapPosition {
 		return new MapPosition(unitToFixedPoint(x), unitToFixedPoint(y));
 	}
 
+	public static MapPosition byPixel(int x, int y) {
+		return new MapPosition(pixelsToFixedPoint(x), pixelsToFixedPoint(y));
+	}
+
 	public static MapPosition convert(FPVector v) {
 		return byUnit(v.x, v.y);
 	}

@@ -36,4 +36,11 @@ public class FPVector3D {
 		}
 	}
 
+	public FPVector3D add(FPVector3D other) {
+		return new FPVector3D(x + other.x, y + other.y, z + other.z);
+	}
+
+	public FPVector3D add(double x, double y, double z) {
+		return new FPVector3D(this.x + x, this.y + y, this.z + z);
+	}
 }

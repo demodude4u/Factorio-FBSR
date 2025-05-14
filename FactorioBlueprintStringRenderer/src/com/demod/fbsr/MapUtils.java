@@ -18,6 +18,10 @@ public final class MapUtils {
 		return fp >> PIXELS_SHIFT;
 	}
 
+	public static int pixelsToFixedPoint(int pixels) {
+		return pixels << PIXELS_SHIFT;
+	}
+
 	public static double fixedPointToUnit(int fp) {
 		return fp / (double) SCALING_FACTOR;
 	}

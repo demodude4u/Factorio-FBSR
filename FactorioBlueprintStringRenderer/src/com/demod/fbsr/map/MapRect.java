@@ -118,6 +118,12 @@ public class MapRect {
 		return new MapRect(-heightfp - yfp, xfp, heightfp, widthfp);
 	}
 
+	public MapRect rotate(double rotation) {
+		double rotateCos = Math.cos(rotation);
+		double rotateSin = Math.sin(rotation);
+		return transformMatrix(rotateCos, -rotateSin, rotateSin, rotateCos);
+	}
+
 	public Rectangle toPixels() {
 		return new Rectangle(fixedPointToPixels(xfp), fixedPointToPixels(yfp), fixedPointToPixels(widthfp),
 				fixedPointToPixels(heightfp));
