@@ -16,7 +16,7 @@
             "mainClass": "com.demod.fbsr.app.StartAllServices",
             "projectName": "FactorioBlueprintStringRenderer",
             "cwd": "${workspaceFolder}/FactorioBlueprintStringRenderer",
-            "vmArgs": "-Dfile.encoding=UTF-8 -Xmx12g"
+            "vmArgs": "-Dfile.encoding=UTF-8 -Xmx16g"
         }
     ]
 }
