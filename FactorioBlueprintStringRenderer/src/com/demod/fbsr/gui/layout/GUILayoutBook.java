@@ -7,12 +7,18 @@ import java.awt.RenderingHints;
 import java.awt.Shape;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
+import java.awt.Composite;
+import java.awt.Font;
+import java.awt.FontMetrics;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.OptionalInt;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
@@ -20,6 +26,7 @@ import java.util.stream.IntStream;
 
 import com.demod.dcba.CommandReporting;
 import com.demod.fbsr.FBSR;
+import com.demod.fbsr.FactorioManager;
 import com.demod.fbsr.RenderRequest;
 import com.demod.fbsr.RenderResult;
 import com.demod.fbsr.RichText;
@@ -27,6 +34,7 @@ import com.demod.fbsr.RichText.TagToken;
 import com.demod.fbsr.bs.BSBlueprint;
 import com.demod.fbsr.bs.BSBlueprintBook;
 import com.demod.fbsr.bs.BSIcon;
+import com.demod.fbsr.composite.TintComposite;
 import com.demod.fbsr.gui.GUIAlign;
 import com.demod.fbsr.gui.GUIBox;
 import com.demod.fbsr.gui.GUISize;
@@ -35,6 +43,7 @@ import com.demod.fbsr.gui.feature.GUIPipeFeature;
 import com.demod.fbsr.gui.part.GUIImage;
 import com.demod.fbsr.gui.part.GUILabel;
 import com.demod.fbsr.gui.part.GUIPanel;
+import com.demod.fbsr.gui.part.GUIPart;
 import com.demod.fbsr.gui.part.GUIRichText;
 import com.google.common.collect.ArrayTable;
 import com.google.common.collect.Table;
@@ -180,29 +189,39 @@ public class GUILayoutBook {
 	private List<RenderResult> results;
 	private List<ImageBlock> blocks;
 	private Rectangle packBounds;
+	private Composite pc;
+	private Composite tint;
+
+	private boolean spaceAge;
+
+	private List<String> mods;
 
 	private void drawFrame(Graphics2D g, GUIBox bounds) {
+		g.setComposite(tint);
+
 		int titleHeight = 50;
 
 		GUIPanel panel = new GUIPanel(bounds, GUIStyle.FRAME_INNER);
-		panel.render(g);
+		renderTinted(g, panel);
 
 		drawTitleBar(g, bounds.cutTop(titleHeight));
 		drawImagePane(g, bounds.shrinkTop(titleHeight));
 
 		GUIBox creditBounds = bounds.cutRight(190).cutBottom(24).expandTop(8).cutTop(16).cutLeft(160);
 		GUIPanel creditPanel = new GUIPanel(creditBounds, GUIStyle.FRAME_TAB);
-		creditPanel.render(g);
+		renderTinted(g, creditPanel);
 		GUILabel lblCredit = new GUILabel(creditBounds, "BlueprintBot " + FBSR.getVersion(),
 				GUIStyle.FONT_BP_BOLD.deriveFont(16f), Color.GRAY, GUIAlign.TOP_CENTER);
-		lblCredit.render(g);
+		renderTinted(g, lblCredit);
+
+		g.setComposite(pc);
 	}
 
 	private void drawImagePane(Graphics2D g, GUIBox bounds) {
 		bounds = bounds.shrink(0, 24, 24, 24);
 
 		GUIPanel panel = new GUIPanel(bounds, GUIStyle.FRAME_DARK_INNER, GUIStyle.FRAME_OUTER);
-		panel.render(g);
+		renderTinted(g, panel);
 
 		AffineTransform xform = g.getTransform();
 		double renderScaleX = xform.getScaleX();
@@ -273,7 +292,31 @@ public class GUILayoutBook {
 
 		int pipeX = (int) (bounds.x + bounds.width / 2 + (-packBounds.width / 2.0) * cellWidth) - 4;
 		int pipeY = (int) (bounds.y + bounds.height / 2 + (-packBounds.height / 2.0) * cellHeight) - 4;
+		g.setComposite(tint);
 		GUIStyle.PIPE.renderDynamicGrid(g, pipeX, pipeY, cellWidth, cellHeight, packBounds, groupings);
+		g.setComposite(pc);
+
+		GUIBox boundsCell = bounds.cutTop(28).cutRight(100);
+
+		Font fontMod = GUIStyle.FONT_BP_BOLD.deriveFont(15f);
+
+		if (spaceAge) {
+			GUIStyle.CIRCLE_WHITE.render(g, boundsCell);
+			GUILabel label = new GUILabel(boundsCell, "Space Age", fontMod, Color.black, GUIAlign.CENTER);
+			label.render(g);
+			boundsCell = boundsCell.indexed(1, 0);
+		}
+
+		for (String mod : mods) {
+			FontMetrics fm = g.getFontMetrics(fontMod);
+			int minWidth = fm.stringWidth(mod) + 16;
+			GUIBox boundsLabel = (minWidth > boundsCell.width) ? boundsCell.expandLeft(minWidth - boundsCell.width)
+					: boundsCell;
+			GUIStyle.CIRCLE_YELLOW.render(g, boundsLabel);
+			GUILabel label = new GUILabel(boundsLabel, mod, fontMod, Color.black, GUIAlign.CENTER);
+			label.render(g);
+			boundsCell = boundsCell.indexed(1, 0);
+		}
 
 	}
 
@@ -295,9 +338,11 @@ public class GUILayoutBook {
 		int startX = bounds.x + (int) (lblTitle.getTextWidth(g) + 44);
 		int endX = bounds.x + bounds.width - (int)lblIcons.getTextWidth(g) - (iconText.length() == 0 ? 24 : 46);
 		GUIPipeFeature pipe = GUIStyle.DRAG_LINES;
+		g.setComposite(tint);
 		for (int x = endX - pipe.size; x >= startX; x -= pipe.size) {
 			pipe.renderVertical(g, x, bounds.y + 10, bounds.y + bounds.height - 10);
 		}
+		g.setComposite(pc);
 	}
 
 	public BufferedImage generateDiscordImage() {
@@ -377,6 +422,27 @@ public class GUILayoutBook {
 			g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
 			g.scale(uiScale, uiScale);
 
+			pc = g.getComposite();
+			Set<String> groups = new LinkedHashSet<>();
+			for (BSBlueprint blueprint : book.getAllBlueprints()) {
+				blueprint.entities.stream().map(e -> FactorioManager.lookupEntityFactoryForName(e.name))
+						.map(e -> e.isUnknown() ? "Modded" : e.getGroupName()).forEach(groups::add);
+				blueprint.tiles.stream().map(t -> FactorioManager.lookupTileFactoryForName(t.name)).filter(t -> !t.isUnknown())
+						.map(t -> t.getGroupName()).forEach(groups::add);
+			}
+
+			spaceAge = groups.contains("Space Age");
+			groups.removeAll(Arrays.asList("Base", "Space Age"));
+			mods = groups.stream().sorted().collect(Collectors.toList());
+
+			if (!mods.isEmpty()) {
+				tint = new TintComposite(450, 300, 80, 255);
+			} else if (spaceAge) {
+				tint = new TintComposite(350, 350, 400, 255);
+			} else {
+				tint = pc;
+			}
+
 			drawFrame(g, bounds);
 		} finally {
 			g.dispose();
@@ -396,6 +462,12 @@ public class GUILayoutBook {
 
 	public void setReporting(CommandReporting reporting) {
 		this.reporting = reporting;
+	}
+
+	private void renderTinted(Graphics2D g, GUIPart part) {
+		g.setComposite(tint);
+		part.render(g);
+		g.setComposite(pc);
 	}
 
 }
