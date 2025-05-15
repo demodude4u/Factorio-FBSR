@@ -1533,7 +1533,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				.withOptionalParam(OptionType.STRING, "url", "Url containing blueprint string.")//
 				.withOptionalParam(OptionType.ATTACHMENT, "file", "File containing blueprint string.")//
 				//
-				.addSlashCommand("book/directory", "Prints out list of all blueprints in a blueprint book.",
+				.addSlashCommand("book/tree", "Prints out tree of all blueprints in a blueprint book.",
 						this::handleBookDirectoryCommand)
 				.withOptionalParam(OptionType.STRING, "string", "Blueprint string.")//
 				.withOptionalParam(OptionType.STRING, "url", "Url containing blueprint string.")//
@@ -1588,6 +1588,17 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 						this::handleDataRawAutoComplete)//
 				.withAutoParam(OptionType.STRING, "profile", "Which factorio profile to load from.")
 				.withParam(OptionType.STRING, "path", "Path to identify which key.")//
+				//
+				//
+				.addSlashCommand("mods/request", "Request a mod to be added to the bot.",
+						e -> {
+							e.getReporting().addDebug("MOD REQUEST: " + e.getParamString("mod"));
+							e.optParamString("url").ifPresent(url -> e.getReporting().addDebug("MOD REQUEST URL: " + url));
+							e.reply("Thank you for your request!");
+						})//
+				.withParam(OptionType.STRING, "mod", "Name of the mod to be added, or list a few mods separated by commas.")//
+				.withOptionalParam(OptionType.STRING, "url", "Link to a page on mods.factorio.com, if known.")//
+				.ephemeral()//
 				//
 				//
 				.addButtonHandler(this::onButtonInteraction)//
