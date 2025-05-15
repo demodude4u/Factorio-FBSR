@@ -24,7 +24,7 @@ public class BSConstantCombinatorControlBehavior {
 	public final List<BSConstantCombinatorControlBehaviorSection> sections;
 
 	public BSConstantCombinatorControlBehavior(JSONObject json) {
-		if (json.has("sections")) {
+		if (!json.isNull("sections")) {
 			JSONObject jsonSections = json.getJSONObject("sections");
 			sections = BSUtils.list(jsonSections, "sections", BSConstantCombinatorControlBehaviorSection::new);
 		} else {
