@@ -966,7 +966,7 @@ public class FBSR {
 
 		MapText label = new MapText(null,
 				MapPosition.byUnit(frameBounds.getX() + 0.15, frameBounds.getY() + frameBounds.getHeight() / 2.0), 0,
-				GUIStyle.FONT_BP_BOLD.deriveFont(0.8f), Color.white, "");
+				GUIStyle.FONT_BP_BOLD.deriveFont(0.8f), Color.white, "", false);
 
 		int i = 0;
 		for (MapRenderable renderable : renderables) {

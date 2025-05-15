@@ -52,7 +52,7 @@ public class UnknownEntityRendering extends EntityRendererFactory {
 		register.accept(new MapUnknownEntityMarker(pos, color));
 		if (map.addUnknownEntity(name)) {
 			register.accept(
-					new MapText(Layer.ENTITY_INFO_TEXT, pos.addUnit(-0.5, -0.5 + offset), 0, FONT, Color.white, name));
+					new MapText(Layer.ENTITY_INFO_TEXT, pos.addUnit(-0.5, -0.5 + offset), 0, FONT, Color.white, name, false));
 		}
 	}
 

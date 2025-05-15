@@ -29,7 +29,7 @@ public class UnknownTileRendering extends TileRendererFactory {
 		register.accept(new MapUnknownTileMarker(pos, color));
 		if (map.addUnknownTile(name)) {
 			register.accept(new MapText(Layer.ENTITY_INFO_TEXT, pos.addUnit(-0.25, -0.25 + offset), 0, FONT,
-					Color.white, name));
+					Color.white, name, false));
 		}
 	}
 

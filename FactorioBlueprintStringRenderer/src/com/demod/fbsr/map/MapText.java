@@ -16,14 +16,18 @@ public class MapText extends MapRenderable {
 	private final int angle;
 	protected final Font font;
 	protected final Color color;
+	private boolean centered;
+
 	protected RichText text;
 
-	public MapText(Layer layer, MapPosition position, int angle, Font font, Color color, String string) {
+
+	public MapText(Layer layer, MapPosition position, int angle, Font font, Color color, String string, boolean centered) {
 		super(layer);
 		this.position = position;
 		this.angle = angle;
 		this.font = font;
 		this.color = color;
+		this.centered = centered;
 		text = new RichText(string);
 	}
 
@@ -53,6 +57,10 @@ public class MapText extends MapRenderable {
 			g.translate(textX, textY);
 			g.rotate(angle / 180f * Math.PI);
 
+			if (centered) {
+				g.translate(-text.getTextWidth(g)/2.0, 0);
+			}
+
 			g.setColor(Color.darkGray);
 			text.drawShadow(g, 0.05f, 0.05f);
 			g.setColor(color);
@@ -61,6 +69,11 @@ public class MapText extends MapRenderable {
 			g.setTransform(pat);
 
 		} else {
+
+			if (centered) {
+				textX -= text.getTextWidth(g) / 2.0;
+			}
+
 			g.setColor(Color.darkGray);
 			text.drawShadow(g, textX + 0.05f, textY + 0.05f);
 			g.setColor(color);
