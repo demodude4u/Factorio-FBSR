@@ -144,7 +144,7 @@ public class RichText {
 		try {
 			Font font = g.getFont();
 			FontRenderContext frc = g.getFontRenderContext();
-			float tagSize = font.getSize();
+			float tagSize = font.getSize2D();
 
 			for (Token token : tokens) {
 				if (token instanceof TextToken) {
@@ -218,7 +218,7 @@ public class RichText {
 	public double getTextWidth(Graphics2D g) {
 		Font font = g.getFont();
 		FontRenderContext frc = g.getFontRenderContext();
-		float tagSize = font.getSize();
+		float tagSize = font.getSize2D();
 		double width = 0.0;
 
 		for (Token token : tokens) {
