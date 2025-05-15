@@ -364,6 +364,8 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		if (blueprintString.blueprint.isPresent()) {
 			BSBlueprint blueprint = blueprintString.blueprint.get();
 
+			reporting.addField(new Field("Blueprint Version", blueprint.version.toString(), true));
+
 			GUILayoutBlueprint layout = new GUILayoutBlueprint();
 			layout.setBlueprint(blueprint);
 			layout.setReporting(reporting);
