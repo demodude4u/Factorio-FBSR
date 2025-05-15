@@ -102,7 +102,4 @@ public class FusionReactorRendering extends EntityWithOwnerRendering {
 		}
 	}
 
-	// TODO connectors between adjacent fusion reactors and generators
-	// https://factorio.com/blog/post/fff-420
-
 }
