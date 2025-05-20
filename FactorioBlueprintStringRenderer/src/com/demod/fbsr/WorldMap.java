@@ -567,6 +567,10 @@ public class WorldMap {
 				flags |= flag(facing);
 			}
 		}
+		Integer currentFlags = pipes.get(pos.getXCell(), pos.getYCell());
+		if (currentFlags != null) {
+			flags |= currentFlags;
+		}
 		pipes.put(pos.getXCell(), pos.getYCell(), flags);
 	}
 
