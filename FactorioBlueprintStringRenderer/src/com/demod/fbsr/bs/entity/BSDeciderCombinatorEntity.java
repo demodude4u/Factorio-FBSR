@@ -5,6 +5,7 @@ import java.util.Optional;
 import org.json.JSONObject;
 
 import com.demod.fbsr.BSUtils;
+import com.demod.fbsr.bs.BSDeciderConditions;
 import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.legacy.LegacyBlueprintEntity;
 
