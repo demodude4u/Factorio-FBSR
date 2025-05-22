@@ -7,6 +7,8 @@ public class SpacePlatformHubRendering extends CargoBayConnectionsRendering {
 	public void defineEntity(Bindings bind, LuaTable lua) {
 		super.defineEntity(bind, lua);
 		
+		bind.circuitConnector(lua.get("circuit_connector"));
+
 		bindCargoStationParameters(bind, lua.get("cargo_station_parameters"));
 	}
 }

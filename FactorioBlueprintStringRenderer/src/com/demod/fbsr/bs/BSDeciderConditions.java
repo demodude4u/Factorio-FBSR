@@ -1,12 +1,10 @@
-package com.demod.fbsr.bs.entity;
+package com.demod.fbsr.bs;
 
 import java.util.List;
 
 import org.json.JSONObject;
 
 import com.demod.fbsr.BSUtils;
-import com.demod.fbsr.bs.BSConditionOutput;
-import com.demod.fbsr.bs.BSDeciderCondition;
 import com.google.common.collect.ImmutableList;
 
 public class BSDeciderConditions {
