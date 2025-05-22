@@ -104,11 +104,7 @@ public class FBSRModDumperTask {
 	}
 
 	public static void main(String[] args) throws IOException {
-		String[] mods = { "bobassembly", "bobclasses", "bobelectronics", "bobenemies",
-				"bobequipment", "bobgreenhouse", "bobinserters", "boblibrary",
-				"boblogistics", "bobmining", "bobmodules", "bobores",
-				"bobplates", "bobpower", "bobrevamp", "bobtech", "bobvehicleequipment",
-				"bobwarfare" };
+		String[] mods = { "cybersyn-combinator" };
 
 		JSONObject cfgFactorioManager = Config.get().getJSONObject("factorio_manager");
 		JSONObject cfgModPortalApi = cfgFactorioManager.getJSONObject("mod_portal_api");
