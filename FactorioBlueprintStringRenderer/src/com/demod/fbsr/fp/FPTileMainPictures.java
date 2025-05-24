@@ -10,6 +10,7 @@ import java.util.stream.Collectors;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.BlendMode;
 import com.demod.fbsr.FPUtils;
+import com.demod.fbsr.ModsProfile;
 import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.def.SpriteDef;
 import com.demod.fbsr.map.MapRect;
@@ -22,18 +23,18 @@ public class FPTileMainPictures extends FPTileSpriteLayout {
 	private final int limitedCount;
 	private final List<SpriteDef> defs;
 
-	public FPTileMainPictures(LuaValue lua, int limitCount) {
+	public FPTileMainPictures(ModsProfile profile, LuaValue lua, int limitCount) {
 		super(lua);
 		size = lua.get("size").checkint();
 		probability = lua.get("probability").optdouble(1.0);
 		weights = FPUtils.optList(lua.get("weights"), LuaValue::todouble);
 
 		limitedCount = Math.min(limitCount, count);
-		List<SpriteDef> allDefs = createDefs();
+		List<SpriteDef> allDefs = createDefs(profile);
 		defs = allDefs.stream().limit(limitedCount).collect(Collectors.toList());
 	}
 
-	private List<SpriteDef> createDefs() {
+	private List<SpriteDef> createDefs(ModsProfile profile) {
 		List<SpriteDef> defs = new ArrayList<>();
 
 		int sizePixels = (int) (size * 64 / scale);
@@ -41,7 +42,7 @@ public class FPTileMainPictures extends FPTileSpriteLayout {
 		for (int i = 0; i < count; i++) {
 			int x = sizePixels * (i % lineLength);
 			int y = sizePixels * (i / lineLength);
-			defs.add(new SpriteDef(picture, false, BlendMode.NORMAL, Optional.empty(), false, false,
+			defs.add(new SpriteDef(profile, picture, false, BlendMode.NORMAL, Optional.empty(), false, false,
 					new Rectangle(x, y, sizePixels, sizePixels), MapRect.byUnit(0, 0, size, size)));
 		}
 

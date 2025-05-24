@@ -134,12 +134,12 @@ public abstract class CraftingMachineRendering extends EntityWithOwnerRendering 
 	public void initFromPrototype() {
 		super.initFromPrototype();
 
-		protoGraphicsSet = new FPWorkingVisualisations(prototype.lua().get("graphics_set"));
-		protoGraphicsSetFlipped = FPUtils.opt(prototype.lua().get("graphics_set_flipped"),
+		protoGraphicsSet = new FPWorkingVisualisations(profile, prototype.lua().get("graphics_set"));
+		protoGraphicsSetFlipped = FPUtils.opt(profile, prototype.lua().get("graphics_set_flipped"),
 				FPWorkingVisualisations::new);
 
 		protoFluidBoxesOffWhenNoFluidRecipe = prototype.lua().get("fluid_boxes_off_when_no_fluid_recipe").optboolean(false);
-		protoFluidBoxes = FPUtils.list(prototype.lua().get("fluid_boxes"), FPFluidBox::new);
+		protoFluidBoxes = FPUtils.list(profile, prototype.lua().get("fluid_boxes"), FPFluidBox::new);
 	}
 
 	@Override
@@ -148,7 +148,7 @@ public abstract class CraftingMachineRendering extends EntityWithOwnerRendering 
 
 		Optional<String> recipe = entity.<BSCraftingMachineEntity>fromBlueprint().recipe;
 		if (recipe.isPresent()) {
-			Optional<RecipePrototype> optRecipe = data.getTable().getRecipe(recipe.get());
+			Optional<RecipePrototype> optRecipe = profile.getData().getTable().getRecipe(recipe.get());
 			if (optRecipe.isPresent()) {
 				RecipePrototype protoRecipe = optRecipe.get();
 				setLogisticMachine(map, entity.getBounds(), protoRecipe);

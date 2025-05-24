@@ -126,7 +126,7 @@ public abstract class TransportBeltConnectableRendering extends EntityWithOwnerR
 
 		} else {
 			protoHasBeltAnimationSet = true;
-			protoBeltAnimationSet = new FPRotatedAnimation(luaBeltAnimationSet.get("animation_set"));
+			protoBeltAnimationSet = new FPRotatedAnimation(profile, luaBeltAnimationSet.get("animation_set"));
 			protoBeltIndices = new int[4][BeltBend.values().length];
 			protoBeltStartingIndices = new int[4];
 			protoBeltEndingIndices = new int[4];

@@ -4,12 +4,13 @@ import java.util.Optional;
 
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.FPUtils;
+import com.demod.fbsr.ModsProfile;
 
 public class FPTileTransitions {
 	public final Optional<String> spritesheet;
 	public final FPTileTransitionSpritesheetLayout layout;
 
-	public FPTileTransitions(LuaValue lua) {
+	public FPTileTransitions(ModsProfile profile, LuaValue lua) {
 		spritesheet = FPUtils.optString(lua.get("spritesheet"));
 
 		boolean overlayEnabled = lua.get("overlay_enabled").optboolean(true);
@@ -24,7 +25,7 @@ public class FPTileTransitions {
 		Optional<String> backgroundSpritesheet = FPUtils.optString(lua.get("background_spritesheet"));
 		LuaValue backgroundLayoutLua = lua.get("background_layout");
 
-		layout = new FPTileTransitionSpritesheetLayout(lua.get("layout"), spritesheet, //
+		layout = new FPTileTransitionSpritesheetLayout(profile, lua.get("layout"), spritesheet, //
 				overlayEnabled, overlaySpritesheet, overlayLayoutLua, //
 				maskEnabled, maskSpritesheet, maskLayoutLua, //
 				backgroundEnabled, backgroundSpritesheet, backgroundLayoutLua);

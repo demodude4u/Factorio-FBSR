@@ -8,6 +8,7 @@ import java.util.function.Consumer;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.FPUtils;
+import com.demod.fbsr.ModsProfile;
 import com.demod.fbsr.def.SpriteDef;
 import com.google.common.collect.ImmutableList;
 
@@ -19,14 +20,14 @@ public class FPWorkingVisualisation {
 	public final Optional<FPAnimation> southAnimation;
 	public final Optional<FPAnimation> westAnimation;
 
-	public FPWorkingVisualisation(LuaValue lua) {
+	public FPWorkingVisualisation(ModsProfile profile, LuaValue lua) {
 		alwaysDraw = lua.get("always_draw").optboolean(false);
 
-		animation = FPUtils.opt(lua.get("animation"), FPAnimation::new);
-		northAnimation = FPUtils.opt(lua.get("north_animation"), FPAnimation::new).or(() -> animation);
-		eastAnimation = FPUtils.opt(lua.get("east_animation"), FPAnimation::new).or(() -> animation);
-		southAnimation = FPUtils.opt(lua.get("south_animation"), FPAnimation::new).or(() -> animation);
-		westAnimation = FPUtils.opt(lua.get("west_animation"), FPAnimation::new).or(() -> animation);
+		animation = FPUtils.opt(profile, lua.get("animation"), FPAnimation::new);
+		northAnimation = FPUtils.opt(profile, lua.get("north_animation"), FPAnimation::new).or(() -> animation);
+		eastAnimation = FPUtils.opt(profile, lua.get("east_animation"), FPAnimation::new).or(() -> animation);
+		southAnimation = FPUtils.opt(profile, lua.get("south_animation"), FPAnimation::new).or(() -> animation);
+		westAnimation = FPUtils.opt(profile, lua.get("west_animation"), FPAnimation::new).or(() -> animation);
 	}
 
 	public void defineSprites(Consumer<? super SpriteDef> consumer, Direction direction, int frame) {

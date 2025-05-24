@@ -26,10 +26,10 @@ public abstract class EntityWithHealthRendering extends EntityRendering {
         if (!luaGraphicsSet.isnil()) {
             protoIntegrationPatchRenderLayer = FPUtils.optLayer(luaGraphicsSet.get("integration_patch_render_layer")).orElse(protoIntegrationPatchRenderLayer);
         
-           protoIntegrationPatch = FPUtils.opt(luaGraphicsSet.get("integration_patch"), FPSprite4Way::new);
+           protoIntegrationPatch = FPUtils.opt(profile, luaGraphicsSet.get("integration_patch"), FPSprite4Way::new);
         }
 
-        Optional<FPSprite4Way> protoIntegrationPatchOverride = FPUtils.opt(prototype.lua().get("integration_patch"), FPSprite4Way::new);
+        Optional<FPSprite4Way> protoIntegrationPatchOverride = FPUtils.opt(profile, prototype.lua().get("integration_patch"), FPSprite4Way::new);
         if (luaGraphicsSet.isnil() || protoIntegrationPatchOverride.isPresent()) {
             protoIntegrationPatch = protoIntegrationPatchOverride;
         }

@@ -7,8 +7,9 @@ import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.geom.AffineTransform;
 
-import com.demod.fbsr.AtlasManager.AtlasRef;
 import com.demod.fbsr.def.MaterialDef;
+import com.demod.fbsr.Atlas;
+import com.demod.fbsr.Atlas.AtlasRef;
 import com.demod.fbsr.Layer;
 
 public class MapMaterialTile extends MapRenderable implements MapBounded {
@@ -36,7 +37,7 @@ public class MapMaterialTile extends MapRenderable implements MapBounded {
 	@Override
 	public void render(Graphics2D g) {
 		AtlasRef ref = def.getAtlasRef();
-		Image image = ref.getAtlas().getBufferedImage();
+		Image image = ref.getAtlas().getImage();
 		Rectangle source = ref.getRect();
 
 		Dimension tile = def.getTile();

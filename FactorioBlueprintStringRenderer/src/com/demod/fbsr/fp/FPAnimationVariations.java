@@ -7,6 +7,7 @@ import java.util.function.Consumer;
 
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.FPUtils;
+import com.demod.fbsr.ModsProfile;
 import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.def.SpriteDef;
 import com.google.common.collect.ImmutableList;
@@ -16,7 +17,7 @@ public class FPAnimationVariations {
 	public final Optional<List<FPAnimationSheet>> sheets;
 	public final Optional<List<FPAnimation>> animations;
 
-	public FPAnimationVariations(LuaValue lua) {
+	public FPAnimationVariations(ModsProfile profile, LuaValue lua) {
 		// XXX is there a better way to determine if this is an array?
 		LuaValue luaFilenames = lua.get("filenames");
 		LuaValue luaFilename = lua.get("filename");
@@ -25,15 +26,15 @@ public class FPAnimationVariations {
 		LuaValue luaLayers = lua.get("layers");
 		if (luaFilenames.isnil() && luaFilename.isnil() && luaSheet.isnil() && luaSheets.isnil() && luaLayers.isnil()) {
 			sheets = Optional.empty();
-			animations = FPUtils.optList(lua, FPAnimation::new);
+			animations = FPUtils.optList(profile, lua, FPAnimation::new);
 		} else if (luaSheet.isnil() && luaSheets.isnil()) {
 			sheets = Optional.empty();
-			animations = Optional.of(ImmutableList.of(new FPAnimation(lua)));
+			animations = Optional.of(ImmutableList.of(new FPAnimation(profile, lua)));
 		} else if (!luaSheet.isnil()) {
-			sheets = Optional.of(ImmutableList.of(new FPAnimationSheet(luaSheet)));
+			sheets = Optional.of(ImmutableList.of(new FPAnimationSheet(profile, luaSheet)));
 			animations = Optional.empty();
 		} else {
-			sheets = FPUtils.optList(luaSheets, FPAnimationSheet::new);
+			sheets = FPUtils.optList(profile, luaSheets, FPAnimationSheet::new);
 			animations = Optional.empty();
 		}
 	}

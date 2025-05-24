@@ -6,21 +6,22 @@ import java.util.Optional;
 
 import com.demod.fbsr.BlendMode;
 import com.demod.fbsr.Layer;
+import com.demod.fbsr.ModsProfile;
 import com.demod.fbsr.map.MapRect;
 
 public class LayeredSpriteDef extends SpriteDef {
 
 	private final Layer layer;
 
-	public LayeredSpriteDef(String path, ImageSheetLoader loader, Layer layer, boolean shadow, BlendMode blendMode,
+	public LayeredSpriteDef(ModsProfile profile, String path, ImageSheetLoader loader, Layer layer, boolean shadow, BlendMode blendMode,
 			Optional<Color> tint, boolean tintAsOverlay, boolean applyRuntimeTint, Rectangle source, MapRect bounds) {
-		super(path, loader, shadow, blendMode, tint, tintAsOverlay, applyRuntimeTint, source, bounds);
+		super(profile, path, loader, shadow, blendMode, tint, tintAsOverlay, applyRuntimeTint, source, bounds);
 		this.layer = layer;
 	}
 
-	public LayeredSpriteDef(String path, Layer layer, boolean shadow, BlendMode blendMode, Optional<Color> tint,
+	public LayeredSpriteDef(ModsProfile profile, String path, Layer layer, boolean shadow, BlendMode blendMode, Optional<Color> tint,
 			boolean tintAsOverlay, boolean applyRuntimeTint, Rectangle source, MapRect bounds) {
-		super(path, shadow, blendMode, tint, tintAsOverlay, applyRuntimeTint, source, bounds);
+		super(profile, path, shadow, blendMode, tint, tintAsOverlay, applyRuntimeTint, source, bounds);
 		this.layer = layer;
 	}
 

@@ -179,15 +179,14 @@ public class InserterRendering extends EntityWithOwnerRendering {
 	public void initFromPrototype() {
 		super.initFromPrototype();
 
-		protoPlatformPicture = new FPSprite4Way(prototype.lua().get("platform_picture"));
-		protoHandOpenPicture = new FPSprite(prototype.lua().get("hand_open_picture"));
+		protoPlatformPicture = new FPSprite4Way(profile, prototype.lua().get("platform_picture"));
+		protoHandOpenPicture = new FPSprite(profile, prototype.lua().get("hand_open_picture"));
 
 		protoPickupPosition = new FPVector(prototype.lua().get("pickup_position"));
 		protoInsertPosition = new FPVector(prototype.lua().get("insert_position"));
 
-		LuaValue optUtilityConstantsLua = data.getTable().getRaw("utility-sprites", "default").get();
-		protoIndicationLine = new FPSprite(optUtilityConstantsLua.get("indication_line"));
-		protoIndicationArrow = new FPSprite(optUtilityConstantsLua.get("indication_arrow"));
+		protoIndicationLine = FactorioManager.getUtilitySprites().indicationLine;
+		protoIndicationArrow = FactorioManager.getUtilitySprites().indicationArrow;
 
 		protoBlacklist = FactorioManager.getUtilitySprites().filterBlacklist;
 	}

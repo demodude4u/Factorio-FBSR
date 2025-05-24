@@ -565,7 +565,7 @@ public class FBSR {
 	}
 
 	public static Map<BSItemWithQualityID, Double> generateTotalRawItems(Map<BSItemWithQualityID, Double> totalItems) {
-		DataTable baseTable = FactorioManager.getBaseData().getTable();
+		DataTable baseTable = FactorioManager.getBaseProfile().getData().getTable();
 		Map<String, RecipePrototype> recipes = baseTable.getRecipes();
 		Map<BSItemWithQualityID, Double> ret = new LinkedHashMap<>();
 		TotalRawCalculator calculator = new TotalRawCalculator(recipes);
@@ -616,11 +616,15 @@ public class FBSR {
 			return;
 		}
 		initialized = true;
+
 		FactorioManager.initializePrototypes();
-		FactorioManager.initializeFactories();
 		GUIStyle.initialize();
+		FactorioManager.initializeFactories();
 		IconManager.initialize();
-		AtlasManager.initialize();
+
+		for (ModsProfile profile : FactorioManager.getProfiles()) {
+			profile.getAtlasPackage().initialize();
+		}
 	}
 
 	private static void populateRailBlocking(WorldMap map, boolean elevated) {

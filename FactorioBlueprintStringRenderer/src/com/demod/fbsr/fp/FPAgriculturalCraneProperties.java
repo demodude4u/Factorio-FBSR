@@ -6,6 +6,7 @@ import java.util.function.Consumer;
 
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.FPUtils;
+import com.demod.fbsr.ModsProfile;
 import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.def.LayeredSpriteDef;
 import com.demod.fbsr.entity.AgriculturalTowerRendering.ShamefulHardcoding;
@@ -20,14 +21,14 @@ public class FPAgriculturalCraneProperties {
     public final FPVector3D shadowDirection;
     public final List<FPCranePart> parts;
 
-    public FPAgriculturalCraneProperties(LuaValue lua) {
+    public FPAgriculturalCraneProperties(ModsProfile profile, LuaValue lua) {
         minArmExtent = lua.get("min_arm_extent").optfloat(0f);
         minGraplerLength = lua.get("min_grapler_extent").optfloat(0.2f);
         operationAngle = lua.get("operation_angle").optfloat(45) * ((float)(Math.PI / 4f) / 45f);
         telescopeDefaultExtention = lua.get("telescope_default_extention").optfloat(0.5f);
         origin = new FPVector3D(lua.get("origin"));
         shadowDirection = new FPVector3D(lua.get("shadow_direction"));
-        parts = FPUtils.list(lua.get("parts"), FPCranePart::new);
+        parts = FPUtils.list(profile, lua.get("parts"), FPCranePart::new);
     }
 
     public void getDefs(Consumer<ImageDef> register, Map<String, ShamefulHardcoding> data) {

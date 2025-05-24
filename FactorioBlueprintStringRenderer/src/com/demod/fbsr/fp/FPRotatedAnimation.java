@@ -10,6 +10,7 @@ import java.util.stream.IntStream;
 
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.FPUtils;
+import com.demod.fbsr.ModsProfile;
 import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.def.SpriteDef;
 import com.google.common.collect.ImmutableList;
@@ -28,14 +29,14 @@ public class FPRotatedAnimation extends FPAnimationParameters {
 	private final List<List<SpriteDef>> defs;
 	private final int limitedDirectionCount;
 
-	public FPRotatedAnimation(LuaValue lua) {
-		this(lua, Integer.MAX_VALUE);
+	public FPRotatedAnimation(ModsProfile profile, LuaValue lua) {
+		this(profile, lua, Integer.MAX_VALUE);
 	}
 
-	public FPRotatedAnimation(LuaValue lua, int limitDirectionCount) {
-		super(lua);
+	public FPRotatedAnimation(ModsProfile profile, LuaValue lua, int limitDirectionCount) {
+		super(profile, lua);
 
-		layers = FPUtils.optList(lua.get("layers"), l -> new FPRotatedAnimation(l, limitDirectionCount));
+		layers = FPUtils.optList(lua.get("layers"), l -> new FPRotatedAnimation(profile, l, limitDirectionCount));
 		directionCount = lua.get("direction_count").optint(1);
 		stripes = FPUtils.optList(lua.get("stripes"), l -> new FPStripe(l, OptionalInt.of(directionCount)));
 		filenames = FPUtils.optList(lua.get("filenames"), LuaValue::toString);
@@ -45,11 +46,11 @@ public class FPRotatedAnimation extends FPAnimationParameters {
 		counterclockwise = lua.get("counterclockwise").optboolean(false);
 
 		this.limitedDirectionCount = Math.min(limitDirectionCount, directionCount);
-		List<List<SpriteDef>> allDefs = createDefs();
+		List<List<SpriteDef>> allDefs = createDefs(profile);
 		defs = limitedDirectionDefs(allDefs);
 	}
 
-	private List<List<SpriteDef>> createDefs() {
+	private List<List<SpriteDef>> createDefs(ModsProfile profile) {
 		if (layers.isPresent()) {
 			return ImmutableList.of();
 		}
@@ -67,7 +68,7 @@ public class FPRotatedAnimation extends FPAnimationParameters {
 
 						int frame = stripeCol + col;
 						int index = stripeRow + row;
-						defArray[index * frameCount + frame] = SpriteDef.fromFP(stripe.filename, drawAsShadow,
+						defArray[index * frameCount + frame] = SpriteDef.fromFP(profile, stripe.filename, drawAsShadow,
 								blendMode, tint, tintAsOverlay, applyRuntimeTint, x, y, width, height, shift.x, shift.y,
 								scale);
 					}
@@ -105,7 +106,7 @@ public class FPRotatedAnimation extends FPAnimationParameters {
 					int x = this.x + width * (fileFrame % lineLength);
 					int y = this.y + height * (fileFrame / lineLength);
 
-					dirDefs.add(SpriteDef.fromFP(filenames.get().get(fileIndex), drawAsShadow, blendMode, tint,
+					dirDefs.add(SpriteDef.fromFP(profile, filenames.get().get(fileIndex), drawAsShadow, blendMode, tint,
 							tintAsOverlay, applyRuntimeTint, x, y, width, height, shift.x, shift.y, scale));
 
 				}
@@ -123,7 +124,7 @@ public class FPRotatedAnimation extends FPAnimationParameters {
 					int x = this.x + width * (spriteIndex % lineLength);
 					int y = this.y + height * (spriteIndex / lineLength);
 
-					dirDefs.add(SpriteDef.fromFP(filename.get(), drawAsShadow, blendMode, tint, tintAsOverlay,
+					dirDefs.add(SpriteDef.fromFP(profile, filename.get(), drawAsShadow, blendMode, tint, tintAsOverlay,
 							applyRuntimeTint, x, y, width, height, shift.x, shift.y, scale));
 				}
 			}

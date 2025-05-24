@@ -4,6 +4,7 @@ import java.util.function.Consumer;
 
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.Direction;
+import com.demod.fbsr.ModsProfile;
 import com.demod.fbsr.def.SpriteDef;
 
 public class FPBoilerPictureSet {
@@ -12,11 +13,11 @@ public class FPBoilerPictureSet {
 	public final FPBoilerPictures south;
 	public final FPBoilerPictures west;
 
-	public FPBoilerPictureSet(LuaValue lua) {
-		north = new FPBoilerPictures(lua.get("north"));
-		east = new FPBoilerPictures(lua.get("east"));
-		south = new FPBoilerPictures(lua.get("south"));
-		west = new FPBoilerPictures(lua.get("west"));
+	public FPBoilerPictureSet(ModsProfile profile, LuaValue lua) {
+		north = new FPBoilerPictures(profile, lua.get("north"));
+		east = new FPBoilerPictures(profile, lua.get("east"));
+		south = new FPBoilerPictures(profile, lua.get("south"));
+		west = new FPBoilerPictures(profile, lua.get("west"));
 	}
 
 	public void defineSprites(Consumer<? super SpriteDef> consumer, Direction direction, int frame) {

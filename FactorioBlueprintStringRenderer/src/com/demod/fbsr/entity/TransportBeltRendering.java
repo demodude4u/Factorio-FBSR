@@ -99,8 +99,8 @@ public class TransportBeltRendering extends TransportBeltConnectableRendering {
 		super.initFromPrototype();
 
 		LuaValue connectorLua = prototype.lua().get("connector_frame_sprites");
-		protoConnectorFrameMain = new FPAnimationVariations(connectorLua.get("frame_main"));
-		protoConnectorFrameShadow = new FPAnimationVariations(connectorLua.get("frame_shadow"));
+		protoConnectorFrameMain = new FPAnimationVariations(profile, connectorLua.get("frame_main"));
+		protoConnectorFrameShadow = new FPAnimationVariations(profile, connectorLua.get("frame_shadow"));
 	}
 
 	@Override

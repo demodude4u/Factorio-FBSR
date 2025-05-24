@@ -123,9 +123,9 @@ public class ArtilleryWagonRendering extends RollingStockRendering {
 	public void initFromPrototype() {
 		super.initFromPrototype();
 
-		protoCannonBarrelPictures = new FPRollingStockRotatedSlopedGraphics(
+		protoCannonBarrelPictures = new FPRollingStockRotatedSlopedGraphics(profile, 
 				prototype.lua().get("cannon_barrel_pictures"));
-		protoCannonBasePictures = new FPRollingStockRotatedSlopedGraphics(prototype.lua().get("cannon_base_pictures"));
+		protoCannonBasePictures = new FPRollingStockRotatedSlopedGraphics(profile, prototype.lua().get("cannon_base_pictures"));
 
 		protoCannonBaseHeight = prototype.lua().get("cannon_base_height").optdouble(0.0);
 		protoCannonBaseShiftWhenVertical = prototype.lua().get("cannon_base_shift_when_vertical").optdouble(0.0);

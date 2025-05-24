@@ -207,8 +207,8 @@ public abstract class CargoBayConnectionsRendering extends EntityWithOwnerRender
 		FPBoundingBox protoSelectionBox = new FPBoundingBox(prototype.lua().get("selection_box"));
 
 		// TODO CargoBay also has platform_graphics_set, need to figure out if needed
-		protoGraphicsSet = new FPCargoBayConnectableGraphicsSet(prototype.lua().get("graphics_set"));
-		protoPlatformGraphicsSet = FPUtils.opt(prototype.lua().get("platform_graphics_set"),
+		protoGraphicsSet = new FPCargoBayConnectableGraphicsSet(profile, prototype.lua().get("graphics_set"));
+		protoPlatformGraphicsSet = FPUtils.opt(profile, prototype.lua().get("platform_graphics_set"),
 				FPCargoBayConnectableGraphicsSet::new);
 
 		// XXX is there something better than selection box to determine dimensions?

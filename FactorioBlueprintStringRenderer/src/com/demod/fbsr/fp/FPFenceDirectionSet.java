@@ -8,6 +8,7 @@ import java.util.function.Consumer;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.FPUtils;
+import com.demod.fbsr.ModsProfile;
 import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.def.SpriteDef;
 
@@ -21,15 +22,15 @@ public class FPFenceDirectionSet {
     public final Optional<FPSpriteVariations> west;
     public final Optional<FPSpriteVariations> northwest;
 
-    public FPFenceDirectionSet(LuaValue lua) {
-        north = FPUtils.opt(lua.get("north"), FPSpriteVariations::new);
-        northeast = FPUtils.opt(lua.get("northeast"), FPSpriteVariations::new);
-        east = FPUtils.opt(lua.get("east"), FPSpriteVariations::new);
-        southeast = FPUtils.opt(lua.get("southeast"), FPSpriteVariations::new);
-        south = FPUtils.opt(lua.get("south"), FPSpriteVariations::new);
-        southwest = FPUtils.opt(lua.get("southwest"), FPSpriteVariations::new);
-        west = FPUtils.opt(lua.get("west"), FPSpriteVariations::new);
-        northwest = FPUtils.opt(lua.get("northwest"), FPSpriteVariations::new);
+    public FPFenceDirectionSet(ModsProfile profile, LuaValue lua) {
+        north = FPUtils.opt(profile, lua.get("north"), FPSpriteVariations::new);
+        northeast = FPUtils.opt(profile, lua.get("northeast"), FPSpriteVariations::new);
+        east = FPUtils.opt(profile, lua.get("east"), FPSpriteVariations::new);
+        southeast = FPUtils.opt(profile, lua.get("southeast"), FPSpriteVariations::new);
+        south = FPUtils.opt(profile, lua.get("south"), FPSpriteVariations::new);
+        southwest = FPUtils.opt(profile, lua.get("southwest"), FPSpriteVariations::new);
+        west = FPUtils.opt(profile, lua.get("west"), FPSpriteVariations::new);
+        northwest = FPUtils.opt(profile, lua.get("northwest"), FPSpriteVariations::new);
     }
 
     public void getDefs(Consumer<ImageDef> register) {

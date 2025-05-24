@@ -52,7 +52,7 @@ public class LinkedBeltRendering extends TransportBeltConnectableRendering {
 		super.initFromPrototype();
 
 		LuaValue luaStructure = prototype.lua().get("structure");
-		protoStructureDirectionIn = new FPSprite4Way(luaStructure.get("direction_in"));
-		protoStructureDirectionOut = new FPSprite4Way(luaStructure.get("direction_out"));
+		protoStructureDirectionIn = new FPSprite4Way(profile, luaStructure.get("direction_in"));
+		protoStructureDirectionOut = new FPSprite4Way(profile, luaStructure.get("direction_out"));
 	}
 }

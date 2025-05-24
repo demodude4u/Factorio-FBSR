@@ -93,9 +93,9 @@ public class WallRendering extends EntityWithOwnerRendering {
 		super.initFromPrototype();
 
 		LuaValue luaPictures = prototype.lua().get("pictures");
-		protoPictures = Arrays.stream(wallSpriteNameMapping).map(s -> new FPSpriteVariations(luaPictures.get(s)))
+		protoPictures = Arrays.stream(wallSpriteNameMapping).map(s -> new FPSpriteVariations(profile, luaPictures.get(s)))
 				.collect(Collectors.toList());
-		protoWallDiodeRed = new FPSprite4Way(prototype.lua().get("wall_diode_red"));
+		protoWallDiodeRed = new FPSprite4Way(profile, prototype.lua().get("wall_diode_red"));
 	}
 
 	@Override

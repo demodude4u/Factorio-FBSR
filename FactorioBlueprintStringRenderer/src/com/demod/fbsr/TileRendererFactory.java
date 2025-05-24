@@ -494,8 +494,9 @@ public class TileRendererFactory {
 	public static void initFactories(List<TileRendererFactory> factories) {
 		for (TileRendererFactory factory : factories) {
 			try {
-				factory.initFromPrototype(factory.getData().getTable());
-				factory.initAtlas(AtlasManager::registerDef);
+				ModsProfile profile = factory.getProfile();
+				factory.initFromPrototype(profile.getData().getTable());
+				factory.initAtlas(profile.getAtlasPackage()::registerDef);
 			} catch (Exception e) {
 				LOGGER.error("TILE {}", factory.getName());
 				throw e;
@@ -504,8 +505,8 @@ public class TileRendererFactory {
 		LOGGER.info("Initialized {} tiles.", factories.size());
 	}
 
-	public static void registerFactories(Consumer<TileRendererFactory> register, FactorioData data, JSONObject json) {
-		DataTable table = data.getTable();
+	public static void registerFactories(Consumer<TileRendererFactory> register, ModsProfile profile, JSONObject json) {
+		DataTable table = profile.getData().getTable();
 		for (String groupName : json.keySet().stream().sorted().collect(Collectors.toList())) {
 			JSONArray jsonGroup = json.getJSONArray(groupName);
 			for (int i = 0; i < jsonGroup.length(); i++) {
@@ -514,7 +515,7 @@ public class TileRendererFactory {
 				TileRendererFactory factory = new TileRendererFactory();
 				factory.setName(tileName);
 				factory.setGroupName(groupName);
-				factory.setData(data);
+				factory.setProfile(profile);
 				factory.setPrototype(prototype);
 				register.accept(factory);
 			}
@@ -523,7 +524,7 @@ public class TileRendererFactory {
 
 	protected String name;
 	protected String groupName;
-	protected FactorioData data;
+	protected ModsProfile profile;
 	protected TilePrototype prototype;
 
 	private FPTileTransitionsVariants protoVariants;
@@ -538,8 +539,8 @@ public class TileRendererFactory {
 	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapTile tile) {
 	}
 
-	public FactorioData getData() {
-		return data;
+	public ModsProfile getProfile() {
+		return profile;
 	}
 
 	public String getGroupName() {
@@ -556,7 +557,7 @@ public class TileRendererFactory {
 
 	public void initFromPrototype(DataTable table) {
 		protoLayer = prototype.lua().get("layer").checkint();
-		protoVariants = new FPTileTransitionsVariants(prototype.lua().get("variants"), 10);
+		protoVariants = new FPTileTransitionsVariants(profile, prototype.lua().get("variants"), 10);
 		protoVariantsMainSize1 = protoVariants.main.stream().filter(fp -> fp.size == 1).findFirst();
 		protoTransitionMergesWithTileID = FPUtils.optString(prototype.lua().get("transition_merges_with_tile"));
 		protoTransitionMergesWithTile = protoTransitionMergesWithTileID
@@ -581,8 +582,8 @@ public class TileRendererFactory {
 	public void populateWorldMap(WorldMap map, MapTile tile) {
 	}
 
-	public void setData(FactorioData data) {
-		this.data = data;
+	public void setProfile(ModsProfile profile) {
+		this.profile = profile;
 	}
 
 	public void setGroupName(String groupName) {

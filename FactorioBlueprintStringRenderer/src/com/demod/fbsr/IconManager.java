@@ -51,7 +51,9 @@ public class IconManager {
 
 			defs = createDefs();
 
-			defs.values().forEach(AtlasManager::registerDef);
+			for (IconDef def : defs.values()) {
+				def.getProfile().getAtlasPackage().registerDef(def);
+			}
 		}
 
 		protected Map<String, IconDef> createDefs() {
@@ -59,7 +61,8 @@ public class IconManager {
 			for (Entry<String, ? extends DataPrototype> entry : map.entrySet()) {
 				DataPrototype proto = entry.getValue();
 				List<IconLayer> layers = IconLayer.fromPrototype(proto.lua());
-				defs.put(entry.getKey(), new IconDef("TAG[" + category + "]/" + entry.getKey() + "/" + ICON_SIZE,
+				ModsProfile profile = FactorioManager.lookupProfileByData(proto.getTable().getData());
+				defs.put(entry.getKey(), new IconDef(profile, "TAG[" + category + "]/" + entry.getKey() + "/" + ICON_SIZE,
 						layers, ICON_SIZE, proto));
 			}
 			return defs;
@@ -126,7 +129,8 @@ public class IconManager {
 					iconProto = luaProduct.get();
 				}
 
-				defs.put(entry.getKey(), new IconDef("TAG[" + category + "]/" + entry.getKey() + "/" + ICON_SIZE,
+				ModsProfile profile = FactorioManager.lookupProfileByData(proto.getTable().getData());
+				defs.put(entry.getKey(), new IconDef(profile, "TAG[" + category + "]/" + entry.getKey() + "/" + ICON_SIZE,
 						layers, ICON_SIZE, iconProto));
 			}
 			return defs;
@@ -166,7 +170,8 @@ public class IconManager {
 			Map<String, DataPrototype> map = new LinkedHashMap<>();
 			for (String rawPath : rawPaths) {
 				String[] path = rawPath.split("\\.");
-				for (FactorioData data : FactorioManager.getDatas()) {
+				for (ModsProfile profile : FactorioManager.getProfiles()) {
+					FactorioData data = profile.getData();
 					LuaTable lua = data.getTable().getRaw(path).get().totableObject();
 					Utils.forEach(lua, (k, v) -> {
 						DataPrototype proto = new DataPrototype(v.totableObject());
@@ -207,9 +212,9 @@ public class IconManager {
 		private final ImageDef def;
 
 		public PlaceholderTagResolver(FPSprite sprite){
-			def = new ImageDef("[TAG]" + sprite.filename.get() + "/" + ICON_SIZE, k -> convertSprite(sprite), new Rectangle(ICON_SIZE, ICON_SIZE));
+			def = new ImageDef(FactorioManager.getBaseProfile(), "[TAG]" + sprite.filename.get() + "/" + ICON_SIZE, k -> convertSprite(sprite), new Rectangle(ICON_SIZE, ICON_SIZE));
 			
-			AtlasManager.registerDef(def);
+			def.getProfile().getAtlasPackage().registerDef(def);
 		}
 
 		public PlaceholderTagResolver(IconResolver resolver, String name) {

@@ -81,8 +81,8 @@ public class FusionReactorRendering extends EntityWithOwnerRendering {
 	public void initFromPrototype() {
 		super.initFromPrototype();
 
-		protoConnectionPictures = FPUtils.list(prototype.lua().get("graphics_set").get("connections_graphics"), 
-				l -> new FPAnimation(l.get("pictures")));
+		protoConnectionPictures = FPUtils.list(profile, prototype.lua().get("graphics_set").get("connections_graphics"), 
+				(p, l) -> new FPAnimation(p, l.get("pictures")));
 
 		protoConnectionLocations = FPUtils.list(prototype.lua().get("neighbour_connectable").get("connections"), 
 				l -> new FPVector(l.get("location").get("position")));

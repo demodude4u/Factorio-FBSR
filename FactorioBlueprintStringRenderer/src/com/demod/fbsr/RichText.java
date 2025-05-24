@@ -15,7 +15,7 @@ import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.demod.fbsr.AtlasManager.AtlasRef;
+import com.demod.fbsr.Atlas.AtlasRef;
 import com.demod.fbsr.composite.ShadowComposite;
 import com.demod.fbsr.def.IconDef;
 import com.demod.fbsr.map.MapRect;
@@ -173,7 +173,7 @@ public class RichText {
 						TagWithQuality tag = lookupTag.get();
 						Optional<String> quality = tag.getQuality();
 						AtlasRef ref = tag.getDef().getAtlasRef();
-						Image image = ref.getAtlas().getBufferedImage();
+						Image image = ref.getAtlas().getImage();
 						Rectangle source = ref.getRect();
 						
 						double iconY = y - tagSize / 2.0 + (ICON_OFFSET_Y - ICON_SIZE / 2.0) * tagSize;
@@ -188,7 +188,7 @@ public class RichText {
 							g.translate(0, 1.0 - qSize);
 							g.scale(qSize, qSize);
 							AtlasRef qRef = def.get().getAtlasRef();
-							Image qImage = qRef.getAtlas().getBufferedImage();
+							Image qImage = qRef.getAtlas().getImage();
 							Rectangle qSource = qRef.getRect();
 							g.drawImage(qImage, 0, 0, 1, 1, qSource.x, qSource.y, qSource.x + qSource.width, qSource.y + qSource.height,
 									null);

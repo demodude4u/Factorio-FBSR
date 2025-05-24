@@ -174,7 +174,7 @@ public abstract class EntityRendering extends EntityRendererFactory {
 					proto.defineSprites(register, frame);
 				}
 			};
-			ret.proto = new FPAnimation(lua);
+			ret.proto = new FPAnimation(profile, lua);
 			bindings.add(ret);
 			return ret;
 		}
@@ -198,7 +198,7 @@ public abstract class EntityRendering extends EntityRendererFactory {
 					}
 				}
 			};
-			ret.proto = new FPAnimation4Way(lua);
+			ret.proto = new FPAnimation4Way(profile, lua);
 			bindings.add(ret);
 			return ret;
 		}
@@ -218,7 +218,7 @@ public abstract class EntityRendering extends EntityRendererFactory {
 					proto.defineSprites(register, variation, frame);
 				}
 			};
-			ret.proto = new FPAnimationVariations(lua);
+			ret.proto = new FPAnimationVariations(profile, lua);
 			bindings.add(ret);
 			return ret;
 		}
@@ -226,13 +226,13 @@ public abstract class EntityRendering extends EntityRendererFactory {
 		public void circuitConnector(LuaValue lua) {
 			if (!lua.isnil()) {
 				EntityRendering.this.circuitConnectors = Optional
-						.of(ImmutableList.of(new FPCircuitConnectorDefinition(lua)));
+						.of(ImmutableList.of(new FPCircuitConnectorDefinition(profile, lua)));
 			}
 		}
 
 		public void circuitConnector16Way(LuaValue lua) {
 			if (!lua.isnil()) {
-				List<FPCircuitConnectorDefinition> list = FPUtils.list(lua, FPCircuitConnectorDefinition::new);
+				List<FPCircuitConnectorDefinition> list = FPUtils.list(profile, lua, FPCircuitConnectorDefinition::new);
 				Preconditions.checkArgument(list.size() == 16,
 						"Expected 16 circuit connectors, but found " + list.size());
 				EntityRendering.this.circuitConnectors = Optional.of(list);
@@ -241,7 +241,7 @@ public abstract class EntityRendering extends EntityRendererFactory {
 
 		public void circuitConnector4Way(LuaValue lua) {
 			if (!lua.isnil()) {
-				List<FPCircuitConnectorDefinition> list = FPUtils.list(lua, FPCircuitConnectorDefinition::new);
+				List<FPCircuitConnectorDefinition> list = FPUtils.list(profile, lua, FPCircuitConnectorDefinition::new);
 				Preconditions.checkArgument(list.size() == 4,
 						"Expected 4 circuit connectors, but found " + list.size());
 				EntityRendering.this.circuitConnectors = Optional.of(list);
@@ -250,7 +250,7 @@ public abstract class EntityRendering extends EntityRendererFactory {
 
 		public void circuitConnector8Way(LuaValue lua) {
 			if (!lua.isnil()) {
-				List<FPCircuitConnectorDefinition> list = FPUtils.list(lua, FPCircuitConnectorDefinition::new);
+				List<FPCircuitConnectorDefinition> list = FPUtils.list(profile, lua, FPCircuitConnectorDefinition::new);
 				Preconditions.checkArgument(list.size() == 8,
 						"Expected 8 circuit connectors, but found " + list.size());
 				EntityRendering.this.circuitConnectors = Optional.of(list);
@@ -259,20 +259,20 @@ public abstract class EntityRendering extends EntityRendererFactory {
 
 		public void circuitConnectorNWay(LuaValue lua) {
 			if (!lua.isnil()) {
-				List<FPCircuitConnectorDefinition> list = FPUtils.list(lua, FPCircuitConnectorDefinition::new);
+				List<FPCircuitConnectorDefinition> list = FPUtils.list(profile, lua, FPCircuitConnectorDefinition::new);
 				EntityRendering.this.circuitConnectors = Optional.of(list);
 			}
 		}
 
 		public void fluidBox(LuaValue lua) {
 			if (!lua.isnil()) {
-				EntityRendering.this.fluidBoxes.add(new FPFluidBox(lua));
+				EntityRendering.this.fluidBoxes.add(new FPFluidBox(profile, lua));
 			}
 		}
 
 		public void fluidBoxes(LuaValue lua) {
 			if (!lua.isnil()) {
-				EntityRendering.this.fluidBoxes.addAll(FPUtils.list(lua, FPFluidBox::new));
+				EntityRendering.this.fluidBoxes.addAll(FPUtils.list(profile, lua, FPFluidBox::new));
 			}
 		}
 
@@ -288,7 +288,7 @@ public abstract class EntityRendering extends EntityRendererFactory {
 					proto.defineLayeredSprites(register);
 				}
 			};
-			ret.proto = new FPLayeredSprite(lua);
+			ret.proto = new FPLayeredSprite(profile, lua);
 			bindings.add(ret);
 		}
 
@@ -319,7 +319,7 @@ public abstract class EntityRendering extends EntityRendererFactory {
 					}
 				}
 			};
-			ret.proto = new FPRotatedAnimation(lua);
+			ret.proto = new FPRotatedAnimation(profile, lua);
 			bindings.add(ret);
 			return ret;
 		}
@@ -352,7 +352,7 @@ public abstract class EntityRendering extends EntityRendererFactory {
 					}
 				}
 			};
-			ret.proto = new FPRotatedAnimation(lua, limitDirectionCount);
+			ret.proto = new FPRotatedAnimation(profile, lua, limitDirectionCount);
 			bindings.add(ret);
 			return ret;
 		}
@@ -388,7 +388,7 @@ public abstract class EntityRendering extends EntityRendererFactory {
 					}
 				}
 			};
-			ret.proto = new FPRotatedAnimation8Way(lua);
+			ret.proto = new FPRotatedAnimation8Way(profile, lua);
 			bindings.add(ret);
 			return ret;
 		}
@@ -420,7 +420,7 @@ public abstract class EntityRendering extends EntityRendererFactory {
 					}
 				}
 			};
-			ret.proto = new FPRotatedSprite(lua);
+			ret.proto = new FPRotatedSprite(profile, lua);
 			bindings.add(ret);
 			return ret;
 		}
@@ -452,7 +452,7 @@ public abstract class EntityRendering extends EntityRendererFactory {
 					}
 				}
 			};
-			ret.proto = new FPRotatedSprite(lua, limitDirectionCount);
+			ret.proto = new FPRotatedSprite(profile, lua, limitDirectionCount);
 			bindings.add(ret);
 			return ret;
 		}
@@ -472,7 +472,7 @@ public abstract class EntityRendering extends EntityRendererFactory {
 					proto.defineSprites(register);
 				}
 			};
-			ret.proto = new FPSprite(lua);
+			ret.proto = new FPSprite(profile, lua);
 			bindings.add(ret);
 			return ret;
 		}
@@ -481,7 +481,7 @@ public abstract class EntityRendering extends EntityRendererFactory {
 			if (lua.isnil()) {
 				return new BindDirNoAction<>();
 			}
-			return sprite4Way(new FPSprite4Way(lua));
+			return sprite4Way(new FPSprite4Way(profile, lua));
 		}
 
 		public BindDirAction<FPSprite4Way> sprite4Way(FPSprite4Way fp) {
@@ -520,7 +520,7 @@ public abstract class EntityRendering extends EntityRendererFactory {
 					proto.defineSprites(register, variation);
 				}
 			};
-			ret.proto = new FPSpriteVariations(lua);
+			ret.proto = new FPSpriteVariations(profile, lua);
 			bindings.add(ret);
 			return ret;
 		}

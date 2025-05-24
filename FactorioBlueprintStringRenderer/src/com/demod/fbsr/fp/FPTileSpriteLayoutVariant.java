@@ -10,6 +10,7 @@ import java.util.function.Consumer;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.BlendMode;
 import com.demod.fbsr.FPUtils;
+import com.demod.fbsr.ModsProfile;
 import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.def.SpriteDef;
 import com.demod.fbsr.map.MapRect;
@@ -28,7 +29,7 @@ public class FPTileSpriteLayoutVariant {
 
 	private final List<SpriteDef> defs;
 
-	public FPTileSpriteLayoutVariant(LuaValue lua, Optional<String> overrideSpritesheet,
+	public FPTileSpriteLayoutVariant(ModsProfile profile, LuaValue lua, Optional<String> overrideSpritesheet,
 			FPTileSpriteLayoutDefaults defaults, OptionalInt rowCount) {
 		this.spritesheet = overrideSpritesheet.or(() -> FPUtils.optString(lua.get("spritesheet")))
 				.or(() -> defaults.spritesheet);
@@ -41,10 +42,10 @@ public class FPTileSpriteLayoutVariant {
 
 		this.rowCount = rowCount;
 
-		defs = createDefs();
+		defs = createDefs(profile);
 	}
 
-	private List<SpriteDef> createDefs() {
+	private List<SpriteDef> createDefs(ModsProfile profile) {
 		if (rowCount.isEmpty()) {
 			return ImmutableList.of();
 		}
@@ -62,7 +63,7 @@ public class FPTileSpriteLayoutVariant {
 		for (int i = 0; i < spriteCount; i++) {
 			source.x = x + width * (i % lineLength);
 			source.y = y + height * (i / lineLength);
-			defs.add(new SpriteDef(spritesheet.get(), false, BlendMode.NORMAL, Optional.empty(), false, false, source,
+			defs.add(new SpriteDef(profile, spritesheet.get(), false, BlendMode.NORMAL, Optional.empty(), false, false, source,
 					MapRect.byUnit(0, 0, 1, tileHeight)));
 		}
 		return defs;

@@ -5,6 +5,7 @@ import java.util.Optional;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.BlendMode;
 import com.demod.fbsr.FPUtils;
+import com.demod.fbsr.ModsProfile;
 import com.demod.fbsr.def.SpriteDef;
 
 public class FPSpriteParameters extends FPSpriteSource {
@@ -19,11 +20,11 @@ public class FPSpriteParameters extends FPSpriteSource {
 	private final SpriteDef def;
 	private final boolean trimmable;
 
-	public FPSpriteParameters(LuaValue lua) {
-		this(lua, true);
+	public FPSpriteParameters(ModsProfile profile, LuaValue lua) {
+		this(profile, lua, true);
 	}
 
-	public FPSpriteParameters(LuaValue lua, boolean trimmable) {
+	public FPSpriteParameters(ModsProfile profile, LuaValue lua, boolean trimmable) {
 		super(lua);
 
 		this.trimmable = trimmable;
@@ -37,7 +38,7 @@ public class FPSpriteParameters extends FPSpriteSource {
 		applyRuntimeTint = lua.get("apply_runtime_tint").optboolean(false);
 
 		if (filename.isPresent()) {
-			def = SpriteDef.fromFP(filename.get(), drawAsShadow, blendMode, tint, tintAsOverlay, applyRuntimeTint, x, y,
+			def = SpriteDef.fromFP(profile, filename.get(), drawAsShadow, blendMode, tint, tintAsOverlay, applyRuntimeTint, x, y,
 					width, height, shift.x, shift.y, scale);
 			def.setTrimmable(trimmable);
 		} else {

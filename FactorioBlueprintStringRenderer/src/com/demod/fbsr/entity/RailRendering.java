@@ -289,8 +289,8 @@ public abstract class RailRendering extends EntityWithOwnerRendering {
 	public void initFromPrototype() {
 		super.initFromPrototype();
 
-		protoPictures = new FPRailPictureSet(prototype.lua().get("pictures"));
-		protoFencePictures = FPUtils.opt(prototype.lua().get("fence_pictures"), FPRailFenceGraphicsSet::new);
+		protoPictures = new FPRailPictureSet(profile, prototype.lua().get("pictures"));
+		protoFencePictures = FPUtils.opt(profile, prototype.lua().get("fence_pictures"), FPRailFenceGraphicsSet::new);
 
 		protoFrontEndingShifts = new EnumMap<>(Dir16.class);
 		protoBackEndingShifts = new EnumMap<>(Dir16.class);

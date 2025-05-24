@@ -2,16 +2,17 @@ package com.demod.fbsr.gui.feature;
 
 import java.awt.Graphics2D;
 
+import com.demod.fbsr.ModsProfile;
 import com.demod.fbsr.gui.GUIBox;
 import com.demod.fbsr.gui.GUISpacing;
 
 public class GUISliceFeature extends GUISourcedFeature {
-	public static GUISliceFeature inner(String filename, GUIBox source, GUISpacing slice) {
-		return new GUISliceFeature(GUISpacing.NONE, slice, filename, source, slice);
+	public static GUISliceFeature inner(ModsProfile profile, String filename, GUIBox source, GUISpacing slice) {
+		return new GUISliceFeature(profile, GUISpacing.NONE, slice, filename, source, slice);
 	}
 
-	public static GUISliceFeature outer(String filename, GUIBox source, GUISpacing slice) {
-		return new GUISliceFeature(slice, GUISpacing.NONE, filename, source, slice);
+	public static GUISliceFeature outer(ModsProfile profile, String filename, GUIBox source, GUISpacing slice) {
+		return new GUISliceFeature(profile, slice, GUISpacing.NONE, filename, source, slice);
 	}
 
 	public final GUISpacing slice;
@@ -20,8 +21,8 @@ public class GUISliceFeature extends GUISourcedFeature {
 	public final int[] sx;
 	public final int[] sy;
 
-	public GUISliceFeature(GUISpacing margin, GUISpacing padding, String filename, GUIBox source, GUISpacing slice) {
-		super(filename, source);
+	public GUISliceFeature(ModsProfile profile, GUISpacing margin, GUISpacing padding, String filename, GUIBox source, GUISpacing slice) {
+		super(profile, filename, source);
 		this.slice = slice;
 
 		dx = new int[] { -margin.left, padding.left, -padding.right, margin.right };

@@ -10,7 +10,8 @@ import java.awt.geom.AffineTransform;
 import java.awt.geom.Rectangle2D;
 import java.util.Optional;
 
-import com.demod.fbsr.AtlasManager.AtlasRef;
+import com.demod.fbsr.Atlas;
+import com.demod.fbsr.Atlas.AtlasRef;
 import com.demod.fbsr.BlendMode;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.Layer;
@@ -44,7 +45,7 @@ public class MapCranePart extends MapRenderable implements MapBounded {
     @Override
     public void render(Graphics2D g) {
         AtlasRef ref = def.getAtlasRef();
-		Image image = ref.getAtlas().getBufferedImage();
+		Image image = ref.getAtlas().getImage();
 		Rectangle source = ref.getRect();
 
 		Composite pc = g.getComposite();

@@ -6,6 +6,7 @@ import java.util.function.Consumer;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.Layer;
+import com.demod.fbsr.ModsProfile;
 import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.def.LayeredSpriteDef;
 import com.demod.fbsr.def.SpriteDef;
@@ -37,7 +38,7 @@ public class FPCranePart {
 
     private boolean grappler;
 
-    public FPCranePart(LuaValue lua) {
+    public FPCranePart(ModsProfile profile, LuaValue lua) {
         
         orientationShift = lua.get("orientation_shift").optfloat(0);
         isContractibleByCropping = lua.get("is_contractible_by_cropping").optboolean(false);
@@ -55,10 +56,10 @@ public class FPCranePart {
         staticLengthGrappler = FPUtils.opt(lua.get("static_length_grappler"), FPVector3D::new).orElse(new FPVector3D(0, 0, 0));;
         extendableLengthGrappler = FPUtils.opt(lua.get("extendable_length_grappler"), FPVector3D::new).orElse(new FPVector3D(0, 0, 0));;
         
-        sprite = FPUtils.opt(lua.get("sprite"), FPSprite::new);
-        rotatedSprite = FPUtils.opt(lua.get("rotated_sprite"), FPRotatedSprite::new);
-        spriteShadow = FPUtils.opt(lua.get("sprite_shadow"), FPSprite::new);
-        rotatedSpriteShadow = FPUtils.opt(lua.get("rotated_sprite_shadow"), FPRotatedSprite::new);
+        sprite = FPUtils.opt(profile, lua.get("sprite"), FPSprite::new);
+        rotatedSprite = FPUtils.opt(profile, lua.get("rotated_sprite"), FPRotatedSprite::new);
+        spriteShadow = FPUtils.opt(profile, lua.get("sprite_shadow"), FPSprite::new);
+        rotatedSpriteShadow = FPUtils.opt(profile, lua.get("rotated_sprite_shadow"), FPRotatedSprite::new);
 
         name = lua.get("name").optjstring("???");
         int layerRaw = lua.get("layer").optint(0);

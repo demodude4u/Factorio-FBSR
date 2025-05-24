@@ -7,8 +7,8 @@ import java.awt.Rectangle;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 
-import com.demod.fbsr.AtlasManager.Atlas;
-import com.demod.fbsr.AtlasManager.AtlasRef;
+import com.demod.fbsr.Atlas;
+import com.demod.fbsr.Atlas.AtlasRef;
 import com.demod.fbsr.composite.MaskedTextureComposite;
 import com.demod.fbsr.def.MaterialDef;
 import com.demod.fbsr.def.SpriteDef;
@@ -67,7 +67,7 @@ public class MapMaterialMaskedTile extends MapRenderable implements MapBounded {
 		BufferedImage ret = new BufferedImage(maskRect.width, maskRect.height, BufferedImage.TYPE_INT_ARGB);
 		Graphics2D g = ret.createGraphics();
 
-		g.drawImage(maskAtlas.getBufferedImage(), //
+		g.drawImage(maskAtlas.getImage(), //
 				0, //
 				0, //
 				maskRect.width, //
@@ -80,7 +80,7 @@ public class MapMaterialMaskedTile extends MapRenderable implements MapBounded {
 
 		Atlas materialAtlas = material.getAtlasRef().getAtlas();
 		g.setComposite(new MaskedTextureComposite());
-		g.drawImage(materialAtlas.getBufferedImage(), //
+		g.drawImage(materialAtlas.getImage(), //
 				0, //
 				0, //
 				maskRect.width, //

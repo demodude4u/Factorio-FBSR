@@ -9,7 +9,8 @@ import java.awt.geom.RoundRectangle2D;
 import java.util.Optional;
 import java.util.OptionalDouble;
 
-import com.demod.fbsr.AtlasManager.AtlasRef;
+import com.demod.fbsr.Atlas;
+import com.demod.fbsr.Atlas.AtlasRef;
 import com.demod.fbsr.IconManager;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.def.IconDef;
@@ -53,7 +54,7 @@ public class MapIcon extends MapRenderable {
 		if (!ref.isValid()) {
 			throw new IllegalStateException("Icon not assigned to atlas! " + image.getPath());
 		}
-		Image image = ref.getAtlas().getBufferedImage();
+		Image image = ref.getAtlas().getImage();
 		Rectangle source = ref.getRect();
 
 		AffineTransform pat = g.getTransform();
@@ -69,7 +70,7 @@ public class MapIcon extends MapRenderable {
 			g.translate(0, 1.0 - qSize);
 			g.scale(qSize, qSize);
 			AtlasRef qRef = def.get().getAtlasRef();
-			Image qImage = qRef.getAtlas().getBufferedImage();
+			Image qImage = qRef.getAtlas().getImage();
 			Rectangle qSource = qRef.getRect();
 			g.drawImage(qImage, 0, 0, 1, 1, qSource.x, qSource.y, qSource.x + qSource.width, qSource.y + qSource.height,
 					null);

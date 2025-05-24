@@ -99,7 +99,7 @@ public abstract class RailSignalBaseRendering extends EntityWithOwnerRendering {
 	public void initFromPrototype() {
 		super.initFromPrototype();
 		
-		groundPictureSet = new FPRailSignalPictureSet(prototype.lua().get("ground_picture_set"));
-		elevatedPictureSet = new FPRailSignalPictureSet(prototype.lua().get("elevated_picture_set"));
+		groundPictureSet = new FPRailSignalPictureSet(profile, prototype.lua().get("ground_picture_set"));
+		elevatedPictureSet = new FPRailSignalPictureSet(profile, prototype.lua().get("elevated_picture_set"));
 	}
 }

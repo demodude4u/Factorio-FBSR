@@ -462,8 +462,8 @@ public class RollingStockRendering extends VehicleRendering {
 		
 		protoColor = new FPColor(prototype.lua().get("color"));
 		protoJointDistance = prototype.lua().get("joint_distance").todouble();
-		protoPictures = new FPRollingStockRotatedSlopedGraphics(prototype.lua().get("pictures"));
-		protoWheels = FPUtils.opt(prototype.lua().get("wheels"), FPRollingStockRotatedSlopedGraphics::new);
+		protoPictures = new FPRollingStockRotatedSlopedGraphics(profile, prototype.lua().get("pictures"));
+		protoWheels = FPUtils.opt(profile, prototype.lua().get("wheels"), FPRollingStockRotatedSlopedGraphics::new);
 	}
 
 	@Override

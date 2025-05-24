@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.OptionalInt;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import com.demod.factorio.Utils;
@@ -33,6 +34,15 @@ public final class FPUtils {
 		return builder.build();
 	}
 
+	public static <T> List<T> list(ModsProfile profile, LuaValue lua, BiFunction<ModsProfile, LuaValue, T> factory) {
+		if (lua.isnil()) {
+			return ImmutableList.of();
+		}
+		Builder<T> builder = ImmutableList.builder();
+		Utils.forEach(lua.checktable(), l -> builder.add(factory.apply(profile, l)));
+		return builder.build();
+	}
+
 	public static <T> Optional<T> opt(LuaValue lua, Function<LuaValue, T> factory) {
 		if (lua.isnil()) {
 			return Optional.empty();
@@ -41,6 +51,16 @@ public final class FPUtils {
 			return Optional.empty();
 		}
 		return Optional.of(factory.apply(lua));
+	}
+
+	public static <T> Optional<T> opt(ModsProfile profile, LuaValue lua, BiFunction<ModsProfile, LuaValue, T> factory) {
+		if (lua.isnil()) {
+			return Optional.empty();
+		}
+		if ((lua.isobject() || lua.isarray()) && lua.length() == 0) {
+			return Optional.empty();
+		}
+		return Optional.of(factory.apply(profile, lua));
 	}
 
 	public static Optional<Direction> optDirection(LuaValue lua) {
@@ -78,6 +98,15 @@ public final class FPUtils {
 		}
 		Builder<T> builder = ImmutableList.builder();
 		Utils.forEach(lua.checktable(), l -> builder.add(factory.apply(l)));
+		return Optional.of(builder.build());
+	}
+
+	public static <T> Optional<List<T>> optList(ModsProfile profile, LuaValue lua, BiFunction<ModsProfile, LuaValue, T> factory) {
+		if (lua.isnil()) {
+			return Optional.empty();
+		}
+		Builder<T> builder = ImmutableList.builder();
+		Utils.forEach(lua.checktable(), l -> builder.add(factory.apply(profile, l)));
 		return Optional.of(builder.build());
 	}
 

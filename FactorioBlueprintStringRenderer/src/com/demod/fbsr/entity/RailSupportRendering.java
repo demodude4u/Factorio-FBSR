@@ -53,7 +53,7 @@ public class RailSupportRendering extends EntityWithOwnerRendering {
 	public void initFromPrototype() {
 		super.initFromPrototype();
 
-		protoStructure = new FPRotatedSprite(prototype.lua().get("graphics_set").get("structure"), 16);
+		protoStructure = new FPRotatedSprite(profile, prototype.lua().get("graphics_set").get("structure"), 16);
 	}
 
 	@Override

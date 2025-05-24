@@ -3,22 +3,24 @@ package com.demod.fbsr.def;
 import java.awt.Dimension;
 import java.awt.Rectangle;
 
+import com.demod.fbsr.ModsProfile;
+
 public class MaterialDef extends ImageDef {
 
 	private final int rows;
 	private final int cols;
 	private final Dimension tile;
 
-	public MaterialDef(String path, ImageSheetLoader loader, Rectangle source, int rows, int cols) {
-		super(path, loader, source, false);
+	public MaterialDef(ModsProfile profile, String path, ImageSheetLoader loader, Rectangle source, int rows, int cols) {
+		super(profile, path, loader, source, false);
 		this.rows = rows;
 		this.cols = cols;
 		tile = new Dimension(source.width / cols, source.height / rows);
 		setTrimmable(false);
 	}
 
-	public MaterialDef(String path, Rectangle source, int rows, int cols) {
-		super(path, source, false);
+	public MaterialDef(ModsProfile profile, String path, Rectangle source, int rows, int cols) {
+		super(profile, path, source, false);
 		this.rows = rows;
 		this.cols = cols;
 		tile = new Dimension(source.width / cols, source.height / rows);

@@ -56,6 +56,7 @@ import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.FBSR;
 import com.demod.fbsr.FBSR.RenderDebugLayersResult;
 import com.demod.fbsr.FactorioManager;
+import com.demod.fbsr.ModsProfile;
 import com.demod.fbsr.RenderRequest;
 import com.demod.fbsr.RenderResult;
 import com.demod.fbsr.RenderUtils;
@@ -229,21 +230,21 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 	private void handleDataRawAutoComplete(AutoCompleteEvent event) {
 		event.reply(
-				FactorioManager.getDatas().stream().map(d -> d.getFolderMods().getName()).collect(Collectors.toList()));
+				FactorioManager.getProfiles().stream().map(p -> p.getData().getFolderMods().getName()).collect(Collectors.toList()));
 	}
 
 	private void handleDataRawCommand(SlashCommandEvent event) throws IOException {
-		String profile = event.getParamString("profile");
-		Optional<FactorioData> data = FactorioManager.getDatas().stream()
-				.filter(d -> d.getFolderMods().getName().equals(profile)).findAny();
-		if (data.isEmpty()) {
+		String profileName = event.getParamString("profile");
+		Optional<ModsProfile> profile = FactorioManager.getProfiles().stream()
+				.filter(p -> p.getData().getFolderMods().getName().equals(profileName)).findAny();
+		if (profile.isEmpty()) {
 			event.reply("Could not find profile!");
 			return;
 		}
 
 		String key = event.getParamString("path");
 		String[] path = key.split("\\.");
-		Optional<LuaValue> lua = data.get().getTable().getRaw(path);
+		Optional<LuaValue> lua = profile.get().getData().getTable().getRaw(path);
 		if (!lua.isPresent()) {
 			event.reply("I could not find a lua table for the path [`"
 					+ Arrays.asList(path).stream().collect(Collectors.joining(", ")) + "`] :frowning:");

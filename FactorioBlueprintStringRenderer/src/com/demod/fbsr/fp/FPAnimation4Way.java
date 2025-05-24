@@ -8,6 +8,7 @@ import java.util.function.Consumer;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.FPUtils;
+import com.demod.fbsr.ModsProfile;
 import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.def.SpriteDef;
 import com.google.common.collect.ImmutableList;
@@ -28,18 +29,18 @@ public class FPAnimation4Way {
 
 	private final List<Optional<FPAnimation>> directional;
 
-	public FPAnimation4Way(LuaValue lua) {
-		north = FPUtils.opt(lua.get("north"), FPAnimation::new);
-		northEast = FPUtils.opt(lua.get("north_east"), FPAnimation::new).or(() -> north);
-		east = FPUtils.opt(lua.get("east"), FPAnimation::new).or(() -> north);
-		southEast = FPUtils.opt(lua.get("south_east"), FPAnimation::new).or(() -> north);
-		south = FPUtils.opt(lua.get("south"), FPAnimation::new).or(() -> north);
-		southWest = FPUtils.opt(lua.get("south_west"), FPAnimation::new).or(() -> north);
-		west = FPUtils.opt(lua.get("west"), FPAnimation::new).or(() -> north);
-		northWest = FPUtils.opt(lua.get("north_west"), FPAnimation::new).or(() -> north);
+	public FPAnimation4Way(ModsProfile profile, LuaValue lua) {
+		north = FPUtils.opt(profile, lua.get("north"), FPAnimation::new);
+		northEast = FPUtils.opt(profile, lua.get("north_east"), FPAnimation::new).or(() -> north);
+		east = FPUtils.opt(profile, lua.get("east"), FPAnimation::new).or(() -> north);
+		southEast = FPUtils.opt(profile, lua.get("south_east"), FPAnimation::new).or(() -> north);
+		south = FPUtils.opt(profile, lua.get("south"), FPAnimation::new).or(() -> north);
+		southWest = FPUtils.opt(profile, lua.get("south_west"), FPAnimation::new).or(() -> north);
+		west = FPUtils.opt(profile, lua.get("west"), FPAnimation::new).or(() -> north);
+		northWest = FPUtils.opt(profile, lua.get("north_west"), FPAnimation::new).or(() -> north);
 
 		if (!north.isPresent()) {
-			animation = FPUtils.opt(lua, FPAnimation::new);
+			animation = FPUtils.opt(profile, lua, FPAnimation::new);
 		} else {
 			animation = Optional.empty();
 		}

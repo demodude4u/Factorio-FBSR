@@ -23,6 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.demod.factorio.Config;
+import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
 import com.demod.factorio.prototype.AchievementPrototype;
 import com.demod.factorio.prototype.DataPrototype;
@@ -48,10 +49,11 @@ public class FactorioManager {
 	private static volatile boolean initializedPrototypes = false;
 	private static volatile boolean initializedFactories = false;
 
-	private static FactorioData baseData = null;
-	private static final List<FactorioData> datas = new ArrayList<>();
-	private static final ListMultimap<String, FactorioData> dataByModName = ArrayListMultimap.create();
-	private static final Map<String, FactorioData> dataByGroupName = new HashMap<>();
+	private static ModsProfile baseProfile = null;
+	private static final List<ModsProfile> profiles = new ArrayList<>();
+	private static final ListMultimap<String, ModsProfile> profileByModName = ArrayListMultimap.create();
+	private static final Map<FactorioData, ModsProfile> profileByData = new HashMap<>();
+	private static final Map<String, ModsProfile> profileByGroupName = new HashMap<>();
 
 	private static final List<EntityRendererFactory> entityFactories = new ArrayList<>();
 	private static final List<TileRendererFactory> tileFactories = new ArrayList<>();
@@ -94,12 +96,12 @@ public class FactorioManager {
 		return achievements;
 	}
 
-	public static FactorioData getBaseData() {
-		return baseData;
+	public static ModsProfile getBaseProfile() {
+		return baseProfile;
 	}
 
-	public static List<FactorioData> getDatas() {
-		return datas;
+	public static List<ModsProfile> getProfiles() {
+		return profiles;
 	}
 
 	public static List<EntityPrototype> getEntities() {
@@ -167,44 +169,36 @@ public class FactorioManager {
 		}
 		initializedFactories = true;
 
-		for (FactorioData data : datas) {
-			File folderMods = data.folderMods;
+		for (ModsProfile profile : profiles) {
+			File folderMods = profile.getData().folderMods;
 
 			JSONObject jsonModRendering = new JSONObject(
 					Files.readString(new File(folderMods, "mod-rendering.json").toPath()));
 
-			if (jsonModRendering.getJSONObject("entities").has("Base")) {
-				baseData = data;
-			}
-
-			EntityRendererFactory.registerFactories(FactorioManager::registerEntityFactory, data,
+			EntityRendererFactory.registerFactories(FactorioManager::registerEntityFactory, profile,
 					jsonModRendering.getJSONObject("entities"));
-			TileRendererFactory.registerFactories(FactorioManager::registerTileFactory, data,
+			TileRendererFactory.registerFactories(FactorioManager::registerTileFactory, profile,
 					jsonModRendering.getJSONObject("tiles"));
 
 		}
 
-		if (baseData == null) {
-			throw new IllegalStateException("No \"Base\" mod defined in any mod-rendering.json!");
-		}
-
-		utilitySprites = new FPUtilitySprites(baseData.getTable().getRaw("utility-sprites", "default").get());
-
+		DataTable baseTable = baseProfile.getData().getTable();
+		
 		EntityRendererFactory.initFactories(entityFactories);
 		TileRendererFactory.initFactories(tileFactories);
 
-		entityFactories.forEach(e -> dataByGroupName.put(e.getGroupName(), e.getData()));
+		entityFactories.forEach(e -> profileByGroupName.put(e.getGroupName(), e.getProfile()));
 
 		// Place vanilla protos again to be the priority
-		recipeByName.putAll(baseData.getTable().getRecipes());
-		itemByName.putAll(baseData.getTable().getItems());
-		fluidByName.putAll(baseData.getTable().getFluids());
-		entityByName.putAll(baseData.getTable().getEntities());
-		technologyByName.putAll(baseData.getTable().getTechnologies());
-		tileByName.putAll(baseData.getTable().getTiles());
-		equipmentByName.putAll(baseData.getTable().getEquipments());
-		achievementByName.putAll(baseData.getTable().getAchievements());
-		itemGroupByName.putAll(baseData.getTable().getItemGroups());
+		recipeByName.putAll(baseTable.getRecipes());
+		itemByName.putAll(baseTable.getItems());
+		fluidByName.putAll(baseTable.getFluids());
+		entityByName.putAll(baseTable.getEntities());
+		technologyByName.putAll(baseTable.getTechnologies());
+		tileByName.putAll(baseTable.getTiles());
+		equipmentByName.putAll(baseTable.getEquipments());
+		achievementByName.putAll(baseTable.getAchievements());
+		itemGroupByName.putAll(baseTable.getItemGroups());
 
 		recipeByName.values().stream().sorted(Comparator.comparing(DataPrototype::getName)).forEach(recipes::add);
 		itemByName.values().stream().sorted(Comparator.comparing(DataPrototype::getName)).forEach(items::add);
@@ -355,41 +349,68 @@ public class FactorioManager {
 
 				FactorioData data = new FactorioData(fdConfig);
 				data.initialize(false);
-				return data;
+
+				ModsProfile profile = new ModsProfile(data, new AtlasPackage(folderData));
+				return profile;
 
 			} catch (Exception e) {
-				e.printStackTrace();
-				System.exit(-1);
-				return null;
+			 e.printStackTrace();
+			 System.exit(-1);
+			 return null;
 			}
 
-		}).sequential().forEach(data -> {
-			datas.add(data);
+		}).sequential().forEach(profile -> {
+			FactorioData data = profile.getData();
+			DataTable table = data.getTable();
+			
+			profiles.add(profile);
+			profileByData.put(data, profile);
+			data.getMods().stream().forEach(s -> profileByModName.put(s, profile));
 
-			data.getMods().stream().forEach(s -> dataByModName.put(s, data));
-
-			recipeByName.putAll(data.getTable().getRecipes());
-			itemByName.putAll(data.getTable().getItems());
-			fluidByName.putAll(data.getTable().getFluids());
-			entityByName.putAll(data.getTable().getEntities());
-			technologyByName.putAll(data.getTable().getTechnologies());
-			tileByName.putAll(data.getTable().getTiles());
-			equipmentByName.putAll(data.getTable().getEquipments());
-			achievementByName.putAll(data.getTable().getAchievements());
-			itemGroupByName.putAll(data.getTable().getItemGroups());
+			recipeByName.putAll(table.getRecipes());
+			itemByName.putAll(table.getItems());
+			fluidByName.putAll(table.getFluids());
+			entityByName.putAll(table.getEntities());
+			technologyByName.putAll(table.getTechnologies());
+			tileByName.putAll(table.getTiles());
+			equipmentByName.putAll(table.getEquipments());
+			achievementByName.putAll(table.getAchievements());
+			itemGroupByName.putAll(table.getItemGroups());
 		});
+
+		for (ModsProfile profile : profiles) {
+			File folderMods = profile.getData().folderMods;
+
+			JSONObject jsonModRendering = new JSONObject(
+					Files.readString(new File(folderMods, "mod-rendering.json").toPath()));
+
+			if (jsonModRendering.getJSONObject("entities").has("Base")) {
+				baseProfile = profile;
+			}
+		}
+
+		if (baseProfile == null) {
+			throw new IllegalStateException("No \"Base\" mod defined in any mod-rendering.json!");
+		}
+
+		DataTable baseTable = baseProfile.getData().getTable();
+		utilitySprites = new FPUtilitySprites(baseProfile, baseTable.getRaw("utility-sprites", "default").get());
 	}
 
 	public static Optional<AchievementPrototype> lookupAchievementByName(String name) {
 		return Optional.ofNullable(achievementByName.get(name));
 	}
 
-	public static FactorioData lookupDataByGroupName(String groupName) {
-		return dataByGroupName.get(groupName);
+	public static ModsProfile lookupProfileByGroupName(String groupName) {
+		return profileByGroupName.get(groupName);
 	}
 
-	public static List<FactorioData> lookupDataByModName(String modName) {
-		return dataByModName.get(modName);
+	public static List<ModsProfile> lookupProfileByModName(String modName) {
+		return profileByModName.get(modName);
+	}
+
+	public static ModsProfile lookupProfileByData(FactorioData data) {
+		return profileByData.get(data);
 	}
 
 	public static Optional<EntityPrototype> lookupEntityByName(String name) {
@@ -434,7 +455,7 @@ public class FactorioManager {
 		try {
 			String firstSegment = filename.split("\\/")[0];
 			String modName = firstSegment.substring(2, firstSegment.length() - 2);
-			return dataByModName.get(modName).get(0).getModImage(filename);
+			return profileByModName.get(modName).get(0).getData().getModImage(filename);
 		} catch (Exception e) {
 			LOGGER.error("FILENAME: {}", filename);
 			throw e;
@@ -473,8 +494,8 @@ public class FactorioManager {
 
 			String detailMessage = String.format(
 					"Entity '%s' is already registered in group '%s' from mod '%s'. Attempted re-registration from mod '%s' is not allowed.",
-					name, existingFactory.getGroupName(), existingFactory.getData().folderMods.getName(),
-					factory.getData().folderMods.getName());
+					name, existingFactory.getGroupName(), existingFactory.getProfile().getData().folderMods.getName(),
+					factory.getProfile().getData().folderMods.getName());
 			throw new IllegalArgumentException(detailMessage);
 		}
 

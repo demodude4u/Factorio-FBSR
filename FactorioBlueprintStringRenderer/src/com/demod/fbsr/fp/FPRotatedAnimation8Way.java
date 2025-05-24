@@ -8,6 +8,7 @@ import java.util.function.Consumer;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.FPUtils;
+import com.demod.fbsr.ModsProfile;
 import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.def.SpriteDef;
 import com.google.common.collect.ImmutableList;
@@ -28,15 +29,15 @@ public class FPRotatedAnimation8Way {
 
 	private List<Optional<FPRotatedAnimation>> directional;
 
-	public FPRotatedAnimation8Way(LuaValue lua) {
-		north = FPUtils.opt(lua.get("north"), FPRotatedAnimation::new);
-		Optional<FPRotatedAnimation> northEast = FPUtils.opt(lua.get("north_east"), FPRotatedAnimation::new);
-		Optional<FPRotatedAnimation> east = FPUtils.opt(lua.get("east"), FPRotatedAnimation::new);
-		Optional<FPRotatedAnimation> southEast = FPUtils.opt(lua.get("south_east"), FPRotatedAnimation::new);
-		Optional<FPRotatedAnimation> south = FPUtils.opt(lua.get("south"), FPRotatedAnimation::new);
-		Optional<FPRotatedAnimation> southWest = FPUtils.opt(lua.get("south_west"), FPRotatedAnimation::new);
-		Optional<FPRotatedAnimation> west = FPUtils.opt(lua.get("west"), FPRotatedAnimation::new);
-		Optional<FPRotatedAnimation> northWest = FPUtils.opt(lua.get("north_west"), FPRotatedAnimation::new);
+	public FPRotatedAnimation8Way(ModsProfile profile, LuaValue lua) {
+		north = FPUtils.opt(profile, lua.get("north"), FPRotatedAnimation::new);
+		Optional<FPRotatedAnimation> northEast = FPUtils.opt(profile, lua.get("north_east"), FPRotatedAnimation::new);
+		Optional<FPRotatedAnimation> east = FPUtils.opt(profile, lua.get("east"), FPRotatedAnimation::new);
+		Optional<FPRotatedAnimation> southEast = FPUtils.opt(profile, lua.get("south_east"), FPRotatedAnimation::new);
+		Optional<FPRotatedAnimation> south = FPUtils.opt(profile, lua.get("south"), FPRotatedAnimation::new);
+		Optional<FPRotatedAnimation> southWest = FPUtils.opt(profile, lua.get("south_west"), FPRotatedAnimation::new);
+		Optional<FPRotatedAnimation> west = FPUtils.opt(profile, lua.get("west"), FPRotatedAnimation::new);
+		Optional<FPRotatedAnimation> northWest = FPUtils.opt(profile, lua.get("north_west"), FPRotatedAnimation::new);
 
 		// If not defined, try the opposite direction or north
 		this.northEast = northEast.or(() -> southWest).or(() -> north);
@@ -48,7 +49,7 @@ public class FPRotatedAnimation8Way {
 		this.northWest = northWest.or(() -> southEast).or(() -> north);
 
 		if (!north.isPresent()) {
-			animation = FPUtils.opt(lua, FPRotatedAnimation::new);
+			animation = FPUtils.opt(profile, lua, FPRotatedAnimation::new);
 		} else {
 			animation = Optional.empty();
 			directional = ImmutableList.of(this.north, this.northEast, this.east, this.southEast, this.south,

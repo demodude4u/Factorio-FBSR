@@ -47,7 +47,7 @@ public class TextPlateRendering extends EntityRendererFactory {
 	@Override
 	public void initFromPrototype() {
 		protoRenderLayer = FPUtils.layer(prototype.lua().get("render_layer"));
-		protoPictures = new FPSpriteVariations(prototype.lua().get("pictures"));
+		protoPictures = new FPSpriteVariations(profile, prototype.lua().get("pictures"));
 	}
 
 	@Override

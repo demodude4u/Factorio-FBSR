@@ -8,6 +8,7 @@ import java.util.function.Consumer;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.FPUtils;
+import com.demod.fbsr.ModsProfile;
 import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.def.SpriteDef;
 
@@ -22,16 +23,16 @@ public class FPSprite4Way {
 	public final Optional<FPSprite> sprite;
 	private final List<List<SpriteDef>> defs;
 
-	public FPSprite4Way(LuaValue lua) {
-		east = FPUtils.opt(lua.get("east"), FPSprite::new);
-		north = FPUtils.opt(lua.get("north"), FPSprite::new);
-		south = FPUtils.opt(lua.get("south"), FPSprite::new);
-		west = FPUtils.opt(lua.get("west"), FPSprite::new);
-		sheet = FPSpriteNWaySheet.opt(lua.get("sheet"), 4);
-		sheets = FPUtils.optList(lua.get("sheets"), l -> new FPSpriteNWaySheet(l, 4));
+	public FPSprite4Way(ModsProfile profile, LuaValue lua) {
+		east = FPUtils.opt(profile, lua.get("east"), FPSprite::new);
+		north = FPUtils.opt(profile, lua.get("north"), FPSprite::new);
+		south = FPUtils.opt(profile, lua.get("south"), FPSprite::new);
+		west = FPUtils.opt(profile, lua.get("west"), FPSprite::new);
+		sheet = FPSpriteNWaySheet.opt(profile, lua.get("sheet"), 4);
+		sheets = FPUtils.optList(profile, lua.get("sheets"), (p, l) -> new FPSpriteNWaySheet(p, l, 4));
 
 		if (!sheet.isPresent() && !sheets.isPresent() && !north.isPresent()) {
-			sprite = FPUtils.opt(lua, FPSprite::new);
+			sprite = FPUtils.opt(profile, lua, FPSprite::new);
 		} else {
 			sprite = Optional.empty();
 		}

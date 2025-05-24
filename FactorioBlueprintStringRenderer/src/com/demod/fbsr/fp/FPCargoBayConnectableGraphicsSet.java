@@ -4,15 +4,16 @@ import java.util.Optional;
 
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.FPUtils;
+import com.demod.fbsr.ModsProfile;
 
 public class FPCargoBayConnectableGraphicsSet {
 	public final Optional<FPLayeredSprite> picture;
 	public final Optional<FPAnimation> animation;
 	public final Optional<FPCargoBayConnections> connections;
 
-	public FPCargoBayConnectableGraphicsSet(LuaValue lua) {
-		picture = FPUtils.opt(lua.get("picture"), FPLayeredSprite::new);
-		animation = FPUtils.opt(lua.get("animation"), FPAnimation::new);
-		connections = FPUtils.opt(lua.get("connections"), FPCargoBayConnections::new);
+	public FPCargoBayConnectableGraphicsSet(ModsProfile profile, LuaValue lua) {
+		picture = FPUtils.opt(profile, lua.get("picture"), FPLayeredSprite::new);
+		animation = FPUtils.opt(profile, lua.get("animation"), FPAnimation::new);
+		connections = FPUtils.opt(profile, lua.get("connections"), FPCargoBayConnections::new);
 	}
 }

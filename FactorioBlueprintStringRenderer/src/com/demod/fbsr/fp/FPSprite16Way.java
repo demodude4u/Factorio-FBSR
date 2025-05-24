@@ -8,6 +8,7 @@ import java.util.function.Consumer;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.FPUtils;
+import com.demod.fbsr.ModsProfile;
 import com.demod.fbsr.Dir16;
 import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.def.SpriteDef;
@@ -36,29 +37,29 @@ public class FPSprite16Way {
 	public final Optional<FPSprite> sprite;
 	private final List<List<SpriteDef>> defs;
 
-	public FPSprite16Way(LuaValue lua) {
-		north = FPUtils.opt(lua.get("north"), FPSprite::new);
-		north_north_east = FPUtils.opt(lua.get("north_north_east"), FPSprite::new);
-		north_east = FPUtils.opt(lua.get("north_east"), FPSprite::new);
-		east_north_east = FPUtils.opt(lua.get("east_north_east"), FPSprite::new);
-		east = FPUtils.opt(lua.get("east"), FPSprite::new);
-		east_south_east = FPUtils.opt(lua.get("east_south_east"), FPSprite::new);
-		south_east = FPUtils.opt(lua.get("south_east"), FPSprite::new);
-		south_south_east = FPUtils.opt(lua.get("south_south_east"), FPSprite::new);
-		south = FPUtils.opt(lua.get("south"), FPSprite::new);
-		south_south_west = FPUtils.opt(lua.get("south_south_west"), FPSprite::new);
-		south_west = FPUtils.opt(lua.get("south_west"), FPSprite::new);
-		west_south_west = FPUtils.opt(lua.get("west_south_west"), FPSprite::new);
-		west = FPUtils.opt(lua.get("west"), FPSprite::new);
-		west_north_west = FPUtils.opt(lua.get("west_north_west"), FPSprite::new);
-		north_west = FPUtils.opt(lua.get("north_west"), FPSprite::new);
-		north_north_west = FPUtils.opt(lua.get("north_north_west"), FPSprite::new);
+	public FPSprite16Way(ModsProfile profile, LuaValue lua) {
+		north = FPUtils.opt(profile, lua.get("north"), FPSprite::new);
+		north_north_east = FPUtils.opt(profile, lua.get("north_north_east"), FPSprite::new);
+		north_east = FPUtils.opt(profile, lua.get("north_east"), FPSprite::new);
+		east_north_east = FPUtils.opt(profile, lua.get("east_north_east"), FPSprite::new);
+		east = FPUtils.opt(profile, lua.get("east"), FPSprite::new);
+		east_south_east = FPUtils.opt(profile, lua.get("east_south_east"), FPSprite::new);
+		south_east = FPUtils.opt(profile, lua.get("south_east"), FPSprite::new);
+		south_south_east = FPUtils.opt(profile, lua.get("south_south_east"), FPSprite::new);
+		south = FPUtils.opt(profile, lua.get("south"), FPSprite::new);
+		south_south_west = FPUtils.opt(profile, lua.get("south_south_west"), FPSprite::new);
+		south_west = FPUtils.opt(profile, lua.get("south_west"), FPSprite::new);
+		west_south_west = FPUtils.opt(profile, lua.get("west_south_west"), FPSprite::new);
+		west = FPUtils.opt(profile, lua.get("west"), FPSprite::new);
+		west_north_west = FPUtils.opt(profile, lua.get("west_north_west"), FPSprite::new);
+		north_west = FPUtils.opt(profile, lua.get("north_west"), FPSprite::new);
+		north_north_west = FPUtils.opt(profile, lua.get("north_north_west"), FPSprite::new);
 
-		sheet = FPSpriteNWaySheet.opt(lua.get("sheet"), 16);
-		sheets = FPUtils.optList(lua.get("sheets"), l -> new FPSpriteNWaySheet(l, 16));
+		sheet = FPSpriteNWaySheet.opt(profile, lua.get("sheet"), 16);
+		sheets = FPUtils.optList(profile, lua.get("sheets"), (p, l) -> new FPSpriteNWaySheet(p, l, 16));
 
 		if (!sheet.isPresent() && !sheets.isPresent() && !north.isPresent()) {
-			sprite = FPUtils.opt(lua, FPSprite::new);
+			sprite = FPUtils.opt(profile, lua, FPSprite::new);
 		} else {
 			sprite = Optional.empty();
 		}

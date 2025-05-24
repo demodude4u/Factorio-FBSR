@@ -153,8 +153,8 @@ public class AgriculturalTowerRendering extends EntityWithOwnerRendering {
 	public void initFromPrototype() {
 		super.initFromPrototype();
 
-		protoGraphicsSet = new FPWorkingVisualisations(prototype.lua().get("graphics_set"));
-		protoCrane = new FPAgriculturalCraneProperties(prototype.lua().get("crane"));
+		protoGraphicsSet = new FPWorkingVisualisations(profile, prototype.lua().get("graphics_set"));
+		protoCrane = new FPAgriculturalCraneProperties(profile, prototype.lua().get("crane"));
 	}
 
 }

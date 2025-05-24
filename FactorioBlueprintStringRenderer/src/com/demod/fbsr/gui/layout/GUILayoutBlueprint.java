@@ -385,7 +385,7 @@ public class GUILayoutBlueprint {
 
 	public BufferedImage generateDiscordImage() {
 
-		DataTable baseTable = FactorioManager.getBaseData().getTable();
+		DataTable baseTable = FactorioManager.getBaseProfile().getData().getTable();
 		boolean baseDataOnly = blueprint.entities.stream().allMatch(e -> baseTable.getEntity(e.name).isPresent())
 				&& blueprint.tiles.stream().allMatch(t -> baseTable.getTile(t.name).isPresent());
 

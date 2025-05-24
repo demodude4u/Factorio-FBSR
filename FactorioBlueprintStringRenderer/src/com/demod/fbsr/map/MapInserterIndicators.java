@@ -53,7 +53,7 @@ public class MapInserterIndicators extends MapRenderable {
 		for (SpriteDef sprite : lineSprites) {
 			MapRect bounds = sprite.getTrimmedBounds();
 			Rectangle source = sprite.getAtlasRef().getRect();
-			BufferedImage image = sprite.getAtlasRef().getAtlas().getBufferedImage();
+			BufferedImage image = sprite.getAtlasRef().getAtlas().getImage();
 
 			if (modded) {
 				g.setTransform(pat);
@@ -85,7 +85,7 @@ public class MapInserterIndicators extends MapRenderable {
 		for (SpriteDef sprite : arrowSprites) {
 			MapRect bounds = sprite.getTrimmedBounds();
 			Rectangle source = sprite.getAtlasRef().getRect();
-			BufferedImage image = sprite.getAtlasRef().getAtlas().getBufferedImage();
+			BufferedImage image = sprite.getAtlasRef().getAtlas().getImage();
 
 			if (modded) {
 				g.setTransform(pat);

@@ -11,6 +11,7 @@ import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.Layer;
+import com.demod.fbsr.ModsProfile;
 import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.def.SpriteDef;
 import com.google.common.collect.ImmutableList;
@@ -20,10 +21,10 @@ public class FPWorkingVisualisations {
 	public final Optional<FPAnimation4Way> idleAnimation;
 	public final Optional<List<FPWorkingVisualisation>> workingVisualisations;
 
-	public FPWorkingVisualisations(LuaValue lua) {
-		idleAnimation = FPUtils.opt(lua.get("idle_animation"), FPAnimation4Way::new);
-		animation = FPUtils.opt(lua.get("animation"), FPAnimation4Way::new).or(() -> idleAnimation);
-		workingVisualisations = FPUtils.optList(lua.get("working_visualisations"), FPWorkingVisualisation::new);
+	public FPWorkingVisualisations(ModsProfile profile, LuaValue lua) {
+		idleAnimation = FPUtils.opt(profile, lua.get("idle_animation"), FPAnimation4Way::new);
+		animation = FPUtils.opt(profile, lua.get("animation"), FPAnimation4Way::new).or(() -> idleAnimation);
+		workingVisualisations = FPUtils.optList(profile, lua.get("working_visualisations"), FPWorkingVisualisation::new);
 	}
 
 	public void defineSprites(Consumer<? super SpriteDef> consumer, Direction direction, int frame) {

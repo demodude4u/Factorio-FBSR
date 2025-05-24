@@ -5,6 +5,7 @@ import java.util.Optional;
 
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.FPUtils;
+import com.demod.fbsr.ModsProfile;
 
 public class FPTileTransitionsVariants {
 	public final List<FPTileMainPictures> main;
@@ -16,16 +17,16 @@ public class FPTileTransitionsVariants {
 	public final boolean emptyTransitions;
 	public final Optional<FPTileTransitions> transition;
 
-	public FPTileTransitionsVariants(LuaValue lua, int limitCount) {
-		main = FPUtils.list(lua.get("main"), l -> new FPTileMainPictures(l, limitCount));
+	public FPTileTransitionsVariants(ModsProfile profile, LuaValue lua, int limitCount) {
+		main = FPUtils.list(lua.get("main"), l -> new FPTileMainPictures(profile, l, limitCount));
 		materialTextureWidthInTiles = lua.get("material_texture_width_in_tiles").optint(8);
 		materialTextureHeightInTiles = lua.get("material_texture_height_in_tiles").optint(8);
-		materialBackground = FPUtils.opt(lua.get("material_background"), l -> new FPMaterialTextureParameters(l,
+		materialBackground = FPUtils.opt(profile, lua.get("material_background"), (p, l) -> new FPMaterialTextureParameters(p, l,
 				materialTextureWidthInTiles, materialTextureHeightInTiles, limitCount));
-		light = FPUtils.list(lua.get("light"), FPTileLightPictures::new);
-		materialLight = FPUtils.opt(lua.get("material_light"), l -> new FPMaterialTextureParameters(l,
+		light = FPUtils.list(profile, lua.get("light"), FPTileLightPictures::new);
+		materialLight = FPUtils.opt(profile, lua.get("material_light"), (p, l) -> new FPMaterialTextureParameters(p, l,
 				materialTextureWidthInTiles, materialTextureHeightInTiles, limitCount));
 		emptyTransitions = lua.get("empty_transitions").optboolean(false);
-		transition = FPUtils.opt(lua.get("transition"), FPTileTransitions::new);
+		transition = FPUtils.opt(profile, lua.get("transition"), FPTileTransitions::new);
 	}
 }

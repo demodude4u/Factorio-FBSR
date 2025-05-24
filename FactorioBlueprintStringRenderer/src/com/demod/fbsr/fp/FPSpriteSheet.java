@@ -7,6 +7,7 @@ import java.util.function.Consumer;
 
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.FPUtils;
+import com.demod.fbsr.ModsProfile;
 import com.demod.fbsr.def.SpriteDef;
 import com.google.common.collect.ImmutableList;
 
@@ -20,10 +21,10 @@ public class FPSpriteSheet extends FPSpriteParameters {
 
 	public final List<SpriteDef> defs;
 
-	public FPSpriteSheet(LuaValue lua) {
-		super(lua);
+	public FPSpriteSheet(ModsProfile profile, LuaValue lua) {
+		super(profile, lua);
 
-		layers = FPUtils.optList(lua.get("layers"), FPSpriteSheet::new);
+		layers = FPUtils.optList(profile, lua.get("layers"), FPSpriteSheet::new);
 		filenames = FPUtils.optList(lua.get("filenames"), LuaValue::toString);
 		variationCount = lua.get("variation_count").optint(1);
 		repeatCount = lua.get("repeat_count").optint(1);
@@ -35,10 +36,10 @@ public class FPSpriteSheet extends FPSpriteParameters {
 			throw new RuntimeException("Look into how variation count and repeat count works!");
 		}
 
-		defs = createDefs();
+		defs = createDefs(profile);
 	}
 
-	private List<SpriteDef> createDefs() {
+	private List<SpriteDef> createDefs(ModsProfile profile) {
 		if (layers.isPresent()) {
 			return ImmutableList.of();
 
@@ -51,7 +52,7 @@ public class FPSpriteSheet extends FPSpriteParameters {
 				int fileIndex = frame / fileFrameCount;
 				int x = this.x + width * (fileFrame % lineLength);
 				int y = this.y + height * (fileFrame / lineLength);
-				defs.add(SpriteDef.fromFP(filenames.get().get(fileIndex), drawAsShadow, blendMode, tint, tintAsOverlay,
+				defs.add(SpriteDef.fromFP(profile, filenames.get().get(fileIndex), drawAsShadow, blendMode, tint, tintAsOverlay,
 						applyRuntimeTint, x, y, width, height, shift.x, shift.y, scale));
 			}
 			return defs;
@@ -63,7 +64,7 @@ public class FPSpriteSheet extends FPSpriteParameters {
 				int x = this.x + width * (frame % lineLength);
 				int y = this.y + height * (frame / lineLength);
 
-				defs.add(SpriteDef.fromFP(filename.get(), drawAsShadow, blendMode, tint, tintAsOverlay,
+				defs.add(SpriteDef.fromFP(profile, filename.get(), drawAsShadow, blendMode, tint, tintAsOverlay,
 						applyRuntimeTint, x, y, width, height, shift.x, shift.y, scale));
 			}
 			return defs;

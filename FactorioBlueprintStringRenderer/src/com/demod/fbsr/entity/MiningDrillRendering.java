@@ -62,7 +62,7 @@ public class MiningDrillRendering extends EntityWithOwnerRendering {
 	public void initFromPrototype() {
 		super.initFromPrototype();
 
-		protoBasePicture = FPUtils.opt(prototype.lua().get("base_picture"), FPSprite4Way::new);
-		protoGraphicsSet = FPUtils.opt(prototype.lua().get("graphics_set"), FPWorkingVisualisations::new);
+		protoBasePicture = FPUtils.opt(profile, prototype.lua().get("base_picture"), FPSprite4Way::new);
+		protoGraphicsSet = FPUtils.opt(profile, prototype.lua().get("graphics_set"), FPWorkingVisualisations::new);
 	}
 }

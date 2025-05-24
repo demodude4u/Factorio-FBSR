@@ -69,10 +69,10 @@ public class UndergroundBeltRendering extends TransportBeltConnectableRendering 
 		super.initFromPrototype();
 
 		LuaValue luaStructure = prototype.lua().get("structure");
-		protoStructureDirectionIn = new FPSprite4Way(luaStructure.get("direction_in"));
-		protoStructureDirectionOut = new FPSprite4Way(luaStructure.get("direction_out"));
-		protoStructureDirectionInSideLoading = new FPSprite4Way(luaStructure.get("direction_in_side_loading"));
-		protoStructureDirectionOutSideLoading = new FPSprite4Way(luaStructure.get("direction_out_side_loading"));
+		protoStructureDirectionIn = new FPSprite4Way(profile, luaStructure.get("direction_in"));
+		protoStructureDirectionOut = new FPSprite4Way(profile, luaStructure.get("direction_out"));
+		protoStructureDirectionInSideLoading = new FPSprite4Way(profile, luaStructure.get("direction_in_side_loading"));
+		protoStructureDirectionOutSideLoading = new FPSprite4Way(profile, luaStructure.get("direction_out_side_loading"));
 
 		protoMaxDistance = prototype.lua().get("max_distance").toint();
 	}

@@ -79,7 +79,7 @@ public abstract class CombinatorRendering extends EntityWithOwnerRendering {
 		defineOperations(operations);
 		protoOperationSprites = new LinkedHashMap<>();
 		for (Entry<String, String> entry : operations.entrySet()) {
-			protoOperationSprites.put(entry.getKey(), new FPSprite4Way(prototype.lua().get(entry.getValue())));
+			protoOperationSprites.put(entry.getKey(), new FPSprite4Way(profile, prototype.lua().get(entry.getValue())));
 		}
 	}
 

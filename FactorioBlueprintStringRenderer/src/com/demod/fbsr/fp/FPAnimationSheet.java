@@ -7,6 +7,7 @@ import java.util.function.Consumer;
 
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.FPUtils;
+import com.demod.fbsr.ModsProfile;
 import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.def.SpriteDef;
 
@@ -18,17 +19,17 @@ public class FPAnimationSheet extends FPAnimationParameters {
 
 	private final List<SpriteDef> defs;
 
-	public FPAnimationSheet(LuaValue lua) {
-		super(lua);
+	public FPAnimationSheet(ModsProfile profile, LuaValue lua) {
+		super(profile, lua);
 
 		variationCount = lua.get("variation_count").checkint();
 		filenames = FPUtils.optList(lua.get("filenames"), LuaValue::toString);
 		linesPerFile = lua.get("lines_per_file").optint(0);
 
-		defs = createDefs();
+		defs = createDefs(profile);
 	}
 
-	private List<SpriteDef> createDefs() {
+	private List<SpriteDef> createDefs(ModsProfile profile) {
 
 		List<SpriteDef> defs = new ArrayList<>();
 		int frameCount = variationCount * lineLength;
@@ -43,7 +44,7 @@ public class FPAnimationSheet extends FPAnimationParameters {
 				int x = width * (fileFrame % lineLength);
 				int y = height * (fileFrame / lineLength);
 
-				defs.add(SpriteDef.fromFP(filenames.get().get(fileIndex), drawAsShadow, blendMode, tint, tintAsOverlay,
+				defs.add(SpriteDef.fromFP(profile, filenames.get().get(fileIndex), drawAsShadow, blendMode, tint, tintAsOverlay,
 						applyRuntimeTint, x, y, width, height, shift.x, shift.y, scale));
 			}
 			return defs;
@@ -53,7 +54,7 @@ public class FPAnimationSheet extends FPAnimationParameters {
 			int x = width * (frame % lineLength);
 			int y = height * (frame / lineLength);
 
-			defs.add(SpriteDef.fromFP(filename.get(), drawAsShadow, blendMode, tint, tintAsOverlay, applyRuntimeTint, x,
+			defs.add(SpriteDef.fromFP(profile, filename.get(), drawAsShadow, blendMode, tint, tintAsOverlay, applyRuntimeTint, x,
 					y, width, height, shift.x, shift.y, scale));
 		}
 		return defs;

@@ -105,8 +105,8 @@ public class SplitterRendering extends TransportBeltConnectableRendering {
 	public void initFromPrototype() {
 		super.initFromPrototype();
 
-		protoStructurePatch = FPUtils.opt(prototype.lua().get("structure_patch"), FPAnimation4Way::new);
-		protoStructure = new FPAnimation4Way(prototype.lua().get("structure"));
+		protoStructurePatch = FPUtils.opt(profile, prototype.lua().get("structure_patch"), FPAnimation4Way::new);
+		protoStructure = new FPAnimation4Way(profile, prototype.lua().get("structure"));
 	}
 
 	@Override

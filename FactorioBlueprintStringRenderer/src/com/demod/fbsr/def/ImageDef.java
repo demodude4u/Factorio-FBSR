@@ -5,8 +5,11 @@ import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 import java.util.function.Function;
 
-import com.demod.fbsr.AtlasManager.AtlasRef;
+import com.demod.fbsr.Atlas;
+import com.demod.fbsr.AtlasPackage;
+import com.demod.fbsr.Atlas.AtlasRef;
 import com.demod.fbsr.FactorioManager;
+import com.demod.fbsr.ModsProfile;
 
 public class ImageDef {
 
@@ -14,6 +17,7 @@ public class ImageDef {
 	public static interface ImageSheetLoader extends Function<String, BufferedImage> {
 	}
 
+	protected final ModsProfile profile;
 	protected final String path;
 	protected final ImageSheetLoader loader;
 	private final boolean shadow;
@@ -24,11 +28,12 @@ public class ImageDef {
 	private Rectangle trimmed = null;
 	private boolean trimmable = true;
 
-	public ImageDef(String path, ImageSheetLoader loader, Rectangle source) {
-		this(path, loader, source, false);
+	public ImageDef(ModsProfile profile, String path, ImageSheetLoader loader, Rectangle source) {
+		this(profile, path, loader, source, false);
 	}
 
-	public ImageDef(String path, ImageSheetLoader loader, Rectangle source, boolean shadow) {
+	public ImageDef(ModsProfile profile, String path, ImageSheetLoader loader, Rectangle source, boolean shadow) {
+		this.profile = profile;
 		this.path = path;
 		this.loader = loader;
 		this.shadow = shadow;
@@ -36,11 +41,12 @@ public class ImageDef {
 		atlasRef = new AtlasRef();
 	}
 
-	public ImageDef(String path, Rectangle source) {
-		this(path, source, false);
+	public ImageDef(ModsProfile profile, String path, Rectangle source) {
+		this(profile, path, source, false);
 	}
 
-	public ImageDef(String path, Rectangle source, boolean shadow) {
+	public ImageDef(ModsProfile profile, String path, Rectangle source, boolean shadow) {
+		this.profile = profile;
 		this.path = path;
 		this.loader = FactorioManager::lookupModImage;
 		this.shadow = shadow;
@@ -50,6 +56,7 @@ public class ImageDef {
 
 	// Links the atlas ref together
 	protected ImageDef(ImageDef shared) {
+		profile = shared.profile;
 		path = shared.path;
 		loader = shared.loader;
 		shadow = shared.shadow;
@@ -105,5 +112,9 @@ public class ImageDef {
 
 	public void setTrimmable(boolean trimmable) {
 		this.trimmable = trimmable;
+	}
+
+	public ModsProfile getProfile() {
+		return profile;
 	}
 }

@@ -48,8 +48,8 @@ public class GeneratorRendering extends EntityWithOwnerRendering {
 	public void initFromPrototype() {
 		super.initFromPrototype();
 
-		protoVerticalAnimation = new FPAnimation(prototype.lua().get("vertical_animation"));
-		protoHorizontalAnimation = new FPAnimation(prototype.lua().get("horizontal_animation"));
+		protoVerticalAnimation = new FPAnimation(profile, prototype.lua().get("vertical_animation"));
+		protoHorizontalAnimation = new FPAnimation(profile, prototype.lua().get("horizontal_animation"));
 	}
 
 	private boolean isVertical(MapEntity entity) {

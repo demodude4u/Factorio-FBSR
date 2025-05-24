@@ -48,7 +48,7 @@ public class BoilerRendering extends EntityWithOwnerRendering {
 	public void initFromPrototype() {
 		super.initFromPrototype();
 
-		protoPictures = new FPBoilerPictureSet(prototype.lua().get("pictures"));
+		protoPictures = new FPBoilerPictureSet(profile, prototype.lua().get("pictures"));
 		protoHasEnergySource = !prototype.lua().get("energy_source").isnil();
 	}
 

@@ -68,7 +68,7 @@ public class HeatPipeRendering extends EntityWithOwnerRendering {
 		super.initFromPrototype();
 
 		protoConnectionSprites = Arrays.stream(heatPipeSpriteNameMapping)
-				.map(s -> new FPSpriteVariations(prototype.lua().get("connection_sprites").get(s)))
+				.map(s -> new FPSpriteVariations(profile, prototype.lua().get("connection_sprites").get(s)))
 				.collect(Collectors.toList());
 	}
 

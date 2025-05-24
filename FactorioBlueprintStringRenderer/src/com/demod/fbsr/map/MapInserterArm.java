@@ -34,7 +34,7 @@ public class MapInserterArm extends MapRenderable {
 		for (SpriteDef sprite : sprites) {
 			MapRect bounds = sprite.getTrimmedBounds();
 			Rectangle source = sprite.getAtlasRef().getRect();
-			BufferedImage image = sprite.getAtlasRef().getAtlas().getBufferedImage();
+			BufferedImage image = sprite.getAtlasRef().getAtlas().getImage();
 
 			g.translate(pos.getX(), pos.getY());
 			g.rotate(dir.ordinal() * Math.PI / 4.0);

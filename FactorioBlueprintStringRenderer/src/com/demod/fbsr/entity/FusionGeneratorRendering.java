@@ -63,10 +63,10 @@ public class FusionGeneratorRendering extends EntityWithOwnerRendering {
 		super.initFromPrototype();
 
 		LuaValue luaGraphicsSet = prototype.lua().get("graphics_set");
-		protoNorthAnimation = new FPAnimation(luaGraphicsSet.get("north_graphics_set").get("animation"));
-		protoEastAnimation = new FPAnimation(luaGraphicsSet.get("east_graphics_set").get("animation"));
-		protoSouthAnimation = new FPAnimation(luaGraphicsSet.get("south_graphics_set").get("animation"));
-		protoWestAnimation = new FPAnimation(luaGraphicsSet.get("west_graphics_set").get("animation"));
+		protoNorthAnimation = new FPAnimation(profile, luaGraphicsSet.get("north_graphics_set").get("animation"));
+		protoEastAnimation = new FPAnimation(profile, luaGraphicsSet.get("east_graphics_set").get("animation"));
+		protoSouthAnimation = new FPAnimation(profile, luaGraphicsSet.get("south_graphics_set").get("animation"));
+		protoWestAnimation = new FPAnimation(profile, luaGraphicsSet.get("west_graphics_set").get("animation"));
 	}
 
 	// TODO connectors between adjacent fusion reactors and generators

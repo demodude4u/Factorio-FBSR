@@ -84,9 +84,9 @@ public class TrainStopRendering extends EntityWithOwnerRendering {
 		super.initFromPrototype();
 
 		protoColor = new FPColor(prototype.lua().get("color"));
-		protoRailOverlayAnimations = new FPAnimation4Way(prototype.lua().get("rail_overlay_animations"));
-		protoAnimations = new FPAnimation4Way(prototype.lua().get("animations"));
-		protoTopAnimations = new FPAnimation4Way(prototype.lua().get("top_animations"));
+		protoRailOverlayAnimations = new FPAnimation4Way(profile, prototype.lua().get("rail_overlay_animations"));
+		protoAnimations = new FPAnimation4Way(profile, prototype.lua().get("animations"));
+		protoTopAnimations = new FPAnimation4Way(profile, prototype.lua().get("top_animations"));
 	}
 
 	@Override

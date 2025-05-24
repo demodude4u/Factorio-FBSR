@@ -6,6 +6,7 @@ import java.util.List;
 
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.FBSR;
+import com.demod.fbsr.ModsProfile;
 import com.demod.fbsr.def.SpriteDef;
 import com.demod.fbsr.map.MapRect;
 
@@ -16,8 +17,8 @@ public class FPAnimationParameters extends FPSpriteParameters {
 
 	private final List<SpriteDef> defs;
 
-	public FPAnimationParameters(LuaValue lua) {
-		super(lua);
+	public FPAnimationParameters(ModsProfile profile, LuaValue lua) {
+		super(profile, lua);
 
 		frameCount = lua.get("frame_count").optint(1);
 		int lineLength = lua.get("line_length").optint(0);
@@ -26,10 +27,10 @@ public class FPAnimationParameters extends FPSpriteParameters {
 		}
 		this.lineLength = lineLength;
 
-		defs = createDefs();
+		defs = createDefs(profile);
 	}
 
-	private List<SpriteDef> createDefs() {
+	private List<SpriteDef> createDefs(ModsProfile profile) {
 		List<SpriteDef> defs = new ArrayList<>();
 		for (int frame = 0; frame < frameCount; frame++) {
 			int x = this.x + width * (frame % lineLength);
@@ -41,7 +42,7 @@ public class FPAnimationParameters extends FPSpriteParameters {
 			MapRect bounds = MapRect.byUnit(shift.x - scaledWidth / 2.0, shift.y - scaledHeight / 2.0, scaledWidth,
 					scaledHeight);
 			if (filename.isPresent()) {
-				defs.add(new SpriteDef(filename.get(), drawAsShadow, blendMode, tint.map(FPColor::createColor),
+				defs.add(new SpriteDef(profile, filename.get(), drawAsShadow, blendMode, tint.map(FPColor::createColor),
 						tintAsOverlay, applyRuntimeTint, source, bounds));
 			}
 		}

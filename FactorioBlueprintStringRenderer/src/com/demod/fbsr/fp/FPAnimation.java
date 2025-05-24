@@ -8,6 +8,7 @@ import java.util.function.Consumer;
 
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.FPUtils;
+import com.demod.fbsr.ModsProfile;
 import com.demod.fbsr.def.SpriteDef;
 import com.google.common.collect.ImmutableList;
 
@@ -21,19 +22,19 @@ public class FPAnimation extends FPAnimationParameters {
 
 	private final List<List<SpriteDef>> defs;
 
-	public FPAnimation(LuaValue lua) {
-		super(lua);
+	public FPAnimation(ModsProfile profile, LuaValue lua) {
+		super(profile, lua);
 
-		layers = FPUtils.optList(lua.get("layers"), FPAnimation::new);
-		stripes = FPUtils.optList(lua.get("stripes"), l -> new FPStripe(lua, OptionalInt.empty()));
+		layers = FPUtils.optList(profile, lua.get("layers"), FPAnimation::new);
+		stripes = FPUtils.optList(lua.get("stripes"), l -> new FPStripe(l, OptionalInt.empty()));
 		filenames = FPUtils.optList(lua.get("filenames"), LuaValue::toString);
 		slice = lua.get("slice").optint(frameCount);
 		linesPerFile = lua.get("lines_per_file").optint(1);
 
-		defs = createDefs();
+		defs = createDefs(profile);
 	}
 
-	private List<List<SpriteDef>> createDefs() {
+	private List<List<SpriteDef>> createDefs(ModsProfile profile) {
 		if (layers.isPresent()) {
 			return ImmutableList.of();
 
@@ -48,7 +49,7 @@ public class FPAnimation extends FPAnimationParameters {
 					int x = stripe.x + width * (frame % stripe.widthInFrames);
 					int y = stripe.y + height * (frame / stripe.widthInFrames);
 
-					stripeDefs.add(SpriteDef.fromFP(stripe.filename, drawAsShadow, blendMode, tint, tintAsOverlay,
+					stripeDefs.add(SpriteDef.fromFP(profile, stripe.filename, drawAsShadow, blendMode, tint, tintAsOverlay,
 							applyRuntimeTint, x, y, width, height, shift.x, shift.y, scale));
 				}
 				defs.add(stripeDefs);
@@ -66,7 +67,7 @@ public class FPAnimation extends FPAnimationParameters {
 				int x = this.x + width * (fileFrame % lineLength);
 				int y = this.y + height * (fileFrame / lineLength);
 
-				defs.add(ImmutableList.of(SpriteDef.fromFP(filenames.get().get(fileIndex), drawAsShadow, blendMode,
+				defs.add(ImmutableList.of(SpriteDef.fromFP(profile, filenames.get().get(fileIndex), drawAsShadow, blendMode,
 						tint, tintAsOverlay, applyRuntimeTint, x, y, width, height, shift.x, shift.y, scale)));
 			}
 			return defs;

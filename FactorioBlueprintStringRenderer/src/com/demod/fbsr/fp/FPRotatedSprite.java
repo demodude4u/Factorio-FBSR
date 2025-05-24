@@ -3,6 +3,7 @@ package com.demod.fbsr.fp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -14,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.FPUtils;
+import com.demod.fbsr.ModsProfile;
 import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.def.SpriteDef;
 import com.google.common.collect.ImmutableList;
@@ -35,31 +37,31 @@ public class FPRotatedSprite extends FPSpriteParameters {
 
 	private final int limitedDirectionCount;
 	
-	public FPRotatedSprite(LuaValue lua) {
-		this(lua, Optional.empty(), Integer.MAX_VALUE);
+	public FPRotatedSprite(ModsProfile profile, LuaValue lua) {
+		this(profile, lua, Optional.empty(), Integer.MAX_VALUE);
 	}
 
-	public FPRotatedSprite(LuaValue lua, int limitDirectionCount) {
-		this(lua, Optional.empty(), limitDirectionCount);
+	public FPRotatedSprite(ModsProfile profile, LuaValue lua, int limitDirectionCount) {
+		this(profile, lua, Optional.empty(), limitDirectionCount);
 	}
 
-	public FPRotatedSprite(LuaValue lua, Optional<Boolean> overrideBackEqualsFront) {
-		this(lua, overrideBackEqualsFront, Integer.MAX_VALUE);
+	public FPRotatedSprite(ModsProfile profile, LuaValue lua, Optional<Boolean> overrideBackEqualsFront) {
+		this(profile, lua, overrideBackEqualsFront, Integer.MAX_VALUE);
 	}
 
-	public FPRotatedSprite(LuaValue lua, Optional<Boolean> overrideBackEqualsFront, int limitDirectionCount) {
-		this(lua, overrideBackEqualsFront, limitDirectionCount, l -> new FPRotatedSprite(l, overrideBackEqualsFront, limitDirectionCount));
+	public FPRotatedSprite(ModsProfile profile, LuaValue lua, Optional<Boolean> overrideBackEqualsFront, int limitDirectionCount) {
+		this(profile, lua, overrideBackEqualsFront, limitDirectionCount, (p, l) -> new FPRotatedSprite(p, l, overrideBackEqualsFront, limitDirectionCount));
 	}
 
 	//For Sloped Sprites
-	protected FPRotatedSprite(LuaValue lua, Function<LuaValue, FPRotatedSprite> layerFactory) {
-		this(lua, Optional.empty(), Integer.MAX_VALUE, layerFactory);
+	protected FPRotatedSprite(ModsProfile profile, LuaValue lua, BiFunction<ModsProfile, LuaValue, FPRotatedSprite> layerFactory) {
+		this(profile, lua, Optional.empty(), Integer.MAX_VALUE, layerFactory);
 	}
 
-	private FPRotatedSprite(LuaValue lua, Optional<Boolean> overrideBackEqualsFront, int limitDirectionCount, Function<LuaValue, FPRotatedSprite> layerFactory) {
-		super(lua);
+	private FPRotatedSprite(ModsProfile profile, LuaValue lua, Optional<Boolean> overrideBackEqualsFront, int limitDirectionCount, BiFunction<ModsProfile, LuaValue, FPRotatedSprite> layerFactory) {
+		super(profile, lua);
 
-		layers = FPUtils.optList(lua.get("layers"),layerFactory);
+		layers = FPUtils.optList(profile, lua.get("layers"),layerFactory);
 		directionCount = lua.get("direction_count").optint(1);
 		Optional<List<String>> filenames = FPUtils.optList(lua.get("filenames"), LuaValue::tojstring);
 		if (!filenames.isPresent() && filename.isPresent()) {
@@ -79,11 +81,11 @@ public class FPRotatedSprite extends FPSpriteParameters {
 		frames = FPUtils.optList(lua.get("frames"), l -> new FPRotatedSpriteFrame(lua, width, height));
 
 		this.limitedDirectionCount = Math.min(limitDirectionCount, directionCount);
-		List<SpriteDef> allDefs = createDefs();
+		List<SpriteDef> allDefs = createDefs(profile);
 		defs = limitedDirectionDefs(allDefs);
 	}
 
-	private List<SpriteDef> createDefs() {
+	private List<SpriteDef> createDefs(ModsProfile profile) {
 		if (layers.isPresent()) {
 			return ImmutableList.of();
 		}
@@ -129,7 +131,7 @@ public class FPRotatedSprite extends FPSpriteParameters {
 				shiftY += frame.shift.y;
 			}
 
-			defs.add(SpriteDef.fromFP(filename, drawAsShadow, blendMode, tint, tintAsOverlay, applyRuntimeTint, x, y,
+			defs.add(SpriteDef.fromFP(profile, filename, drawAsShadow, blendMode, tint, tintAsOverlay, applyRuntimeTint, x, y,
 					width, height, shiftX, shiftY, scale));
 		}
 

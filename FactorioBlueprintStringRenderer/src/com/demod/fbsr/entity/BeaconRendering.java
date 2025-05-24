@@ -54,8 +54,8 @@ public class BeaconRendering extends EntityWithOwnerRendering {
 		super.initFromPrototype();
 
 		protoSelectionBox = new FPBoundingBox(prototype.lua().get("selection_box"));
-		protoGraphicsSet = FPUtils.opt(prototype.lua().get("graphics_set"), FPBeaconGraphicsSet::new);
-		protoBasePicture = FPUtils.opt(prototype.lua().get("base_picture"), FPAnimation::new);
+		protoGraphicsSet = FPUtils.opt(profile, prototype.lua().get("graphics_set"), FPBeaconGraphicsSet::new);
+		protoBasePicture = FPUtils.opt(profile, prototype.lua().get("base_picture"), FPAnimation::new);
 		protoSupplyAreaDistance = prototype.lua().get("supply_area_distance").todouble();
 		protoDistributionEffectivity = prototype.lua().get("distribution_effectivity").todouble();
 	}

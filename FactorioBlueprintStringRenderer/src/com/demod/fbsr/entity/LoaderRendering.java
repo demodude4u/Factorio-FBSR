@@ -110,8 +110,8 @@ public abstract class LoaderRendering extends TransportBeltConnectableRendering 
 
 		protoContainerDistance = prototype.lua().get("container_distance").optdouble(1.5);
 		LuaValue luaStructure = prototype.lua().get("structure");
-		protoStructureDirectionIn = new FPSprite4Way(luaStructure.get("direction_in"));
-		protoStructureDirectionOut = new FPSprite4Way(luaStructure.get("direction_out"));
+		protoStructureDirectionIn = new FPSprite4Way(profile, luaStructure.get("direction_in"));
+		protoStructureDirectionOut = new FPSprite4Way(profile, luaStructure.get("direction_out"));
 	}
 
 	@Override

@@ -8,6 +8,7 @@ import java.util.function.Consumer;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.FPUtils;
+import com.demod.fbsr.ModsProfile;
 import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.def.SpriteDef;
 
@@ -17,11 +18,11 @@ public class FPRailFencePictureSet {
     public final Optional<List<FPFenceDirectionSet>> endsUpper;
     public final Optional<FPFenceDirectionSet> fenceUpper;
 
-    public FPRailFencePictureSet(LuaValue lua) {
-        ends = FPUtils.list(lua.get("ends"), FPFenceDirectionSet::new);
-        fence = new FPFenceDirectionSet(lua.get("fence"));
-        endsUpper = FPUtils.optList(lua.get("ends_upper"), FPFenceDirectionSet::new);
-        fenceUpper = FPUtils.opt(lua.get("fence_upper"), FPFenceDirectionSet::new);
+    public FPRailFencePictureSet(ModsProfile profile, LuaValue lua) {
+        ends = FPUtils.list(profile, lua.get("ends"), FPFenceDirectionSet::new);
+        fence = new FPFenceDirectionSet(profile, lua.get("fence"));
+        endsUpper = FPUtils.optList(profile, lua.get("ends_upper"), FPFenceDirectionSet::new);
+        fenceUpper = FPUtils.opt(profile, lua.get("fence_upper"), FPFenceDirectionSet::new);
     }
 
     public void getDefs(Consumer<ImageDef> register) {

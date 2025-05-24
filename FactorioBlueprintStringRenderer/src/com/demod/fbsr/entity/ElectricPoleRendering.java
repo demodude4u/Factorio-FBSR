@@ -86,7 +86,7 @@ public class ElectricPoleRendering extends EntityWithOwnerRendering {
 		super.initFromPrototype();
 
 		// XXX strange that I have to force back_equals_front to be true
-		protoPictures = new FPRotatedSprite(prototype.lua().get("pictures"), Optional.of(true));
+		protoPictures = new FPRotatedSprite(profile, prototype.lua().get("pictures"), Optional.of(true));
 	}
 
 	@Override

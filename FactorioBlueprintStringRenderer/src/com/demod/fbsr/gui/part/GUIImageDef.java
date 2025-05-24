@@ -4,7 +4,8 @@ import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 
-import com.demod.fbsr.AtlasManager.AtlasRef;
+import com.demod.fbsr.Atlas;
+import com.demod.fbsr.Atlas.AtlasRef;
 import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.gui.GUIBox;
 
@@ -20,7 +21,7 @@ public class GUIImageDef extends GUIPart {
 	@Override
 	public void render(Graphics2D g) {
 		AtlasRef ref = def.getAtlasRef();
-		BufferedImage imageSheet = ref.getAtlas().getBufferedImage();
+		BufferedImage imageSheet = ref.getAtlas().getImage();
 		Rectangle rect = ref.getRect();
 
 		g.drawImage(imageSheet, //

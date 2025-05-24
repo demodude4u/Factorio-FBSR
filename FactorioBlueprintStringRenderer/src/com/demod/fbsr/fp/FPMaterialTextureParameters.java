@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import com.demod.factorio.fakelua.LuaValue;
+import com.demod.fbsr.ModsProfile;
 import com.demod.fbsr.def.MaterialDef;
 
 public class FPMaterialTextureParameters {
@@ -22,7 +23,7 @@ public class FPMaterialTextureParameters {
 	private final int limitedCount;
 	private final List<MaterialDef> defs;
 
-	public FPMaterialTextureParameters(LuaValue lua, int texWidthTiles, int texHeightTiles, int limitCount) {
+	public FPMaterialTextureParameters(ModsProfile profile, LuaValue lua, int texWidthTiles, int texHeightTiles, int limitCount) {
 		this.texWidthTiles = texWidthTiles;
 		this.texHeightTiles = texHeightTiles;
 
@@ -34,11 +35,11 @@ public class FPMaterialTextureParameters {
 		lineLength = lua.get("line_length").optint(count);
 
 		limitedCount = Math.min(limitCount, count);
-		List<MaterialDef> allDefs = createDefs();
+		List<MaterialDef> allDefs = createDefs(profile);
 		defs = allDefs.stream().limit(limitedCount).collect(Collectors.toList());
 	}
 
-	private List<MaterialDef> createDefs() {
+	private List<MaterialDef> createDefs(ModsProfile profile) {
 		List<MaterialDef> defs = new ArrayList<>();
 
 		int width = (int) (texWidthTiles * 64 / scale);
@@ -47,7 +48,7 @@ public class FPMaterialTextureParameters {
 		for (int i = 0; i < count; i++) {
 			int x = width * (i % lineLength);
 			int y = height * (i / lineLength);
-			defs.add(new MaterialDef(picture, new Rectangle(x, y, width, height), texHeightTiles, texWidthTiles));
+			defs.add(new MaterialDef(profile, picture, new Rectangle(x, y, width, height), texHeightTiles, texWidthTiles));
 		}
 
 		return defs;

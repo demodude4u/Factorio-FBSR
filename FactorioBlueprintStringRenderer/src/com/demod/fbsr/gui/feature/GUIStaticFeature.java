@@ -2,14 +2,15 @@ package com.demod.fbsr.gui.feature;
 
 import java.awt.Graphics2D;
 
+import com.demod.fbsr.ModsProfile;
 import com.demod.fbsr.gui.GUIBox;
 
 public class GUIStaticFeature extends GUISourcedFeature {
 	private final int width;
 	private final int height;
 
-	public GUIStaticFeature(String filename, GUIBox source) {
-		super(filename, source);
+	public GUIStaticFeature(ModsProfile profile, String filename, GUIBox source) {
+		super(profile, filename, source);
 		width = source.width;
 		height = source.height;
 	}

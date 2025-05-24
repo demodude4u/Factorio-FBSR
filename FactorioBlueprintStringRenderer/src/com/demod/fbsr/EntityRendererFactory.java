@@ -51,7 +51,7 @@ public abstract class EntityRendererFactory {
 				factory.wirePointsById = new LinkedHashMap<>();
 				factory.defineWirePoints(factory.wirePointsById::put, prototype.lua());
 				factory.drawBounds = factory.computeBounds();
-				factory.initAtlas(AtlasManager::registerDef);
+				factory.initAtlas(factory.getProfile().getAtlasPackage()::registerDef);
 			} catch (Exception e) {
 				LOGGER.error("ENTITY {} ({})", prototype.getName(), prototype.getType());
 				throw e;
@@ -98,8 +98,8 @@ public abstract class EntityRendererFactory {
 		return MapRect3D.byUnit(x1, y1, x2, y2, drawingBoxVerticalExtension);
 	}
 
-	public static void registerFactories(Consumer<EntityRendererFactory> register, FactorioData data, JSONObject json) {
-		DataTable table = data.getTable();
+	public static void registerFactories(Consumer<EntityRendererFactory> register, ModsProfile profile, JSONObject json) {
+		DataTable table = profile.getData().getTable();
 		for (String groupName : json.keySet().stream().sorted().collect(Collectors.toList())) {
 			JSONObject jsonGroup = json.getJSONObject(groupName);
 			for (String entityName : jsonGroup.keySet().stream().sorted().collect(Collectors.toList())) {
@@ -116,7 +116,7 @@ public abstract class EntityRendererFactory {
 							.getConstructor().newInstance();
 					factory.setName(entityName);
 					factory.setGroupName(groupName);
-					factory.setData(data);
+					factory.setProfile(profile);
 					factory.setPrototype(prototype);
 					register.accept(factory);
 				} catch (Exception e) {
@@ -130,7 +130,7 @@ public abstract class EntityRendererFactory {
 
 	protected String name = null;
 	protected String groupName = null;
-	protected FactorioData data = null;
+	protected ModsProfile profile = null;
 	protected EntityPrototype prototype = null;
 
 	protected boolean protoBeaconed;
@@ -240,8 +240,8 @@ public abstract class EntityRendererFactory {
 
 	}
 
-	public FactorioData getData() {
-		return data;
+	public ModsProfile getProfile() {
+		return profile;
 	}
 
 	public MapRect3D getDrawBounds(MapEntity entity) {
@@ -305,8 +305,8 @@ public abstract class EntityRendererFactory {
 		// default do nothing
 	}
 
-	public void setData(FactorioData data) {
-		this.data = data;
+	public void setProfile(ModsProfile profile) {
+		this.profile = profile;
 	}
 
 	public void setGroupName(String groupName) {
@@ -326,7 +326,7 @@ public abstract class EntityRendererFactory {
 		double xEnd = bounds.getX2();
 		double yEnd = bounds.getY2();
 
-		DataTable table = data.getTable();
+		DataTable table = profile.getData().getTable();
 
 		Set<String> inputs = recipe.getInputs().keySet().stream().filter(k -> table.getItem(k).isPresent())
 				.collect(Collectors.toSet());

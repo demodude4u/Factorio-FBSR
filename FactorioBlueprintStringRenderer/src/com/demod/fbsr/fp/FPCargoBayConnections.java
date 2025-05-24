@@ -3,6 +3,7 @@ package com.demod.fbsr.fp;
 import java.util.function.Consumer;
 
 import com.demod.factorio.fakelua.LuaValue;
+import com.demod.fbsr.ModsProfile;
 import com.demod.fbsr.def.ImageDef;
 
 public class FPCargoBayConnections {
@@ -24,24 +25,24 @@ public class FPCargoBayConnections {
 	public final FPLayeredSpriteVariations bridgeVerticalWide;
 	public final FPLayeredSpriteVariations bridgeCrossing;
 
-	public FPCargoBayConnections(LuaValue lua) {
-		topWall = new FPLayeredSpriteVariations(lua.get("top_wall"));
-		rightWall = new FPLayeredSpriteVariations(lua.get("right_wall"));
-		bottomWall = new FPLayeredSpriteVariations(lua.get("bottom_wall"));
-		leftWall = new FPLayeredSpriteVariations(lua.get("left_wall"));
-		topLeftOuterCorner = new FPLayeredSpriteVariations(lua.get("top_left_outer_corner"));
-		topRightOuterCorner = new FPLayeredSpriteVariations(lua.get("top_right_outer_corner"));
-		bottomLeftOuterCorner = new FPLayeredSpriteVariations(lua.get("bottom_left_outer_corner"));
-		bottomRightOuterCorner = new FPLayeredSpriteVariations(lua.get("bottom_right_outer_corner"));
-		topLeftInnerCorner = new FPLayeredSpriteVariations(lua.get("top_left_inner_corner"));
-		topRightInnerCorner = new FPLayeredSpriteVariations(lua.get("top_right_inner_corner"));
-		bottomLeftInnerCorner = new FPLayeredSpriteVariations(lua.get("bottom_left_inner_corner"));
-		bottomRightInnerCorner = new FPLayeredSpriteVariations(lua.get("bottom_right_inner_corner"));
-		bridgeHorizontalNarrow = new FPLayeredSpriteVariations(lua.get("bridge_horizontal_narrow"));
-		bridgeHorizontalWide = new FPLayeredSpriteVariations(lua.get("bridge_horizontal_wide"));
-		bridgeVerticalNarrow = new FPLayeredSpriteVariations(lua.get("bridge_vertical_narrow"));
-		bridgeVerticalWide = new FPLayeredSpriteVariations(lua.get("bridge_vertical_wide"));
-		bridgeCrossing = new FPLayeredSpriteVariations(lua.get("bridge_crossing"));
+	public FPCargoBayConnections(ModsProfile profile, LuaValue lua) {
+		topWall = new FPLayeredSpriteVariations(profile, lua.get("top_wall"));
+		rightWall = new FPLayeredSpriteVariations(profile, lua.get("right_wall"));
+		bottomWall = new FPLayeredSpriteVariations(profile, lua.get("bottom_wall"));
+		leftWall = new FPLayeredSpriteVariations(profile, lua.get("left_wall"));
+		topLeftOuterCorner = new FPLayeredSpriteVariations(profile, lua.get("top_left_outer_corner"));
+		topRightOuterCorner = new FPLayeredSpriteVariations(profile, lua.get("top_right_outer_corner"));
+		bottomLeftOuterCorner = new FPLayeredSpriteVariations(profile, lua.get("bottom_left_outer_corner"));
+		bottomRightOuterCorner = new FPLayeredSpriteVariations(profile, lua.get("bottom_right_outer_corner"));
+		topLeftInnerCorner = new FPLayeredSpriteVariations(profile, lua.get("top_left_inner_corner"));
+		topRightInnerCorner = new FPLayeredSpriteVariations(profile, lua.get("top_right_inner_corner"));
+		bottomLeftInnerCorner = new FPLayeredSpriteVariations(profile, lua.get("bottom_left_inner_corner"));
+		bottomRightInnerCorner = new FPLayeredSpriteVariations(profile, lua.get("bottom_right_inner_corner"));
+		bridgeHorizontalNarrow = new FPLayeredSpriteVariations(profile, lua.get("bridge_horizontal_narrow"));
+		bridgeHorizontalWide = new FPLayeredSpriteVariations(profile, lua.get("bridge_horizontal_wide"));
+		bridgeVerticalNarrow = new FPLayeredSpriteVariations(profile, lua.get("bridge_vertical_narrow"));
+		bridgeVerticalWide = new FPLayeredSpriteVariations(profile, lua.get("bridge_vertical_wide"));
+		bridgeCrossing = new FPLayeredSpriteVariations(profile, lua.get("bridge_crossing"));
 	}
 
 	public void getDefs(Consumer<ImageDef> register) {

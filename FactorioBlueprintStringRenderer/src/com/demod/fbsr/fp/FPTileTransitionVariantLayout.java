@@ -6,6 +6,7 @@ import java.util.function.Consumer;
 
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.FPUtils;
+import com.demod.fbsr.ModsProfile;
 import com.demod.fbsr.def.ImageDef;
 
 public class FPTileTransitionVariantLayout {
@@ -24,7 +25,7 @@ public class FPTileTransitionVariantLayout {
 	public final FPTileSpriteLayoutDefaults oTransitionDefaults;
 	public final FPTileSpriteLayoutDefaults innerCornerDefaults;
 
-	public FPTileTransitionVariantLayout(LuaValue lua, Optional<String> overrideSpritesheet,
+	public FPTileTransitionVariantLayout(ModsProfile profile, LuaValue lua, Optional<String> overrideSpritesheet,
 			FPTileSpriteLayoutDefaults parentDefaults) {
 		defaults = new FPTileSpriteLayoutDefaults(lua, "", false);
 		sideDefaults = new FPTileSpriteLayoutDefaults(lua, "side_", true);
@@ -34,17 +35,17 @@ public class FPTileTransitionVariantLayout {
 		oTransitionDefaults = new FPTileSpriteLayoutDefaults(lua, "o_transition_", true);
 		innerCornerDefaults = new FPTileSpriteLayoutDefaults(lua, "inner_corner_", true);
 
-		side = FPUtils.opt(lua.get("side"), l -> new FPTileSpriteLayoutVariant(l, overrideSpritesheet,
+		side = FPUtils.opt(profile, lua.get("side"), (p, l) -> new FPTileSpriteLayoutVariant(p, l, overrideSpritesheet,
 				sideDefaults.or(defaults), OptionalInt.of(4)));
-		doubleSide = FPUtils.opt(lua.get("double_side"), l -> new FPTileSpriteLayoutVariant(l, overrideSpritesheet,
+		doubleSide = FPUtils.opt(profile, lua.get("double_side"), (p, l) -> new FPTileSpriteLayoutVariant(p, l, overrideSpritesheet,
 				doubleSideDefaults.or(defaults).or(parentDefaults), OptionalInt.of(2)));
-		outerCorner = FPUtils.opt(lua.get("outer_corner"), l -> new FPTileSpriteLayoutVariant(l, overrideSpritesheet,
+		outerCorner = FPUtils.opt(profile, lua.get("outer_corner"), (p, l) -> new FPTileSpriteLayoutVariant(p, l, overrideSpritesheet,
 				outerCornerDefaults.or(defaults).or(parentDefaults), OptionalInt.of(4)));
-		uTransition = FPUtils.opt(lua.get("u_transition"), l -> new FPTileSpriteLayoutVariant(l, overrideSpritesheet,
+		uTransition = FPUtils.opt(profile, lua.get("u_transition"), (p, l) -> new FPTileSpriteLayoutVariant(p, l, overrideSpritesheet,
 				uTransitionDefaults.or(defaults).or(parentDefaults), OptionalInt.of(4)));
-		oTransition = FPUtils.opt(lua.get("o_transition"), l -> new FPTileSpriteLayoutVariant(l, overrideSpritesheet,
+		oTransition = FPUtils.opt(profile, lua.get("o_transition"), (p, l) -> new FPTileSpriteLayoutVariant(p, l, overrideSpritesheet,
 				oTransitionDefaults.or(defaults).or(parentDefaults), OptionalInt.of(1)));
-		innerCorner = FPUtils.opt(lua.get("inner_corner"), l -> new FPTileSpriteLayoutVariant(l, overrideSpritesheet,
+		innerCorner = FPUtils.opt(profile, lua.get("inner_corner"), (p, l) -> new FPTileSpriteLayoutVariant(p, l, overrideSpritesheet,
 				innerCornerDefaults.or(defaults).or(parentDefaults), OptionalInt.of(4)));
 	}
 

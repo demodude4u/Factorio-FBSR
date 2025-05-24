@@ -6,16 +6,17 @@ import java.util.Optional;
 
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.Direction;
+import com.demod.fbsr.ModsProfile;
 import com.demod.fbsr.def.SpriteDef;
 import com.demod.fbsr.Dir16;
 
 public class FPSpriteNWaySheet extends FPSpriteParameters {
 
-	public static Optional<FPSpriteNWaySheet> opt(LuaValue lua, int directionCount) {
+	public static Optional<FPSpriteNWaySheet> opt(ModsProfile profile, LuaValue lua, int directionCount) {
 		if (lua.isnil()) {
 			return Optional.empty();
 		}
-		return Optional.of(new FPSpriteNWaySheet(lua, directionCount));
+		return Optional.of(new FPSpriteNWaySheet(profile, lua, directionCount));
 	}
 
 	public final int frames;
@@ -25,17 +26,17 @@ public class FPSpriteNWaySheet extends FPSpriteParameters {
 
 	private final List<SpriteDef> defs;
 
-	public FPSpriteNWaySheet(LuaValue lua, int directionCount) {
-		super(lua);
+	public FPSpriteNWaySheet(ModsProfile profile, LuaValue lua, int directionCount) {
+		super(profile, lua);
 		this.directionCount = directionCount;
 
 		frames = lua.get("frames").optint(directionCount);
 		frameRepeat  = lua.get("frame_repeat").optint(1);
 
-		defs = createDefs();
+		defs = createDefs(profile);
 	}
 
-	private List<SpriteDef> createDefs() {
+	private List<SpriteDef> createDefs(ModsProfile profile) {
 		List<SpriteDef> defs = new ArrayList<>();
 		for (Dir16 direction : Dir16.values()) {
 			int x = this.x;
@@ -48,7 +49,7 @@ public class FPSpriteNWaySheet extends FPSpriteParameters {
 				x += width * ((direction.ordinal() / (frameRepeat)) % frames);
 			}
 
-			defs.add(SpriteDef.fromFP(filename.get(), drawAsShadow, blendMode, tint, tintAsOverlay, applyRuntimeTint, x,
+			defs.add(SpriteDef.fromFP(profile, filename.get(), drawAsShadow, blendMode, tint, tintAsOverlay, applyRuntimeTint, x,
 					y, width, height, shift.x, shift.y, scale));
 		}
 		return defs;

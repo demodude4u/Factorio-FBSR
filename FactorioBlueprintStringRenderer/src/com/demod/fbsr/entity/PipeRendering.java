@@ -64,7 +64,7 @@ public class PipeRendering extends EntityWithOwnerRendering {
 		super.initFromPrototype();
 
 		LuaValue luaPictures = prototype.lua().get("pictures");
-		protoPipeSprites = Arrays.stream(pipeSpriteNameMapping).map(s -> new FPSprite(luaPictures.get(s)))
+		protoPipeSprites = Arrays.stream(pipeSpriteNameMapping).map(s -> new FPSprite(profile, luaPictures.get(s)))
 				.collect(Collectors.toList());
 	}
 
