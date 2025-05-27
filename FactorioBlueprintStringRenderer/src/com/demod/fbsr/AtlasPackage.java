@@ -59,6 +59,7 @@ public class AtlasPackage {
 	private static final Logger LOGGER = LoggerFactory.getLogger(AtlasPackage.class);
 
 	public static int ATLAS_SIZE = 4096;
+	public static int ATLAS_ICONS_SIZE = 2048;
 
     private File packageFolder;
 
@@ -146,6 +147,7 @@ public class AtlasPackage {
 
 		List<Atlas> atlases = new ArrayList<>();
 		atlases.add(Atlas.init(this, atlases.size(), ATLAS_SIZE, ATLAS_SIZE));
+		Atlas iconsAtlas = null;
 		int imageCount = 0;
 		for (ImageDef def : defs) {
 			imageCount++;
@@ -183,52 +185,75 @@ public class AtlasPackage {
 				continue;
 			}
 
-			Atlas atlas;
 			Rectangle rect = new Rectangle(trimmed.width, trimmed.height);
-			nextImage: while (true) {
-				nextAtlas: for (int id = atlases.size() - 1; id >= 0; id--) {
-					atlas = atlases.get(id);
+			boolean icon = (rect.width <= IconManager.ICON_SIZE)  && (rect.height <= IconManager.ICON_SIZE);
 
-					List<Dimension> failedPackingSizes = atlas.getFailedPackingSizes();
-					for (Dimension size : failedPackingSizes) {
-						if (rect.width >= size.width && rect.height >= size.height) {
-							continue nextAtlas;
-						}
-					}
-
-					Quadtree occupied = atlas.getOccupied();
-					for (rect.y = 0; rect.y < ATLAS_SIZE - rect.height; rect.y++) {
-						int nextY = ATLAS_SIZE;
-						for (rect.x = 0; rect.x < ATLAS_SIZE - rect.width; rect.x++) {
-							Rectangle collision = occupied.insertIfNoCollision(rect);
-							if (collision != null) {
-								rect.x = collision.x + collision.width - 1;
-								nextY = Math.min(nextY, collision.y + collision.height);
-							} else {
-								copyToAtlas(imageSheet, def, atlas, rect);
-								break nextImage;
-							}
-						}
-						rect.y = nextY - 1;
-					}
-
-					{
-						boolean replaced = false;
-						for (Dimension size : failedPackingSizes) {
-							if (rect.width <= size.width && rect.height <= size.height) {
-								size.setSize(rect.width, rect.height);
-								replaced = true;
-								break;
-							}
-						}
-						if (!replaced) {
-							failedPackingSizes.add(new Dimension(rect.width, rect.height));
-						}
-					}
+			Atlas atlas;
+			if (icon) {
+				if (iconsAtlas == null || (iconsAtlas.getIconCount() >= iconsAtlas.getIconMaxCount())) {
+					iconsAtlas = Atlas.initIcons(this, atlases.size(), ATLAS_ICONS_SIZE, ATLAS_ICONS_SIZE, IconManager.ICON_SIZE);
+					LOGGER.info("Icons Atlas {} -  {}/{} ({}%)", atlases.size(), imageCount, defs.size(),
+							(100 * progressPixels) / totalPixels);
+					atlases.add(iconsAtlas);
 				}
-				LOGGER.info("Atlas {} -  {}/{} ({}%)", atlases.size(), imageCount, defs.size(),
-						(100 * progressPixels) / totalPixels);
-				atlases.add(Atlas.init(this, atlases.size(), ATLAS_SIZE, ATLAS_SIZE));
+				atlas = iconsAtlas;
+				int iconCount = atlas.getIconCount();
+				int iconColumns = atlas.getIconColumns();
+				int iconSize = atlas.getIconSize();
+				rect.x = (iconCount % iconColumns) * iconSize;
+				rect.y = (iconCount / iconColumns) * iconSize;
+				copyToAtlas(imageSheet, def, atlas, rect);
+				atlas.setIconCount(iconCount + 1);
+
+			} else {
+				nextImage: while (true) {
+					nextAtlas: for (int id = atlases.size() - 1; id >= 0; id--) {
+						atlas = atlases.get(id);
+						if (atlas.isIconMode()) {
+							continue;
+						}
+
+						List<Dimension> failedPackingSizes = atlas.getFailedPackingSizes();
+						for (Dimension size : failedPackingSizes) {
+							if (rect.width >= size.width && rect.height >= size.height) {
+								continue nextAtlas;
+							}
+						}
+
+						Quadtree occupied = atlas.getOccupied();
+						for (rect.y = 0; rect.y < ATLAS_SIZE - rect.height; rect.y++) {
+							int nextY = ATLAS_SIZE;
+							for (rect.x = 0; rect.x < ATLAS_SIZE - rect.width; rect.x++) {
+								Rectangle collision = occupied.insertIfNoCollision(rect);
+								if (collision != null) {
+									rect.x = collision.x + collision.width - 1;
+									nextY = Math.min(nextY, collision.y + collision.height);
+								} else {
+									copyToAtlas(imageSheet, def, atlas, rect);
+									break nextImage;
+								}
+							}
+							rect.y = nextY - 1;
+						}
+
+						{
+							boolean replaced = false;
+							for (Dimension size : failedPackingSizes) {
+								if (rect.width <= size.width && rect.height <= size.height) {
+									size.setSize(rect.width, rect.height);
+									replaced = true;
+									break;
+								}
+							}
+							if (!replaced) {
+								failedPackingSizes.add(new Dimension(rect.width, rect.height));
+							}
+						}
+					}
+					LOGGER.info("Atlas {} -  {}/{} ({}%)", atlases.size(), imageCount, defs.size(),
+							(100 * progressPixels) / totalPixels);
+					atlases.add(Atlas.init(this, atlases.size(), ATLAS_SIZE, ATLAS_SIZE));
+				}
 			}
 
 			Point trim = new Point(trimmed.x - source.x, trimmed.y - source.y);
