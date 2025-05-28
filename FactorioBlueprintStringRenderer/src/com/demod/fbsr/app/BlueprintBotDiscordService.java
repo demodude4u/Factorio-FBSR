@@ -305,6 +305,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			throws IOException, InterruptedException, ExecutionException {
 
 		String content = event.getCommandString();
+		boolean shortContent = content.length() < 40;
 
 		Optional<Attachment> attachment = event.optParamAttachment("file");
 		if (attachment.isPresent()) {
@@ -329,16 +330,22 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 					.collect(Collectors.toList());
 
 			if (failures.isEmpty()) {
-				event.replyEmbed(new EmbedBuilder()//
-						.setColor(Color.yellow)//
-						.setDescription("Blueprint string not found!")//
-						.build());
-				return;
+				if (shortContent) {
+					event.replyEmbed(new EmbedBuilder()//
+							.setDescription("Specify a blueprint string and I will create an image for you! Please try again.")//
+							.build());
+				
+				} else {
+					event.replyEmbed(new EmbedBuilder()//
+							.setColor(Color.yellow)//
+							.setDescription("Blueprint string not found! Make sure it is fully copied and try again.")//
+							.build());
+				}
 
 			} else {
 				event.replyEmbed(createFailuresEmbed(failures));
-				return;
 			}
+			return;
 		}
 
 		BSBlueprintString blueprintString = blueprintStrings.get(0);
