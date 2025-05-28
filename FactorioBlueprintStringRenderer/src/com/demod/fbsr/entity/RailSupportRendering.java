@@ -4,7 +4,9 @@ import java.util.Optional;
 import java.util.function.Consumer;
 
 import com.demod.factorio.fakelua.LuaTable;
+import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.EntityRendererFactory;
+import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.Dir16;
 import com.demod.fbsr.WorldMap;
@@ -19,6 +21,7 @@ import com.demod.fbsr.map.MapRenderable;
 public class RailSupportRendering extends EntityWithOwnerRendering {
 	
 	private FPRotatedSprite protoStructure;
+	private Layer protoLayer;
 
 	@Override
 	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
@@ -46,14 +49,16 @@ public class RailSupportRendering extends EntityWithOwnerRendering {
 
 		double orientation = railDir.map(d->d.getOrientation()).orElse(entity.getDirection().getOrientation());
 
-		protoStructure.defineSprites(entity.spriteRegister(register, Layer.OBJECT), orientation);
+		protoStructure.defineSprites(entity.spriteRegister(register, protoLayer), orientation);
 	}
 
 	@Override
 	public void initFromPrototype() {
 		super.initFromPrototype();
 
-		protoStructure = new FPRotatedSprite(profile, prototype.lua().get("graphics_set").get("structure"), 16);
+		LuaValue luaGraphicsSet = prototype.lua().get("graphics_set");
+		protoStructure = new FPRotatedSprite(profile, luaGraphicsSet.get("structure"), 16);
+		protoLayer = FPUtils.optLayer(luaGraphicsSet.get("render_layer")).orElse(Layer.OBJECT);
 	}
 
 	@Override
