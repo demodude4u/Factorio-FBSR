@@ -38,10 +38,10 @@ public class DisplayPanelRendering extends EntityWithOwnerRendering {
 				register.accept(new MapIcon(entity.getPosition().addUnit(0, -0.25), icon.get().getDef(), 0.5,
 						OptionalDouble.empty(), false, signalID.quality.filter(s -> !s.equals("normal"))));
 			}
+		}
 
-			if (bsEntity.text.isPresent() && bsEntity.text.get().length > 0) {
+		if (bsEntity.text.isPresent() && bsEntity.text.get().length > 0 && map.isAltMode()) {
 				register.accept(new MapText(Layer.ENTITY_INFO_TEXT, entity.getPosition().addUnit(0, -0.75), 0, FONT, Color.white, bsEntity.text.get()[0], true));
-			}
 		}
 	}
 
