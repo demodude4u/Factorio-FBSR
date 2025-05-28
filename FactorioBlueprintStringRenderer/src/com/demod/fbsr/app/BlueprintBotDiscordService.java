@@ -1265,7 +1265,9 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 			TextChannel hostingChannel = bot.getJDA().getTextChannelById(hostingChannelID);
 			Message message = hostingChannel.retrieveMessageById(messageId).complete();
-			replyContent = label.map(s -> s + " ").orElse("") + message.getAttachments().get(0).getUrl();
+			String url = message.getAttachments().get(0).getUrl();
+			replyContent = label.map(s -> s + " ").orElse("") + url;
+			reporting.addField(new Field("Message URL", url, true));
 
 		} else if (command.equals("reply-zoom")) {
 			String cacheKey = raw;
@@ -1298,8 +1300,11 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			TextChannel hostingChannel = bot.getJDA().getTextChannelById(hostingChannelID);
 			Message messageImage = hostingChannel.retrieveMessageById(cachedResult.messageId).complete();
 
+			String url = messageImage.getAttachments().get(0).getUrl();
 			replyContent = cachedResult.label.map(s -> s + " ").orElse("")
-					+ messageImage.getAttachments().get(0).getUrl();
+					+ url;
+			reporting.addField(new Field("Message URL", url, true));
+			reporting.setImageURL(url);
 
 		} else {
 			LOGGER.warn("UNKNOWN COMMAND {}", command);
@@ -1369,8 +1374,11 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			TextChannel hostingChannel = bot.getJDA().getTextChannelById(hostingChannelID);
 			Message messageImage = hostingChannel.retrieveMessageById(cachedResult.messageId).complete();
 
+			String url = messageImage.getAttachments().get(0).getUrl();
 			replyContent = cachedResult.label.map(s -> s + " ").orElse("")
-					+ messageImage.getAttachments().get(0).getUrl();
+					+ url;
+			reporting.addField(new Field("Message URL", url, true));
+			reporting.setImageURL(url);
 
 		} else {
 			LOGGER.info("UNKNOWN COMMAND {}", command);
