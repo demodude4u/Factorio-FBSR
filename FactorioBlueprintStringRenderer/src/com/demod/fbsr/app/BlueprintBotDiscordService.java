@@ -305,6 +305,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			throws IOException, InterruptedException, ExecutionException {
 
 		String content = event.getCommandString();
+		boolean shortContent = content.length() < 40;
 
 		Optional<Attachment> attachment = event.optParamAttachment("file");
 		if (attachment.isPresent()) {
@@ -329,16 +330,22 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 					.collect(Collectors.toList());
 
 			if (failures.isEmpty()) {
-				event.replyEmbed(new EmbedBuilder()//
-						.setColor(Color.yellow)//
-						.setDescription("Blueprint string not found!")//
-						.build());
-				return;
+				if (shortContent) {
+					event.replyEmbed(new EmbedBuilder()//
+							.setDescription("Specify a blueprint string and I will create an image for you! Please try again.")//
+							.build());
+				
+				} else {
+					event.replyEmbed(new EmbedBuilder()//
+							.setColor(Color.yellow)//
+							.setDescription("Blueprint string not found! Make sure it is fully copied and try again.")//
+							.build());
+				}
 
 			} else {
 				event.replyEmbed(createFailuresEmbed(failures));
-				return;
 			}
+			return;
 		}
 
 		BSBlueprintString blueprintString = blueprintStrings.get(0);
@@ -1265,7 +1272,9 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 			TextChannel hostingChannel = bot.getJDA().getTextChannelById(hostingChannelID);
 			Message message = hostingChannel.retrieveMessageById(messageId).complete();
-			replyContent = label.map(s -> s + " ").orElse("") + message.getAttachments().get(0).getUrl();
+			String url = message.getAttachments().get(0).getUrl();
+			replyContent = label.map(s -> s + " ").orElse("") + url;
+			reporting.addField(new Field("Message URL", url, true));
 
 		} else if (command.equals("reply-zoom")) {
 			String cacheKey = raw;
@@ -1298,8 +1307,11 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			TextChannel hostingChannel = bot.getJDA().getTextChannelById(hostingChannelID);
 			Message messageImage = hostingChannel.retrieveMessageById(cachedResult.messageId).complete();
 
+			String url = messageImage.getAttachments().get(0).getUrl();
 			replyContent = cachedResult.label.map(s -> s + " ").orElse("")
-					+ messageImage.getAttachments().get(0).getUrl();
+					+ url;
+			reporting.addField(new Field("Message URL", url, true));
+			reporting.setImageURL(url);
 
 		} else {
 			LOGGER.warn("UNKNOWN COMMAND {}", command);
@@ -1369,8 +1381,11 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			TextChannel hostingChannel = bot.getJDA().getTextChannelById(hostingChannelID);
 			Message messageImage = hostingChannel.retrieveMessageById(cachedResult.messageId).complete();
 
+			String url = messageImage.getAttachments().get(0).getUrl();
 			replyContent = cachedResult.label.map(s -> s + " ").orElse("")
-					+ messageImage.getAttachments().get(0).getUrl();
+					+ url;
+			reporting.addField(new Field("Message URL", url, true));
+			reporting.setImageURL(url);
 
 		} else {
 			LOGGER.info("UNKNOWN COMMAND {}", command);
