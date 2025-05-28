@@ -4,6 +4,7 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -91,6 +92,8 @@ public class FactorioManager {
 	private static File folderDataRoot;
 
 	private static boolean hasFactorioInstall;
+	private static boolean hasModsRoot;
+
 
 	public static List<AchievementPrototype> getAchievements() {
 		return achievements;
@@ -226,9 +229,15 @@ public class FactorioManager {
 		Optional<String> factorioExecutable = Optional.ofNullable(json.optString("executable", null));
 
 		folderModsRoot = new File(json.optString("mods", "mods"));
-		if (folderModsRoot.mkdirs()) {
+		hasModsRoot = folderModsRoot.exists();
+		if (hasModsRoot) {
 			File folderModsVanilla = new File(folderModsRoot, "mods-vanilla");
-			folderModsVanilla.mkdir();
+			if (!folderModsVanilla.exists()) {
+				folderModsVanilla.mkdir();
+				File fileModRendering = new File(folderModsVanilla, "mod-rendering.json");
+				Files.copy(FactorioData.class.getClassLoader().getResourceAsStream("mod-rendering.json"),
+						fileModRendering.toPath());
+			}
 		}
 
 		folderDataRoot = new File(json.optString("data", "data"));
@@ -259,15 +268,21 @@ public class FactorioManager {
 			JSONArray jsonModsInclude = json.getJSONArray("mods_include");
 			mods = IntStream.range(0, jsonModsInclude.length()).mapToObj(i -> jsonModsInclude.getString(i))
 					.collect(Collectors.toList());
-			if (hasFactorioInstall) {
+			if (hasModsRoot) {
 				mods = mods.stream().filter(n -> new File(folderModsRoot, n).exists()).collect(Collectors.toList());
 			} else {
 				mods = mods.stream().filter(n -> new File(folderDataRoot, n).exists()).collect(Collectors.toList());
 			}
 		} else {
-			mods = Arrays.asList(folderModsRoot.listFiles()).stream()
-					.filter(f -> f.isDirectory() && new File(f, "mod-rendering.json").exists()).map(f -> f.getName())
-					.collect(Collectors.toList());
+			if (hasModsRoot) {
+				mods = Arrays.asList(folderModsRoot.listFiles()).stream()
+						.filter(f -> f.isDirectory() && new File(f, "mod-rendering.json").exists()).map(f -> f.getName())
+						.collect(Collectors.toList());
+			} else {
+				mods = Arrays.asList(folderDataRoot.listFiles()).stream()
+						.filter(f -> f.isDirectory() && new File(f, "mod-rendering.json").exists()).map(f -> f.getName())
+						.collect(Collectors.toList());
+			}
 		}
 		LOGGER.info("MODS FOLDERS: {}", mods.stream().collect(Collectors.joining(", ")));
 
@@ -276,8 +291,20 @@ public class FactorioManager {
 				File folderMods = new File(folderModsRoot, name);
 				File folderData = new File(folderDataRoot, name);
 				folderData.mkdir();
+				
+				if (hasModsRoot) {
+					// Copy mod-rendering.json if missing or different
+					File modRenderingMods = new File(folderMods, "mod-rendering.json");
+					File modRenderingData = new File(folderData, "mod-rendering.json");
+					if (modRenderingMods.exists()) {
+						if (!modRenderingData.exists() || !Files.readString(modRenderingMods.toPath()).equals(Files.readString(modRenderingData.toPath()))) {
+							Files.copy(modRenderingMods.toPath(), modRenderingData.toPath(), StandardCopyOption.REPLACE_EXISTING);
+							LOGGER.info("Copied mod-rendering.json to data folder: {}", modRenderingData.getAbsolutePath());
+						}
+					}
+				}
 
-				if (hasFactorioInstall) {
+				if (hasFactorioInstall && hasModsRoot) {
 
 					File fileModDownloadCached = new File(folderMods, "mod-download-cached.json");
 					boolean cacheChange = false;
@@ -350,7 +377,7 @@ public class FactorioManager {
 				FactorioData data = new FactorioData(fdConfig);
 				data.initialize(false);
 
-				ModsProfile profile = new ModsProfile(data, new AtlasPackage(folderData));
+				ModsProfile profile = new ModsProfile(folderData, data, new AtlasPackage(folderData));
 				return profile;
 
 			} catch (Exception e) {
@@ -379,10 +406,12 @@ public class FactorioManager {
 		});
 
 		for (ModsProfile profile : profiles) {
-			File folderMods = profile.getData().folderMods;
+			File folderData = profile.getFolderData();
 
+			File fileModRendering = new File(folderData, "mod-rendering.json");
+			LOGGER.info("Read Mod Rendering: {}", fileModRendering.getAbsolutePath());
 			JSONObject jsonModRendering = new JSONObject(
-					Files.readString(new File(folderMods, "mod-rendering.json").toPath()));
+						Files.readString(fileModRendering.toPath()));
 
 			if (jsonModRendering.getJSONObject("entities").has("Base")) {
 				baseProfile = profile;
