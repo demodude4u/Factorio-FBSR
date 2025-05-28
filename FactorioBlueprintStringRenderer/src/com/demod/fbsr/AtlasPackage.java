@@ -41,6 +41,7 @@ import javax.imageio.stream.ImageOutputStream;
 
 import org.json.JSONArray;
 import org.json.JSONTokener;
+import org.rapidoid.commons.Arr;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -401,11 +402,11 @@ public class AtlasPackage {
 
 		int[] atlasIds = IntStream.range(0, jsonManifest.length()).map(i -> jsonManifest.getJSONArray(i).getInt(5))
 				.distinct().toArray();
+		LOGGER.info("Read Atlases: {} {}", folderAtlas.getAbsolutePath(), Arrays.toString(atlasIds));
 		atlases = Arrays.stream(atlasIds).parallel().mapToObj(id -> {
 			File fileAtlas = new File(folderAtlas, "atlas" + id + ".webp");
 			try {
 				BufferedImage image = ImageIO.read(fileAtlas);
-				LOGGER.info("Read Atlas: {}", fileAtlas.getAbsolutePath());
 				return Atlas.load(this, id, image);
 			} catch (IOException e) {
 				LOGGER.error("Failed to read atlas: {}", fileAtlas.getAbsolutePath(), e);

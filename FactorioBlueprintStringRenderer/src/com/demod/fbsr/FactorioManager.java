@@ -173,10 +173,10 @@ public class FactorioManager {
 		initializedFactories = true;
 
 		for (ModsProfile profile : profiles) {
-			File folderMods = profile.getData().folderMods;
+			File folderData = profile.getFolderData();
 
 			JSONObject jsonModRendering = new JSONObject(
-					Files.readString(new File(folderMods, "mod-rendering.json").toPath()));
+					Files.readString(new File(folderData, "mod-rendering.json").toPath()));
 
 			EntityRendererFactory.registerFactories(FactorioManager::registerEntityFactory, profile,
 					jsonModRendering.getJSONObject("entities"));
