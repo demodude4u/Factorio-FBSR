@@ -3,6 +3,13 @@
     "configurations": [
         {
             "type": "java",
+            "name": "FBSRCommandLineMain",
+            "request": "launch",
+            "mainClass": "com.demod.fbsr.cli.FBSRCommandLineMain",
+            "projectName": "FactorioBlueprintStringRenderer"
+        },
+        {
+            "type": "java",
             "name": "FBSRModDumperTask",
             "request": "launch",
             "mainClass": "com.demod.fbsr.task.FBSRModDumperTask",

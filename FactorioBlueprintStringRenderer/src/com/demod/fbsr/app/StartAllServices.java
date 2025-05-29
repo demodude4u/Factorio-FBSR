@@ -33,6 +33,7 @@ public class StartAllServices {
 		addServiceIfEnabled(services, "webapi", WebAPIService::new);
 		addServiceIfEnabled(services, "watchdog", WatchdogService::new);
 		addServiceIfEnabled(services, "logging", LoggingService::new);
+		services.add(new RPCService());
 
 		ServiceManager manager = new ServiceManager(services);
 		manager.addListener(new Listener() {

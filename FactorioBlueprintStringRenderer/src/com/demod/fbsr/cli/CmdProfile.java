@@ -50,7 +50,7 @@ public class CmdProfile {
         // TODO
     }
 
-    @Command(name = "raw", description = "Dump data.raw for the specified profile")
+    @Command(name = "dump", description = "Dump data.raw for the specified profile")
     public void dumpDataRaw(
             @Option(names = "-name", required = true, description = "Name of the profile to use") String name,
             @Option(names = "-force", description = "Force regeneration of data.raw, even if it already exists") boolean force
@@ -79,4 +79,12 @@ public class CmdProfile {
     ) {
         // TODO
     }
+
+    @Command(name = "test", description = "Runs a dump on a temporary profile")
+    public void testDumpDataRaw(
+            @Option(names = "-mods", arity = "0..*", description = "List of mods to include in the profile") String[] mods
+    ) {
+        // TODO
+    }
+
 }
