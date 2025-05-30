@@ -6,7 +6,8 @@
             "name": "FBSRCommandLineMain",
             "request": "launch",
             "mainClass": "com.demod.fbsr.cli.FBSRCommandLineMain",
-            "projectName": "FactorioBlueprintStringRenderer"
+            "projectName": "FactorioBlueprintStringRenderer",
+            "cwd": "${workspaceFolder}/FactorioBlueprintStringRenderer"
         },
         {
             "type": "java",

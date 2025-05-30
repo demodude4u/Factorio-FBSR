@@ -1,5 +1,7 @@
 package com.demod.fbsr.cli;
 
+import java.io.File;
+
 import com.demod.factorio.Config;
 
 import picocli.CommandLine;
@@ -10,13 +12,14 @@ import picocli.CommandLine.ScopeType;
 @Command(name = "FBSR", mixinStandardHelpOptions = true, subcommands = {
     CmdProfile.class, 
     CmdBot.class, 
-    CmdRender.class
+    CmdRender.class,
+    CmdLua.class
 })
 public class FBSRCommandLineMain {
 
     @Option(names = "-config", description = "Path to the configuration file", defaultValue = "config.json", scope = ScopeType.INHERIT)
-    public void setConfigPath(String configPath) {
-        Config.setPath(configPath);
+    public void setConfigPath(File configPath) {
+        Config.setPath(configPath.getAbsolutePath());
     }
 
     public static void main(String[] args) {

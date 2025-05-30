@@ -75,6 +75,12 @@ public class CmdBot {
         startBot();
     }
 
+    @Command(name = "status", description = "Get the status of Blueprint Bot service")
+    public void status() {
+        String status = RPCService.sendCommand("status").orElse("not running");
+        LOGGER.info("Blueprint Bot service status: {}", status);
+    }
+
     private static void launchDetachedJavaProcess(Class<?> mainClass, String... args) throws IOException {
         String javaBin = System.getProperty("java.home") + File.separator + "bin" + File.separator + "java";
         String classpath = System.getProperty("java.class.path");

@@ -1,17 +1,23 @@
 package com.demod.fbsr.cli;
 
+import com.demod.fbsr.ProfileEditor;
+
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
+import picocli.CommandLine.Parameters;
 
 @Command(name = "profile", description = "Configure profiles for mods")
 public class CmdProfile {
 
     @Command(name = "new", description = "Create a new profile")
     public void createNew(
-            @Option(names = "-name", arity = "0..1", interactive = true) String name,
-            @Option(names = "-mods", arity = "0..*", description = "List of mods to include in the profile") String[] mods
+            @Option(names = "-name", required = true, description = "Name of the profile to create") String name,
+            @Option(names = "-label", required = true, description = "Mod label for entities and tiles") String group,
+            @Option(names = "-force", description = "Force creation of the profile, overwriting existing one") boolean force,
+            @Parameters(description = "List of mods to include in the profile") String[] mods
     ) {
-        //TODO
+        ProfileEditor editor = new ProfileEditor();
+        editor.generateProfile(name, group, force, mods);
     }
 
     @Command(name = "list", description = "List all profiles")
