@@ -16,6 +16,8 @@ import org.slf4j.LoggerFactory;
 
 public class StartAllServices {
 
+	public static volatile String status = "loading";
+
 	private static final Logger LOGGER = LoggerFactory.getLogger(StartAllServices.class);
 
 	private static void addServiceIfEnabled(List<Service> services, String configKey,
@@ -39,17 +41,20 @@ public class StartAllServices {
 		manager.addListener(new Listener() {
 			@Override
 			public void failure(Service service) {
+				status = "failed";
 				LOGGER.info("SERVICE FAILURE: {}", service.getClass().getSimpleName());
 				service.failureCause().printStackTrace();
 			}
 
 			@Override
 			public void healthy() {
+				status = "healthy";
 				LOGGER.info("ALL SERVICES ARE HEALTHY!");
 			}
 
 			@Override
 			public void stopped() {
+				status = "stopped";
 				LOGGER.info("ALL SERVICES HAVE STOPPED!");
 			}
 		});
