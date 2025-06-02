@@ -1,8 +1,10 @@
 package com.demod.fbsr;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
@@ -14,8 +16,11 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -26,6 +31,7 @@ import org.slf4j.LoggerFactory;
 import com.demod.factorio.Config;
 import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
+import com.demod.factorio.ModLoader;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.factorio.prototype.TilePrototype;
 import com.demod.fbsr.cli.CmdBot;
@@ -381,4 +387,56 @@ public class ProfileEditor {
 		}
 		return true;
 	}
+
+    public void runFactorio() {
+        
+        JSONObject json = Config.get().getJSONObject("factorio_manager");
+
+		File folderDataRoot = new File(json.optString("data", "data"));
+		folderDataRoot.mkdirs();
+
+        try {
+            FactorioManager.downloadMods(folderProfile);
+        
+            JSONObject fdConfig = new JSONObject();
+            File folderData = new File(folderDataRoot, folderProfile.getName());
+            folderData.mkdirs();
+
+            File folderFactorio = new File(json.getString("install"));
+		    File factorioExecutable = new File(json.getString("executable"));
+
+            File fileConfig = new File(folderData, "config.ini");
+            try (PrintWriter pw = new PrintWriter(fileConfig)) {
+                pw.println("[path]");
+                pw.println("read-data=" + folderFactorio.getAbsolutePath());
+                pw.println("write-data=" + folderData.getAbsolutePath());
+            }
+
+            // Prevent unnecessary changes so github doesn't get confused
+            File fileModSettings = new File(folderProfile, "mod-settings.dat");
+
+
+            // Fetch data dump file from factorio.exe
+
+            if (!fileDataRawDumpZip.exists() || !matchingDumpStamp || forceDumpData) {
+                LOGGER.info("Starting data dump...");
+                factorioDataDump(folderFactorio.get(), factorioExecutable.get(), fileConfig, folderMods);
+
+                try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(fileDataRawDumpZip))) {
+                    zos.putNextEntry(new ZipEntry(fileDataRawDump.getName()));
+                    zos.write(Files.readAllBytes(fileDataRawDump.toPath()));
+                    zos.closeEntry();
+                }
+                LOGGER.info("Write Data Zip: {}", fileDataRawDumpZip.getAbsolutePath());
+                fileDataRawDump.delete();
+                LOGGER.info("Delete Data: {}", fileDataRawDump.getAbsolutePath());
+
+                Files.writeString(fileDumpStamp.toPath(), generateStamp());
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return;
+        }
+    }
 }

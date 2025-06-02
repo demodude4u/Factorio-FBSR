@@ -1,5 +1,7 @@
 package com.demod.fbsr.cli;
 
+import java.util.List;
+
 import com.demod.fbsr.ProfileEditor;
 
 import picocli.CommandLine.Command;
@@ -17,12 +19,26 @@ public class CmdProfile {
             @Parameters(description = "List of mods to include in the profile") String[] mods
     ) {
         ProfileEditor editor = new ProfileEditor();
-        editor.generateProfile(name, group, force, mods);
+        if (editor.generateProfile(name, group, force, mods)) {
+            System.out.println("Profile created successfully:" + editor.getProfile().getAbsolutePath());
+        } else {
+            System.out.println("Failed to create profile!");
+        }
     }
 
     @Command(name = "list", description = "List all profiles")
     public void listProfiles() {
-        // TODO
+        ProfileEditor editor = new ProfileEditor();
+        List<String> profiles = editor.listProfileNames();
+        if (profiles.isEmpty()) {
+            System.out.println("No profiles found.");
+            return;
+        }
+        System.out.println("Available profiles:");
+        for (String profile : profiles) {
+            System.out.println(" - " + profile);
+        }
+        
         // TODO show (disabled) and (missing) tags at the end
         // TODO show size of the profile
     }
@@ -45,7 +61,13 @@ public class CmdProfile {
     public void runFactorio(
             @Option(names = "-name", required = true, description = "Name of the profile to use") String name
     ) {
-        // TODO
+        ProfileEditor editor = new ProfileEditor();
+        if (!editor.findProfile(name)) {
+            System.out.println("Profile not found: " + name);
+            return;
+        }
+
+        editor.runFactorio();
     }
 
     @Command(name = "atlases", description = "Generate atlases for the specified profile")
