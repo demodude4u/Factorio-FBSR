@@ -119,7 +119,9 @@ public class CmdProfile {
         }
 
         try {
-            FactorioManager.downloadMods(editor.getProfile());
+            if (!FactorioManager.downloadMods(editor.getProfile())) {
+                System.out.println("No mods were downloaded for profile: " + name);
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -134,7 +136,7 @@ public class CmdProfile {
 
     @Command(name = "test", description = "Runs a dump on a temporary profile")
     public void testDumpDataRaw(
-            @Option(names = "-mods", arity = "0..*", description = "List of mods to include in the profile") String[] mods
+            @Option(names = "-mods", arity = "1..*", description = "List of mods to include in the profile") String[] mods
     ) {
         ProfileEditor editor = new ProfileEditor();
         if (editor.testProfile(mods)) {

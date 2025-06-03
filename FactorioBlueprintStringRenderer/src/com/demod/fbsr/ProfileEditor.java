@@ -96,15 +96,18 @@ public class ProfileEditor {
     
     private File folderProfile = null;
 
-    private File folderTemp;
+    // tempDump results
+    private File tempFolder;
+    private File tempFolderMods;
+    private File tempFolderData;
+    private File tempFileModDownload;
+    private File tempFileModList;
 
-    private File folderTempMods;
+    private DataTable tempTable;
 
-    private File folderTempData;
+    private Map<String, String> tempModEntityRenderings;
 
-    private File fileTempModDownload;
-
-    private File fileTempModList;
+    private List<String> tempModTiles;
 
     public ProfileEditor() {
         JSONObject json = Config.get().getJSONObject("factorio_manager");
@@ -152,59 +155,32 @@ public class ProfileEditor {
             return false;
         }
 
-        DataTable table;
         try {
-            table = tempDump(mods);
+            if (!tempDump(mods)) {
+                return false;
+            }
         } catch (Exception e) {
             e.printStackTrace();
             return false;
         }
-
-        Map<String, String> modEntityRenderings = new LinkedHashMap<String, String>();
-		table.getEntities().values().stream().filter(e -> isBlueprintable(e))
-				.sorted(Comparator.comparing(e -> e.getName())).forEach(e -> {
-					if (!BASE_ENTITIES.contains(e.getName())) {
-						String type = e.getType();
-						StringBuilder sb = new StringBuilder();
-						for (String part : type.split("-")) {
-							sb.append(part.substring(0, 1).toUpperCase() + part.substring(1));
-						}
-						sb.append("Rendering");
-						String rendering = sb.toString();
-						if (RENDERING_MAP.containsKey(rendering)) {
-							rendering = RENDERING_MAP.get(rendering);
-						}
-						modEntityRenderings.put(e.getName(), rendering);
-                        LOGGER.info("MOD ENTITY - {}: {}", e.getName(), rendering);
-					}
-				});
-
-        List<String> modTiles = new ArrayList<>();
-		table.getTiles().values().stream().filter(t -> isBlueprintable(t))
-				.sorted(Comparator.comparing(t -> t.getName())).forEach(t -> {
-					if (!BASE_TILES.contains(t.getName())) {
-                        modTiles.add(t.getName());
-                        LOGGER.info("MOD TILE - {}", t.getName());
-					}
-				});
 
         JSONObject jsonModRendering = new JSONObject();
         JSONObject jsonModRenderingEntities = new JSONObject();
         jsonModRendering.put("entities", jsonModRenderingEntities);
         JSONObject jsonModRenderingEntitiesModGroup = new JSONObject();
         jsonModRenderingEntities.put(modGroup, jsonModRenderingEntitiesModGroup);
-        for (Map.Entry<String, String> entry : modEntityRenderings.entrySet()) {
+        for (Map.Entry<String, String> entry : tempModEntityRenderings.entrySet()) {
             jsonModRenderingEntitiesModGroup.put(entry.getKey(), entry.getValue());
         }
         JSONObject jsonModRenderingTiles = new JSONObject();
         jsonModRendering.put("tiles", jsonModRenderingTiles);
         JSONArray jsonModRenderingTilesModGroup = new JSONArray();
         jsonModRenderingTiles.put(modGroup, jsonModRenderingTilesModGroup);
-        for (String tile : modTiles) {
+        for (String tile : tempModTiles) {
             jsonModRenderingTilesModGroup.put(tile);
         }
 
-        File fileTempModRendering = new File(folderTempMods, "mod-rendering.json");
+        File fileTempModRendering = new File(tempFolderMods, "mod-rendering.json");
 		if (fileTempModRendering.exists()) {
 			fileTempModRendering.setWritable(true);
 		}
@@ -216,14 +192,14 @@ public class ProfileEditor {
         }
 
         File folderMods = new File(folderModsRoot, name);
-        File fileModDownload = new File(folderMods, fileTempModDownload.getName());
-        File fileModList = new File(folderMods, fileTempModList.getName());
+        File fileModDownload = new File(folderMods, tempFileModDownload.getName());
+        File fileModList = new File(folderMods, tempFileModList.getName());
         File fileModRendering = new File(folderMods, fileTempModRendering.getName());
         
         try {
             folderMods.mkdirs();
-            Files.copy(fileTempModDownload.toPath(), fileModDownload.toPath(), StandardCopyOption.REPLACE_EXISTING);
-            Files.copy(fileTempModList.toPath(), fileModList.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            Files.copy(tempFileModDownload.toPath(), fileModDownload.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            Files.copy(tempFileModList.toPath(), fileModList.toPath(), StandardCopyOption.REPLACE_EXISTING);
             Files.copy(fileTempModRendering.toPath(), fileModRendering.toPath(), StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
             e.printStackTrace();
@@ -239,15 +215,15 @@ public class ProfileEditor {
         return true;
     }
 
-    private DataTable tempDump(String[] mods) throws Exception{
+    private boolean tempDump(String[] mods) throws Exception {
         JSONObject cfgFactorioManager = Config.get().getJSONObject("factorio_manager");
 
-        folderTemp = new File(cfgFactorioManager.optString("temp", "temp"));
-        folderTemp.mkdirs();
-        folderTempMods = new File(folderTemp, "mods");
-        folderTempData = new File(folderTemp, "data");
-        folderTempMods.mkdir();
-        folderTempData.mkdir();
+        tempFolder = new File(cfgFactorioManager.optString("temp", "temp"));
+        tempFolder.mkdirs();
+        tempFolderMods = new File(tempFolder, "mods");
+        tempFolderData = new File(tempFolder, "data");
+        tempFolderMods.mkdir();
+        tempFolderData.mkdir();
 
         Set<String> allMods = new LinkedHashSet<>();
         Collections.addAll(allMods, mods);
@@ -296,28 +272,28 @@ public class ProfileEditor {
             LOGGER.info("MOD LIST - {}", mod);
 		}
 
-        fileTempModDownload = new File(folderTempMods, "mod-download.json");
-		if (fileTempModDownload.exists()) {
-			fileTempModDownload.setWritable(true);
+        tempFileModDownload = new File(tempFolderMods, "mod-download.json");
+		if (tempFileModDownload.exists()) {
+			tempFileModDownload.setWritable(true);
 		}
-		try (FileWriter fw = new FileWriter(fileTempModDownload)) {
+		try (FileWriter fw = new FileWriter(tempFileModDownload)) {
 			jsonModDownload.write(fw);
 		}
 
-        FactorioManager.downloadMods(folderTempMods);
+        FactorioManager.downloadMods(tempFolderMods);
 
-        fileTempModList = new File(folderTempMods, "mod-list.json");
-		if (fileTempModList.exists()) {
-			fileTempModList.setWritable(true);
+        tempFileModList = new File(tempFolderMods, "mod-list.json");
+		if (tempFileModList.exists()) {
+			tempFileModList.setWritable(true);
 		}
-		try (FileWriter fw = new FileWriter(fileTempModList)) {
+		try (FileWriter fw = new FileWriter(tempFileModList)) {
 			jsonModList.write(fw);
 		}
 
         JSONObject fdConfig = new JSONObject();
-        folderTempData.mkdir();
-        fdConfig.put("mods", folderTempMods.getAbsolutePath());
-        fdConfig.put("data", folderTempData.getAbsolutePath());
+        tempFolderData.mkdir();
+        fdConfig.put("mods", tempFolderMods.getAbsolutePath());
+        fdConfig.put("data", tempFolderData.getAbsolutePath());
 
         String factorioInstall = cfgFactorioManager.getString("install");
 		String factorioExecutable = cfgFactorioManager.getString("executable");
@@ -325,13 +301,46 @@ public class ProfileEditor {
         JSONObject cfgFactorioData = new JSONObject();
 		cfgFactorioData.put("factorio", factorioInstall);
 		cfgFactorioData.put("executable", factorioExecutable);
-		cfgFactorioData.put("data", folderTempData.getAbsolutePath());
-		cfgFactorioData.put("mods", folderTempMods.getAbsolutePath());
+		cfgFactorioData.put("data", tempFolderData.getAbsolutePath());
+		cfgFactorioData.put("mods", tempFolderMods.getAbsolutePath());
 		FactorioData factorioData = new FactorioData(cfgFactorioData);
 		
-        factorioData.initialize(false);
+         if (!factorioData.initialize(false)) {
+            LOGGER.error("Failed to initialize Factorio data.");
+            return false;
+         }
 
-		return factorioData.getTable();
+		tempTable = factorioData.getTable();
+
+        tempModEntityRenderings = new LinkedHashMap<String, String>();
+		tempTable.getEntities().values().stream().filter(e -> isBlueprintable(e))
+				.sorted(Comparator.comparing(e -> e.getName())).forEach(e -> {
+					if (!BASE_ENTITIES.contains(e.getName())) {
+						String type = e.getType();
+						StringBuilder sb = new StringBuilder();
+						for (String part : type.split("-")) {
+							sb.append(part.substring(0, 1).toUpperCase() + part.substring(1));
+						}
+						sb.append("Rendering");
+						String rendering = sb.toString();
+						if (RENDERING_MAP.containsKey(rendering)) {
+							rendering = RENDERING_MAP.get(rendering);
+						}
+						tempModEntityRenderings.put(e.getName(), rendering);
+                        LOGGER.info("MOD ENTITY - {}: {}", e.getName(), rendering);
+					}
+				});
+
+        tempModTiles = new ArrayList<>();
+		tempTable.getTiles().values().stream().filter(t -> isBlueprintable(t))
+				.sorted(Comparator.comparing(t -> t.getName())).forEach(t -> {
+					if (!BASE_TILES.contains(t.getName())) {
+                        tempModTiles.add(t.getName());
+                        LOGGER.info("MOD TILE - {}", t.getName());
+					}
+				});
+
+        return true;
     }
 
     private static void walkDependencies(Set<String> allMods, String mod) throws IOException {
@@ -339,28 +348,37 @@ public class ProfileEditor {
 		JSONArray jsonDependencies = jsonRelease.getJSONObject("info_json").getJSONArray("dependencies");
 
 		for (int i = 0; i < jsonDependencies.length(); i++) {
-			String[] split = jsonDependencies.getString(i).split("\\s+");
-			String depSymbol = "";
+			String dependency = jsonDependencies.getString(i).trim();
+			String prefix = "";
 			String depMod = null;
-			switch (split.length) {
-			case 1:
-				depMod = split[0];
-				break;
-			case 2:
-				depSymbol = split[0];
-				depMod = split[1];
-				break;
-			case 3:
-				depMod = split[0];
-				break;
-			case 4:
-				depSymbol = split[0];
-				depMod = split[1];
-				break;
+
+            if (dependency.startsWith("!") || dependency.startsWith("?") || dependency.startsWith("(?)")) {
+                continue; // Skip incompatible mods or optional dependencies
+            }
+
+			// Extract prefix if present
+			if (dependency.startsWith("~")) {
+				int prefixEnd = dependency.indexOf(' ');
+				prefix = dependency.substring(0, prefixEnd).trim();
+				dependency = dependency.substring(prefixEnd).trim();
 			}
-			if (!depSymbol.isBlank()) {
-				continue;
+
+			// Identify version operator and split dependency
+			int versionIndex = -1;
+			for (String operator : new String[]{"<=", ">=", "=", "<", ">"}) {
+				versionIndex = dependency.indexOf(operator);
+				if (versionIndex != -1) {
+					break;
+				}
 			}
+
+			if (versionIndex != -1) {
+				depMod = dependency.substring(0, versionIndex).trim();
+			} else {
+				depMod = dependency; // No version operator found, treat as mod name
+			}
+
+			// Add the dependency and recursively walk its dependencies
 			if (allMods.add(depMod) && !BUILTIN_MODS.contains(depMod)) {
 				walkDependencies(allMods, depMod);
 			}
@@ -496,7 +514,10 @@ public class ProfileEditor {
 
     public boolean testProfile(String[] mods) {
         try {
-            tempDump(mods);
+            if (!tempDump(mods)) {
+                LOGGER.error("Failed to dump profile data.");
+                return false;
+            }
         } catch (Exception e) {
             e.printStackTrace();
             return false;
