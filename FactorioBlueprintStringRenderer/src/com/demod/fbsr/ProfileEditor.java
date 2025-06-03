@@ -1,9 +1,12 @@
 package com.demod.fbsr;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
@@ -18,6 +21,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -412,31 +418,52 @@ public class ProfileEditor {
                 pw.println("write-data=" + folderData.getAbsolutePath());
             }
 
-            // Prevent unnecessary changes so github doesn't get confused
-            File fileModSettings = new File(folderProfile, "mod-settings.dat");
+            ProcessBuilder pb = new ProcessBuilder(factorioExecutable.getAbsolutePath(), "--config",
+					fileConfig.getAbsolutePath(), "--mod-directory", folderProfile.getAbsolutePath());
+			pb.directory(folderFactorio);
 
+			LOGGER.debug("Running command " + pb.command().stream().collect(Collectors.joining(",", "[", "]")));
 
-            // Fetch data dump file from factorio.exe
+			Process process = pb.start();
 
-            if (!fileDataRawDumpZip.exists() || !matchingDumpStamp || forceDumpData) {
-                LOGGER.info("Starting data dump...");
-                factorioDataDump(folderFactorio.get(), factorioExecutable.get(), fileConfig, folderMods);
+			// Create separate threads to handle the output streams
+			ExecutorService executor = Executors.newFixedThreadPool(2);
+			executor.submit(() -> streamLogging(process.getInputStream(), false));
+			executor.submit(() -> streamLogging(process.getErrorStream(), true));
+			executor.shutdown();
 
-                try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(fileDataRawDumpZip))) {
-                    zos.putNextEntry(new ZipEntry(fileDataRawDump.getName()));
-                    zos.write(Files.readAllBytes(fileDataRawDump.toPath()));
-                    zos.closeEntry();
-                }
-                LOGGER.info("Write Data Zip: {}", fileDataRawDumpZip.getAbsolutePath());
-                fileDataRawDump.delete();
-                LOGGER.info("Delete Data: {}", fileDataRawDump.getAbsolutePath());
+			// Wait for Factorio to finish
+			boolean finished = process.waitFor(1, TimeUnit.MINUTES);
+			if (!finished) {
+				LOGGER.error("Factorio did not exit!");
+				process.destroyForcibly();
+				process.onExit().get();
+				LOGGER.warn("Factorio was force killed.");
+			}
 
-                Files.writeString(fileDumpStamp.toPath(), generateStamp());
-            }
-
+			int exitCode = process.exitValue();
+			if (exitCode != 0) {
+				throw new IOException("Factorio command failed with exit code: " + exitCode);
+			}
         } catch (Exception e) {
             e.printStackTrace();
             return;
         }
     }
+
+    private static void streamLogging(InputStream inputStream, boolean error) {
+		try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
+			String line;
+			while ((line = reader.readLine()) != null) {
+				if (error) {
+					LOGGER.error(line);
+				} else {
+					LOGGER.debug(line);
+				}
+			}
+
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
 }
