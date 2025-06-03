@@ -41,6 +41,7 @@ import com.demod.factorio.ModLoader;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.factorio.prototype.TilePrototype;
 import com.demod.fbsr.cli.CmdBot;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
@@ -95,6 +96,16 @@ public class ProfileEditor {
     
     private File folderProfile = null;
 
+    private File folderTemp;
+
+    private File folderTempMods;
+
+    private File folderTempData;
+
+    private File fileTempModDownload;
+
+    private File fileTempModList;
+
     public ProfileEditor() {
         JSONObject json = Config.get().getJSONObject("factorio_manager");
         folderModsRoot = new File(json.optString("mods", "mods"));
@@ -141,121 +152,13 @@ public class ProfileEditor {
             return false;
         }
 
-        JSONObject cfgFactorioManager = Config.get().getJSONObject("factorio_manager");
-
-        File folderTemp = new File(cfgFactorioManager.optString("temp", "temp"));
-        folderTemp.mkdirs();
-        File folderTempMods = new File(folderTemp, "mods");
-        File folderTempData = new File(folderTemp, "data");
-        folderTempMods.mkdir();
-        folderTempData.mkdir();
-
-        Set<String> allMods = new LinkedHashSet<>();
-        Collections.addAll(allMods, mods);
-		try {
-            for (String mod : mods) {
-            	if (BUILTIN_MODS.contains(mod)) {
-            		continue;
-            	}
-            	walkDependencies(allMods, mod);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-            return false;
-        }
-
-        LOGGER.info("Requested Mods: " + Arrays.asList(mods).stream().collect(Collectors.joining(", ")));
-		LOGGER.info("");
-		LOGGER.info("Mod List: " + allMods.stream().collect(Collectors.joining(", ")));
-		LOGGER.info("");
-
-        JSONObject jsonModDownload = new JSONObject();
-		try {
-            for (String mod : allMods) {
-            	if (BUILTIN_MODS.contains(mod)) {
-            		continue;
-            	}
-            	JSONObject jsonRelease = FactorioModPortal.findLatestModReleaseInfo(mod);
-            	String version = jsonRelease.getString("version");
-            	jsonModDownload.put(mod, version);
-                LOGGER.info("MOD DOWNLOAD - {}: {}", mod, version);
-            }
-        } catch (JSONException | IOException e) {
-            e.printStackTrace();
-            return false;
-        }
-
-        JSONObject jsonModList = new JSONObject();
-		JSONArray jsonModListMods = new JSONArray();
-		jsonModList.put("mods", jsonModListMods);
-		for (String mod : allMods) {
-			JSONObject jsonMod = new JSONObject();
-			jsonMod.put("name", mod);
-			jsonMod.put("enabled", true);
-			jsonModListMods.put(jsonMod);
-            LOGGER.info("MOD LIST - {}", mod);
-		}
-		for (String mod : BUILTIN_MODS) {
-			if (allMods.contains(mod)) {
-				continue;
-			}
-			JSONObject jsonMod = new JSONObject();
-			jsonMod.put("name", mod);
-			jsonMod.put("enabled", false);
-			jsonModListMods.put(jsonMod);
-            LOGGER.info("MOD LIST - {}", mod);
-		}
-
-        File fileTempModDownload = new File(folderTempMods, "mod-download.json");
-		if (fileTempModDownload.exists()) {
-			fileTempModDownload.setWritable(true);
-		}
-		try (FileWriter fw = new FileWriter(fileTempModDownload)) {
-			jsonModDownload.write(fw);
-		} catch (IOException e) {
-            e.printStackTrace();
-            return false;
-        }
-
+        DataTable table;
         try {
-            FactorioManager.downloadMods(folderTempMods);
-        } catch (IOException e) {
+            table = tempDump(mods);
+        } catch (Exception e) {
             e.printStackTrace();
             return false;
         }
-
-        File fileTempModList = new File(folderTempMods, "mod-list.json");
-		if (fileTempModList.exists()) {
-			fileTempModList.setWritable(true);
-		}
-		try (FileWriter fw = new FileWriter(fileTempModList)) {
-			jsonModList.write(fw);
-		} catch (IOException e) {
-            e.printStackTrace();
-            return false;
-        }
-
-        JSONObject fdConfig = new JSONObject();
-        folderTempData.mkdir();
-        fdConfig.put("mods", folderTempMods.getAbsolutePath());
-        fdConfig.put("data", folderTempData.getAbsolutePath());
-
-        String factorioInstall = cfgFactorioManager.getString("install");
-		String factorioExecutable = cfgFactorioManager.getString("executable");
-        
-        JSONObject cfgFactorioData = new JSONObject();
-		cfgFactorioData.put("factorio", factorioInstall);
-		cfgFactorioData.put("executable", factorioExecutable);
-		cfgFactorioData.put("data", folderTempData.getAbsolutePath());
-		cfgFactorioData.put("mods", folderTempMods.getAbsolutePath());
-		FactorioData factorioData = new FactorioData(cfgFactorioData);
-		try {
-            factorioData.initialize(false);
-        } catch (JSONException | IOException e) {
-            e.printStackTrace();
-            return false;
-        }
-		DataTable table = factorioData.getTable();
 
         Map<String, String> modEntityRenderings = new LinkedHashMap<String, String>();
 		table.getEntities().values().stream().filter(e -> isBlueprintable(e))
@@ -334,6 +237,101 @@ public class ProfileEditor {
 
         this.folderProfile = folderMods;
         return true;
+    }
+
+    private DataTable tempDump(String[] mods) throws Exception{
+        JSONObject cfgFactorioManager = Config.get().getJSONObject("factorio_manager");
+
+        folderTemp = new File(cfgFactorioManager.optString("temp", "temp"));
+        folderTemp.mkdirs();
+        folderTempMods = new File(folderTemp, "mods");
+        folderTempData = new File(folderTemp, "data");
+        folderTempMods.mkdir();
+        folderTempData.mkdir();
+
+        Set<String> allMods = new LinkedHashSet<>();
+        Collections.addAll(allMods, mods);
+		
+        for (String mod : mods) {
+            if (BUILTIN_MODS.contains(mod)) {
+                continue;
+            }
+            walkDependencies(allMods, mod);
+        }
+
+        LOGGER.info("Requested Mods: " + Arrays.asList(mods).stream().collect(Collectors.joining(", ")));
+		LOGGER.info("");
+		LOGGER.info("Mod List: " + allMods.stream().collect(Collectors.joining(", ")));
+		LOGGER.info("");
+
+        JSONObject jsonModDownload = new JSONObject();
+        for (String mod : allMods) {
+            if (BUILTIN_MODS.contains(mod)) {
+                continue;
+            }
+            JSONObject jsonRelease = FactorioModPortal.findLatestModReleaseInfo(mod);
+            String version = jsonRelease.getString("version");
+            jsonModDownload.put(mod, version);
+            LOGGER.info("MOD DOWNLOAD - {}: {}", mod, version);
+        }
+
+        JSONObject jsonModList = new JSONObject();
+		JSONArray jsonModListMods = new JSONArray();
+		jsonModList.put("mods", jsonModListMods);
+		for (String mod : allMods) {
+			JSONObject jsonMod = new JSONObject();
+			jsonMod.put("name", mod);
+			jsonMod.put("enabled", true);
+			jsonModListMods.put(jsonMod);
+            LOGGER.info("MOD LIST - {}", mod);
+		}
+		for (String mod : BUILTIN_MODS) {
+			if (allMods.contains(mod)) {
+				continue;
+			}
+			JSONObject jsonMod = new JSONObject();
+			jsonMod.put("name", mod);
+			jsonMod.put("enabled", false);
+			jsonModListMods.put(jsonMod);
+            LOGGER.info("MOD LIST - {}", mod);
+		}
+
+        fileTempModDownload = new File(folderTempMods, "mod-download.json");
+		if (fileTempModDownload.exists()) {
+			fileTempModDownload.setWritable(true);
+		}
+		try (FileWriter fw = new FileWriter(fileTempModDownload)) {
+			jsonModDownload.write(fw);
+		}
+
+        FactorioManager.downloadMods(folderTempMods);
+
+        fileTempModList = new File(folderTempMods, "mod-list.json");
+		if (fileTempModList.exists()) {
+			fileTempModList.setWritable(true);
+		}
+		try (FileWriter fw = new FileWriter(fileTempModList)) {
+			jsonModList.write(fw);
+		}
+
+        JSONObject fdConfig = new JSONObject();
+        folderTempData.mkdir();
+        fdConfig.put("mods", folderTempMods.getAbsolutePath());
+        fdConfig.put("data", folderTempData.getAbsolutePath());
+
+        String factorioInstall = cfgFactorioManager.getString("install");
+		String factorioExecutable = cfgFactorioManager.getString("executable");
+        
+        JSONObject cfgFactorioData = new JSONObject();
+		cfgFactorioData.put("factorio", factorioInstall);
+		cfgFactorioData.put("executable", factorioExecutable);
+		cfgFactorioData.put("data", folderTempData.getAbsolutePath());
+		cfgFactorioData.put("mods", folderTempMods.getAbsolutePath());
+		FactorioData factorioData = new FactorioData(cfgFactorioData);
+		
+        factorioData.initialize(false);
+
+		return factorioData.getTable();
     }
 
     private static void walkDependencies(Set<String> allMods, String mod) throws IOException {
@@ -466,4 +464,43 @@ public class ProfileEditor {
 			e.printStackTrace();
 		}
 	}
+
+    public List<String> listMods() {
+        File fileModList = new File(folderProfile, "mod-list.json");
+        if (!fileModList.exists()) {
+            LOGGER.warn("Mod list file does not exist: {}", fileModList.getAbsolutePath());
+            return ImmutableList.of();
+        }
+
+        try {
+            JSONObject json = new JSONObject(Files.readString(fileModList.toPath()));
+        
+            JSONArray jsonMods = json.getJSONArray("mods");
+            List<String> mods = new ArrayList<>();
+            for (int i = 0; i < jsonMods.length(); i++) {
+                JSONObject jsonMod = jsonMods.getJSONObject(i);
+                String modName = jsonMod.getString("name");
+                boolean enabled = jsonMod.optBoolean("enabled", true);
+                if (enabled) {
+                    mods.add(modName);
+                }
+            }
+            Collections.sort(mods);
+            return mods;
+        
+        } catch (JSONException | IOException e) {
+            e.printStackTrace();
+            return ImmutableList.of();
+        }
+    }
+
+    public boolean testProfile(String[] mods) {
+        try {
+            tempDump(mods);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+        return true;
+    }
 }

@@ -1,7 +1,9 @@
 package com.demod.fbsr.cli;
 
+import java.io.IOException;
 import java.util.List;
 
+import com.demod.fbsr.FactorioManager;
 import com.demod.fbsr.ProfileEditor;
 
 import picocli.CommandLine.Command;
@@ -26,8 +28,11 @@ public class CmdProfile {
         }
     }
 
-    @Command(name = "list", description = "List all profiles")
-    public void listProfiles() {
+    @Command(name = "list", description = "List all profiles or mods")
+    public void listProfiles(
+            @Option(names = "-name", description = "Filter profiles by name") String nameFilter,
+            @Option(names = "-mods", description = "Include mods in the profile listing") boolean showMods
+    ) {
         ProfileEditor editor = new ProfileEditor();
         List<String> profiles = editor.listProfileNames();
         if (profiles.isEmpty()) {
@@ -36,7 +41,17 @@ public class CmdProfile {
         }
         System.out.println("Available profiles:");
         for (String profile : profiles) {
+            if (nameFilter != null && !profile.contains(nameFilter)) {
+                continue;
+            }
             System.out.println(" - " + profile);
+            if (showMods) {
+                editor.findProfile(profile);
+                List<String> mods = editor.listMods();
+                for (String mod : mods) {
+                    System.out.println("      > " + mod);
+                }
+            }
         }
         
         // TODO show (disabled) and (missing) tags at the end
@@ -95,10 +110,19 @@ public class CmdProfile {
 
     @Command(name = "download", description = "Download mods for the specified profile")
     public void downloadMods(
-            @Option(names = "-name", required = true, description = "Name of the profile to use") String name,
-            @Option(names = "-force", description = "Force redownload of mods, even if they already exist") boolean force
+            @Option(names = "-name", required = true, description = "Name of the profile to use") String name
     ) {
-        // TODO
+        ProfileEditor editor = new ProfileEditor();
+        if (!editor.findProfile(name)) {
+            System.out.println("Profile not found: " + name);
+            return;
+        }
+
+        try {
+            FactorioManager.downloadMods(editor.getProfile());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     @Command(name = "validate", description = "Validate the specified profile, checking prototypes and factories")
@@ -112,7 +136,12 @@ public class CmdProfile {
     public void testDumpDataRaw(
             @Option(names = "-mods", arity = "0..*", description = "List of mods to include in the profile") String[] mods
     ) {
-        // TODO
+        ProfileEditor editor = new ProfileEditor();
+        if (editor.testProfile(mods)) {
+            System.out.println("No Errors -- Check dump output to confirm!");
+        } else {
+            System.out.println("Failed to create test profile!");
+        }
     }
 
 }
