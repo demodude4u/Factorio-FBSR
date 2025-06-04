@@ -91,67 +91,143 @@ public class ProfileEditor {
 			.put("ContainerRendering", "BasicContainerRendering")//
 			.put("LoaderRendering", "Loader1x2Rendering")//
 			.build();
-
-    private final File folderModsRoot;
     
-    private File folderProfile = null;
+    private final File folderMods;
+    private final File folderData;
 
-    // tempDump results
-    private File tempFolder;
-    private File tempFolderMods;
-    private File tempFolderData;
-    private File tempFileModDownload;
-    private File tempFileModList;
+    public ProfileEditor(File folderMods, File folderData) {
+        this.folderMods = folderMods;
+        this.folderData = folderData;
+    }
 
-    private DataTable tempTable;
-
-    private Map<String, String> tempModEntityRenderings;
-
-    private List<String> tempModTiles;
-
-    public ProfileEditor() {
+    public ProfileEditor(String name) {
         JSONObject json = Config.get().getJSONObject("factorio_manager");
-        folderModsRoot = new File(json.optString("mods", "mods"));
+        File folderModsRoot = new File(json.optString("mods", "mods"));
+        File folderDataRoot = new File(json.optString("data", "data"));
+
+        this.folderMods = new File(folderModsRoot, name);
+        this.folderData = new File(folderDataRoot, name);
     }
 
-    public File getProfile() {
-        return folderProfile;
+    public File getFolderMods() {
+        return folderMods;
     }
 
-    public void setProfile(File folderProfile) {
-        this.folderProfile = folderProfile;
+    public File getFolderData() {
+        return folderData;
     }
 
-    public List<String> listProfileNames() {
-        List<String> profileNames = new ArrayList<>();
-        File[] files = folderModsRoot.listFiles();
-        if (files != null) {
-            for (File file : files) {
-                if (isValidProfileFolder(file)) {
-                    profileNames.add(file.getName());
-                }
+    public static List<ProfileEditor> listProfiles() {
+        JSONObject json = Config.get().getJSONObject("factorio_manager");
+        File folderModsRoot = new File(json.optString("mods", "mods"));
+        File folderDataRoot = new File(json.optString("data", "data"));
+
+        List<ProfileEditor> profiles = new ArrayList<>();
+        for (File file : folderModsRoot.listFiles()) {
+            ProfileEditor profile = new ProfileEditor(file, new File(folderDataRoot, file.getName()));
+            if (profile.isModsConfigReady()) {
+                profiles.add(profile);
             }
         }
-        return profileNames;
+        return profiles;
     }
 
-    public boolean findProfile(String name) {
-        File file = new File(folderModsRoot, name);
-        if (isValidProfileFolder(file)) {
-            folderProfile = file;
-            return true;
+    public boolean isModsConfigReady() {
+        File fileModDownload = new File(folderMods, "mod-download.json");
+        File fileModList = new File(folderMods, "mod-list.json");
+        File fileModRendering = new File(folderMods, "mod-rendering.json");
+        return fileModDownload.exists() && fileModList.exists() && fileModRendering.exists();
+    }
+
+    public boolean isModsDownloadedReady() {
+        for (File file : folderMods.listFiles()) {
+            if (file.isFile() && file.getName().endsWith(".zip")) {
+                return true;
+            }
         }
         return false;
     }
 
-    private boolean isValidProfileFolder(File file) {
-        return file.exists() && file.isDirectory() && new File(file, "mod-rendering.json").exists();
+    public boolean isDataDumpReady() {
+        File folderScriptOutput = new File(folderData, "script-output");
+        File fileDumpZip = new File(folderScriptOutput, "data-raw-dump.zip");
+        return fileDumpZip.exists();
+    }
+
+    public boolean isDataReady() {
+        File folderAtlas = new File(folderData, "atlas");
+        File fileAtlasManifestZip = new File(folderAtlas, "atlas-manifest.zip");
+        File fileModRendering = new File(folderData, "mod-rendering.json");
+        return isDataDumpReady() && fileAtlasManifestZip.exists() && fileModRendering.exists();
+    }
+
+    public static enum ProfileStatus {
+        INVALID, DISABLED, NEED_DOWNLOAD, NEED_DUMP, NEED_DATA, READY
+    }
+
+    public ProfileStatus getStatus() {
+        if (!isModsConfigReady()) {
+            return ProfileStatus.INVALID;
+        } else if (!isEnabled()) {
+            return ProfileStatus.DISABLED;
+        } else if (!isModsDownloadedReady()) {
+            return ProfileStatus.NEED_DOWNLOAD;
+        } else if (!isDataDumpReady()) {
+            return ProfileStatus.NEED_DUMP;
+        } else if (!isDataReady()) {
+            return ProfileStatus.NEED_DATA;
+        }
+        return ProfileStatus.READY;
     }
     
-    public boolean generateProfile(String name, String modGroup, boolean force, String... mods) {
-        File file = new File(folderModsRoot, name);
-        if (!force && isValidProfileFolder(file)) {
-            LOGGER.warn("Profile with name '{}' already exists.", name);
+    public boolean isEnabled() {
+        if (!isModsConfigReady()) {
+            return false;
+        }
+
+        try {
+            File fileModRendering = new File(folderMods, "mod-rendering.json");
+            JSONObject jsonModRendering = new JSONObject(Files.readString(fileModRendering.toPath()));
+            return jsonModRendering.optBoolean("enabled", true);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public void setEnabled(boolean enabled) {
+        if (!isModsConfigReady()) {
+            return;
+        }
+
+        try {
+            File fileModRendering = new File(folderMods, "mod-rendering.json");
+            JSONObject jsonModRendering = new JSONObject(Files.readString(fileModRendering.toPath()));
+            jsonModRendering.put("enabled", enabled);
+            try (FileWriter fw = new FileWriter(fileModRendering)) {
+                jsonModRendering.write(fw);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public boolean downloadMods() {
+
+    }
+
+    public boolean factorioDump() {
+
+    }
+
+    public boolean generateData() {
+        
+    }
+
+    public boolean generateProfile(String modGroup, boolean force, String... mods) {
+
+        if (!force && isModsConfigReady()) {
+            LOGGER.warn("Profile with name '{}' already exists.", folderMods.getName());
             return false;
         }
 
@@ -211,7 +287,7 @@ public class ProfileEditor {
             return false;
         }
 
-        this.folderProfile = folderMods;
+        this.folderMods = folderMods;
         return true;
     }
 
@@ -418,10 +494,10 @@ public class ProfileEditor {
 		folderDataRoot.mkdirs();
 
         try {
-            FactorioManager.downloadMods(folderProfile);
+            FactorioManager.downloadMods(folderMods);
         
             JSONObject fdConfig = new JSONObject();
-            File folderData = new File(folderDataRoot, folderProfile.getName());
+            File folderData = new File(folderDataRoot, folderMods.getName());
             folderData.mkdirs();
 
             File folderFactorio = new File(json.getString("install"));
@@ -435,7 +511,7 @@ public class ProfileEditor {
             }
 
             ProcessBuilder pb = new ProcessBuilder(factorioExecutable.getAbsolutePath(), "--config",
-					fileConfig.getAbsolutePath(), "--mod-directory", folderProfile.getAbsolutePath());
+					fileConfig.getAbsolutePath(), "--mod-directory", folderMods.getAbsolutePath());
 			pb.directory(folderFactorio);
 
 			LOGGER.debug("Running command " + pb.command().stream().collect(Collectors.joining(",", "[", "]")));
@@ -484,7 +560,7 @@ public class ProfileEditor {
 	}
 
     public List<String> listMods() {
-        File fileModList = new File(folderProfile, "mod-list.json");
+        File fileModList = new File(folderMods, "mod-list.json");
         if (!fileModList.exists()) {
             LOGGER.warn("Mod list file does not exist: {}", fileModList.getAbsolutePath());
             return ImmutableList.of();

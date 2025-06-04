@@ -20,6 +20,7 @@ import java.util.stream.IntStream;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.rapidoid.data.JSON;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -243,26 +244,21 @@ public class FactorioManager {
 		folderDataRoot = new File(json.optString("data", "data"));
 		folderDataRoot.mkdirs();
 
-		List<String> mods;
-		if (json.has("mods_include")) {
-			JSONArray jsonModsInclude = json.getJSONArray("mods_include");
-			mods = IntStream.range(0, jsonModsInclude.length()).mapToObj(i -> jsonModsInclude.getString(i))
-					.collect(Collectors.toList());
-			if (hasModsRoot) {
-				mods = mods.stream().filter(n -> new File(folderModsRoot, n).exists()).collect(Collectors.toList());
-			} else {
-				mods = mods.stream().filter(n -> new File(folderDataRoot, n).exists()).collect(Collectors.toList());
+		List<String> mods = new ArrayList<>();
+		File folderModRenderingRoot = hasModsRoot ? folderModsRoot : folderDataRoot;
+		for (File file : folderModRenderingRoot.listFiles()) {
+			if (!file.isDirectory()) {
+				continue;
 			}
-		} else {
-			if (hasModsRoot) {
-				mods = Arrays.asList(folderModsRoot.listFiles()).stream()
-						.filter(f -> f.isDirectory() && new File(f, "mod-rendering.json").exists()).map(f -> f.getName())
-						.collect(Collectors.toList());
-			} else {
-				mods = Arrays.asList(folderDataRoot.listFiles()).stream()
-						.filter(f -> f.isDirectory() && new File(f, "mod-rendering.json").exists()).map(f -> f.getName())
-						.collect(Collectors.toList());
+			File fileModRendering = new File(file, "mod-rendering.json");
+			if (!fileModRendering.exists()) {
+				continue;
 			}
+			JSONObject jsonModRendering = new JSONObject(Files.readString(fileModRendering.toPath()));
+			if (!jsonModRendering.optBoolean("enabled", true)) {
+				continue;
+			}
+			mods.add(file.getName());
 		}
 		LOGGER.info("MODS FOLDERS: {}", mods.stream().collect(Collectors.joining(", ")));
 
@@ -392,12 +388,13 @@ public class FactorioManager {
 			cacheChange = true;
 		}
 
-		
-
 		File fileModDownload = new File(folderMods, "mod-download.json");
 		if (!modPortalApi || !fileModDownload.exists()) {
 			return false;
 		}
+
+		File folderDownloadCache = new File("tempdownload");
+		folderDownloadCache.mkdirs();
 		
 		List<String> requiredZips = new ArrayList<>();
 		boolean anyDownloaded = false;
@@ -422,12 +419,23 @@ public class FactorioManager {
 			File fileModZip = new File(folderMods, jsonRelease.getString("file_name"));
 			requiredZips.add(fileModZip.getName());
 			if (!fileModZip.exists()) {
-				if (!auth) {
-					auth = true;
-					authParams = FactorioModPortal.getAuthParams(modPortalApiUsername,
-							modPortalApiPassword);
+				File fileModZipCached = new File(fileModZip.getName());
+				if (fileModDownloadCached.exists()) {
+					Files.copy(fileModDownloadCached.toPath(), fileModZipCached.toPath());
+
+				} else {
+					if (!auth) {
+						auth = true;
+						authParams = FactorioModPortal.getAuthParams(modPortalApiUsername,
+								modPortalApiPassword);
+					}
+					File fileDownloaded = FactorioModPortal.downloadMod(folderMods, modName, modVersion, authParams);
+					if (!fileDownloaded.getName().equals(fileModZip.getName())) {
+						LOGGER.warn("Downloaded file name does not match expected: {} != {}", fileDownloaded.getName(), fileModZip.getName());
+					} else {
+						Files.copy(fileModZip.toPath(), fileModZipCached.toPath(), StandardCopyOption.REPLACE_EXISTING);
+					}
 				}
-				FactorioModPortal.downloadMod(folderMods, modName, modVersion, authParams);
 				anyDownloaded = true;
 			}
 
