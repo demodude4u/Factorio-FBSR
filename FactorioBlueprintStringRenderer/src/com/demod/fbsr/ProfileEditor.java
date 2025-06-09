@@ -9,6 +9,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -31,6 +32,7 @@ import java.util.zip.ZipOutputStream;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.json.JSONTokener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,49 +50,27 @@ import com.google.common.collect.ImmutableSet;
 public class ProfileEditor {
 	private static final Logger LOGGER = LoggerFactory.getLogger(ProfileEditor.class);
 
-    public static final Set<String> BUILTIN_MODS = ImmutableSet.of("base", "space-age", "quality", "elevated-rails");
+    public static final Set<String> BUILTIN_MODS;
+	public static final Set<String> BASE_ENTITIES;
+	public static final Set<String> BASE_TILES;
+	public static final Map<String, String> RENDERING_MAP;
 
-	public static final Set<String> BASE_ENTITIES = ImmutableSet.of("accumulator", "active-provider-chest",
-			"agricultural-tower", "arithmetic-combinator", "artillery-turret", "artillery-wagon",
-			"assembling-machine-1", "assembling-machine-2", "assembling-machine-3", "asteroid-collector", "beacon",
-			"big-electric-pole", "big-mining-drill", "biochamber", "biolab", "blue-chest", "boiler", "buffer-chest",
-			"bulk-inserter", "burner-generator", "burner-inserter", "burner-mining-drill", "captive-biter-spawner",
-			"capture-robot", "car", "cargo-bay", "cargo-landing-pad", "cargo-pod-container", "cargo-wagon",
-			"centrifuge", "chemical-plant", "constant-combinator", "construction-robot", "crash-site-chest-1",
-			"crash-site-chest-2", "crusher", "cryogenic-plant", "curved-rail-a", "curved-rail-b", "decider-combinator",
-			"defender", "destroyer", "display-panel", "distractor", "dummy-rail-support", "electric-energy-interface",
-			"electric-furnace", "electric-mining-drill", "electromagnetic-plant", "elevated-curved-rail-a",
-			"elevated-curved-rail-b", "elevated-half-diagonal-rail", "elevated-straight-rail", "express-loader",
-			"express-splitter", "express-transport-belt", "express-underground-belt", "factorio-logo-11tiles",
-			"factorio-logo-16tiles", "factorio-logo-22tiles", "fast-inserter", "fast-loader", "fast-splitter",
-			"fast-transport-belt", "fast-underground-belt", "flamethrower-turret", "fluid-wagon", "foundry",
-			"fulgoran-ruin-attractor", "fusion-generator", "fusion-reactor", "gate", "gun-turret", "half-diagonal-rail",
-			"heat-exchanger", "heat-interface", "heat-pipe", "heating-tower", "infinity-cargo-wagon", "infinity-chest",
-			"infinity-pipe", "inserter", "iron-chest", "lab", "land-mine", "lane-splitter", "laser-turret",
-			"legacy-curved-rail", "legacy-straight-rail", "lightning-collector", "lightning-rod", "linked-belt",
-			"linked-chest", "loader", "locomotive", "logistic-robot", "long-handed-inserter", "market",
-			"medium-electric-pole", "nuclear-reactor", "offshore-pump", "oil-refinery", "passive-provider-chest",
-			"pipe", "pipe-to-ground", "power-switch", "programmable-speaker", "proxy-container", "pump", "pumpjack",
-			"radar", "rail-chain-signal", "rail-ramp", "rail-signal", "rail-support", "railgun-turret", "recycler",
-			"red-chest", "requester-chest", "roboport", "rocket-silo", "rocket-turret", "selector-combinator",
-			"simple-entity-with-force", "simple-entity-with-owner", "small-electric-pole", "small-lamp", "solar-panel",
-			"space-platform-hub", "spidertron", "splitter", "stack-inserter", "steam-engine", "steam-turbine",
-			"steel-chest", "steel-furnace", "stone-furnace", "stone-wall", "storage-chest", "storage-tank",
-			"straight-rail", "substation", "tank", "tesla-turret", "thruster", "train-stop", "transport-belt",
-			"turbo-loader", "turbo-splitter", "turbo-transport-belt", "turbo-underground-belt", "underground-belt",
-			"wooden-chest");
-
-	public static final Set<String> BASE_TILES = ImmutableSet.of("artificial-jellynut-soil", "artificial-yumako-soil",
-			"concrete", "foundation", "frozen-concrete", "frozen-hazard-concrete-left", "frozen-hazard-concrete-right",
-			"frozen-refined-concrete", "frozen-refined-hazard-concrete-left", "frozen-refined-hazard-concrete-right",
-			"hazard-concrete-left", "hazard-concrete-right", "ice-platform", "landfill", "overgrowth-jellynut-soil",
-			"overgrowth-yumako-soil", "refined-concrete", "refined-hazard-concrete-left",
-			"refined-hazard-concrete-right", "space-platform-foundation", "stone-path");
-
-	public static final Map<String, String> RENDERING_MAP = ImmutableMap.<String, String>builder()//
-			.put("ContainerRendering", "BasicContainerRendering")//
-			.put("LoaderRendering", "Loader1x2Rendering")//
-			.build();
+	static {
+		JSONObject json;
+		try (InputStream is = ProfileEditor.class.getClassLoader().getResourceAsStream("base-data.json")) {
+			json = new JSONObject(new JSONTokener(is));
+		} catch (IOException e) {
+			throw new RuntimeException("Failed to load base-data.json", e);
+		}
+        BUILTIN_MODS = json.getJSONArray("mods").toList().stream()
+                .map(Object::toString).collect(Collectors.toSet());
+		BASE_ENTITIES = json.getJSONArray("entities").toList().stream()
+				.map(Object::toString).collect(Collectors.toSet());
+		BASE_TILES = json.getJSONArray("tiles").toList().stream()
+				.map(Object::toString).collect(Collectors.toSet());
+		RENDERING_MAP = json.getJSONObject("rendering").toMap().entrySet().stream()
+				.collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().toString()));
+	}
     
     private final File folderMods;
     private final File fileModsModProfile;
@@ -148,6 +128,10 @@ public class ProfileEditor {
         return fileModsModProfile.exists();
     }
 
+    public boolean hasModsManifest() {
+        
+    }
+
     public boolean needDownloadMods() {
         if (!fileModsModDownload.exists()) {
             return true;
@@ -194,9 +178,10 @@ public class ProfileEditor {
     public static enum ProfileStatus {
         INVALID,
         DISABLED,
-        STAGE_1_DOWNLOAD_MODS, // Mod Updates
-        STAGE_2_FACTORIO_DUMP, // Factorio Updates
-        STAGE_3_GENERATE_DATA, // Rendering Updates
+        STAGE_1_MANIFEST, // Profile Updates
+        STAGE_2_DOWNLOAD, // Mod Updates
+        STAGE_3_DUMP, // Factorio Updates
+        STAGE_4_DATA, // Rendering Updates
         READY,
     }
 
@@ -205,12 +190,14 @@ public class ProfileEditor {
             return ProfileStatus.INVALID;
         } else if (!isEnabled()) {
             return ProfileStatus.DISABLED;
+        } else if (!hasModsManifest()) {
+            return ProfileStatus.STAGE_1_MANIFEST;
         } else if (!hasModsDownloaded()) {
-            return ProfileStatus.NEED_DOWNLOAD;
+            return ProfileStatus.STAGE_2_DOWNLOAD;
         } else if (!hasDataDump()) {
-            return ProfileStatus.NEED_DUMP;
+            return ProfileStatus.STAGE_3_DUMP;
         } else if (!hasCompleteData()) {
-            return ProfileStatus.NEED_DATA;
+            return ProfileStatus.STAGE_4_DATA;
         }
         return ProfileStatus.READY;
     }

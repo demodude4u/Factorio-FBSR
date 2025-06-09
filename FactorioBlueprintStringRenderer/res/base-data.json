@@ -1,0 +1,50 @@
+{
+	"mods": ["base", "space-age", "quality", "elevated-rails"],
+    "entities": [
+		"accumulator", "active-provider-chest", "agricultural-tower", "arithmetic-combinator",
+		"artillery-turret", "artillery-wagon", "assembling-machine-1", "assembling-machine-2",
+		"assembling-machine-3", "asteroid-collector", "beacon", "big-electric-pole",
+		"big-mining-drill", "biochamber", "biolab", "blue-chest", "boiler", "buffer-chest",
+		"bulk-inserter", "burner-generator", "burner-inserter", "burner-mining-drill",
+		"captive-biter-spawner", "capture-robot", "car", "cargo-bay", "cargo-landing-pad",
+		"cargo-pod-container", "cargo-wagon", "centrifuge", "chemical-plant", "constant-combinator",
+		"construction-robot", "crash-site-chest-1", "crash-site-chest-2", "crusher",
+		"cryogenic-plant", "curved-rail-a", "curved-rail-b", "decider-combinator", "defender",
+		"destroyer", "display-panel", "distractor", "dummy-rail-support", "electric-energy-interface",
+		"electric-furnace", "electric-mining-drill", "electromagnetic-plant", "elevated-curved-rail-a",
+		"elevated-curved-rail-b", "elevated-half-diagonal-rail", "elevated-straight-rail",
+		"express-loader", "express-splitter", "express-transport-belt", "express-underground-belt",
+		"factorio-logo-11tiles", "factorio-logo-16tiles", "factorio-logo-22tiles", "fast-inserter",
+		"fast-loader", "fast-splitter", "fast-transport-belt", "fast-underground-belt",
+		"flamethrower-turret", "fluid-wagon", "foundry", "fulgoran-ruin-attractor", "fusion-generator",
+		"fusion-reactor", "gate", "gun-turret", "half-diagonal-rail", "heat-exchanger",
+		"heat-interface", "heat-pipe", "heating-tower", "infinity-cargo-wagon", "infinity-chest",
+		"infinity-pipe", "inserter", "iron-chest", "lab", "land-mine", "lane-splitter",
+		"laser-turret", "legacy-curved-rail", "legacy-straight-rail", "lightning-collector",
+		"lightning-rod", "linked-belt", "linked-chest", "loader", "locomotive", "logistic-robot",
+		"long-handed-inserter", "market", "medium-electric-pole", "nuclear-reactor", "offshore-pump",
+		"oil-refinery", "passive-provider-chest", "pipe", "pipe-to-ground", "power-switch",
+		"programmable-speaker", "proxy-container", "pump", "pumpjack", "radar", "rail-chain-signal",
+		"rail-ramp", "rail-signal", "rail-support", "railgun-turret", "recycler", "red-chest",
+		"requester-chest", "roboport", "rocket-silo", "rocket-turret", "selector-combinator",
+		"simple-entity-with-force", "simple-entity-with-owner", "small-electric-pole", "small-lamp",
+		"solar-panel", "space-platform-hub", "spidertron", "splitter", "stack-inserter",
+		"steam-engine", "steam-turbine", "steel-chest", "steel-furnace", "stone-furnace",
+		"stone-wall", "storage-chest", "storage-tank", "straight-rail", "substation", "tank",
+		"tesla-turret", "thruster", "train-stop", "transport-belt", "turbo-loader", "turbo-splitter",
+		"turbo-transport-belt", "turbo-underground-belt", "underground-belt", "wooden-chest"
+	],
+	"tiles": [
+		"artificial-jellynut-soil", "artificial-yumako-soil", "concrete", "foundation",
+		"frozen-concrete", "frozen-hazard-concrete-left", "frozen-hazard-concrete-right",
+		"frozen-refined-concrete", "frozen-refined-hazard-concrete-left",
+		"frozen-refined-hazard-concrete-right", "hazard-concrete-left", "hazard-concrete-right",
+		"ice-platform", "landfill", "overgrowth-jellynut-soil", "overgrowth-yumako-soil",
+		"refined-concrete", "refined-hazard-concrete-left", "refined-hazard-concrete-right",
+		"space-platform-foundation", "stone-path"
+	],
+	"rendering": {
+		"ContainerRendering": "BasicContainerRendering",
+		"LoaderRendering": "Loader1x2Rendering"
+	}
+}
