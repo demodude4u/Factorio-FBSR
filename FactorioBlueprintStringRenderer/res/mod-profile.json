@@ -1,0 +1,9 @@
+{
+    "enabled": true,
+    "mods": [
+        "base",
+		"space-age",
+		"quality",
+		"elevated-rails"
+    ]
+}

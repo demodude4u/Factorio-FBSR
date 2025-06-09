@@ -93,20 +93,32 @@ public class ProfileEditor {
 			.build();
     
     private final File folderMods;
+    private final File fileModsModProfile;
+    private final File fileModsModDownload;
+    private final File fileModsModList;
+    private final File fileModsModRendering;
+
     private final File folderData;
+    private final File fileDataModRendering;
+    private final File folderDataScriptOutput;
+    private final File fileDataScriptOutputDumpZip;
+    private final File folderDataAtlas;
+    private final File fileDataAtlasManifestZip;
 
     public ProfileEditor(File folderMods, File folderData) {
         this.folderMods = folderMods;
         this.folderData = folderData;
-    }
 
-    public ProfileEditor(String name) {
-        JSONObject json = Config.get().getJSONObject("factorio_manager");
-        File folderModsRoot = new File(json.optString("mods", "mods"));
-        File folderDataRoot = new File(json.optString("data", "data"));
+        fileModsModProfile = new File(folderMods, "mod-profile.json");
+        fileModsModDownload = new File(folderMods, "mod-download.json");
+        fileModsModList = new File(folderMods, "mod-list.json");
+        fileModsModRendering = new File(folderMods, "mod-rendering.json");
 
-        this.folderMods = new File(folderModsRoot, name);
-        this.folderData = new File(folderDataRoot, name);
+        fileDataModRendering = new File(folderData, "mod-rendering.json");
+        folderDataScriptOutput = new File(folderData, "script-output");
+        fileDataScriptOutputDumpZip = new File(folderDataScriptOutput, "data-raw-dump.zip");
+        folderDataAtlas = new File(folderData, "atlas");
+        fileDataAtlasManifestZip = new File(folderDataAtlas, "atlas-manifest.zip");
     }
 
     public File getFolderMods() {
@@ -125,21 +137,42 @@ public class ProfileEditor {
         List<ProfileEditor> profiles = new ArrayList<>();
         for (File file : folderModsRoot.listFiles()) {
             ProfileEditor profile = new ProfileEditor(file, new File(folderDataRoot, file.getName()));
-            if (profile.isModsConfigReady()) {
+            if (profile.hasModsConfig()) {
                 profiles.add(profile);
             }
         }
         return profiles;
     }
 
-    public boolean isModsConfigReady() {
-        File fileModDownload = new File(folderMods, "mod-download.json");
-        File fileModList = new File(folderMods, "mod-list.json");
-        File fileModRendering = new File(folderMods, "mod-rendering.json");
-        return fileModDownload.exists() && fileModList.exists() && fileModRendering.exists();
+    public boolean isValid() {
+        return fileModsModProfile.exists();
     }
 
-    public boolean isModsDownloadedReady() {
+    public boolean needDownloadMods() {
+        if (!fileModsModDownload.exists()) {
+            return true;
+        }
+
+        try {
+            JSONObject jsonModsModDownload = new JSONObject(Files.readString(fileModsModDownload.toPath()));
+            for (String mod : jsonModsModDownload.keySet()) {
+                String filename = jsonModsModDownload.getString(mod);
+                //TODO merge download cached into download json so we can check if each zip file exists
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return true;
+        }
+
+        return false;
+    }
+
+    public boolean hasModsConfig() {
+        //TODO split these hasXXX() calls into staging order
+        return fileModsModDownload.exists() && fileModsModList.exists() && fileModsModRendering.exists();
+    }
+
+    public boolean hasModsDownloaded() {
         for (File file : folderMods.listFiles()) {
             if (file.isFile() && file.getName().endsWith(".zip")) {
                 return true;
@@ -148,47 +181,49 @@ public class ProfileEditor {
         return false;
     }
 
-    public boolean isDataDumpReady() {
-        File folderScriptOutput = new File(folderData, "script-output");
-        File fileDumpZip = new File(folderScriptOutput, "data-raw-dump.zip");
-        return fileDumpZip.exists();
+    public boolean hasDataDump() {
+        
+        return fileDataScriptOutputDumpZip.exists();
     }
 
-    public boolean isDataReady() {
-        File folderAtlas = new File(folderData, "atlas");
-        File fileAtlasManifestZip = new File(folderAtlas, "atlas-manifest.zip");
-        File fileModRendering = new File(folderData, "mod-rendering.json");
-        return isDataDumpReady() && fileAtlasManifestZip.exists() && fileModRendering.exists();
+    public boolean hasCompleteData() {
+        
+        return hasDataDump() && fileDataAtlasManifestZip.exists() && fileDataModRendering.exists();
     }
 
     public static enum ProfileStatus {
-        INVALID, DISABLED, NEED_DOWNLOAD, NEED_DUMP, NEED_DATA, READY
+        INVALID,
+        DISABLED,
+        STAGE_1_DOWNLOAD_MODS, // Mod Updates
+        STAGE_2_FACTORIO_DUMP, // Factorio Updates
+        STAGE_3_GENERATE_DATA, // Rendering Updates
+        READY,
     }
 
     public ProfileStatus getStatus() {
-        if (!isModsConfigReady()) {
+        if (!isValid()) {
             return ProfileStatus.INVALID;
         } else if (!isEnabled()) {
             return ProfileStatus.DISABLED;
-        } else if (!isModsDownloadedReady()) {
+        } else if (!hasModsDownloaded()) {
             return ProfileStatus.NEED_DOWNLOAD;
-        } else if (!isDataDumpReady()) {
+        } else if (!hasDataDump()) {
             return ProfileStatus.NEED_DUMP;
-        } else if (!isDataReady()) {
+        } else if (!hasCompleteData()) {
             return ProfileStatus.NEED_DATA;
         }
         return ProfileStatus.READY;
     }
     
     public boolean isEnabled() {
-        if (!isModsConfigReady()) {
+        if (!hasModsConfig()) {
+            System.out.println("Profile does not have a valid mods configuration.");
             return false;
         }
 
         try {
-            File fileModRendering = new File(folderMods, "mod-rendering.json");
-            JSONObject jsonModRendering = new JSONObject(Files.readString(fileModRendering.toPath()));
-            return jsonModRendering.optBoolean("enabled", true);
+            JSONObject jsonModsModProfile = new JSONObject(Files.readString(fileModsModProfile.toPath()));
+            return jsonModsModProfile.optBoolean("enabled", true);
         } catch (Exception e) {
             e.printStackTrace();
             return false;
@@ -196,38 +231,44 @@ public class ProfileEditor {
     }
 
     public void setEnabled(boolean enabled) {
-        if (!isModsConfigReady()) {
+        if (!hasModsConfig()) {
+            System.out.println("Profile does not have a valid mods configuration.");
             return;
         }
 
         try {
-            File fileModRendering = new File(folderMods, "mod-rendering.json");
-            JSONObject jsonModRendering = new JSONObject(Files.readString(fileModRendering.toPath()));
-            jsonModRendering.put("enabled", enabled);
-            try (FileWriter fw = new FileWriter(fileModRendering)) {
-                jsonModRendering.write(fw);
+            JSONObject jsonModsModProfile = new JSONObject(Files.readString(fileModsModProfile.toPath()));
+            jsonModsModProfile.put("enabled", enabled);
+            try (FileWriter fw = new FileWriter(fileModsModProfile)) {
+                jsonModsModProfile.write(fw);
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    public boolean downloadMods() {
+    public boolean createConfig(List<String> mods, boolean force) {
 
     }
 
-    public boolean factorioDump() {
+    public boolean downloadMods(boolean force) {
 
     }
 
-    public boolean generateData() {
+    public boolean factorioDump(boolean force) {
+
+    }
+
+    public boolean generateData(boolean force) {
         
     }
 
     public boolean generateProfile(String modGroup, boolean force, String... mods) {
 
-        if (!force && isModsConfigReady()) {
-            LOGGER.warn("Profile with name '{}' already exists.", folderMods.getName());
+        
+
+        if (!force && hasModsConfig()) {
+            System.out.println("Profile with name " + folderMods.getName() + " already exists.");
             return false;
         }
 
