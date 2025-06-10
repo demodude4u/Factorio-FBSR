@@ -1,5 +1,12 @@
 {
-	"entities": {
+    "enabled": true,
+    "mods": [
+        "base",
+		"space-age",
+		"quality",
+		"elevated-rails"
+    ],
+    "entities": {
 		"Base": {
 			"accumulator": "AccumulatorRendering",
 			"active-provider-chest": "LogisticContainerRendering",
