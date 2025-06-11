@@ -25,6 +25,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -87,8 +88,7 @@ public class ProfileEditor {
     private final File folderProfile;
     private final File fileProfile;
     private final File fileFactorioData;
-    private final File folderAtlas;
-    private final File fileAtlasManifest;
+    private final File fileAtlasData;
     
     private final File folderBuild;
     private final File fileManifest;
@@ -105,8 +105,7 @@ public class ProfileEditor {
 
         fileProfile = new File(folderProfile, "profile.json");
         fileFactorioData = new File(folderProfile, "factorio-data.zip");
-        folderAtlas = new File(folderProfile, "atlas");
-        fileAtlasManifest = new File(folderAtlas, "atlas-manifest.zip");
+        fileAtlasData = new File(folderProfile, "atlas-data.zip");
         
         fileManifest = new File(folderBuild, "manifest.json");
 
@@ -181,7 +180,7 @@ public class ProfileEditor {
     }
 
     public boolean hasData() {
-        return fileFactorioData.exists() && fileAtlasManifest.exists();
+        return fileFactorioData.exists() && fileAtlasData.exists();
     }
 
     public ProfileStatus getStatus() {
@@ -226,6 +225,116 @@ public class ProfileEditor {
 
     public boolean buildData(boolean force) {
         
+    }
+
+    public boolean generateProfile(String... mods) {
+        if (isValid()) {
+            System.out.println("Profile " + folderProfile.getName() + " already exists.");
+            return false;
+        }
+        
+        JSONObject jsonProfile = readJsonFile(fileProfile);
+        jsonProfile.put("enabled", true);
+        JSONArray jsonMods = new JSONArray();
+        for (String mod : mods) {
+            jsonMods.put(mod);
+        }
+        jsonProfile.put("mods", jsonMods);
+        writeJsonFile(fileProfile, jsonProfile);
+        System.out.println("Profile created: " + folderProfile.getAbsolutePath());
+        return true;
+    }
+
+    public boolean generateDefaultRenderingConfiguration() {
+        if (!isValid() || !hasDump()) {
+            return false;
+        }
+
+        JSONObject jsonProfile = readJsonFile(fileProfile);
+        
+        FactorioData factorioData = new FactorioData(fileFactorioData);
+        try {
+            factorioData.initialize(false);
+        } catch (JSONException | IOException e) {
+            e.printStackTrace();
+            return false;
+        }
+        DataTable table = factorioData.getTable();
+
+        //Lazy answer to finality problems with lambda expressions
+        AtomicBoolean changed = new AtomicBoolean(false);
+
+        String modGroup = folderProfile.getName();
+
+        JSONObject jsonEntities;
+        if (jsonProfile.has("entities")) {
+            jsonEntities = jsonProfile.getJSONObject("entities");
+        } else {
+            jsonEntities = new JSONObject();
+            jsonProfile.put("entities", jsonEntities);
+            changed.set(true);
+        }
+        JSONObject jsonEntitiesModGroup;
+        if (jsonEntities.has(modGroup)) {
+            jsonEntitiesModGroup = jsonEntities.getJSONObject(modGroup);
+        } else {
+            jsonEntitiesModGroup = new JSONObject();
+            jsonEntities.put(modGroup, jsonEntitiesModGroup);
+            changed.set(true);
+        }
+        table.getEntities().values().stream().filter(e -> isBlueprintable(e))
+				.sorted(Comparator.comparing(e -> e.getName())).forEach(e -> {
+					if (!BASE_ENTITIES.contains(e.getName())) {
+						String type = e.getType();
+						StringBuilder sb = new StringBuilder();
+						for (String part : type.split("-")) {
+							sb.append(part.substring(0, 1).toUpperCase() + part.substring(1));
+						}
+						sb.append("Rendering");
+						String rendering = sb.toString();
+						if (RENDERING_MAP.containsKey(rendering)) {
+							rendering = RENDERING_MAP.get(rendering);
+						}
+                        if (!jsonEntitiesModGroup.has(e.getName())) {
+                            System.out.println("MOD ENTITY ADDED - " + e.getName() + ": " + rendering);
+                            jsonEntitiesModGroup.put(e.getName(), rendering);
+                            changed.set(true);
+                        }
+					}
+				});
+
+        JSONObject jsonTiles;
+        if (jsonProfile.has("tiles")) {
+            jsonTiles = jsonProfile.getJSONObject("tiles");
+        } else {
+            jsonTiles = new JSONObject();
+            jsonProfile.put("tiles", jsonTiles);
+            changed.set(true);
+        }
+        JSONArray jsonTilesModGroup;
+        if (jsonTiles.has(modGroup)) {
+            jsonTilesModGroup = jsonTiles.getJSONArray(modGroup);
+        } else {
+            jsonTilesModGroup = new JSONArray();
+            jsonTiles.put(modGroup, jsonTilesModGroup);
+            changed.set(true);
+        }
+        table.getTiles().values().stream().filter(t -> isBlueprintable(t))
+				.sorted(Comparator.comparing(t -> t.getName())).forEach(t -> {
+					if (!BASE_TILES.contains(t.getName())) {
+                        if (!jsonTilesModGroup.toList().contains(t.getName())) {
+                            System.out.println("MOD TILE ADDED - " + t.getName());
+                            jsonTilesModGroup.put(t.getName());
+                            changed.set(true);
+                        }
+					}
+				});
+
+        if (changed.get()) {
+            writeJsonFile(fileProfile, jsonProfile);
+            System.out.println("Profile Saved: " + fileProfile.getAbsolutePath());
+        }
+        return true;
     }
 
     //TODO how do I gracefully handle generating the default rendering configuration, as well as when adding more mods to a profile?
