@@ -6,9 +6,8 @@ import java.util.List;
 import java.util.Optional;
 
 import com.demod.fbsr.FactorioManager;
-import com.demod.fbsr.ProfileEditor;
+import com.demod.fbsr.Profile;
 
-import net.dv8tion.jda.api.entities.User.Profile;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
@@ -16,36 +15,39 @@ import picocli.CommandLine.Parameters;
 @Command(name = "profile", description = "Configure profiles for mods")
 public class CmdProfile {
 
-    private volatile ProfileEditor editor = null;
+    private volatile Profile profile = null;
 
     @Command(name = "select", description = "Select a profile to work with in interactive mode")
     public void selectProfile(
             @Parameters(arity = "1", description = "Name of the profile to select") String name
     ) {
-        ProfileEditor editor = new ProfileEditor();
-        if (editor.findProfile(name)) {
-            this.editor = editor;
-            System.out.println("Selected profile: " + name);
-        } else {
+        Profile profile = Profile.listProfiles().stream()
+                .filter(p -> p.getName().equals(name))
+                .findFirst()
+                .orElse(null);
+        if (profile == null) {
             System.out.println("Profile not found: " + name);
+        } else {
+            System.out.println("Selected profile: " + name);
         }
+        this.profile = profile;
     }
 
     private boolean checkOrSelectProfile(Optional<String> name) {
         if (name.isEmpty()) {
-            if (this.editor == null) {
-                System.out.println("No profile selected. Use 'profile select <name>' or '-name <name>' to select a profile.");
+            if (this.profile == null) {
+                System.out.println("No profile selected. Use 'profile select <name>' or add '-name <name>' to select a profile.");
                 return false;
             }
             return true;
 
         } else {
-            ProfileEditor editor = new ProfileEditor();
-            if (!editor.findProfile(name.get())) {
-                System.out.println("Profile not found: " + name);
+            Profile profile = Profile.byName(name.get());
+            if (!profile.isValid()) {
+                System.out.println("Profile not found or invalid: " + name);
                 return false;
             }
-            this.editor = editor;
+            this.profile = profile;
             return true;
         }
     }
@@ -53,46 +55,63 @@ public class CmdProfile {
     @Command(name = "new", description = "Create a new profile")
     public void createNew(
             @Option(names = "-name", required = true, description = "Name of the profile to create") String name,
-            @Option(names = "-label", required = true, description = "Mod label for entities and tiles") String group,
-            @Option(names = "-force", description = "Force creation of the profile, overwriting existing one") boolean force,
             @Parameters(description = "List of mods to include in the profile") String[] mods
     ) {
-        ProfileEditor editor = new ProfileEditor();
-        if (editor.generateProfile(name, group, force, mods)) {
-            System.out.println("Profile created successfully:" + editor.getFolderMods().getAbsolutePath());
+        Profile profile = Profile.byName(name);
+        if (profile.generateProfile(mods)) {
+            System.out.println("Profile created successfully:" + profile.getName() + " (" + profile.getFolderProfile().getAbsolutePath()) + ")");
         } else {
             System.out.println("Failed to create profile!");
         }
     }
 
+    @Command(name = "default-renderings", description = "Generate default renderings for the specified profile (profile status must be at BUILD_DATA or READY)")
+    public void generateDefaultRenderings(
+            @Option(names = "-name", description = "Name of the profile") Optional<String> name
+    ) {
+        if (!checkOrSelectProfile(name)) {
+            return;
+        }
+
+        if (profile.generateDefaultRenderingConfiguration()) {
+            System.out.println("Default renderings generated successfully.");
+        } else {
+            System.out.println("Failed to generate default renderings. Ensure the profile is at BUILD_DATA or READY status.");
+        }
+    }
+
+    @Command(name = "default-vanilla", description = "Generate default vanilla profile")
+    public void generateDefaultVanillaProfile() {
+        if (Profile.generateDefaultVanillaProfile()) {
+            System.out.println("Default vanilla profile created successfully.");
+        } else {
+            System.out.println("Failed to create default vanilla profile.");
+        }
+    }
+
     @Command(name = "list", description = "List all profiles or mods")
     public void listProfiles(
-            @Option(names = "-filter", description = "Filter profiles by name") String filter,
+            @Option(names = "-filter", description = "Filter profiles by name (partial)") String filter,
             @Option(names = "-detailed", description = "Include mods in the profile listing") boolean detailed
     ) {
-        ProfileEditor editor = new ProfileEditor();
-        List<String> profiles = editor.listProfileNames();
+        List<Profile> profiles = Profile.listProfiles();
         if (profiles.isEmpty()) {
             System.out.println("No profiles found.");
             return;
         }
-        System.out.println("Available profiles:");
-        for (String profile : profiles) {
-            if (filter != null && !profile.contains(filter)) {
+        System.out.println("Current profiles:");
+        for (Profile profile : profiles) {
+            if (filter != null && !profile.getName().contains(filter)) {
                 continue;
             }
-            System.out.println(" - " + profile);
+            System.out.println(" - " + profile + "(" + profile.getStatus() + ")");
             if (detailed) {
-                editor.findProfile(profile);
-                List<String> mods = editor.listMods();
+                List<String> mods = profile.listMods();
                 for (String mod : mods) {
                     System.out.println("      > " + mod);
                 }
             }
         }
-        
-        // TODO show (disabled) and (missing) tags at the end
-        // TODO show size of the profile
     }
 
     @Command(name = "disable", description = "Disable a profile")
@@ -103,7 +122,11 @@ public class CmdProfile {
             return;
         }
 
-        // TODO
+        if (profile.setEnabled(false)) {
+            System.out.println("Profile disabled successfully: " + profile.getName());
+        } else {
+            System.out.println("Failed to disable profile: " + profile.getName());
+        }
     }
 
     @Command(name = "enable", description = "Enable a profile")
@@ -114,7 +137,27 @@ public class CmdProfile {
             return;
         }
 
-        // TODO
+        if (profile.setEnabled(true)) {
+            System.out.println("Profile enabled successfully: " + profile.getName());
+        } else {
+            System.out.println("Failed to enable profile: " + profile.getName());
+        }
+    }
+
+    @Command(name = "delete", description = "Delete a profile")
+    public void deleteProfile(
+            @Option(names = "-name", description = "Name of the profile") Optional<String> name
+    ) {
+        if (!checkOrSelectProfile(name)) {
+            return;
+        }
+
+        if (profile.delete()) {
+            System.out.println("Profile deleted successfully: " + profile.getName());
+            this.profile = null;
+        } else {
+            System.out.println("Failed to delete profile: " + profile.getName());
+        }
     }
 
     @Command(name = "factorio", description = "Run Factorio with the specified profile")
@@ -125,7 +168,7 @@ public class CmdProfile {
             return;
         }
 
-        editor.runFactorio();
+        profile.runFactorio();
     }
 
     @Command(name = "dump", description = "Dump data.raw for the specified profile")
@@ -215,7 +258,7 @@ public class CmdProfile {
     public void testDumpDataRaw(
             @Parameters(arity = "1..*", description = "List of mods to include in the profile") String[] mods
     ) {
-        ProfileEditor editor = new ProfileEditor();
+        Profile editor = new Profile();
         if (editor.testProfile(mods)) {
             System.out.println("No Errors -- Check dump output to confirm!");
         } else {

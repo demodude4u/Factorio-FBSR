@@ -494,8 +494,8 @@ public class TileRendererFactory {
 	public static void initFactories(List<TileRendererFactory> factories) {
 		for (TileRendererFactory factory : factories) {
 			try {
-				ModsProfile profile = factory.getProfile();
-				factory.initFromPrototype(profile.getData().getTable());
+				Profile profile = factory.getProfile();
+				factory.initFromPrototype(profile.getFactorioData().getTable());
 				factory.initAtlas(profile.getAtlasPackage()::registerDef);
 			} catch (Exception e) {
 				LOGGER.error("TILE {}", factory.getName());
@@ -505,8 +505,8 @@ public class TileRendererFactory {
 		LOGGER.info("Initialized {} tiles.", factories.size());
 	}
 
-	public static void registerFactories(Consumer<TileRendererFactory> register, ModsProfile profile, JSONObject json) {
-		DataTable table = profile.getData().getTable();
+	public static void registerFactories(Consumer<TileRendererFactory> register, Profile profile, JSONObject json) {
+		DataTable table = profile.getFactorioData().getTable();
 		for (String groupName : json.keySet().stream().sorted().collect(Collectors.toList())) {
 			JSONArray jsonGroup = json.getJSONArray(groupName);
 			for (int i = 0; i < jsonGroup.length(); i++) {
@@ -524,7 +524,7 @@ public class TileRendererFactory {
 
 	protected String name;
 	protected String groupName;
-	protected ModsProfile profile;
+	protected Profile profile;
 	protected TilePrototype prototype;
 
 	private FPTileTransitionsVariants protoVariants;
@@ -539,7 +539,7 @@ public class TileRendererFactory {
 	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapTile tile) {
 	}
 
-	public ModsProfile getProfile() {
+	public Profile getProfile() {
 		return profile;
 	}
 
@@ -582,7 +582,7 @@ public class TileRendererFactory {
 	public void populateWorldMap(WorldMap map, MapTile tile) {
 	}
 
-	public void setProfile(ModsProfile profile) {
+	public void setProfile(Profile profile) {
 		this.profile = profile;
 	}
 

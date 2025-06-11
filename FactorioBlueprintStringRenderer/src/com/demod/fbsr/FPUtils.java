@@ -34,7 +34,7 @@ public final class FPUtils {
 		return builder.build();
 	}
 
-	public static <T> List<T> list(ModsProfile profile, LuaValue lua, BiFunction<ModsProfile, LuaValue, T> factory) {
+	public static <T> List<T> list(Profile profile, LuaValue lua, BiFunction<Profile, LuaValue, T> factory) {
 		if (lua.isnil()) {
 			return ImmutableList.of();
 		}
@@ -53,7 +53,7 @@ public final class FPUtils {
 		return Optional.of(factory.apply(lua));
 	}
 
-	public static <T> Optional<T> opt(ModsProfile profile, LuaValue lua, BiFunction<ModsProfile, LuaValue, T> factory) {
+	public static <T> Optional<T> opt(Profile profile, LuaValue lua, BiFunction<Profile, LuaValue, T> factory) {
 		if (lua.isnil()) {
 			return Optional.empty();
 		}
@@ -101,7 +101,7 @@ public final class FPUtils {
 		return Optional.of(builder.build());
 	}
 
-	public static <T> Optional<List<T>> optList(ModsProfile profile, LuaValue lua, BiFunction<ModsProfile, LuaValue, T> factory) {
+	public static <T> Optional<List<T>> optList(Profile profile, LuaValue lua, BiFunction<Profile, LuaValue, T> factory) {
 		if (lua.isnil()) {
 			return Optional.empty();
 		}

@@ -4,7 +4,7 @@ import java.util.List;
 
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.FPUtils;
-import com.demod.fbsr.ModsProfile;
+import com.demod.fbsr.Profile;
 
 public class FPRailSignalPictureSet {
 	public final FPRotatedAnimation structure;
@@ -12,7 +12,7 @@ public class FPRailSignalPictureSet {
 	public final List<Integer> structureAlignToAnimationIndex;
 	public final List<FPVector> selectionBoxShift;
 
-	public FPRailSignalPictureSet(ModsProfile profile, LuaValue lua) {
+	public FPRailSignalPictureSet(Profile profile, LuaValue lua) {
 		structure = new FPRotatedAnimation(profile, lua.get("structure"));
 		railPiece = new FPRailSignalStaticSpriteLayer(profile, lua.get("rail_piece"));
 		structureAlignToAnimationIndex = FPUtils.list(lua.get("structure_align_to_animation_index"),

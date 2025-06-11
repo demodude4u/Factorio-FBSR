@@ -4,13 +4,13 @@ import java.util.Optional;
 
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.FPUtils;
-import com.demod.fbsr.ModsProfile;
+import com.demod.fbsr.Profile;
 
 public class FPCircuitConnectorDefinition {
 	public final Optional<FPCircuitConnectorSprites> sprites;
 	public final Optional<FPWireConnectionPoint> points;
 
-	public FPCircuitConnectorDefinition(ModsProfile profile, LuaValue lua) {
+	public FPCircuitConnectorDefinition(Profile profile, LuaValue lua) {
 		sprites = FPUtils.opt(profile, lua.get("sprites"), FPCircuitConnectorSprites::new);
 		points = FPUtils.opt(lua.get("points"), FPWireConnectionPoint::new);
 	}

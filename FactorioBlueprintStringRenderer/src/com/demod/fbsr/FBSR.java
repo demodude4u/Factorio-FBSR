@@ -622,7 +622,7 @@ public class FBSR {
 		FactorioManager.initializeFactories();
 		IconManager.initialize();
 
-		for (ModsProfile profile : FactorioManager.getProfiles()) {
+		for (Profile profile : FactorioManager.getProfiles()) {
 			profile.getAtlasPackage().initialize();
 		}
 	}

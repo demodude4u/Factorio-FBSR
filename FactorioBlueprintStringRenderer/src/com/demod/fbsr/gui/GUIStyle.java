@@ -12,8 +12,9 @@ import java.nio.file.StandardCopyOption;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.demod.factorio.ModLoader;
 import com.demod.fbsr.FactorioManager;
-import com.demod.fbsr.ModsProfile;
+import com.demod.fbsr.Profile;
 import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.gui.feature.GUIPipeFeature;
 import com.demod.fbsr.gui.feature.GUISliceFeature;
@@ -46,19 +47,26 @@ public final class GUIStyle {
 
 	public static ImageDef DEF_CLOCK;
 
-	public static Font createFont(String folder, String filename) {
+	private static void copyFont(Profile profile, String filename) {
+		if (!FactorioManager.hasFactorioInstall()) {
+			LOGGER.error("Factorio installation not found, cannot copy font: {}", filename);
+			throw new RuntimeException("Factorio installation not found, cannot copy font: " + filename);
+		}
 
-		File folderFonts = new File(FactorioManager.getFolderDataRoot(), "fonts");
-		folderFonts.mkdirs();
-
-		File fileFont = new File(folderFonts, filename);
-
+		File fileInstallFont = new File(FactorioManager.getFactorioInstall(), "data/core/fonts/" + filename);
+		File fileProfileFont = new File(profile.getFolderProfile(), filename);
 		try {
-			if (FactorioManager.hasFactorioInstall() && !fileFont.exists()) {
-				InputStream inputStream = FactorioManager.getBaseProfile().getData().getModResource(folder + "/" + filename).get();
-				Files.copy(inputStream, fileFont.toPath(), StandardCopyOption.REPLACE_EXISTING);
-			}
+			Files.copy(fileInstallFont.toPath(), fileProfileFont.toPath(), StandardCopyOption.REPLACE_EXISTING);
+		} catch (IOException e) {
+			LOGGER.error("FAILED TO COPY FONT: {}", fileProfileFont.getAbsolutePath(), e);
+			throw new RuntimeException("Failed to copy font: " + filename, e);
+		}
+	}
 
+	private static Font createFont(String filename) {
+		Profile profile = FactorioManager.getBaseProfile();
+		File fileFont = new File(profile.getFolderProfile(), filename);
+		try {
 			return Font.createFont(Font.TRUETYPE_FONT, fileFont);
 		} catch (FontFormatException | IOException e) {
 			LOGGER.error("FAILED TO LOAD FONT: {}", fileFont.getAbsolutePath(), e);
@@ -66,12 +74,23 @@ public final class GUIStyle {
 		}
 	}
 
+	public static boolean copyFontsToProfile(ModLoader loader, Profile profile) {
+		if (!profile.hasData()) {
+			System.out.println("Profile is missing factorio data, cannot copy fonts.");
+			return false;
+		}
+
+		copyFont(profile, "Lilittium-Regular.ttf");
+		copyFont(profile, "Lilittium-Bold.ttf");
+		return true;
+	}
+
 	public static void initialize() {
-		ModsProfile profile = FactorioManager.getBaseProfile();
+		Profile profile = FactorioManager.getBaseProfile();
 		String filename = "__core__/graphics/gui-new.png";
 
-		FONT_BP_REGULAR = createFont("__core__/fonts", "Lilittium-Regular.ttf");
-		FONT_BP_BOLD = createFont("__core__/fonts", "Lilittium-Bold.ttf");
+		FONT_BP_REGULAR = createFont("Lilittium-Regular.ttf");
+		FONT_BP_BOLD = createFont("Lilittium-Bold.ttf");
 		FONT_BP_COLOR = new Color(0xffe6c0);
 
 		FRAME_INNER = GUISliceFeature.inner(profile, filename, new GUIBox(0, 0, 17, 17), new GUISpacing(8, 8, 8, 8));

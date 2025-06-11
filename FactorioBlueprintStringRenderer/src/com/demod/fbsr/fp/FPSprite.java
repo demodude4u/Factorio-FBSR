@@ -7,18 +7,18 @@ import java.util.function.Consumer;
 
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.FPUtils;
-import com.demod.fbsr.ModsProfile;
+import com.demod.fbsr.Profile;
 import com.demod.fbsr.def.SpriteDef;
 
 public class FPSprite extends FPSpriteParameters {
 
 	public final Optional<List<FPSprite>> layers;
 
-	public FPSprite(ModsProfile profile, LuaValue lua) {
+	public FPSprite(Profile profile, LuaValue lua) {
 		this(profile, lua, true);
 	}
 
-	public FPSprite(ModsProfile profile, LuaValue lua, boolean trimmable) {
+	public FPSprite(Profile profile, LuaValue lua, boolean trimmable) {
 		super(profile, lua, trimmable);
 
 		layers = FPUtils.optList(lua.get("layers"), l -> new FPSprite(profile, l, trimmable));

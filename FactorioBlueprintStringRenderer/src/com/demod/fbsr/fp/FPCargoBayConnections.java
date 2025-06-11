@@ -3,7 +3,7 @@ package com.demod.fbsr.fp;
 import java.util.function.Consumer;
 
 import com.demod.factorio.fakelua.LuaValue;
-import com.demod.fbsr.ModsProfile;
+import com.demod.fbsr.Profile;
 import com.demod.fbsr.def.ImageDef;
 
 public class FPCargoBayConnections {
@@ -25,7 +25,7 @@ public class FPCargoBayConnections {
 	public final FPLayeredSpriteVariations bridgeVerticalWide;
 	public final FPLayeredSpriteVariations bridgeCrossing;
 
-	public FPCargoBayConnections(ModsProfile profile, LuaValue lua) {
+	public FPCargoBayConnections(Profile profile, LuaValue lua) {
 		topWall = new FPLayeredSpriteVariations(profile, lua.get("top_wall"));
 		rightWall = new FPLayeredSpriteVariations(profile, lua.get("right_wall"));
 		bottomWall = new FPLayeredSpriteVariations(profile, lua.get("bottom_wall"));

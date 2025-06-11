@@ -6,7 +6,7 @@ import java.util.function.Consumer;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.Layer;
-import com.demod.fbsr.ModsProfile;
+import com.demod.fbsr.Profile;
 import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.def.LayeredSpriteDef;
 import com.demod.fbsr.def.SpriteDef;
@@ -38,7 +38,7 @@ public class FPCranePart {
 
     private boolean grappler;
 
-    public FPCranePart(ModsProfile profile, LuaValue lua) {
+    public FPCranePart(Profile profile, LuaValue lua) {
         
         orientationShift = lua.get("orientation_shift").optfloat(0);
         isContractibleByCropping = lua.get("is_contractible_by_cropping").optboolean(false);

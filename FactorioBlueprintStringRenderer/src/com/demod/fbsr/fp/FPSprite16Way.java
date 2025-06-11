@@ -8,7 +8,7 @@ import java.util.function.Consumer;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.FPUtils;
-import com.demod.fbsr.ModsProfile;
+import com.demod.fbsr.Profile;
 import com.demod.fbsr.Dir16;
 import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.def.SpriteDef;
@@ -37,7 +37,7 @@ public class FPSprite16Way {
 	public final Optional<FPSprite> sprite;
 	private final List<List<SpriteDef>> defs;
 
-	public FPSprite16Way(ModsProfile profile, LuaValue lua) {
+	public FPSprite16Way(Profile profile, LuaValue lua) {
 		north = FPUtils.opt(profile, lua.get("north"), FPSprite::new);
 		north_north_east = FPUtils.opt(profile, lua.get("north_north_east"), FPSprite::new);
 		north_east = FPUtils.opt(profile, lua.get("north_east"), FPSprite::new);

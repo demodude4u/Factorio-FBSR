@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import com.demod.factorio.fakelua.LuaValue;
-import com.demod.fbsr.ModsProfile;
+import com.demod.fbsr.Profile;
 import com.demod.fbsr.def.MaterialDef;
 
 public class FPMaterialTextureParameters {
@@ -23,7 +23,7 @@ public class FPMaterialTextureParameters {
 	private final int limitedCount;
 	private final List<MaterialDef> defs;
 
-	public FPMaterialTextureParameters(ModsProfile profile, LuaValue lua, int texWidthTiles, int texHeightTiles, int limitCount) {
+	public FPMaterialTextureParameters(Profile profile, LuaValue lua, int texWidthTiles, int texHeightTiles, int limitCount) {
 		this.texWidthTiles = texWidthTiles;
 		this.texHeightTiles = texHeightTiles;
 
@@ -39,7 +39,7 @@ public class FPMaterialTextureParameters {
 		defs = allDefs.stream().limit(limitedCount).collect(Collectors.toList());
 	}
 
-	private List<MaterialDef> createDefs(ModsProfile profile) {
+	private List<MaterialDef> createDefs(Profile profile) {
 		List<MaterialDef> defs = new ArrayList<>();
 
 		int width = (int) (texWidthTiles * 64 / scale);

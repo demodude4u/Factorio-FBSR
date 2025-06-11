@@ -6,13 +6,13 @@ import java.util.Optional;
 
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.Direction;
-import com.demod.fbsr.ModsProfile;
+import com.demod.fbsr.Profile;
 import com.demod.fbsr.def.SpriteDef;
 import com.demod.fbsr.Dir16;
 
 public class FPSpriteNWaySheet extends FPSpriteParameters {
 
-	public static Optional<FPSpriteNWaySheet> opt(ModsProfile profile, LuaValue lua, int directionCount) {
+	public static Optional<FPSpriteNWaySheet> opt(Profile profile, LuaValue lua, int directionCount) {
 		if (lua.isnil()) {
 			return Optional.empty();
 		}
@@ -26,7 +26,7 @@ public class FPSpriteNWaySheet extends FPSpriteParameters {
 
 	private final List<SpriteDef> defs;
 
-	public FPSpriteNWaySheet(ModsProfile profile, LuaValue lua, int directionCount) {
+	public FPSpriteNWaySheet(Profile profile, LuaValue lua, int directionCount) {
 		super(profile, lua);
 		this.directionCount = directionCount;
 
@@ -36,7 +36,7 @@ public class FPSpriteNWaySheet extends FPSpriteParameters {
 		defs = createDefs(profile);
 	}
 
-	private List<SpriteDef> createDefs(ModsProfile profile) {
+	private List<SpriteDef> createDefs(Profile profile) {
 		List<SpriteDef> defs = new ArrayList<>();
 		for (Dir16 direction : Dir16.values()) {
 			int x = this.x;

@@ -5,7 +5,7 @@ import java.util.function.Consumer;
 
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.FPUtils;
-import com.demod.fbsr.ModsProfile;
+import com.demod.fbsr.Profile;
 import com.demod.fbsr.def.ImageDef;
 
 public class FPRailPieceLayers {
@@ -15,7 +15,7 @@ public class FPRailPieceLayers {
 	public final Optional<FPSpriteVariations> backplates;
 	public final Optional<FPSpriteVariations> metals;
 
-	public FPRailPieceLayers(ModsProfile profile, LuaValue lua) {
+	public FPRailPieceLayers(Profile profile, LuaValue lua) {
 		stonePathBackground = FPUtils.opt(profile, lua.get("stone_path_background"), FPSpriteVariations::new);
 		stonePath = FPUtils.opt(profile, lua.get("stone_path"), FPSpriteVariations::new);
 		ties = FPUtils.opt(profile, lua.get("ties"), FPSpriteVariations::new);

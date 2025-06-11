@@ -9,7 +9,7 @@ import com.demod.fbsr.Atlas;
 import com.demod.fbsr.AtlasPackage;
 import com.demod.fbsr.Atlas.AtlasRef;
 import com.demod.fbsr.FactorioManager;
-import com.demod.fbsr.ModsProfile;
+import com.demod.fbsr.Profile;
 
 public class ImageDef {
 
@@ -17,7 +17,7 @@ public class ImageDef {
 	public static interface ImageSheetLoader extends Function<String, BufferedImage> {
 	}
 
-	protected final ModsProfile profile;
+	protected final Profile profile;
 	protected final String path;
 	protected final ImageSheetLoader loader;
 	private final boolean shadow;
@@ -28,11 +28,11 @@ public class ImageDef {
 	private Rectangle trimmed = null;
 	private boolean trimmable = true;
 
-	public ImageDef(ModsProfile profile, String path, ImageSheetLoader loader, Rectangle source) {
+	public ImageDef(Profile profile, String path, ImageSheetLoader loader, Rectangle source) {
 		this(profile, path, loader, source, false);
 	}
 
-	public ImageDef(ModsProfile profile, String path, ImageSheetLoader loader, Rectangle source, boolean shadow) {
+	public ImageDef(Profile profile, String path, ImageSheetLoader loader, Rectangle source, boolean shadow) {
 		this.profile = profile;
 		this.path = path;
 		this.loader = loader;
@@ -41,11 +41,11 @@ public class ImageDef {
 		atlasRef = new AtlasRef();
 	}
 
-	public ImageDef(ModsProfile profile, String path, Rectangle source) {
+	public ImageDef(Profile profile, String path, Rectangle source) {
 		this(profile, path, source, false);
 	}
 
-	public ImageDef(ModsProfile profile, String path, Rectangle source, boolean shadow) {
+	public ImageDef(Profile profile, String path, Rectangle source, boolean shadow) {
 		this.profile = profile;
 		this.path = path;
 		this.loader = FactorioManager::lookupModImage;
@@ -114,7 +114,7 @@ public class ImageDef {
 		this.trimmable = trimmable;
 	}
 
-	public ModsProfile getProfile() {
+	public Profile getProfile() {
 		return profile;
 	}
 }

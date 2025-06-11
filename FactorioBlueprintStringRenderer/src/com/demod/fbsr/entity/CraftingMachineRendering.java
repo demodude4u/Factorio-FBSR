@@ -148,7 +148,7 @@ public abstract class CraftingMachineRendering extends EntityWithOwnerRendering 
 
 		Optional<String> recipe = entity.<BSCraftingMachineEntity>fromBlueprint().recipe;
 		if (recipe.isPresent()) {
-			Optional<RecipePrototype> optRecipe = profile.getData().getTable().getRecipe(recipe.get());
+			Optional<RecipePrototype> optRecipe = profile.getFactorioData().getTable().getRecipe(recipe.get());
 			if (optRecipe.isPresent()) {
 				RecipePrototype protoRecipe = optRecipe.get();
 				setLogisticMachine(map, entity.getBounds(), protoRecipe);

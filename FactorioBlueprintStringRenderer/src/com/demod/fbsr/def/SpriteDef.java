@@ -6,7 +6,7 @@ import java.util.Optional;
 
 import com.demod.fbsr.BlendMode;
 import com.demod.fbsr.FBSR;
-import com.demod.fbsr.ModsProfile;
+import com.demod.fbsr.Profile;
 import com.demod.fbsr.fp.FPColor;
 import com.demod.fbsr.map.MapPosition;
 import com.demod.fbsr.map.MapRect;
@@ -19,7 +19,7 @@ public class SpriteDef extends ImageDef {
 	protected MapRect sourceBounds;
 	private MapRect trimmedBounds;
 
-	public SpriteDef(ModsProfile profile, String path, ImageSheetLoader loader, boolean shadow, BlendMode blendMode, Optional<Color> tint,
+	public SpriteDef(Profile profile, String path, ImageSheetLoader loader, boolean shadow, BlendMode blendMode, Optional<Color> tint,
 			boolean tintAsOverlay, boolean applyRuntimeTint, Rectangle source, MapRect bounds) {
 		super(profile, path, loader, source, shadow);
 		this.blendMode = blendMode;
@@ -29,7 +29,7 @@ public class SpriteDef extends ImageDef {
 		this.sourceBounds = bounds;
 	}
 
-	public SpriteDef(ModsProfile profile, String path, boolean shadow, BlendMode blendMode, Optional<Color> tint, boolean tintAsOverlay,
+	public SpriteDef(Profile profile, String path, boolean shadow, BlendMode blendMode, Optional<Color> tint, boolean tintAsOverlay,
 			boolean applyRuntimeTint, Rectangle source, MapRect bounds) {
 		super(profile, path, source, shadow);
 		this.blendMode = blendMode;
@@ -117,7 +117,7 @@ public class SpriteDef extends ImageDef {
 		}
 	}
 
-	public static SpriteDef fromFP(ModsProfile profile, String filename, boolean shadow, BlendMode blendMode, Optional<FPColor> tint,
+	public static SpriteDef fromFP(Profile profile, String filename, boolean shadow, BlendMode blendMode, Optional<FPColor> tint,
 			boolean tintAsOverlay, boolean applyRuntimeTint, int srcX, int srcY, int srcWidth, int srcHeight,
 			double dstX, double dstY, double dstScale) {
 		Rectangle source = new Rectangle(srcX, srcY, srcWidth, srcHeight);

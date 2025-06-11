@@ -13,7 +13,7 @@ import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.FactorioManager;
 import com.demod.fbsr.Layer;
-import com.demod.fbsr.ModsProfile;
+import com.demod.fbsr.Profile;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.WirePoints.WirePoint;
 import com.demod.fbsr.WorldMap;
@@ -64,7 +64,7 @@ public class UnknownEntityRendering extends EntityRendererFactory {
 	}
 
 	@Override
-	public ModsProfile getProfile() {
+	public Profile getProfile() {
 		return FactorioManager.getBaseProfile();
 	}
 

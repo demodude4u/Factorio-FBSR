@@ -98,8 +98,8 @@ public abstract class EntityRendererFactory {
 		return MapRect3D.byUnit(x1, y1, x2, y2, drawingBoxVerticalExtension);
 	}
 
-	public static void registerFactories(Consumer<EntityRendererFactory> register, ModsProfile profile, JSONObject json) {
-		DataTable table = profile.getData().getTable();
+	public static void registerFactories(Consumer<EntityRendererFactory> register, Profile profile, JSONObject json) {
+		DataTable table = profile.getFactorioData().getTable();
 		for (String groupName : json.keySet().stream().sorted().collect(Collectors.toList())) {
 			JSONObject jsonGroup = json.getJSONObject(groupName);
 			for (String entityName : jsonGroup.keySet().stream().sorted().collect(Collectors.toList())) {
@@ -130,7 +130,7 @@ public abstract class EntityRendererFactory {
 
 	protected String name = null;
 	protected String groupName = null;
-	protected ModsProfile profile = null;
+	protected Profile profile = null;
 	protected EntityPrototype prototype = null;
 
 	protected boolean protoBeaconed;
@@ -240,7 +240,7 @@ public abstract class EntityRendererFactory {
 
 	}
 
-	public ModsProfile getProfile() {
+	public Profile getProfile() {
 		return profile;
 	}
 
@@ -305,7 +305,7 @@ public abstract class EntityRendererFactory {
 		// default do nothing
 	}
 
-	public void setProfile(ModsProfile profile) {
+	public void setProfile(Profile profile) {
 		this.profile = profile;
 	}
 
@@ -326,7 +326,7 @@ public abstract class EntityRendererFactory {
 		double xEnd = bounds.getX2();
 		double yEnd = bounds.getY2();
 
-		DataTable table = profile.getData().getTable();
+		DataTable table = profile.getFactorioData().getTable();
 
 		Set<String> inputs = recipe.getInputs().keySet().stream().filter(k -> table.getItem(k).isPresent())
 				.collect(Collectors.toSet());

@@ -11,6 +11,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -40,6 +41,7 @@ import javax.imageio.ImageWriter;
 import javax.imageio.stream.ImageOutputStream;
 
 import org.json.JSONArray;
+import org.json.JSONObject;
 import org.json.JSONTokener;
 import org.rapidoid.commons.Arr;
 import org.slf4j.Logger;
@@ -62,20 +64,20 @@ public class AtlasPackage {
 	public static int ATLAS_SIZE = 4096;
 	public static int ATLAS_ICONS_SIZE = 2048;
 
-    private File packageFolder;
+	private final File atlasDataZip;
 
 	private List<ImageDef> defs = new ArrayList<>();
 	private List<Atlas> atlases = new ArrayList<>();
 
-    public AtlasPackage(File packageFolder) {
-        this.packageFolder = packageFolder;
+    public AtlasPackage(File atlasDataZip) {
+		this.atlasDataZip = atlasDataZip;
     }
 
     private static final int MAX_PARALLEL_LOADS = Runtime.getRuntime().availableProcessors() * 2;
 	private final Semaphore loadingSemaphore = new Semaphore(MAX_PARALLEL_LOADS);
 	private static final int CLEANUP_INTERVAL = 1000;
 
-	private JSONArray generateAtlases(File folderAtlas, File fileManifest) throws IOException {
+	public void generateZip() throws IOException {
 		for (ImageDef def : defs) {
 			def.getAtlasRef().reset();
 		}
@@ -176,7 +178,7 @@ public class AtlasPackage {
 			} catch (ExecutionException e) {
 				e.printStackTrace();
 				System.exit(-1);
-				return null;
+				return;
 			}
 			String md5key = computeMD5(imageSheet, trimmed);
 			cached = md5Check.get(md5key);
@@ -267,92 +269,73 @@ public class AtlasPackage {
 		imageSheets.invalidateAll();
 		imageSheets.cleanUp();
 
-		folderAtlas.mkdirs();
-		for (File file : folderAtlas.listFiles()) {
-			file.delete();
-		}		
+		try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(atlasDataZip))) {
 
-		JSONArray jsonManifest = new JSONArray();
-		for (ImageDef def : defs) {
-			Rectangle source = def.getSource();
-			AtlasRef atlasRef = def.getAtlasRef();
-			JSONArray jsonEntry = new JSONArray();
-			Atlas atlas = atlasRef.getAtlas();
-			Rectangle rect = atlasRef.getRect();
-			Point trim = atlasRef.getTrim();
+			JSONArray jsonManifest = new JSONArray();
+			for (ImageDef def : defs) {
+				Rectangle source = def.getSource();
+				AtlasRef atlasRef = def.getAtlasRef();
+				JSONArray jsonEntry = new JSONArray();
+				Atlas atlas = atlasRef.getAtlas();
+				Rectangle rect = atlasRef.getRect();
+				Point trim = atlasRef.getTrim();
 
-			if (atlas.getAtlasPackage() != this) {
-				LOGGER.error("Image does not belong to this atlas package: {}", def.getPath());
-				System.exit(-1);
-			}
-
-			jsonEntry.put(def.getPath());
-			jsonEntry.put(source.x);
-			jsonEntry.put(source.y);
-			jsonEntry.put(source.width);
-			jsonEntry.put(source.height);
-			jsonEntry.put(atlas.getId());
-			jsonEntry.put(rect.x);
-			jsonEntry.put(rect.y);
-			jsonEntry.put(rect.width);
-			jsonEntry.put(rect.height);
-			jsonEntry.put(trim.x);
-			jsonEntry.put(trim.y);
-			jsonManifest.put(jsonEntry);
-		}
-
-		atlases.parallelStream().forEach(atlas -> {
-			File fileAtlas = new File(folderAtlas, "atlas" + atlas.getId() + ".webp");
-
-			ImageWriter writer = ImageIO.getImageWritersByMIMEType("image/webp").next();
-			try {
-				try (ImageOutputStream ios = ImageIO.createImageOutputStream(fileAtlas)) {
-					writer.setOutput(ios);
-					WebPWriteParam param = new WebPWriteParam(writer.getLocale());
-					param.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
-					param.setCompressionType(param.getCompressionTypes()[WebPWriteParam.LOSSY_COMPRESSION]);
-					param.setCompressionQuality(0.9f);
-					writer.write(null, new IIOImage(atlas.getImage(), null, null), param);
-				} catch (IOException e) {
-					e.printStackTrace();
+				if (atlas.getAtlasPackage() != this) {
+					LOGGER.error("Image does not belong to this atlas package: {}", def.getPath());
+					System.exit(-1);
 				}
-			} finally {
-				writer.dispose();
+
+				jsonEntry.put(def.getPath());
+				jsonEntry.put(source.x);
+				jsonEntry.put(source.y);
+				jsonEntry.put(source.width);
+				jsonEntry.put(source.height);
+				jsonEntry.put(atlas.getId());
+				jsonEntry.put(rect.x);
+				jsonEntry.put(rect.y);
+				jsonEntry.put(rect.width);
+				jsonEntry.put(rect.height);
+				jsonEntry.put(trim.x);
+				jsonEntry.put(trim.y);
+				jsonManifest.put(jsonEntry);
 			}
-
-			LOGGER.info("Write Atlas: {}", fileAtlas.getAbsolutePath());
-		});
-
-		Files.createParentDirs(fileManifest);
-		try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(fileManifest))) {
 			zos.putNextEntry(new ZipEntry("atlas-manifest.json"));
 			zos.write(jsonManifest.toString(2).getBytes(StandardCharsets.UTF_8));
 			zos.closeEntry();
-		}
-		LOGGER.info("Write Manifest: {} ({} entries)", fileManifest.getAbsolutePath(), defs.size());
 
-		LOGGER.info("Atlas generation complete.");
-		return jsonManifest;
+			for (Atlas atlas : atlases) {
+				String filename = "atlas" + atlas.getId() + ".webp";
+				zos.putNextEntry(new ZipEntry(filename));
+
+				ImageWriter writer = ImageIO.getImageWritersByMIMEType("image/webp").next();
+				try {
+					try (ImageOutputStream ios = ImageIO.createImageOutputStream(zos)) {
+						writer.setOutput(ios);
+						WebPWriteParam param = new WebPWriteParam(writer.getLocale());
+						param.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
+						param.setCompressionType(param.getCompressionTypes()[WebPWriteParam.LOSSY_COMPRESSION]);
+						param.setCompressionQuality(0.9f);
+						writer.write(null, new IIOImage(atlas.getImage(), null, null), param);
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				} finally {
+					writer.dispose();
+				}
+
+				zos.closeEntry();
+				LOGGER.info("Write Atlas: {}", filename);
+			}
+		}
+
+		LOGGER.info("Write Atlas Data Zip: {}.", atlasDataZip.getAbsolutePath());
 	}
 
     public void initialize() throws IOException {
-		File folderAtlas = new File(packageFolder, "atlas");
-		File fileManifest = new File(folderAtlas, "atlas-manifest.zip");
-
-		JSONArray jsonManifest = null;
-		if (!fileManifest.exists() || !checkValidManifest(jsonManifest = readManifest(fileManifest))) {
-			jsonManifest = generateAtlases(folderAtlas, fileManifest);
-		}
-
-		if (jsonManifest == null) {
-			jsonManifest = readManifest(fileManifest);
-		}
-		loadAtlases(folderAtlas, jsonManifest);
-	}
-
-    private static JSONArray readManifest(File fileManifest) throws IOException {
-		JSONArray jsonManifest;
-		try (ZipFile zipFile = new ZipFile(fileManifest)) {
+		LOGGER.info("Read Atlas Data Zip: {}.", atlasDataZip.getAbsolutePath());
+		try (ZipFile zipFile = new ZipFile(atlasDataZip)) {
+			
+			JSONArray jsonManifest;
 			ZipEntry entry = zipFile.getEntry("atlas-manifest.json");
 			if (entry == null) {
 				throw new IOException("Missing atlas-manifest.json in zip file");
@@ -360,9 +343,14 @@ public class AtlasPackage {
 			try (var reader = new InputStreamReader(zipFile.getInputStream(entry), StandardCharsets.UTF_8)) {
 				jsonManifest = new JSONArray(new JSONTokener(reader));
 			}
+
+			if (!checkValidManifest(jsonManifest)) {
+				LOGGER.error("Atlas manifest is invalid or does not match current definitions. Data needs to be regenerated.");
+				throw new IOException("Atlas manifest is invalid or does not match current definitions.");
+			}
+			
+			loadAtlases(zipFile, jsonManifest);
 		}
-		LOGGER.info("Read Manifest: {} ({} entries)", fileManifest.getAbsolutePath(), jsonManifest.length());
-		return jsonManifest;
 	}
 
 	private boolean checkValidManifest(JSONArray jsonManifest) throws IOException {
@@ -396,20 +384,25 @@ public class AtlasPackage {
 		return mismatched.isEmpty();
 	}
 
-	private void loadAtlases(File folderAtlas, JSONArray jsonManifest) throws IOException {
+	private void loadAtlases(ZipFile zipFile, JSONArray jsonManifest) throws IOException {
 
 		defs.forEach(d -> d.getAtlasRef().reset());
 
 		int[] atlasIds = IntStream.range(0, jsonManifest.length()).map(i -> jsonManifest.getJSONArray(i).getInt(5))
 				.distinct().toArray();
-		LOGGER.info("Read Atlases: {} {}", folderAtlas.getAbsolutePath(), Arrays.toString(atlasIds));
+		LOGGER.info("Read Atlases: {}", Arrays.toString(atlasIds));
 		atlases = Arrays.stream(atlasIds).parallel().mapToObj(id -> {
-			File fileAtlas = new File(folderAtlas, "atlas" + id + ".webp");
-			try {
-				BufferedImage image = ImageIO.read(fileAtlas);
+			ZipEntry entry = zipFile.getEntry("atlas" + id + ".webp");
+			if (entry == null) {
+				LOGGER.error("Missing atlas zip entry: {}", id);
+				System.exit(-1);
+				return null;
+			}
+			try (InputStream is = zipFile.getInputStream(entry)) {
+				BufferedImage image = ImageIO.read(is);
 				return Atlas.load(this, id, image);
 			} catch (IOException e) {
-				LOGGER.error("Failed to read atlas: {}", fileAtlas.getAbsolutePath(), e);
+				LOGGER.error("Failed to read atlas: {}", entry.getName(), e);
 				System.exit(-1);
 				return null;
 			}

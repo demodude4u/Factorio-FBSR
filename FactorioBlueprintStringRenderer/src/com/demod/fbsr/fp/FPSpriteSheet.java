@@ -7,7 +7,7 @@ import java.util.function.Consumer;
 
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.FPUtils;
-import com.demod.fbsr.ModsProfile;
+import com.demod.fbsr.Profile;
 import com.demod.fbsr.def.SpriteDef;
 import com.google.common.collect.ImmutableList;
 
@@ -21,7 +21,7 @@ public class FPSpriteSheet extends FPSpriteParameters {
 
 	public final List<SpriteDef> defs;
 
-	public FPSpriteSheet(ModsProfile profile, LuaValue lua) {
+	public FPSpriteSheet(Profile profile, LuaValue lua) {
 		super(profile, lua);
 
 		layers = FPUtils.optList(profile, lua.get("layers"), FPSpriteSheet::new);
@@ -39,7 +39,7 @@ public class FPSpriteSheet extends FPSpriteParameters {
 		defs = createDefs(profile);
 	}
 
-	private List<SpriteDef> createDefs(ModsProfile profile) {
+	private List<SpriteDef> createDefs(Profile profile) {
 		if (layers.isPresent()) {
 			return ImmutableList.of();
 

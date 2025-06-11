@@ -5,7 +5,7 @@ import java.util.Optional;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.BlendMode;
 import com.demod.fbsr.FPUtils;
-import com.demod.fbsr.ModsProfile;
+import com.demod.fbsr.Profile;
 import com.demod.fbsr.def.SpriteDef;
 
 public class FPSpriteParameters extends FPSpriteSource {
@@ -20,11 +20,11 @@ public class FPSpriteParameters extends FPSpriteSource {
 	private final SpriteDef def;
 	private final boolean trimmable;
 
-	public FPSpriteParameters(ModsProfile profile, LuaValue lua) {
+	public FPSpriteParameters(Profile profile, LuaValue lua) {
 		this(profile, lua, true);
 	}
 
-	public FPSpriteParameters(ModsProfile profile, LuaValue lua, boolean trimmable) {
+	public FPSpriteParameters(Profile profile, LuaValue lua, boolean trimmable) {
 		super(lua);
 
 		this.trimmable = trimmable;

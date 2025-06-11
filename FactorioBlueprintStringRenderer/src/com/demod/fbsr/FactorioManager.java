@@ -51,11 +51,11 @@ public class FactorioManager {
 	private static volatile boolean initializedPrototypes = false;
 	private static volatile boolean initializedFactories = false;
 
-	private static ModsProfile baseProfile = null;
-	private static final List<ModsProfile> profiles = new ArrayList<>();
-	private static final ListMultimap<String, ModsProfile> profileByModName = ArrayListMultimap.create();
-	private static final Map<FactorioData, ModsProfile> profileByData = new HashMap<>();
-	private static final Map<String, ModsProfile> profileByGroupName = new HashMap<>();
+	private static Profile baseProfile = null;
+	private static final List<Profile> profiles = new ArrayList<>();
+	private static final ListMultimap<String, Profile> profileByModName = ArrayListMultimap.create();
+	private static final Map<FactorioData, Profile> profileByData = new HashMap<>();
+	private static final Map<String, Profile> profileByGroupName = new HashMap<>();
 
 	private static final List<EntityRendererFactory> entityFactories = new ArrayList<>();
 	private static final List<TileRendererFactory> tileFactories = new ArrayList<>();
@@ -89,22 +89,31 @@ public class FactorioManager {
 	private static final Cache<String, UnknownTileRendering> unknownTileFactories = CacheBuilder.newBuilder()
 			.expireAfterAccess(1, TimeUnit.HOURS).build();
 
-	private static File folderModsRoot;
-	private static File folderDataRoot;
-
 	private static boolean hasFactorioInstall;
-	private static boolean hasModsRoot;
-
+	private static File factorioInstall;
+	private static File factorioExecutable;
+	static {
+		JSONObject json = Config.get().getJSONObject("factorio_manager");
+		if (json.has("install") && json.has("executable")) {
+			hasFactorioInstall = true;
+			factorioInstall = new File(json.getString("install"));
+			factorioExecutable = new File(json.getString("executable"));
+		} else {
+			hasFactorioInstall = false;
+			factorioInstall = null;
+			factorioExecutable = null;
+		}
+	}
 
 	public static List<AchievementPrototype> getAchievements() {
 		return achievements;
 	}
 
-	public static ModsProfile getBaseProfile() {
+	public static Profile getBaseProfile() {
 		return baseProfile;
 	}
 
-	public static List<ModsProfile> getProfiles() {
+	public static List<Profile> getProfiles() {
 		return profiles;
 	}
 
@@ -122,14 +131,6 @@ public class FactorioManager {
 
 	public static List<FluidPrototype> getFluids() {
 		return fluids;
-	}
-
-	public static File getFolderDataRoot() {
-		return folderDataRoot;
-	}
-
-	public static File getFolderModsRoot() {
-		return folderModsRoot;
 	}
 
 	public static List<ItemPrototype> getItems() {
@@ -164,6 +165,14 @@ public class FactorioManager {
 		return hasFactorioInstall;
 	}
 
+	public static File getFactorioInstall() {
+		return factorioInstall;
+	}
+
+	public static File getFactorioExecutable() {
+		return factorioExecutable;
+	}
+
 	public static void initializeFactories() throws JSONException, IOException {
 		if (!initializedPrototypes) {
 			throw new IllegalStateException("Must initialize prototypes first!");
@@ -173,20 +182,16 @@ public class FactorioManager {
 		}
 		initializedFactories = true;
 
-		for (ModsProfile profile : profiles) {
-			File folderData = profile.getFolderData();
-
-			JSONObject jsonModRendering = new JSONObject(
-					Files.readString(new File(folderData, "mod-rendering.json").toPath()));
-
+		for (Profile profile : profiles) {
+			JSONObject jsonProfile = new JSONObject(
+					Files.readString(profile.getFileProfile().toPath()));
 			EntityRendererFactory.registerFactories(FactorioManager::registerEntityFactory, profile,
-					jsonModRendering.getJSONObject("entities"));
+					jsonProfile.getJSONObject("entities"));
 			TileRendererFactory.registerFactories(FactorioManager::registerTileFactory, profile,
-					jsonModRendering.getJSONObject("tiles"));
-
+					jsonProfile.getJSONObject("tiles"));
 		}
 
-		DataTable baseTable = baseProfile.getData().getTable();
+		DataTable baseTable = baseProfile.getFactorioData().getTable();
 		
 		EntityRendererFactory.initFactories(entityFactories);
 		TileRendererFactory.initFactories(tileFactories);
@@ -222,26 +227,9 @@ public class FactorioManager {
 			throw new IllegalStateException("Already Initialized Prototypes!");
 		}
 		initializedPrototypes = true;
-
-		JSONObject json = Config.get().getJSONObject("factorio_manager");
-
-		hasFactorioInstall = json.has("install") && json.has("executable");
-		Optional<String> factorioData = Optional.ofNullable(json.optString("install", null));
-		Optional<String> factorioExecutable = Optional.ofNullable(json.optString("executable", null));
-
-		folderModsRoot = new File(json.optString("mods", "mods"));
-		hasModsRoot = folderModsRoot.exists();
-		if (hasModsRoot) {
-			File folderModsVanilla = new File(folderModsRoot, "mods-vanilla");
-			if (!folderModsVanilla.exists()) {
-				folderModsVanilla.mkdir();
-				File fileModRendering = new File(folderModsVanilla, "mod-rendering.json");
-				Files.copy(FactorioData.class.getClassLoader().getResourceAsStream("mod-rendering.json"),
-						fileModRendering.toPath());
-			}
-		}
-
+		
 		folderDataRoot = new File(json.optString("data", "data"));
+		hasBuildRoot = folderBuildRoot.exists();
 		folderDataRoot.mkdirs();
 
 		List<String> mods = new ArrayList<>();
@@ -306,7 +294,7 @@ public class FactorioManager {
 				FactorioData data = new FactorioData(fdConfig);
 				data.initialize(false);
 
-				ModsProfile profile = new ModsProfile(folderData, data, new AtlasPackage(folderData));
+				Profile profile = new Profile(folderData, data, new AtlasPackage(folderData));
 				return profile;
 
 			} catch (Exception e) {
@@ -334,7 +322,7 @@ public class FactorioManager {
 			itemGroupByName.putAll(table.getItemGroups());
 		});
 
-		for (ModsProfile profile : profiles) {
+		for (Profile profile : profiles) {
 			File folderData = profile.getFolderData();
 
 			File fileModRendering = new File(folderData, "mod-rendering.json");
@@ -355,7 +343,7 @@ public class FactorioManager {
 		utilitySprites = new FPUtilitySprites(baseProfile, baseTable.getRaw("utility-sprites", "default").get());
 	}
 
-	public static boolean downloadMods(File folderMods) throws IOException {
+	public static boolean downloadMods(File folderProfile, File folderBuild) throws IOException {
 		JSONObject json = Config.get().getJSONObject("factorio_manager");
 
 		boolean modPortalApi;
@@ -460,15 +448,15 @@ public class FactorioManager {
 		return Optional.ofNullable(achievementByName.get(name));
 	}
 
-	public static ModsProfile lookupProfileByGroupName(String groupName) {
+	public static Profile lookupProfileByGroupName(String groupName) {
 		return profileByGroupName.get(groupName);
 	}
 
-	public static List<ModsProfile> lookupProfileByModName(String modName) {
+	public static List<Profile> lookupProfileByModName(String modName) {
 		return profileByModName.get(modName);
 	}
 
-	public static ModsProfile lookupProfileByData(FactorioData data) {
+	public static Profile lookupProfileByData(FactorioData data) {
 		return profileByData.get(data);
 	}
 

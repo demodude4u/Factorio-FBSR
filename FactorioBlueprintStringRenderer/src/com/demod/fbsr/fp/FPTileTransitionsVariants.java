@@ -5,7 +5,7 @@ import java.util.Optional;
 
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.FPUtils;
-import com.demod.fbsr.ModsProfile;
+import com.demod.fbsr.Profile;
 
 public class FPTileTransitionsVariants {
 	public final List<FPTileMainPictures> main;
@@ -17,7 +17,7 @@ public class FPTileTransitionsVariants {
 	public final boolean emptyTransitions;
 	public final Optional<FPTileTransitions> transition;
 
-	public FPTileTransitionsVariants(ModsProfile profile, LuaValue lua, int limitCount) {
+	public FPTileTransitionsVariants(Profile profile, LuaValue lua, int limitCount) {
 		main = FPUtils.list(lua.get("main"), l -> new FPTileMainPictures(profile, l, limitCount));
 		materialTextureWidthInTiles = lua.get("material_texture_width_in_tiles").optint(8);
 		materialTextureHeightInTiles = lua.get("material_texture_height_in_tiles").optint(8);

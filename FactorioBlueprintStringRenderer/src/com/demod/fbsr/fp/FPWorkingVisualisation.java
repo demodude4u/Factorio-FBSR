@@ -8,7 +8,7 @@ import java.util.function.Consumer;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.FPUtils;
-import com.demod.fbsr.ModsProfile;
+import com.demod.fbsr.Profile;
 import com.demod.fbsr.def.SpriteDef;
 import com.google.common.collect.ImmutableList;
 
@@ -20,7 +20,7 @@ public class FPWorkingVisualisation {
 	public final Optional<FPAnimation> southAnimation;
 	public final Optional<FPAnimation> westAnimation;
 
-	public FPWorkingVisualisation(ModsProfile profile, LuaValue lua) {
+	public FPWorkingVisualisation(Profile profile, LuaValue lua) {
 		alwaysDraw = lua.get("always_draw").optboolean(false);
 
 		animation = FPUtils.opt(profile, lua.get("animation"), FPAnimation::new);

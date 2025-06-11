@@ -8,7 +8,7 @@ import java.util.function.Consumer;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.FPUtils;
-import com.demod.fbsr.ModsProfile;
+import com.demod.fbsr.Profile;
 import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.def.SpriteDef;
 import com.google.common.collect.ImmutableList;
@@ -29,7 +29,7 @@ public class FPAnimation4Way {
 
 	private final List<Optional<FPAnimation>> directional;
 
-	public FPAnimation4Way(ModsProfile profile, LuaValue lua) {
+	public FPAnimation4Way(Profile profile, LuaValue lua) {
 		north = FPUtils.opt(profile, lua.get("north"), FPAnimation::new);
 		northEast = FPUtils.opt(profile, lua.get("north_east"), FPAnimation::new).or(() -> north);
 		east = FPUtils.opt(profile, lua.get("east"), FPAnimation::new).or(() -> north);

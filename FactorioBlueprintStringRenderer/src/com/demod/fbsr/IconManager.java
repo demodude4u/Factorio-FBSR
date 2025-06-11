@@ -61,7 +61,7 @@ public class IconManager {
 			for (Entry<String, ? extends DataPrototype> entry : map.entrySet()) {
 				DataPrototype proto = entry.getValue();
 				List<IconLayer> layers = IconLayer.fromPrototype(proto.lua());
-				ModsProfile profile = FactorioManager.lookupProfileByData(proto.getTable().getData());
+				Profile profile = FactorioManager.lookupProfileByData(proto.getTable().getData());
 				defs.put(entry.getKey(), new IconDef(profile, "TAG[" + category + "]/" + entry.getKey() + "/" + ICON_SIZE,
 						layers, ICON_SIZE, proto));
 			}
@@ -129,7 +129,7 @@ public class IconManager {
 					iconProto = luaProduct.get();
 				}
 
-				ModsProfile profile = FactorioManager.lookupProfileByData(proto.getTable().getData());
+				Profile profile = FactorioManager.lookupProfileByData(proto.getTable().getData());
 				defs.put(entry.getKey(), new IconDef(profile, "TAG[" + category + "]/" + entry.getKey() + "/" + ICON_SIZE,
 						layers, ICON_SIZE, iconProto));
 			}
@@ -170,8 +170,8 @@ public class IconManager {
 			Map<String, DataPrototype> map = new LinkedHashMap<>();
 			for (String rawPath : rawPaths) {
 				String[] path = rawPath.split("\\.");
-				for (ModsProfile profile : FactorioManager.getProfiles()) {
-					FactorioData data = profile.getData();
+				for (Profile profile : FactorioManager.getProfiles()) {
+					FactorioData data = profile.getFactorioData();
 					LuaTable lua = data.getTable().getRaw(path).get().totableObject();
 					Utils.forEach(lua, (k, v) -> {
 						DataPrototype proto = new DataPrototype(v.totableObject());

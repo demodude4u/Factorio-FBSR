@@ -45,12 +45,14 @@ import com.demod.factorio.Utils;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.factorio.prototype.TilePrototype;
 import com.demod.fbsr.cli.CmdBot;
+import com.demod.fbsr.gui.GUISize;
+import com.demod.fbsr.gui.GUIStyle;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
-public class ProfileEditor {
-	private static final Logger LOGGER = LoggerFactory.getLogger(ProfileEditor.class);
+public class Profile {
+	private static final Logger LOGGER = LoggerFactory.getLogger(Profile.class);
 
     public static final Set<String> BUILTIN_MODS;
 	public static final Set<String> BASE_ENTITIES;
@@ -59,7 +61,7 @@ public class ProfileEditor {
 
 	static {
 		JSONObject json;
-		try (InputStream is = ProfileEditor.class.getClassLoader().getResourceAsStream("base-data.json")) {
+		try (InputStream is = Profile.class.getClassLoader().getResourceAsStream("base-data.json")) {
 			json = new JSONObject(new JSONTokener(is));
 		} catch (IOException e) {
 			throw new RuntimeException("Failed to load base-data.json", e);
@@ -84,6 +86,8 @@ public class ProfileEditor {
         BUILD_4_DATA, // Rendering Updates
         READY,
     }
+
+    private final String name;
     
     private final File folderProfile;
     private final File fileProfile;
@@ -99,7 +103,24 @@ public class ProfileEditor {
     private final File folderBuildData;
     private final File fileScriptOutputDumpZip;
 
-    public ProfileEditor(File folderProfile, File folderBuild) {
+    private volatile FactorioData factorioData = null;
+    private volatile AtlasPackage atlasPackage = null;
+
+    public static Profile byName(String name) {
+        JSONObject json = Config.get().getJSONObject("factorio_manager");
+        File folderProfileRoot = new File(json.optString("profiles", "profiles"));
+        File folderBuildRoot = new File(json.optString("build", "build"));
+
+        return new Profile(new File(folderProfileRoot, name), new File(folderBuildRoot, name));
+    }
+
+    public static Profile vanilla() {
+        return Profile.byName("vanilla");
+    }
+
+    public Profile(File folderProfile, File folderBuild) {
+        name = folderProfile.getName();
+
         this.folderProfile = folderProfile;
         this.folderBuild = folderBuild;
 
@@ -115,6 +136,13 @@ public class ProfileEditor {
         folderBuildData = new File(folderBuild, "data");
         File folderScriptOutput = new File(folderBuildData, "script-output");
         fileScriptOutputDumpZip = new File(folderScriptOutput, "data-raw-dump.zip");
+
+        factorioData = new FactorioData(fileFactorioData);
+        atlasPackage = new AtlasPackage(fileAtlasData);
+    }
+
+    public String getName() {
+        return name;
     }
 
     public File getFolderProfile() {
@@ -125,17 +153,35 @@ public class ProfileEditor {
         return folderBuild;
     }
 
-    public static List<ProfileEditor> listProfiles() {
+    public File getFileProfile() {
+        return fileProfile;
+    }
+
+    public File getFileAtlasData() {
+        return fileAtlasData;
+    }
+
+    public File getFileFactorioData() {
+        return fileFactorioData;
+    }
+
+    public FactorioData getFactorioData() {
+        return factorioData;
+    }
+
+    public AtlasPackage getAtlasPackage() {
+        return atlasPackage;
+    }
+
+    public static List<Profile> listProfiles() {
         JSONObject json = Config.get().getJSONObject("factorio_manager");
         File folderProfileRoot = new File(json.optString("profiles", "profiles"));
         File folderBuildRoot = new File(json.optString("build", "build"));
 
-        List<ProfileEditor> profiles = new ArrayList<>();
+        List<Profile> profiles = new ArrayList<>();
         for (File folderProfile : folderProfileRoot.listFiles()) {
-            ProfileEditor profile = new ProfileEditor(folderProfile, new File(folderBuildRoot, folderProfile.getName()));
-            if (profile.isValid()) {
-                profiles.add(profile);
-            }
+            Profile profile = new Profile(folderProfile, new File(folderBuildRoot, folderProfile.getName()));
+            profiles.add(profile);
         }
         return profiles;
     }
@@ -211,22 +257,6 @@ public class ProfileEditor {
         return true;
     }
 
-    public boolean buildManifest(boolean force) {
-
-    }
-
-    public boolean buildDownload(boolean force) {
-
-    }
-
-    public boolean buildDump(boolean force) {
-
-    }
-
-    public boolean buildData(boolean force) {
-        
-    }
-
     public boolean generateProfile(String... mods) {
         if (isValid()) {
             System.out.println("Profile " + folderProfile.getName() + " already exists.");
@@ -242,6 +272,25 @@ public class ProfileEditor {
         jsonProfile.put("mods", jsonMods);
         writeJsonFile(fileProfile, jsonProfile);
         System.out.println("Profile created: " + folderProfile.getAbsolutePath());
+        return true;
+    }
+
+    public static boolean generateDefaultVanillaProfile() {
+        Profile editor = Profile.vanilla();
+        if (editor.isValid()) {
+            System.out.println("Default vanilla profile already exists.");
+            return false;
+        }
+        
+        File folderProfile = editor.getFolderProfile();
+        folderProfile.mkdirs();
+        try (InputStream is = Profile.class.getClassLoader().getResourceAsStream("profile.json")) {
+            Files.copy(is, new File(folderProfile, "profile.json").toPath(), StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false;
+        }
+
         return true;
     }
 
@@ -335,6 +384,31 @@ public class ProfileEditor {
             System.out.println("Profile Saved: " + fileProfile.getAbsolutePath());
         }
         return true;
+    }
+
+    public boolean buildManifest(boolean force) {
+
+    }
+
+    public boolean buildDownload(boolean force) {
+
+    }
+
+    public boolean buildDump(boolean force) {
+
+    }
+
+    public boolean buildData(boolean force) {
+        
+
+
+        if (name.equals("vanilla")) {
+            GUIStyle.copyFontsToVanillaProfile();
+        }
+    }
+
+    public void initializeData() {
+
     }
 
     //TODO how do I gracefully handle generating the default rendering configuration, as well as when adding more mods to a profile?

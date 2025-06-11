@@ -4,7 +4,7 @@ import java.util.function.Consumer;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.Layer;
-import com.demod.fbsr.ModsProfile;
+import com.demod.fbsr.Profile;
 import com.demod.fbsr.def.ImageDef;
 
 public class FPRailFenceGraphicsSet {
@@ -16,7 +16,7 @@ public class FPRailFenceGraphicsSet {
     public final Layer frontFenceRenderLayer;
     public final Layer frontFenceRenderLayerSecondary;
     
-    public FPRailFenceGraphicsSet(ModsProfile profile, LuaValue lua) {
+    public FPRailFenceGraphicsSet(Profile profile, LuaValue lua) {
         segmentCount = lua.get("segment_count").checkint();
         sideA = new FPRailFencePictureSet(profile, lua.get("side_A"));
         sideB = new FPRailFencePictureSet(profile, lua.get("side_B"));

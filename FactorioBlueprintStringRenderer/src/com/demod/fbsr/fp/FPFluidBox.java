@@ -6,7 +6,7 @@ import java.util.function.Consumer;
 
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.FPUtils;
-import com.demod.fbsr.ModsProfile;
+import com.demod.fbsr.Profile;
 import com.demod.fbsr.def.ImageDef;
 
 public class FPFluidBox {
@@ -16,7 +16,7 @@ public class FPFluidBox {
 	public final Optional<FPSprite4Way> pipePicture;
 	public final List<FPPipeConnectionDefinition> pipeConnections;
 
-	public FPFluidBox(ModsProfile profile, LuaValue lua) {
+	public FPFluidBox(Profile profile, LuaValue lua) {
 		filter = FPUtils.optString(lua.get("filter"));
 		productionType = FPUtils.optString(lua.get("production_type"));
 		pipeCovers = FPUtils.opt(profile, lua.get("pipe_covers"), FPSprite4Way::new);

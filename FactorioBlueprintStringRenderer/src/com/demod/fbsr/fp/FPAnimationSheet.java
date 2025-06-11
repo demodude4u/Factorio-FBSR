@@ -7,7 +7,7 @@ import java.util.function.Consumer;
 
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.FPUtils;
-import com.demod.fbsr.ModsProfile;
+import com.demod.fbsr.Profile;
 import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.def.SpriteDef;
 
@@ -19,7 +19,7 @@ public class FPAnimationSheet extends FPAnimationParameters {
 
 	private final List<SpriteDef> defs;
 
-	public FPAnimationSheet(ModsProfile profile, LuaValue lua) {
+	public FPAnimationSheet(Profile profile, LuaValue lua) {
 		super(profile, lua);
 
 		variationCount = lua.get("variation_count").checkint();
@@ -29,7 +29,7 @@ public class FPAnimationSheet extends FPAnimationParameters {
 		defs = createDefs(profile);
 	}
 
-	private List<SpriteDef> createDefs(ModsProfile profile) {
+	private List<SpriteDef> createDefs(Profile profile) {
 
 		List<SpriteDef> defs = new ArrayList<>();
 		int frameCount = variationCount * lineLength;
