@@ -198,7 +198,8 @@ public class CmdProfile {
 
     @Command(name = "explore", description = "Open file manager for the specified profile")
     public void explore(
-            @Option(names = "-name", description = "Name of the profile") Optional<String> name
+            @Option(names = "-name", description = "Name of the profile") Optional<String> name,
+            @Option(names = "-build", description = "Open the build folder instead of the profile folder") boolean build
     ) {
         if (!checkOrSelectProfile(name)) {
             return;
@@ -206,7 +207,7 @@ public class CmdProfile {
 
         if (Desktop.isDesktopSupported()) {
             try {
-                Desktop.getDesktop().open(editor.getFolderMods());
+                Desktop.getDesktop().open(build ? profile.getFolderBuild() : profile.getFolderProfile());
             } catch (IOException e) {
                 System.out.println("Failed to open profile in file manager: " + e.getMessage());
             }
@@ -226,44 +227,142 @@ public class CmdProfile {
         // TODO
     }
 
-    @Command(name = "download", description = "Download mods for the specified profile")
-    public void downloadMods(
-            @Option(names = "-name", description = "Name of the profile") Optional<String> name
+    @Command(name = "build-manifest", description = "Build the manifest for the specified profile")
+    public void buildManifest(
+            @Option(names = "-name", description = "Name of the profile") Optional<String> name,
+            @Option(names = "-force", description = "Force regeneration of the manifest, even if it already exists") boolean force
     ) {
         if (!checkOrSelectProfile(name)) {
             return;
         }
 
-        try {
-            if (!FactorioManager.downloadMods(editor.getFolderMods())) {
-                System.out.println("No mods were downloaded for profile: " + name);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    @Command(name = "validate", description = "Validate the specified profile, checking prototypes and factories")
-    public void validateProfile(
-            @Option(names = "-name", description = "Name of the profile") Optional<String> name
-    ) {
-        if (!checkOrSelectProfile(name)) {
-            return;
-        }
-
-        // TODO
-    }
-
-    @Command(name = "test", description = "Runs a dump on a temporary profile")
-    public void testDumpDataRaw(
-            @Parameters(arity = "1..*", description = "List of mods to include in the profile") String[] mods
-    ) {
-        Profile editor = new Profile();
-        if (editor.testProfile(mods)) {
-            System.out.println("No Errors -- Check dump output to confirm!");
+        if (profile.buildManifest(force)) {
+            System.out.println("Manifest built successfully for profile: " + profile.getName());
         } else {
-            System.out.println("Failed to create test profile!");
+            System.out.println("Failed to build manifest for profile: " + profile.getName());
         }
     }
 
+    @Command(name = "build-download", description = "Download mods for the specified profile")
+    public void buildDownloadMods(
+            @Option(names = "-name", description = "Name of the profile") Optional<String> name,
+            @Option(names = "-force", description = "Force redownload of mods, even if they already exist") boolean force
+    ) {
+        if (!checkOrSelectProfile(name)) {
+            return;
+        }
+
+        if (profile.buildDownload(force)) {
+            System.out.println("Mods downloaded successfully for profile: " + profile.getName());
+        } else {
+            System.out.println("Failed to download mods for profile: " + profile.getName());
+        }
+    }
+
+    @Command(name = "build-dump", description = "Dump factorio data for the specified profile")
+    public void buildDumpDataRaw(
+            @Option(names = "-name", description = "Name of the profile") Optional<String> name,
+            @Option(names = "-force", description = "Force regeneration of data.raw, even if it already exists") boolean force
+    ) {
+        if (!checkOrSelectProfile(name)) {
+            return;
+        }
+
+        if (profile.buildDump(force)) {
+            System.out.println("Factorio data dumped successfully for profile: " + profile.getName());
+        } else {
+            System.out.println("Failed to dump factorio data for profile: " + profile.getName());
+        }
+    }
+
+    @Command(name = "build-data", description = "Generate data for the specified profile")
+    public void buildGenerateData(
+            @Option(names = "-name", description = "Name of the profile") Optional<String> name,
+            @Option(names = "-force", description = "Force regeneration of data, even if it already exists") boolean force
+    ) {
+        if (!checkOrSelectProfile(name)) {
+            return;
+        }
+
+        if (profile.buildData(force)) {
+            System.out.println("Data generated successfully for profile: " + profile.getName());
+        } else {
+            System.out.println("Failed to generate data for profile: " + profile.getName());
+        }
+    }
+
+    @Command(name = "clear-manifest", description = "Clear the manifest for the specified profile")
+    public void clearManifest(
+            @Option(names = "-name", description = "Name of the profile") Optional<String> name
+    ) {
+        if (!checkOrSelectProfile(name)) {
+            return;
+        }
+
+        if (profile.clearManifest()) {
+            System.out.println("Manifest cleared successfully for profile: " + profile.getName());
+        } else {
+            System.out.println("Failed to clear manifest for profile: " + profile.getName());
+        }
+    }
+
+    @Command(name = "clear-download", description = "Clear all downloaded mods for the specified profile")
+    public void clearDownload(
+            @Option(names = "-name", description = "Name of the profile") Optional<String> name
+    ) {
+        if (!checkOrSelectProfile(name)) {
+            return;
+        }
+
+        if (profile.clearAllDownloads()) {
+            System.out.println("Downloaded mods cleared successfully for profile: " + profile.getName());
+        } else {
+            System.out.println("Failed to clear downloaded mods for profile: " + profile.getName());
+        }
+    }
+
+    @Command(name = "clear-download-invalid", description = "Clear invalid downloaded mods for the specified profile")
+    public void clearDownloadInvalid(
+            @Option(names = "-name", description = "Name of the profile") Optional<String> name
+    ) {
+        if (!checkOrSelectProfile(name)) {
+            return;
+        }
+
+        if (profile.clearInvalidDownloads()) {
+            System.out.println("Invalid downloaded mods cleared successfully for profile: " + profile.getName());
+        } else {
+            System.out.println("Failed to clear invalid downloaded mods for profile: " + profile.getName());
+        }
+    }
+
+    @Command(name = "clear-dump", description = "Clear dumped factorio data for the specified profile")
+    public void clearDumpDataRaw(
+            @Option(names = "-name", description = "Name of the profile") Optional<String> name
+    ) {
+        if (!checkOrSelectProfile(name)) {
+            return;
+        }
+
+        if (profile.clearDump()) {
+            System.out.println("Factorio data dump cleared successfully for profile: " + profile.getName());
+        } else {
+            System.out.println("Failed to clear factorio data dump for profile: " + profile.getName());
+        }
+    }
+
+    @Command(name = "clear-data", description = "Clear generated data for the specified profile")
+    public void clearGenerateData(
+            @Option(names = "-name", description = "Name of the profile") Optional<String> name
+    ) {
+        if (!checkOrSelectProfile(name)) {
+            return;
+        }
+
+        if (profile.clearData()) {
+            System.out.println("Generated data cleared successfully for profile: " + profile.getName());
+        } else {
+            System.out.println("Failed to clear generated data for profile: " + profile.getName());
+        }
+    }
 }

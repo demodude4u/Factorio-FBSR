@@ -17,6 +17,7 @@ import java.util.Arrays;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.rapidoid.io.IO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,15 +56,20 @@ public class FactorioModPortal {
 
 		JSONObject jsonRelease = findModReleaseInfo(modName, modVersion);
 
-		String downloadUrl = API_URL + jsonRelease.getString("download_url") + authParams;
 		String filename = jsonRelease.getString("file_name");
-		String expectedSha1 = jsonRelease.getString("sha1");
+		File target = new File(folder, filename);
+		String downloadUrl = jsonRelease.getString("download_url");
+		String sha1 = jsonRelease.getString("sha1");
 
-		URL url = new URL(downloadUrl);
-		File file = new File(folder, filename);
+		downloadModDirect(target, downloadUrl, sha1, authParams);
+		return target;
+	}
+
+	public static synchronized void downloadModDirect(File target, String downloadUrl, String sha1, String authParams) throws IOException {
+		URL url = new URL(API_URL + downloadUrl + authParams);
 		HttpURLConnection conn = (HttpURLConnection) url.openConnection();
 
-		try (InputStream in = conn.getInputStream(); FileOutputStream out = new FileOutputStream(file)) {
+		try (InputStream in = conn.getInputStream(); FileOutputStream out = new FileOutputStream(target)) {
 			MessageDigest sha1Digest = MessageDigest.getInstance("SHA-1");
 			byte[] buffer = new byte[32768];
 			int bytesRead;
@@ -71,19 +77,17 @@ public class FactorioModPortal {
 				out.write(buffer, 0, bytesRead);
 				sha1Digest.update(buffer, 0, bytesRead);
 			}
-			LOGGER.info("Downloaded {}", file.getAbsolutePath());
+			LOGGER.info("Downloaded {}", target.getAbsolutePath());
 
 			// Verify SHA-1 hash
 			String fileSha1 = bytesToHex(sha1Digest.digest());
-			if (!fileSha1.equalsIgnoreCase(expectedSha1)) {
-				throw new IOException("SHA-1 mismatch! Expected: " + expectedSha1 + " but got: " + fileSha1);
+			if (!fileSha1.equalsIgnoreCase(sha1)) {
+				throw new IOException("SHA-1 mismatch! Expected: " + sha1 + " but got: " + fileSha1);
 			}
 			LOGGER.info("SHA-1 hash verified successfully.");
-			return file;
 		} catch (NoSuchAlgorithmException e) {
 			e.printStackTrace();
 			System.exit(-1);
-			return null;
 		}
 	}
 

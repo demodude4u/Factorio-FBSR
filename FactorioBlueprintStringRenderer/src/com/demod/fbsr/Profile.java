@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.Map.Entry;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -34,6 +35,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
+import org.rapidoid.commons.Str;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -101,7 +103,7 @@ public class Profile {
     private final File fileModList;
 
     private final File folderBuildData;
-    private final File fileScriptOutputDumpZip;
+    private final File fileScriptOutputDump;
 
     private volatile FactorioData factorioData = null;
     private volatile AtlasPackage atlasPackage = null;
@@ -135,7 +137,7 @@ public class Profile {
 
         folderBuildData = new File(folderBuild, "data");
         File folderScriptOutput = new File(folderBuildData, "script-output");
-        fileScriptOutputDumpZip = new File(folderScriptOutput, "data-raw-dump.zip");
+        fileScriptOutputDump = new File(folderScriptOutput, "data-raw-dump.json");
 
         factorioData = new FactorioData(fileFactorioData);
         atlasPackage = new AtlasPackage(fileAtlasData);
@@ -209,9 +211,11 @@ public class Profile {
         }
 
         JSONObject jsonManifest = readJsonFile(fileManifest);
-        JSONArray jsonZips = jsonManifest.optJSONArray("zips");
-        for (int i = 0; i < jsonZips.length(); i++) {
-            String zipName = jsonZips.getString(i);
+        JSONObject jsonZips = jsonManifest.optJSONObject("zips");
+        if (jsonZips == null) {
+            return false;
+        }
+        for (String zipName : jsonZips.keySet()) {
             File zipFile = new File(folderBuildMods, zipName);
             if (!zipFile.exists()) {
                 return false;
@@ -222,7 +226,7 @@ public class Profile {
     }
 
     public boolean hasDump() {
-        return fileScriptOutputDumpZip.exists();
+        return fileScriptOutputDump.exists();
     }
 
     public boolean hasData() {
@@ -386,12 +390,183 @@ public class Profile {
         return true;
     }
 
-    public boolean buildManifest(boolean force) {
-
+    public boolean clearManifest() {
+        return fileManifest.delete();
     }
+
+    public boolean clearAllDownloads() {
+        if (!folderBuildMods.exists()) {
+            System.out.println("Profile " + folderProfile.getName() + " does not have a build folder.");
+            return false;
+        }
+         
+        for (File file : folderBuildMods.listFiles()) {
+            if (file.getName().endsWith(".zip")) {
+                file.delete();
+            }
+        }
+        return true;
+    }
+
+    public boolean clearInvalidDownloads() {
+        if (!hasManifest()) {
+            System.out.println("Profile " + folderProfile.getName() + " does not have a manifest.");
+            return false;
+        }
+
+        JSONObject jsonManifest = readJsonFile(fileManifest);
+        JSONObject jsonZips = jsonManifest.optJSONObject("zips");
+        if (jsonZips == null) {
+            System.out.println("Invalid manifest for profile: " + folderProfile.getName());
+            return false;
+        }
+
+        Set<String> validZips = jsonZips.keySet();
+        if (folderBuildMods.exists()) {
+            for (File file : folderBuildMods.listFiles()) {
+                if (!validZips.contains(file.getName())) {
+                    System.out.println("Deleting invalid download: " + file.getName());
+                    file.delete();
+                }
+            }
+        }
+
+        return true;
+    }
+
+    public boolean clearDump() {
+        return fileScriptOutputDump.delete();
+    }
+
+    public boolean clearData() {
+        return fileFactorioData.delete() && fileAtlasData.delete();
+    }
+
+    public boolean buildManifest(boolean force) {
+        if (!isValid()) {
+            System.out.println("Profile " + folderProfile.getName() + " is not valid.");
+            return false;
+        }
+
+        if (!force && hasManifest()) {
+            System.out.println("Profile " + folderProfile.getName() + " already has a manifest.");
+            return false;
+        }
+        
+        //TODO load specific versions of mods and calculate dependencies with version compatibility
+
+        JSONObject jsonProfile = readJsonFile(fileProfile);
+        JSONArray jsonMods = jsonProfile.optJSONArray("mods");
+
+        List<String> mods = new ArrayList<>();
+        for (int i = 0; i < jsonMods.length(); i++) {
+            String mod = jsonMods.getString(i).trim();
+            mods.add(mod);
+        }
+
+        Map<String, JSONObject> modInfo = new LinkedHashMap<>();
+        for (String mod : mods) {
+            if (BUILTIN_MODS.contains(mod)) {
+                continue;
+            }
+            try {
+                walkDependencies(modInfo, mod);
+            } catch (IOException e) {
+                System.err.println("Failed to walk dependencies for mod: " + mod);
+                e.printStackTrace();
+                return false;
+            }
+        }
+
+        JSONObject jsonManifest = new JSONObject();
+
+        JSONObject jsonZips = new JSONObject();
+        jsonManifest.put("zips", jsonZips);
+        for (Entry<String, JSONObject> entry : modInfo.entrySet()) {
+            String modName = entry.getKey();
+            JSONObject jsonRelease = entry.getValue();
+
+            String filename = jsonRelease.getString("file_name");
+            String downloadUrl = jsonRelease.getString("download_url");
+            String sha1 = jsonRelease.getString("sha1");
+
+            JSONArray jsonZip = new JSONArray();
+            jsonZip.put(downloadUrl);
+            jsonZip.put(sha1);
+            jsonZips.put(filename, jsonZip);
+
+            System.out.println("MOD MANIFEST ZIP - [" + modName + "] " + filename + " " + downloadUrl + " " + sha1);
+        
+            if (!filename.endsWith(".zip")) {
+                System.err.println("Invalid mod file name: " + filename + ". Must end with .zip");
+                return false;
+            }
+        }
+
+        writeJsonFile(fileManifest, jsonManifest);
+
+        clearInvalidDownloads();
+        clearDump();
+        clearData();
+
+        return true;
+    }
+
+    private static void walkDependencies(Map<String, JSONObject> results, String mod) throws IOException {
+		JSONObject jsonRelease = FactorioModPortal.findLatestModReleaseInfoFull(mod);
+        if (results.put(mod, jsonRelease) != null) {
+            return; // Already processed this mod
+        }
+		JSONArray jsonDependencies = jsonRelease.getJSONObject("info_json").getJSONArray("dependencies");
+
+		for (int i = 0; i < jsonDependencies.length(); i++) {
+			String dependency = jsonDependencies.getString(i).trim();
+			String prefix = "";
+			String depMod = null;
+
+            if (dependency.startsWith("!") || dependency.startsWith("?") || dependency.startsWith("(?)")) {
+                continue; // Skip incompatible mods or optional dependencies
+            }
+
+			// Extract prefix if present
+			if (dependency.startsWith("~")) {
+				int prefixEnd = dependency.indexOf(' ');
+				prefix = dependency.substring(0, prefixEnd).trim();
+				dependency = dependency.substring(prefixEnd).trim();
+			}
+
+			// Identify version operator and split dependency
+			int versionIndex = -1;
+			for (String operator : new String[]{"<=", ">=", "=", "<", ">"}) {
+				versionIndex = dependency.indexOf(operator);
+				if (versionIndex != -1) {
+					break;
+				}
+			}
+
+			if (versionIndex != -1) {
+				depMod = dependency.substring(0, versionIndex).trim();
+			} else {
+				depMod = dependency; // No version operator found, treat as mod name
+			}
+
+			if (!BUILTIN_MODS.contains(depMod)) {
+				walkDependencies(results, depMod);
+			}
+		}
+	}
 
     public boolean buildDownload(boolean force) {
 
+
+
+        if (!FactorioManager.hasModPortalApi()) {
+            System.out.println("Mod Portal API is not configured. Cannot build manifest.");
+            return false;
+        }
+
+        String username = FactorioManager.getModPortalApiUsername();
+        String password = FactorioManager.getModPortalApiPassword();
     }
 
     public boolean buildDump(boolean force) {
@@ -479,6 +654,89 @@ public class Profile {
         this.folderMods = folderMods;
         return true;
     }
+    
+    public static boolean downloadMods(File folderProfile, File folderBuild) throws IOException {
+		JSONObject json = Config.get().getJSONObject("factorio_manager");
+
+		
+
+		File fileModDownloadCached = new File(folderMods, "mod-download-cached.json");
+		boolean cacheChange = false;
+		JSONObject jsonModDownloadCached;
+		if (fileModDownloadCached.exists()) {
+			jsonModDownloadCached = new JSONObject(Files.readString(fileModDownloadCached.toPath()));
+		} else {
+			jsonModDownloadCached = new JSONObject();
+			cacheChange = true;
+		}
+
+		File fileModDownload = new File(folderMods, "mod-download.json");
+		if (!modPortalApi || !fileModDownload.exists()) {
+			return false;
+		}
+
+		File folderDownloadCache = new File("tempdownload");
+		folderDownloadCache.mkdirs();
+		
+		List<String> requiredZips = new ArrayList<>();
+		boolean anyDownloaded = false;
+		JSONObject jsonModDownload = new JSONObject(Files.readString(fileModDownload.toPath()));
+		boolean auth = false;
+		String authParams = null;
+		for (String modName : jsonModDownload.keySet()) {
+			String modVersion = jsonModDownload.getString(modName);
+
+			if (!jsonModDownloadCached.has(modName)) {
+				jsonModDownloadCached.put(modName, new JSONObject());
+				cacheChange = true;
+			}
+			JSONObject jsonModCached = jsonModDownloadCached.getJSONObject(modName);
+			if (!jsonModCached.has(modVersion)) {
+				jsonModCached.put(modVersion,
+						FactorioModPortal.findModReleaseInfo(modName, modVersion));
+				cacheChange = true;
+			}
+			JSONObject jsonRelease = jsonModCached.getJSONObject(modVersion);
+
+			File fileModZip = new File(folderMods, jsonRelease.getString("file_name"));
+			requiredZips.add(fileModZip.getName());
+			if (!fileModZip.exists()) {
+				File fileModZipCached = new File(fileModZip.getName());
+				if (fileModDownloadCached.exists()) {
+					Files.copy(fileModDownloadCached.toPath(), fileModZipCached.toPath());
+
+				} else {
+					if (!auth) {
+						auth = true;
+						authParams = FactorioModPortal.getAuthParams(modPortalApiUsername,
+								modPortalApiPassword);
+					}
+					File fileDownloaded = FactorioModPortal.downloadMod(folderMods, modName, modVersion, authParams);
+					if (!fileDownloaded.getName().equals(fileModZip.getName())) {
+						LOGGER.warn("Downloaded file name does not match expected: {} != {}", fileDownloaded.getName(), fileModZip.getName());
+					} else {
+						Files.copy(fileModZip.toPath(), fileModZipCached.toPath(), StandardCopyOption.REPLACE_EXISTING);
+					}
+				}
+				anyDownloaded = true;
+			}
+
+		}
+
+		for (File file : folderMods.listFiles()) {
+			if (file.isFile() && file.getName().endsWith(".zip") && !requiredZips.contains(file.getName())) {
+				LOGGER.info("DELETE OLD ZIP: {}", file.getAbsolutePath());
+				file.delete();
+			}
+		}
+
+		if (cacheChange) {
+			Files.writeString(fileModDownloadCached.toPath(), jsonModDownloadCached.toString(2));
+			LOGGER.info("WRITE MOD DOWNLOAD CACHED: {}", fileModDownloadCached.getAbsolutePath());
+		}
+
+		return anyDownloaded;
+	}
 
     private boolean tempDump(String[] mods) throws Exception {
         JSONObject cfgFactorioManager = Config.get().getJSONObject("factorio_manager");
@@ -607,48 +865,6 @@ public class Profile {
 
         return true;
     }
-
-    private static void walkDependencies(Set<String> allMods, String mod) throws IOException {
-		JSONObject jsonRelease = FactorioModPortal.findLatestModReleaseInfoFull(mod);
-		JSONArray jsonDependencies = jsonRelease.getJSONObject("info_json").getJSONArray("dependencies");
-
-		for (int i = 0; i < jsonDependencies.length(); i++) {
-			String dependency = jsonDependencies.getString(i).trim();
-			String prefix = "";
-			String depMod = null;
-
-            if (dependency.startsWith("!") || dependency.startsWith("?") || dependency.startsWith("(?)")) {
-                continue; // Skip incompatible mods or optional dependencies
-            }
-
-			// Extract prefix if present
-			if (dependency.startsWith("~")) {
-				int prefixEnd = dependency.indexOf(' ');
-				prefix = dependency.substring(0, prefixEnd).trim();
-				dependency = dependency.substring(prefixEnd).trim();
-			}
-
-			// Identify version operator and split dependency
-			int versionIndex = -1;
-			for (String operator : new String[]{"<=", ">=", "=", "<", ">"}) {
-				versionIndex = dependency.indexOf(operator);
-				if (versionIndex != -1) {
-					break;
-				}
-			}
-
-			if (versionIndex != -1) {
-				depMod = dependency.substring(0, versionIndex).trim();
-			} else {
-				depMod = dependency; // No version operator found, treat as mod name
-			}
-
-			// Add the dependency and recursively walk its dependencies
-			if (allMods.add(depMod) && !BUILTIN_MODS.contains(depMod)) {
-				walkDependencies(allMods, depMod);
-			}
-		}
-	}
 
     // based on cannot_ghost() by _codegreen
 	private static boolean isBlueprintable(EntityPrototype entity) {
