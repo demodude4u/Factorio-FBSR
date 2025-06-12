@@ -9,6 +9,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
@@ -442,6 +443,54 @@ public class Profile {
         return fileFactorioData.delete() && fileAtlasData.delete();
     }
 
+    public boolean delete() {
+        AtomicBoolean success = new AtomicBoolean(true);
+
+        // Delete all files and subdirectories in the build folder
+        if (folderBuild.exists()) {
+            try {
+            Files.walk(folderBuild.toPath())
+                 .map(Path::toFile)
+                 .sorted((f1, f2) -> f2.getAbsolutePath().length() - f1.getAbsolutePath().length()) // Delete children first
+                 .forEach(file -> {
+                 if (!file.delete()) {
+                     success.set(false);
+                 }
+                 });
+            } catch (IOException e) {
+            e.printStackTrace();
+            success.set(false);
+            }
+
+            if (!folderBuild.delete()) {
+                success.set(false);
+            }
+        }
+
+        // Delete all files and subdirectories in the profile folder
+        if (folderProfile.exists()) {
+            try {
+            Files.walk(folderProfile.toPath())
+                 .map(Path::toFile)
+                 .sorted((f1, f2) -> f2.getAbsolutePath().length() - f1.getAbsolutePath().length()) // Delete children first
+                 .forEach(file -> {
+                 if (!file.delete()) {
+                     success.set(false);
+                 }
+                 });
+            } catch (IOException e) {
+            e.printStackTrace();
+            success.set(false);
+            }
+
+            if (!folderProfile.delete()) {
+                success.set(false);
+            }
+        }
+
+        return success.get();
+    }
+
     public boolean buildManifest(boolean force) {
         if (!isValid()) {
             System.out.println("Profile " + folderProfile.getName() + " is not valid.");
@@ -503,6 +552,10 @@ public class Profile {
             }
         }
 
+        if (!folderBuild.exists()) {
+            folderBuild.mkdirs();
+        }
+
         writeJsonFile(fileManifest, jsonManifest);
 
         clearInvalidDownloads();
@@ -558,18 +611,58 @@ public class Profile {
 
     public boolean buildDownload(boolean force) {
 
-
+        if (!hasManifest()) {
+            System.out.println("Profile " + folderProfile.getName() + " does not have a manifest.");
+            return false;
+        }
 
         if (!FactorioManager.hasModPortalApi()) {
-            System.out.println("Mod Portal API is not configured. Cannot build manifest.");
+            System.out.println("Mod Portal API is not configured. Cannot download mods.");
             return false;
         }
 
         String username = FactorioManager.getModPortalApiUsername();
         String password = FactorioManager.getModPortalApiPassword();
+
+        String authString = null;
+        
+        JSONObject jsonManifest = readJsonFile(fileManifest);
+        JSONObject jsonZips = jsonManifest.optJSONObject("zips");
+        if (jsonZips != null) {
+            for (String key : jsonZips.keySet()) {
+                JSONArray jsonZip = jsonZips.getJSONArray(key);
+                String downloadUrl = jsonZip.optString(0);
+                String sha1 = jsonZip.optString(1);
+                
+                File target = new File(folderBuildMods, key);
+                if (force || !target.exists()) {
+
+                    try {
+                        if (authString == null) {
+                            authString = FactorioModPortal.getAuthParams(username, password);
+                        }
+
+                        FactorioModPortal.downloadModDirect(target, downloadUrl, sha1, authString);
+
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        return false;
+                    }
+                }
+            }
+        }
+
+        return clearInvalidDownloads();
     }
 
     public boolean buildDump(boolean force) {
+
+        if (!hasDownloaded()) {
+            System.out.println("Profile " + folderProfile.getName() + " has missing or invalid mods downloaded.");
+            return false;
+        }
+
+
 
     }
 

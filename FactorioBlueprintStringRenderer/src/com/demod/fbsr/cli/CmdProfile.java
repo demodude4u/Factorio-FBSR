@@ -59,7 +59,7 @@ public class CmdProfile {
     ) {
         Profile profile = Profile.byName(name);
         if (profile.generateProfile(mods)) {
-            System.out.println("Profile created successfully:" + profile.getName() + " (" + profile.getFolderProfile().getAbsolutePath()) + ")");
+            System.out.println("Profile created successfully:" + profile.getName() + " (" + profile.getFolderProfile().getAbsolutePath() + ")");
         } else {
             System.out.println("Failed to create profile!");
         }
@@ -146,10 +146,21 @@ public class CmdProfile {
 
     @Command(name = "delete", description = "Delete a profile")
     public void deleteProfile(
-            @Option(names = "-name", description = "Name of the profile") Optional<String> name
+            @Option(names = "-name", description = "Name of the profile") Optional<String> name,
+            @Option(names = "-confirm", description = "Skip confirmation prompt") boolean confirm
     ) {
         if (!checkOrSelectProfile(name)) {
             return;
+        }
+
+        if (!confirm) {
+            System.out.print("Type the profile name (" + profile.getName() + ") to confirm deletion: ");
+            @SuppressWarnings("resource")
+            String input = new java.util.Scanner(System.in).nextLine();
+            if (!input.equals(profile.getName())) {
+                System.out.println("Confirmation failed. Profile deletion aborted.");
+                return;
+            }
         }
 
         if (profile.delete()) {
