@@ -57,6 +57,7 @@ public final class GUIStyle {
 		File fileProfileFont = new File(profile.getFolderProfile(), filename);
 		try {
 			Files.copy(fileInstallFont.toPath(), fileProfileFont.toPath(), StandardCopyOption.REPLACE_EXISTING);
+			LOGGER.info("Copied font: {}", fileProfileFont.getAbsolutePath());
 		} catch (IOException e) {
 			LOGGER.error("FAILED TO COPY FONT: {}", fileProfileFont.getAbsolutePath(), e);
 			throw new RuntimeException("Failed to copy font: " + filename, e);
@@ -74,7 +75,7 @@ public final class GUIStyle {
 		}
 	}
 
-	public static boolean copyFontsToProfile(ModLoader loader, Profile profile) {
+	public static boolean copyFontsToProfile(Profile profile) {
 		if (!profile.hasData()) {
 			System.out.println("Profile is missing factorio data, cannot copy fonts.");
 			return false;

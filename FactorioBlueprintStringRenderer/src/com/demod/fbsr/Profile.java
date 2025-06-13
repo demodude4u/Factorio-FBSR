@@ -138,7 +138,7 @@ public class Profile {
 
         folderBuildData = new File(folderBuild, "data");
         File folderScriptOutput = new File(folderBuildData, "script-output");
-        fileScriptOutputDump = new File(folderScriptOutput, "data-raw-dump.json");
+        fileScriptOutputDump = new File(folderScriptOutput, "data-raw-dump.zip");
 
         factorioData = new FactorioData(fileFactorioData);
         atlasPackage = new AtlasPackage(fileAtlasData);
@@ -208,6 +208,10 @@ public class Profile {
 
     public boolean hasDownloaded() {
         if (!hasManifest()) {
+            return false;
+        }
+
+        if (!fileModList.exists()) {
             return false;
         }
 
@@ -391,6 +395,31 @@ public class Profile {
         return true;
     }
 
+    // based on cannot_ghost() by _codegreen
+	private static boolean isBlueprintable(EntityPrototype entity) {
+		boolean cantGhost = false;
+		if (entity.getFlags().contains("not-blueprintable")) {
+			cantGhost = true;
+		}
+		if (!entity.getFlags().contains("player-creation")) {
+			cantGhost = true;
+		}
+		if (entity.getPlacedBy().isEmpty()) {
+			cantGhost = true;
+		}
+		return !cantGhost;
+	}
+
+	private static boolean isBlueprintable(TilePrototype tile) {
+		if (!tile.lua().get("can_be_part_of_blueprint").optboolean(true)) {
+			return false;
+		}
+		if (tile.getPlacedBy().isEmpty()) {
+			return false;
+		}
+		return true;
+	}
+
     public boolean clearManifest() {
         return fileManifest.delete();
     }
@@ -406,6 +435,11 @@ public class Profile {
                 file.delete();
             }
         }
+
+        if (fileModList.exists()) {
+            fileModList.delete();
+        }
+
         return true;
     }
 
@@ -652,364 +686,104 @@ public class Profile {
             }
         }
 
-        return clearInvalidDownloads();
+        //TODO add mod names to manifest and create a mod-list.json that matches
+
+        clearInvalidDownloads();
+        clearDump();
+        clearData();
+
+        return true;
     }
 
     public boolean buildDump(boolean force) {
 
         if (!hasDownloaded()) {
-            System.out.println("Profile " + folderProfile.getName() + " has missing or invalid mods downloaded.");
+            System.out.println("Profile " + folderProfile.getName() + " does not have the correct mods downloaded, or the mod list is missing.");
             return false;
         }
 
+        if (!FactorioManager.hasFactorioInstall()) {
+            System.out.println("Factorio is not configured. Cannot generate dump file.");
+            return false;
+        }
 
+        folderBuildData.mkdirs();
 
+        if (force && fileScriptOutputDump.exists()) {
+            if (!fileScriptOutputDump.delete()) {
+                System.out.println("Failed to delete old dump file: " + fileScriptOutputDump.getAbsolutePath());
+                return false;
+            }
+        }
+
+        Optional<File> folderFactorio = Optional.of(FactorioManager.getFactorioInstall());
+        Optional<File> factorioExecutable = Optional.of(FactorioManager.getFactorioExecutable());
+
+        FactorioData data = new FactorioData(folderBuildData, folderBuildMods, folderFactorio, factorioExecutable, force);
+        try {
+            data.initialize(false);
+        } catch (JSONException | IOException e) {
+            e.printStackTrace();
+            return false;
+        }
+
+        if (!hasDump()) {
+            System.out.println("Profile " + folderProfile.getName() + " was unable to generate a dump file!");
+            return false;
+        }
+
+        clearData();
+
+        return true;
     }
 
     public boolean buildData(boolean force) {
         
+        if (!hasDump()) {
+            System.out.println("Profile " + folderProfile.getName() + " does not have a dump file.");
+            return false;
+        }
 
+        if (!force && hasData()) {
+            System.out.println("Profile " + folderProfile.getName() + " already has data files.");
+            return false;
+        }
+
+        //TODO
 
         if (name.equals("vanilla")) {
-            GUIStyle.copyFontsToVanillaProfile();
-        }
-    }
-
-    public void initializeData() {
-
-    }
-
-    //TODO how do I gracefully handle generating the default rendering configuration, as well as when adding more mods to a profile?
-
-    public static boolean generateProfile(boolean force, String... mods) {
-
-        if (!force && isValid()) {
-            System.out.println("Profile " + folderProfile.getName() + " already exists.");
-            return false;
-        }
-
-        try {
-            if (!tempDump(mods)) {
+            if (!GUIStyle.copyFontsToProfile(this)) {
+                System.out.println("Failed to copy fonts to vanilla profile.");
                 return false;
             }
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false;
         }
-
-        JSONObject jsonModRendering = new JSONObject();
-        JSONObject jsonModRenderingEntities = new JSONObject();
-        jsonModRendering.put("entities", jsonModRenderingEntities);
-        JSONObject jsonModRenderingEntitiesModGroup = new JSONObject();
-        jsonModRenderingEntities.put(modGroup, jsonModRenderingEntitiesModGroup);
-        for (Map.Entry<String, String> entry : tempModEntityRenderings.entrySet()) {
-            jsonModRenderingEntitiesModGroup.put(entry.getKey(), entry.getValue());
-        }
-        JSONObject jsonModRenderingTiles = new JSONObject();
-        jsonModRendering.put("tiles", jsonModRenderingTiles);
-        JSONArray jsonModRenderingTilesModGroup = new JSONArray();
-        jsonModRenderingTiles.put(modGroup, jsonModRenderingTilesModGroup);
-        for (String tile : tempModTiles) {
-            jsonModRenderingTilesModGroup.put(tile);
-        }
-
-        File fileTempModRendering = new File(tempFolderMods, "mod-rendering.json");
-		if (fileTempModRendering.exists()) {
-			fileTempModRendering.setWritable(true);
-		}
-		try (FileWriter fw = new FileWriter(fileTempModRendering)) {
-			jsonModRendering.write(fw);
-		} catch (IOException e) {
-            e.printStackTrace();
-            return false;
-        }
-
-        File folderMods = new File(folderModsRoot, name);
-        File fileModDownload = new File(folderMods, tempFileModDownload.getName());
-        File fileModList = new File(folderMods, tempFileModList.getName());
-        File fileModRendering = new File(folderMods, fileTempModRendering.getName());
-        
-        try {
-            folderMods.mkdirs();
-            Files.copy(tempFileModDownload.toPath(), fileModDownload.toPath(), StandardCopyOption.REPLACE_EXISTING);
-            Files.copy(tempFileModList.toPath(), fileModList.toPath(), StandardCopyOption.REPLACE_EXISTING);
-            Files.copy(fileTempModRendering.toPath(), fileModRendering.toPath(), StandardCopyOption.REPLACE_EXISTING);
-        } catch (IOException e) {
-            e.printStackTrace();
-
-            fileModDownload.delete();
-            fileModList.delete();
-            fileModRendering.delete();
-            folderMods.delete();
-            return false;
-        }
-
-        this.folderMods = folderMods;
-        return true;
-    }
-    
-    public static boolean downloadMods(File folderProfile, File folderBuild) throws IOException {
-		JSONObject json = Config.get().getJSONObject("factorio_manager");
-
-		
-
-		File fileModDownloadCached = new File(folderMods, "mod-download-cached.json");
-		boolean cacheChange = false;
-		JSONObject jsonModDownloadCached;
-		if (fileModDownloadCached.exists()) {
-			jsonModDownloadCached = new JSONObject(Files.readString(fileModDownloadCached.toPath()));
-		} else {
-			jsonModDownloadCached = new JSONObject();
-			cacheChange = true;
-		}
-
-		File fileModDownload = new File(folderMods, "mod-download.json");
-		if (!modPortalApi || !fileModDownload.exists()) {
-			return false;
-		}
-
-		File folderDownloadCache = new File("tempdownload");
-		folderDownloadCache.mkdirs();
-		
-		List<String> requiredZips = new ArrayList<>();
-		boolean anyDownloaded = false;
-		JSONObject jsonModDownload = new JSONObject(Files.readString(fileModDownload.toPath()));
-		boolean auth = false;
-		String authParams = null;
-		for (String modName : jsonModDownload.keySet()) {
-			String modVersion = jsonModDownload.getString(modName);
-
-			if (!jsonModDownloadCached.has(modName)) {
-				jsonModDownloadCached.put(modName, new JSONObject());
-				cacheChange = true;
-			}
-			JSONObject jsonModCached = jsonModDownloadCached.getJSONObject(modName);
-			if (!jsonModCached.has(modVersion)) {
-				jsonModCached.put(modVersion,
-						FactorioModPortal.findModReleaseInfo(modName, modVersion));
-				cacheChange = true;
-			}
-			JSONObject jsonRelease = jsonModCached.getJSONObject(modVersion);
-
-			File fileModZip = new File(folderMods, jsonRelease.getString("file_name"));
-			requiredZips.add(fileModZip.getName());
-			if (!fileModZip.exists()) {
-				File fileModZipCached = new File(fileModZip.getName());
-				if (fileModDownloadCached.exists()) {
-					Files.copy(fileModDownloadCached.toPath(), fileModZipCached.toPath());
-
-				} else {
-					if (!auth) {
-						auth = true;
-						authParams = FactorioModPortal.getAuthParams(modPortalApiUsername,
-								modPortalApiPassword);
-					}
-					File fileDownloaded = FactorioModPortal.downloadMod(folderMods, modName, modVersion, authParams);
-					if (!fileDownloaded.getName().equals(fileModZip.getName())) {
-						LOGGER.warn("Downloaded file name does not match expected: {} != {}", fileDownloaded.getName(), fileModZip.getName());
-					} else {
-						Files.copy(fileModZip.toPath(), fileModZipCached.toPath(), StandardCopyOption.REPLACE_EXISTING);
-					}
-				}
-				anyDownloaded = true;
-			}
-
-		}
-
-		for (File file : folderMods.listFiles()) {
-			if (file.isFile() && file.getName().endsWith(".zip") && !requiredZips.contains(file.getName())) {
-				LOGGER.info("DELETE OLD ZIP: {}", file.getAbsolutePath());
-				file.delete();
-			}
-		}
-
-		if (cacheChange) {
-			Files.writeString(fileModDownloadCached.toPath(), jsonModDownloadCached.toString(2));
-			LOGGER.info("WRITE MOD DOWNLOAD CACHED: {}", fileModDownloadCached.getAbsolutePath());
-		}
-
-		return anyDownloaded;
-	}
-
-    private boolean tempDump(String[] mods) throws Exception {
-        JSONObject cfgFactorioManager = Config.get().getJSONObject("factorio_manager");
-
-        tempFolder = new File(cfgFactorioManager.optString("temp", "temp"));
-        tempFolder.mkdirs();
-        tempFolderMods = new File(tempFolder, "mods");
-        tempFolderData = new File(tempFolder, "data");
-        tempFolderMods.mkdir();
-        tempFolderData.mkdir();
-
-        Set<String> allMods = new LinkedHashSet<>();
-        Collections.addAll(allMods, mods);
-		
-        for (String mod : mods) {
-            if (BUILTIN_MODS.contains(mod)) {
-                continue;
-            }
-            walkDependencies(allMods, mod);
-        }
-
-        LOGGER.info("Requested Mods: " + Arrays.asList(mods).stream().collect(Collectors.joining(", ")));
-		LOGGER.info("");
-		LOGGER.info("Mod List: " + allMods.stream().collect(Collectors.joining(", ")));
-		LOGGER.info("");
-
-        JSONObject jsonModDownload = new JSONObject();
-        for (String mod : allMods) {
-            if (BUILTIN_MODS.contains(mod)) {
-                continue;
-            }
-            JSONObject jsonRelease = FactorioModPortal.findLatestModReleaseInfo(mod);
-            String version = jsonRelease.getString("version");
-            jsonModDownload.put(mod, version);
-            LOGGER.info("MOD DOWNLOAD - {}: {}", mod, version);
-        }
-
-        JSONObject jsonModList = new JSONObject();
-		JSONArray jsonModListMods = new JSONArray();
-		jsonModList.put("mods", jsonModListMods);
-		for (String mod : allMods) {
-			JSONObject jsonMod = new JSONObject();
-			jsonMod.put("name", mod);
-			jsonMod.put("enabled", true);
-			jsonModListMods.put(jsonMod);
-            LOGGER.info("MOD LIST - {}", mod);
-		}
-		for (String mod : BUILTIN_MODS) {
-			if (allMods.contains(mod)) {
-				continue;
-			}
-			JSONObject jsonMod = new JSONObject();
-			jsonMod.put("name", mod);
-			jsonMod.put("enabled", false);
-			jsonModListMods.put(jsonMod);
-            LOGGER.info("MOD LIST - {}", mod);
-		}
-
-        tempFileModDownload = new File(tempFolderMods, "mod-download.json");
-		if (tempFileModDownload.exists()) {
-			tempFileModDownload.setWritable(true);
-		}
-		try (FileWriter fw = new FileWriter(tempFileModDownload)) {
-			jsonModDownload.write(fw);
-		}
-
-        FactorioManager.downloadMods(tempFolderMods);
-
-        tempFileModList = new File(tempFolderMods, "mod-list.json");
-		if (tempFileModList.exists()) {
-			tempFileModList.setWritable(true);
-		}
-		try (FileWriter fw = new FileWriter(tempFileModList)) {
-			jsonModList.write(fw);
-		}
-
-        JSONObject fdConfig = new JSONObject();
-        tempFolderData.mkdir();
-        fdConfig.put("mods", tempFolderMods.getAbsolutePath());
-        fdConfig.put("data", tempFolderData.getAbsolutePath());
-
-        String factorioInstall = cfgFactorioManager.getString("install");
-		String factorioExecutable = cfgFactorioManager.getString("executable");
-        
-        JSONObject cfgFactorioData = new JSONObject();
-		cfgFactorioData.put("factorio", factorioInstall);
-		cfgFactorioData.put("executable", factorioExecutable);
-		cfgFactorioData.put("data", tempFolderData.getAbsolutePath());
-		cfgFactorioData.put("mods", tempFolderMods.getAbsolutePath());
-		FactorioData factorioData = new FactorioData(cfgFactorioData);
-		
-         if (!factorioData.initialize(false)) {
-            LOGGER.error("Failed to initialize Factorio data.");
-            return false;
-         }
-
-		tempTable = factorioData.getTable();
-
-        tempModEntityRenderings = new LinkedHashMap<String, String>();
-		tempTable.getEntities().values().stream().filter(e -> isBlueprintable(e))
-				.sorted(Comparator.comparing(e -> e.getName())).forEach(e -> {
-					if (!BASE_ENTITIES.contains(e.getName())) {
-						String type = e.getType();
-						StringBuilder sb = new StringBuilder();
-						for (String part : type.split("-")) {
-							sb.append(part.substring(0, 1).toUpperCase() + part.substring(1));
-						}
-						sb.append("Rendering");
-						String rendering = sb.toString();
-						if (RENDERING_MAP.containsKey(rendering)) {
-							rendering = RENDERING_MAP.get(rendering);
-						}
-						tempModEntityRenderings.put(e.getName(), rendering);
-                        LOGGER.info("MOD ENTITY - {}: {}", e.getName(), rendering);
-					}
-				});
-
-        tempModTiles = new ArrayList<>();
-		tempTable.getTiles().values().stream().filter(t -> isBlueprintable(t))
-				.sorted(Comparator.comparing(t -> t.getName())).forEach(t -> {
-					if (!BASE_TILES.contains(t.getName())) {
-                        tempModTiles.add(t.getName());
-                        LOGGER.info("MOD TILE - {}", t.getName());
-					}
-				});
-
-        return true;
     }
 
-    // based on cannot_ghost() by _codegreen
-	private static boolean isBlueprintable(EntityPrototype entity) {
-		boolean cantGhost = false;
-		if (entity.getFlags().contains("not-blueprintable")) {
-			cantGhost = true;
-		}
-		if (!entity.getFlags().contains("player-creation")) {
-			cantGhost = true;
-		}
-		if (entity.getPlacedBy().isEmpty()) {
-			cantGhost = true;
-		}
-		return !cantGhost;
-	}
+    public boolean runFactorio() {
 
-	private static boolean isBlueprintable(TilePrototype tile) {
-		if (!tile.lua().get("can_be_part_of_blueprint").optboolean(true)) {
-			return false;
-		}
-		if (tile.getPlacedBy().isEmpty()) {
-			return false;
-		}
-		return true;
-	}
-
-    public void runFactorio() {
+        if (!hasDownloaded()) {
+            System.out.println("Profile " + folderProfile.getName() + " does not have the correct mods downloaded, or the mod list is missing.");
+            return false;
+        }
         
         JSONObject json = Config.get().getJSONObject("factorio_manager");
 
-		File folderDataRoot = new File(json.optString("data", "data"));
-		folderDataRoot.mkdirs();
-
         try {
-            FactorioManager.downloadMods(folderMods);
-        
             JSONObject fdConfig = new JSONObject();
-            File folderData = new File(folderDataRoot, folderMods.getName());
-            folderData.mkdirs();
+            folderBuildData.mkdirs();
 
             File folderFactorio = new File(json.getString("install"));
 		    File factorioExecutable = new File(json.getString("executable"));
 
-            File fileConfig = new File(folderData, "config.ini");
+            File fileConfig = new File(folderBuildData, "config.ini");
             try (PrintWriter pw = new PrintWriter(fileConfig)) {
                 pw.println("[path]");
                 pw.println("read-data=" + folderFactorio.getAbsolutePath());
-                pw.println("write-data=" + folderData.getAbsolutePath());
+                pw.println("write-data=" + folderBuildData.getAbsolutePath());
             }
 
             ProcessBuilder pb = new ProcessBuilder(factorioExecutable.getAbsolutePath(), "--config",
-					fileConfig.getAbsolutePath(), "--mod-directory", folderMods.getAbsolutePath());
+					fileConfig.getAbsolutePath(), "--mod-directory", folderBuildMods.getAbsolutePath());
 			pb.directory(folderFactorio);
 
 			LOGGER.debug("Running command " + pb.command().stream().collect(Collectors.joining(",", "[", "]")));
@@ -1023,22 +797,14 @@ public class Profile {
 			executor.shutdown();
 
 			// Wait for Factorio to finish
-			boolean finished = process.waitFor(1, TimeUnit.MINUTES);
-			if (!finished) {
-				LOGGER.error("Factorio did not exit!");
-				process.destroyForcibly();
-				process.onExit().get();
-				LOGGER.warn("Factorio was force killed.");
-			}
-
-			int exitCode = process.exitValue();
-			if (exitCode != 0) {
-				throw new IOException("Factorio command failed with exit code: " + exitCode);
-			}
+			process.waitFor();
+			
         } catch (Exception e) {
             e.printStackTrace();
-            return;
+            return false;
         }
+
+        return true;
     }
 
     private static void streamLogging(InputStream inputStream, boolean error) {
@@ -1058,6 +824,8 @@ public class Profile {
 	}
 
     public List<String> listMods() {
+
+
         File fileModList = new File(folderMods, "mod-list.json");
         if (!fileModList.exists()) {
             LOGGER.warn("Mod list file does not exist: {}", fileModList.getAbsolutePath());
