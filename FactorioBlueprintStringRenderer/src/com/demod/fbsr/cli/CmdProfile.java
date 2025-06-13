@@ -59,6 +59,7 @@ public class CmdProfile {
     ) {
         Profile profile = Profile.byName(name);
         if (profile.generateProfile(mods)) {
+            this.profile = profile;
             System.out.println("Profile created successfully:" + profile.getName() + " (" + profile.getFolderProfile().getAbsolutePath() + ")");
         } else {
             System.out.println("Failed to create profile!");
@@ -104,7 +105,7 @@ public class CmdProfile {
             if (filter != null && !profile.getName().contains(filter)) {
                 continue;
             }
-            System.out.println(" - " + profile + "(" + profile.getStatus() + ")");
+            System.out.println((profile.equals(this.profile) ? "***** " : " - ") + profile + " (" + profile.getStatus() + ")");
             if (detailed) {
                 List<String> mods = profile.listMods();
                 for (String mod : mods) {
@@ -182,31 +183,6 @@ public class CmdProfile {
         profile.runFactorio();
     }
 
-    @Command(name = "dump", description = "Dump data.raw for the specified profile")
-    public void dumpDataRaw(
-            @Option(names = "-name", description = "Name of the profile") Optional<String> name,
-            @Option(names = "-force", description = "Force regeneration of data.raw, even if it already exists") boolean force
-    ) {
-        if (!checkOrSelectProfile(name)) {
-            return;
-        }
-
-        // TODO
-    }
-
-    @Command(name = "data", description = "Generate data for the specified profile")
-    public void generateData(
-            @Option(names = "-name", description = "Name of the profile") Optional<String> name,
-            @Option(names = "-force", description = "Force regeneration of data, even if it already exists") boolean force,
-            @Option(names = "-dump", description = "Force dump data.raw before generation") boolean forceDump
-    ) {
-        if (!checkOrSelectProfile(name)) {
-            return;
-        }
-
-        // TODO
-    }
-
     @Command(name = "explore", description = "Open file manager for the specified profile")
     public void explore(
             @Option(names = "-name", description = "Name of the profile") Optional<String> name,
@@ -236,6 +212,7 @@ public class CmdProfile {
         }
 
         // TODO
+        asdf
     }
 
     @Command(name = "build-manifest", description = "Build the manifest for the specified profile")

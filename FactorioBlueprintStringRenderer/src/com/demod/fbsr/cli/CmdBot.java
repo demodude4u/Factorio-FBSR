@@ -10,6 +10,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.demod.factorio.Config;
+import com.demod.fbsr.Profile;
+import com.demod.fbsr.Profile.ProfileStatus;
 import com.demod.fbsr.app.RPCService;
 import com.demod.fbsr.app.StartAllServices;
 import com.google.common.util.concurrent.Uninterruptibles;
@@ -22,12 +24,24 @@ public class CmdBot {
 	private static final Logger LOGGER = LoggerFactory.getLogger(CmdBot.class);
 
     @Command(name = "run", description = "Run Blueprint Bot")
-    public void runBot() {
+    public void runBot(
+        @Option(names = "-ignore-not-ready", description = "Ignore profiles that are not ready", defaultValue = "false") boolean ignoreNotReady
+    ) {
+        if (!ignoreNotReady && !checkProfilesReady()) {
+            return;
+        }
+
         StartAllServices.main(null);
     }
 
     @Command(name = "start", description = "Start Blueprint Bot as a background service")
-    public void startBot() {
+    public void startBot(
+        @Option(names = "-ignore-not-ready", description = "Ignore profiles that are not ready", defaultValue = "false") boolean ignoreNotReady
+    ) {
+        if (!ignoreNotReady && !checkProfilesReady()) {
+            return;
+        }
+
         LOGGER.info("Starting Blueprint Bot service...");
         try {
             launchDetachedJavaProcess(CmdBot.class, "bot", "run");
@@ -70,9 +84,15 @@ public class CmdBot {
     }
 
     @Command(name = "restart", description = "Restart Blueprint Bot service")
-    public void restartBot() {
+    public void restartBot(
+        @Option(names = "-ignore-not-ready", description = "Ignore profiles that are not ready", defaultValue = "false") boolean ignoreNotReady
+    ) {
+        if (!ignoreNotReady && !checkProfilesReady()) {
+            return;
+        }
+
         stopBot();
-        startBot();
+        startBot(ignoreNotReady);
     }
 
     @Command(name = "status", description = "Get the status of Blueprint Bot service")
@@ -120,5 +140,17 @@ public class CmdBot {
 
     private static boolean isWindows() {
         return System.getProperty("os.name").toLowerCase().contains("win");
+    }
+
+    private boolean checkProfilesReady() {
+        if (Profile.listProfiles().stream().allMatch(p->p.getStatus() == ProfileStatus.READY)) {
+            return true;
+        }
+
+        System.out.println("Some profiles are not ready. Please ensure all profiles are valid and have been built.");
+        for (Profile profile : Profile.listProfiles()) {
+            System.out.println("Profile: " + profile.getName() + " (" + profile.getStatus() + ")");
+        }
+        return false;
     }
 }

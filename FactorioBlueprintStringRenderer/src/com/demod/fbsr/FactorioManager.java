@@ -37,8 +37,10 @@ import com.demod.factorio.prototype.ItemPrototype;
 import com.demod.factorio.prototype.RecipePrototype;
 import com.demod.factorio.prototype.TechPrototype;
 import com.demod.factorio.prototype.TilePrototype;
+import com.demod.fbsr.Profile.ProfileStatus;
 import com.demod.fbsr.entity.UnknownEntityRendering;
 import com.demod.fbsr.fp.FPUtilitySprites;
+import com.demod.fbsr.gui.GUIStyle;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ArrayListMultimap;
@@ -263,56 +265,15 @@ public class FactorioManager {
 		}
 		initializedPrototypes = true;
 		
-		folderDataRoot = new File(json.optString("data", "data"));
-		hasBuildRoot = folderBuildRoot.exists();
-		folderDataRoot.mkdirs();
+		//Ignoring profiles that are not ready
+		List<Profile> profiles = Profile.listProfiles().stream().filter(p -> p.getStatus() == ProfileStatus.READY).collect(Collectors.toList());
+		LOGGER.info("PROFILES: {}", profiles.stream().map(Profile::getName).collect(Collectors.joining(", ")));
 
-		List<String> mods = new ArrayList<>();
-		File folderModRenderingRoot = hasModsRoot ? folderModsRoot : folderDataRoot;
-		for (File file : folderModRenderingRoot.listFiles()) {
-			if (!file.isDirectory()) {
-				continue;
-			}
-			File fileModRendering = new File(file, "mod-rendering.json");
-			if (!fileModRendering.exists()) {
-				continue;
-			}
-			JSONObject jsonModRendering = new JSONObject(Files.readString(fileModRendering.toPath()));
-			if (!jsonModRendering.optBoolean("enabled", true)) {
-				continue;
-			}
-			mods.add(file.getName());
+		if (profiles.isEmpty()) {
+			throw new IllegalStateException("No ready profiles found! Please ensure at least one profile is ready.");
 		}
-		LOGGER.info("MODS FOLDERS: {}", mods.stream().collect(Collectors.joining(", ")));
 
-		mods.parallelStream().peek(name -> {
-			try {
-				File folderMods = new File(folderModsRoot, name);
-				File folderData = new File(folderDataRoot, name);
-				folderData.mkdir();
-				
-				if (hasModsRoot) {
-					// Copy mod-rendering.json if missing or different
-					File modRenderingMods = new File(folderMods, "mod-rendering.json");
-					File modRenderingData = new File(folderData, "mod-rendering.json");
-					if (modRenderingMods.exists()) {
-						if (!modRenderingData.exists() || !Files.readString(modRenderingMods.toPath()).equals(Files.readString(modRenderingData.toPath()))) {
-							Files.copy(modRenderingMods.toPath(), modRenderingData.toPath(), StandardCopyOption.REPLACE_EXISTING);
-							LOGGER.info("Copied mod-rendering.json to data folder: {}", modRenderingData.getAbsolutePath());
-						}
-					}
-				}
-
-				if (hasFactorioInstall && hasModsRoot) {
-					downloadMods(folderMods);
-				}
-
-			} catch (Exception e) {
-				e.printStackTrace();
-				System.exit(-1);
-			}
-
-		}).parallel().map(name -> {
+		profiles.stream().map(name -> {
 			try {
 				JSONObject fdConfig = new JSONObject();
 				File folderMods = new File(folderModsRoot, name);
@@ -376,6 +337,19 @@ public class FactorioManager {
 
 		DataTable baseTable = baseProfile.getData().getTable();
 		utilitySprites = new FPUtilitySprites(baseProfile, baseTable.getRaw("utility-sprites", "default").get());
+	}
+
+	public static boolean buildData(Profile profile) {
+
+		// FactorioManager.initializePrototypes();
+		// GUIStyle.initialize();
+		// FactorioManager.initializeFactories();
+		// IconManager.initialize();
+
+		// for (Profile profile : FactorioManager.getProfiles()) {
+		// 	profile.getAtlasPackage().initialize();
+		// }
+
 	}
 
 	public static Optional<AchievementPrototype> lookupAchievementByName(String name) {

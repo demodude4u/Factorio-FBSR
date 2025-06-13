@@ -83,11 +83,15 @@ public class Profile {
     public static enum ProfileStatus {
         INVALID,
         DISABLED,
-        BUILD_1_MANIFEST, // Config Updates
-        BUILD_2_DOWNLOAD, // Mod Updates
-        BUILD_3_DUMP, // Factorio Updates
-        BUILD_4_DATA, // Rendering Updates
         READY,
+
+        BUILD_MANIFEST, // Config Updates
+        BUILD_DOWNLOAD, // Mod Updates
+        BUILD_DUMP, // Factorio Updates
+        BUILD_DATA, // Rendering Updates
+        
+        NEED_FACTORIO_INSTALL, // Factorio is not configured
+        NEED_MOD_PORTAL_API, // Mod Portal API is not configured
     }
 
     private final String name;
@@ -121,6 +125,10 @@ public class Profile {
         return Profile.byName("vanilla");
     }
 
+    public boolean isVanilla() {
+        return folderProfile.getName().equals("vanilla");
+    }
+
     public Profile(File folderProfile, File folderBuild) {
         name = folderProfile.getName();
 
@@ -142,6 +150,23 @@ public class Profile {
 
         factorioData = new FactorioData(fileFactorioData);
         atlasPackage = new AtlasPackage(fileAtlasData);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null || getClass() != obj.getClass()) {
+            return false;
+        }
+        Profile other = (Profile) obj;
+        return folderProfile.equals(other.folderProfile);
+    }
+
+    @Override
+    public int hashCode() {
+        return folderProfile.hashCode();
     }
 
     public String getName() {
@@ -211,10 +236,6 @@ public class Profile {
             return false;
         }
 
-        if (!fileModList.exists()) {
-            return false;
-        }
-
         JSONObject jsonManifest = readJsonFile(fileManifest);
         JSONObject jsonZips = jsonManifest.optJSONObject("zips");
         if (jsonZips == null) {
@@ -238,21 +259,53 @@ public class Profile {
         return fileFactorioData.exists() && fileAtlasData.exists();
     }
 
+    public String getStateCode() {
+        if (!isValid()) {
+            return "[X]";
+        }
+        return "["
+            + (hasManifest() ? "M" : "-")
+            + (hasDownloaded() ? "D" : "-")
+            + (hasDump() ? "U" : "-")
+            + (hasData() ? "A" : "-")
+            + "]";
+    }
+
     public ProfileStatus getStatus() {
         if (!isValid()) {
             return ProfileStatus.INVALID;
         } else if (!isEnabled()) {
             return ProfileStatus.DISABLED;
-        } else if (!hasManifest()) {
-            return ProfileStatus.BUILD_1_MANIFEST;
-        } else if (!hasDownloaded()) {
-            return ProfileStatus.BUILD_2_DOWNLOAD;
-        } else if (!hasDump()) {
-            return ProfileStatus.BUILD_3_DUMP;
-        } else if (!hasData()) {
-            return ProfileStatus.BUILD_4_DATA;
+
+        } else if (hasData()) {
+            return ProfileStatus.READY;
+
+        } else if (hasDump() && hasDownloaded()) {
+            if (FactorioManager.hasFactorioInstall()) {
+                return ProfileStatus.BUILD_DATA;
+            } else {
+                return ProfileStatus.NEED_FACTORIO_INSTALL;
+            }
+
+        } else if (hasManifest() && hasDownloaded()) {
+            if (FactorioManager.hasFactorioInstall()) {
+                return ProfileStatus.BUILD_DUMP;
+            } else {
+                return ProfileStatus.NEED_FACTORIO_INSTALL;
+            }
+
+        } else if (hasManifest()) {
+            if (FactorioManager.hasModPortalApi()) {
+                return ProfileStatus.BUILD_DOWNLOAD;
+            } else {
+                return ProfileStatus.NEED_MOD_PORTAL_API;
+            }
+
+        } else if (isValid()) {
+            return ProfileStatus.BUILD_MANIFEST;
+
         }
-        return ProfileStatus.READY;
+        return null;
     }
 
     public boolean setEnabled(boolean enabled) {
@@ -262,7 +315,12 @@ public class Profile {
 
         JSONObject jsonProfile = readJsonFile(fileProfile);
         jsonProfile.put("enabled", enabled);
-        writeJsonFile(fileProfile, jsonProfile);
+
+        if (!writeJsonFile(fileProfile, jsonProfile)) {
+            System.out.println("Failed to write profile.json for profile: " + folderProfile.getName());
+            return false;
+        }
+
         return true;
     }
 
@@ -279,7 +337,12 @@ public class Profile {
             jsonMods.put(mod);
         }
         jsonProfile.put("mods", jsonMods);
-        writeJsonFile(fileProfile, jsonProfile);
+
+        if (!writeJsonFile(fileProfile, jsonProfile)) {
+            System.out.println("Failed to write profile.json for profile: " + folderProfile.getName());
+            return false;
+        }
+
         System.out.println("Profile created: " + folderProfile.getAbsolutePath());
         return true;
     }
@@ -311,12 +374,11 @@ public class Profile {
         JSONObject jsonProfile = readJsonFile(fileProfile);
         
         FactorioData factorioData = new FactorioData(fileFactorioData);
-        try {
-            factorioData.initialize(false);
-        } catch (JSONException | IOException e) {
-            e.printStackTrace();
+        if (!factorioData.initialize(false)) {
+            System.out.println("Failed to initialize Factorio data for profile: " + folderProfile.getName());
             return false;
         }
+        
         DataTable table = factorioData.getTable();
 
         //Lazy answer to finality problems with lambda expressions
@@ -389,7 +451,12 @@ public class Profile {
 				});
 
         if (changed.get()) {
-            writeJsonFile(fileProfile, jsonProfile);
+
+            if (!writeJsonFile(fileProfile, jsonProfile)) {
+                System.out.println("Failed to write profile.json for profile: " + folderProfile.getName());
+                return false;
+            }
+
             System.out.println("Profile Saved: " + fileProfile.getAbsolutePath());
         }
         return true;
@@ -539,11 +606,11 @@ public class Profile {
         //TODO load specific versions of mods and calculate dependencies with version compatibility
 
         JSONObject jsonProfile = readJsonFile(fileProfile);
-        JSONArray jsonMods = jsonProfile.optJSONArray("mods");
+        JSONArray jsonProfileMods = jsonProfile.optJSONArray("mods");
 
         List<String> mods = new ArrayList<>();
-        for (int i = 0; i < jsonMods.length(); i++) {
-            String mod = jsonMods.getString(i).trim();
+        for (int i = 0; i < jsonProfileMods.length(); i++) {
+            String mod = jsonProfileMods.getString(i).trim();
             mods.add(mod);
         }
 
@@ -555,7 +622,7 @@ public class Profile {
             try {
                 walkDependencies(modInfo, mod);
             } catch (IOException e) {
-                System.err.println("Failed to walk dependencies for mod: " + mod);
+                System.out.println("Failed to walk dependencies for mod: " + mod);
                 e.printStackTrace();
                 return false;
             }
@@ -581,16 +648,33 @@ public class Profile {
             System.out.println("MOD MANIFEST ZIP - [" + modName + "] " + filename + " " + downloadUrl + " " + sha1);
         
             if (!filename.endsWith(".zip")) {
-                System.err.println("Invalid mod file name: " + filename + ". Must end with .zip");
+                System.out.println("Invalid mod file name: " + filename + ". Must end with .zip");
                 return false;
             }
         }
+
+        JSONArray jsonModList = new JSONArray();
+        jsonManifest.put("mod_list", jsonModList);
+        List<String> modList = new ArrayList<>(modInfo.keySet());
+        for (String mod : mods) {
+            if (!modList.contains(mod)) {
+                if (!BUILTIN_MODS.contains(mod)) {
+                    System.out.println("WARNING -- Mod does not have zip file: " + mod);
+                }
+
+                modList.add(mod);
+            }
+        }
+
 
         if (!folderBuild.exists()) {
             folderBuild.mkdirs();
         }
 
-        writeJsonFile(fileManifest, jsonManifest);
+        if (!writeJsonFile(fileManifest, jsonManifest)) {
+            System.out.println("Failed to write manifest.json for profile: " + folderProfile.getName());
+            return false;
+        }
 
         clearInvalidDownloads();
         clearDump();
@@ -697,13 +781,23 @@ public class Profile {
 
     public boolean buildDump(boolean force) {
 
+        if (!hasManifest()) {
+            System.out.println("Profile " + folderProfile.getName() + " does not have a manifest.");
+            return false;
+        }
+
         if (!hasDownloaded()) {
-            System.out.println("Profile " + folderProfile.getName() + " does not have the correct mods downloaded, or the mod list is missing.");
+            System.out.println("Profile " + folderProfile.getName() + " does not have the correct mods downloaded.");
             return false;
         }
 
         if (!FactorioManager.hasFactorioInstall()) {
             System.out.println("Factorio is not configured. Cannot generate dump file.");
+            return false;
+        }
+
+        if (!updateModList()) {
+            System.out.println("Failed to update mod-list.json for profile: " + folderProfile.getName());
             return false;
         }
 
@@ -716,14 +810,11 @@ public class Profile {
             }
         }
 
-        Optional<File> folderFactorio = Optional.of(FactorioManager.getFactorioInstall());
-        Optional<File> factorioExecutable = Optional.of(FactorioManager.getFactorioExecutable());
+        File factorioInstall = FactorioManager.getFactorioInstall();
+        File factorioExecutable = FactorioManager.getFactorioExecutable();
 
-        FactorioData data = new FactorioData(folderBuildData, folderBuildMods, folderFactorio, factorioExecutable, force);
-        try {
-            data.initialize(false);
-        } catch (JSONException | IOException e) {
-            e.printStackTrace();
+        if (!FactorioData.buildDataZip(fileScriptOutputDump, folderBuildData, folderBuildMods, factorioInstall, factorioExecutable, force)) {
+            System.out.println("Failed to build dump file for profile: " + folderProfile.getName());
             return false;
         }
 
@@ -737,10 +828,69 @@ public class Profile {
         return true;
     }
 
+    private boolean updateModList() {
+        
+        JSONObject jsonManifest = readJsonFile(fileManifest);
+        JSONArray jsonManifestModList = jsonManifest.optJSONArray("mod_list");
+        
+        if (jsonManifestModList == null) {
+            System.out.println("Manifest does not contain mod list for profile: " + folderProfile.getName());
+            return false;
+        }
+
+        if (!folderBuildMods.exists()) {
+            folderBuildMods.mkdirs();
+        }
+
+        JSONObject jsonModList = new JSONObject();
+        JSONArray jsonModListMods = new JSONArray();
+        jsonModList.put("mods", jsonModListMods);
+        Set<String> modCheck = new HashSet<>();
+        for (int i = 0; i < jsonManifestModList.length(); i++) {
+            String modName = jsonManifestModList.getString(i).trim();
+            JSONObject jsonMod = new JSONObject();
+            jsonMod.put("name", modName);
+            jsonMod.put("enabled", true);
+            jsonModListMods.put(jsonMod);
+            modCheck.add(modName);
+        }
+        for (String mod : BUILTIN_MODS) {
+            if (!modCheck.contains(mod)) {
+                JSONObject jsonMod = new JSONObject();
+                jsonMod.put("name", mod);
+                jsonMod.put("enabled", false);
+                jsonModListMods.put(jsonMod);
+            }
+        }
+
+        if (fileModList.exists()) {
+            fileModList.setWritable(true);
+        }
+
+        if (!writeJsonFile(fileModList, jsonModList)) {
+            System.out.println("Failed to write mod-list.json for profile: " + folderProfile.getName());
+            return false;
+        }
+
+        fileModList.setWritable(false);
+
+        return true;
+    }
+
     public boolean buildData(boolean force) {
         
         if (!hasDump()) {
             System.out.println("Profile " + folderProfile.getName() + " does not have a dump file.");
+            return false;
+        }
+
+        if (!hasDownloaded()) {
+            System.out.println("Profile " + folderProfile.getName() + " does not have the correct mods downloaded.");
+            return false;
+        }
+
+        if (!FactorioManager.hasFactorioInstall()) {
+            System.out.println("Factorio is not configured. Cannot build data files.");
             return false;
         }
 
@@ -749,7 +899,15 @@ public class Profile {
             return false;
         }
 
-        //TODO
+        try {
+            Files.copy(fileScriptOutputDump.toPath(), fileFactorioData.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            System.out.println("Failed to copy dump file to factorio-data.zip for profile: " + folderProfile.getName());
+            e.printStackTrace();
+            return false;
+        }
+
+        //TODO Atlas Package
 
         if (name.equals("vanilla")) {
             if (!GUIStyle.copyFontsToProfile(this)) {
@@ -761,19 +919,32 @@ public class Profile {
 
     public boolean runFactorio() {
 
+        if (!hasManifest()) {
+            System.out.println("Profile " + folderProfile.getName() + " does not have a manifest.");
+            return false;
+        }
+
         if (!hasDownloaded()) {
-            System.out.println("Profile " + folderProfile.getName() + " does not have the correct mods downloaded, or the mod list is missing.");
+            System.out.println("Profile " + folderProfile.getName() + " does not have the correct mods downloaded.");
+            return false;
+        }
+
+        if (!FactorioManager.hasFactorioInstall()) {
+            System.out.println("Factorio is not configured. Cannot run factorio.");
+            return false;
+        }
+
+        if (!updateModList()) {
+            System.out.println("Failed to update mod-list.json for profile: " + folderProfile.getName());
             return false;
         }
         
-        JSONObject json = Config.get().getJSONObject("factorio_manager");
-
         try {
             JSONObject fdConfig = new JSONObject();
             folderBuildData.mkdirs();
 
-            File folderFactorio = new File(json.getString("install"));
-		    File factorioExecutable = new File(json.getString("executable"));
+            File folderFactorio = FactorioManager.getFactorioInstall();
+		    File factorioExecutable = FactorioManager.getFactorioExecutable();
 
             File fileConfig = new File(folderBuildData, "config.ini");
             try (PrintWriter pw = new PrintWriter(fileConfig)) {
@@ -825,46 +996,21 @@ public class Profile {
 
     public List<String> listMods() {
 
-
-        File fileModList = new File(folderMods, "mod-list.json");
-        if (!fileModList.exists()) {
-            LOGGER.warn("Mod list file does not exist: {}", fileModList.getAbsolutePath());
+        if (!hasManifest()) {
+            System.out.println("Profile " + folderProfile.getName() + " does not have a manifest.");
             return ImmutableList.of();
         }
 
-        try {
-            JSONObject json = new JSONObject(Files.readString(fileModList.toPath()));
-        
-            JSONArray jsonMods = json.getJSONArray("mods");
-            List<String> mods = new ArrayList<>();
-            for (int i = 0; i < jsonMods.length(); i++) {
-                JSONObject jsonMod = jsonMods.getJSONObject(i);
-                String modName = jsonMod.getString("name");
-                boolean enabled = jsonMod.optBoolean("enabled", true);
-                if (enabled) {
-                    mods.add(modName);
-                }
-            }
-            Collections.sort(mods);
-            return mods;
-        
-        } catch (JSONException | IOException e) {
-            e.printStackTrace();
-            return ImmutableList.of();
-        }
-    }
+        JSONObject jsonManifest = readJsonFile(fileManifest);
 
-    public boolean testProfile(String[] mods) {
-        try {
-            if (!tempDump(mods)) {
-                LOGGER.error("Failed to dump profile data.");
-                return false;
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false;
+        JSONArray jsonModList = jsonManifest.getJSONArray("mod_list");
+        List<String> mods = new ArrayList<>();
+        for (int i = 0; i < jsonModList.length(); i++) {
+            String mod = jsonModList.getString(i);
+            mods.add(mod);
         }
-        return true;
+        Collections.sort(mods);
+        return mods;
     }
 
     private static JSONObject readJsonFile(File file) {
@@ -876,11 +1022,13 @@ public class Profile {
         }
     }
 
-    private static void writeJsonFile(File file, JSONObject json) {
+    private static boolean writeJsonFile(File file, JSONObject json) {
         try (FileWriter fw = new FileWriter(file)) {
             fw.write(json.toString(2));
+            return true;
         } catch (IOException e) {
             e.printStackTrace();
+            return false;
         }
     }
 }

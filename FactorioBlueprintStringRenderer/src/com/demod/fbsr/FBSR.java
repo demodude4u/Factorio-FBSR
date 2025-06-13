@@ -42,7 +42,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.demod.dcba.CommandReporting;
-import com.demod.factorio.Config;
 import com.demod.factorio.DataTable;
 import com.demod.factorio.ItemToPlace;
 import com.demod.factorio.ModInfo;
@@ -593,10 +592,11 @@ public class FBSR {
 			File fileInfo = new File(FactorioManager.getFolderDataRoot(), "info.json");
 
 			try {
-				if (FactorioManager.hasFactorioInstall()) {
-					Files.copy(new File(Config.get().getJSONObject("factorio_manager").getString("install"),
-							"base/info.json").toPath(), fileInfo.toPath(), StandardCopyOption.REPLACE_EXISTING);
-				}
+				asdfasdfsadf //TODO need to load version from new factorio data location
+				// if (FactorioManager.hasFactorioInstall()) {
+				// 	Files.copy(new File(Config.get().getJSONObject("factorio_manager").getString("install"),
+				// 			"base/info.json").toPath(), fileInfo.toPath(), StandardCopyOption.REPLACE_EXISTING);
+				// }
 
 				ModInfo baseInfo;
 				try (FileInputStream fis = new FileInputStream(fileInfo)) {
