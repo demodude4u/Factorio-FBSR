@@ -82,8 +82,10 @@ public class CmdProfile {
     }
 
     @Command(name = "default-vanilla", description = "Generate default vanilla profile")
-    public void generateDefaultVanillaProfile() {
-        if (Profile.generateDefaultVanillaProfile()) {
+    public void generateDefaultVanillaProfile(
+            @Option(names = "-force", description = "Force regeneration of the default vanilla profile, even if it already exists") boolean force
+    ) {
+        if (Profile.generateDefaultVanillaProfile(force)) {
             System.out.println("Default vanilla profile created successfully.");
         } else {
             System.out.println("Failed to create default vanilla profile.");

@@ -294,9 +294,9 @@ public class FactorioManager {
 				return profile;
 
 			} catch (Exception e) {
-			 e.printStackTrace();
-			 System.exit(-1);
-			 return null;
+				e.printStackTrace();
+				System.exit(-1);
+				return null;
 			}
 
 		}).sequential().forEach(profile -> {
@@ -335,11 +335,13 @@ public class FactorioManager {
 			throw new IllegalStateException("No \"Base\" mod defined in any mod-rendering.json!");
 		}
 
-		DataTable baseTable = baseProfile.getData().getTable();
+		DataTable baseTable = baseProfile.getFactorioData().getTable();
 		utilitySprites = new FPUtilitySprites(baseProfile, baseTable.getRaw("utility-sprites", "default").get());
 	}
 
 	public static boolean buildData(Profile profile) {
+
+		asdfgsdf //TODO here!
 
 		// FactorioManager.initializePrototypes();
 		// GUIStyle.initialize();
@@ -410,7 +412,7 @@ public class FactorioManager {
 		try {
 			String firstSegment = filename.split("\\/")[0];
 			String modName = firstSegment.substring(2, firstSegment.length() - 2);
-			return profileByModName.get(modName).get(0).getData().getModImage(filename);
+			return profileByModName.get(modName).get(0).getModLoader().getModImage(filename);
 		} catch (Exception e) {
 			LOGGER.error("FILENAME: {}", filename);
 			throw e;
@@ -448,9 +450,9 @@ public class FactorioManager {
 			EntityRendererFactory existingFactory = entityFactoryByName.get(name);
 
 			String detailMessage = String.format(
-					"Entity '%s' is already registered in group '%s' from mod '%s'. Attempted re-registration from mod '%s' is not allowed.",
-					name, existingFactory.getGroupName(), existingFactory.getProfile().getData().folderMods.getName(),
-					factory.getProfile().getData().folderMods.getName());
+					"Entity '%s' is already registered in group '%s' from profile '%s'. Attempted re-registration from profile '%s' is not allowed.",
+					name, existingFactory.getGroupName(), existingFactory.getProfile().getName(),
+					factory.getProfile().getName());
 			throw new IllegalArgumentException(detailMessage);
 		}
 

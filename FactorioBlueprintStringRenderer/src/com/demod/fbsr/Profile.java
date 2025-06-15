@@ -110,8 +110,10 @@ public class Profile {
     private final File folderBuildData;
     private final File fileScriptOutputDump;
 
-    private volatile FactorioData factorioData = null;
-    private volatile AtlasPackage atlasPackage = null;
+    private final FactorioData factorioData;
+    private final RenderingRegistry renderingRegistry;
+    private final AtlasPackage atlasPackage;
+    private final ModLoader modLoader;
 
     public static Profile byName(String name) {
         JSONObject json = Config.get().getJSONObject("factorio_manager");
@@ -149,7 +151,14 @@ public class Profile {
         fileScriptOutputDump = new File(folderScriptOutput, "data-raw-dump.zip");
 
         factorioData = new FactorioData(fileFactorioData);
+        renderingRegistry = new RenderingRegistry();
         atlasPackage = new AtlasPackage(fileAtlasData);
+
+        if (FactorioManager.hasFactorioInstall()) {
+            modLoader = new ModLoader(FactorioManager.getFactorioInstall(), folderBuildMods);
+        } else {
+            modLoader = null;
+        }
     }
 
     @Override
@@ -199,6 +208,10 @@ public class Profile {
 
     public AtlasPackage getAtlasPackage() {
         return atlasPackage;
+    }
+
+    public ModLoader getModLoader() {
+        return modLoader;
     }
 
     public static List<Profile> listProfiles() {
@@ -347,11 +360,17 @@ public class Profile {
         return true;
     }
 
-    public static boolean generateDefaultVanillaProfile() {
+    public static boolean generateDefaultVanillaProfile(boolean force) {
         Profile editor = Profile.vanilla();
         if (editor.isValid()) {
-            System.out.println("Default vanilla profile already exists.");
-            return false;
+            if (!force) {
+                System.out.println("Default vanilla profile already exists.");
+                return false;
+            }
+            if (!editor.delete()) {
+                System.out.println("Failed to delete old vanilla profile: " + editor.getFolderProfile().getAbsolutePath());
+                return false;
+            }
         }
         
         File folderProfile = editor.getFolderProfile();
@@ -499,12 +518,19 @@ public class Profile {
          
         for (File file : folderBuildMods.listFiles()) {
             if (file.getName().endsWith(".zip")) {
-                file.delete();
+                if (!file.delete()) {
+                    System.out.println("Failed to delete file: " + file.getAbsolutePath());
+                    return false;
+                }   
             }
         }
 
         if (fileModList.exists()) {
             fileModList.delete();
+        }
+
+        if (modLoader != null) {
+            modLoader.reload();
         }
 
         return true;
@@ -523,14 +549,23 @@ public class Profile {
             return false;
         }
 
+        boolean changed = false;
         Set<String> validZips = jsonZips.keySet();
         if (folderBuildMods.exists()) {
             for (File file : folderBuildMods.listFiles()) {
                 if (!validZips.contains(file.getName())) {
                     System.out.println("Deleting invalid download: " + file.getName());
-                    file.delete();
+                    if (!file.delete()) {
+                        System.out.println("Failed to delete file: " + file.getAbsolutePath());
+                        return false;
+                    }
+                    changed = true;
                 }
             }
+        }
+
+        if (changed && modLoader != null) {
+            modLoader.reload();
         }
 
         return true;
@@ -770,11 +805,13 @@ public class Profile {
             }
         }
 
-        //TODO add mod names to manifest and create a mod-list.json that matches
-
         clearInvalidDownloads();
         clearDump();
         clearData();
+
+        if (modLoader != null) {
+            modLoader.reload();
+        }
 
         return true;
     }
@@ -907,9 +944,16 @@ public class Profile {
             return false;
         }
 
+        //TODO Initialize data to populate atlas package (need to remove singletons?)
+
+        //TODO Vanilla specific initializations
+        if (isVanilla()) {
+
+        }
+
         //TODO Atlas Package
 
-        if (name.equals("vanilla")) {
+        if (isVanilla()) {
             if (!GUIStyle.copyFontsToProfile(this)) {
                 System.out.println("Failed to copy fonts to vanilla profile.");
                 return false;
