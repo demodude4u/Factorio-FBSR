@@ -627,6 +627,23 @@ public class FBSR {
 		}
 	}
 
+	public static boolean buildData(Profile profile) {
+
+		profile.resetLoadedData();
+
+		asdfgsdf //TODO here!
+
+		// FactorioManager.initializePrototypes();
+		// GUIStyle.initialize();
+		// FactorioManager.initializeFactories();
+		// IconManager.initialize();
+
+		// for (Profile profile : FactorioManager.getProfiles()) {
+		// 	profile.getAtlasPackage().initialize();
+		// }
+
+	}
+
 	private static void populateRailBlocking(WorldMap map, boolean elevated) {
 		// TODO fix rail logistics, redesign nodes as a virtual structure of the rails
 

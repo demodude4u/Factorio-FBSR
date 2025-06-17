@@ -45,6 +45,7 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Multimap;
 
 public class FactorioManager {
 
@@ -55,9 +56,9 @@ public class FactorioManager {
 
 	private static Profile baseProfile = null;
 	private static final List<Profile> profiles = new ArrayList<>();
-	private static final ListMultimap<String, Profile> profileByModName = ArrayListMultimap.create();
 	private static final Map<FactorioData, Profile> profileByData = new HashMap<>();
 	private static final Map<String, Profile> profileByGroupName = new HashMap<>();
+	private static final ListMultimap<String, Profile> profileByModName = ArrayListMultimap.create();
 
 	private static final List<EntityRendererFactory> entityFactories = new ArrayList<>();
 	private static final List<TileRendererFactory> tileFactories = new ArrayList<>();
@@ -210,6 +211,66 @@ public class FactorioManager {
 		return modPortalApiPassword;
 	}
 
+	public static void initializePrototypes() throws JSONException, IOException {
+		if (initializedPrototypes) {
+			throw new IllegalStateException("Already Initialized Prototypes!");
+		}
+		initializedPrototypes = true;
+		
+		//Ignoring profiles that are not ready
+		List<Profile> allProfiles = Profile.listProfiles();
+		List<Profile> profiles = allProfiles.stream().filter(p -> p.getStatus() == ProfileStatus.READY).collect(Collectors.toList());
+		LOGGER.info("READY PROFILES: {}", profiles.stream().map(Profile::getName).collect(Collectors.joining(", ")));
+
+		if (profiles.size() != allProfiles.size()) {
+			LOGGER.warn("NOT READY PROFILES: {}", 
+				allProfiles.stream().filter(p -> p.getStatus() != ProfileStatus.READY).map(Profile::getName).collect(Collectors.joining(", ")));
+		}
+
+		if (profiles.isEmpty()) {
+			throw new IllegalStateException("No ready profiles found! Please ensure at least one profile is ready.");
+		}
+
+		for (Profile profile : profiles) {
+
+			profile.resetLoadedData();
+
+			FactorioData factorioData = profile.getFactorioData();
+
+			if (!factorioData.initialize(false)) {
+				LOGGER.warn("Failed to initialize Factorio data for profile: {}", profile.getName());
+				System.exit(-1);
+			}
+
+			DataTable table = factorioData.getTable();
+
+			profiles.add(profile);
+			profileByData.put(factorioData, profile);
+			profile.getModLoader().getMods().keySet().forEach(mod -> profileByModName.put(mod, profile));
+
+			recipeByName.putAll(table.getRecipes());
+			itemByName.putAll(table.getItems());
+			fluidByName.putAll(table.getFluids());
+			entityByName.putAll(table.getEntities());
+			technologyByName.putAll(table.getTechnologies());
+			tileByName.putAll(table.getTiles());
+			equipmentByName.putAll(table.getEquipments());
+			achievementByName.putAll(table.getAchievements());
+			itemGroupByName.putAll(table.getItemGroups());
+
+			if (profile.isVanilla()) {
+				baseProfile = profile;
+			}
+		}
+
+		if (baseProfile == null) {
+			throw new IllegalStateException("No \"Base\" mod defined in any mod-rendering.json!");
+		}
+
+		DataTable baseTable = baseProfile.getFactorioData().getTable();
+		utilitySprites = new FPUtilitySprites(baseProfile, baseTable.getRaw("utility-sprites", "default").get());
+	}
+
 	public static void initializeFactories() throws JSONException, IOException {
 		if (!initializedPrototypes) {
 			throw new IllegalStateException("Must initialize prototypes first!");
@@ -259,111 +320,12 @@ public class FactorioManager {
 		itemGroupByName.values().stream().sorted(Comparator.comparing(DataPrototype::getName)).forEach(itemGroups::add);
 	}
 
-	public static void initializePrototypes() throws JSONException, IOException {
-		if (initializedPrototypes) {
-			throw new IllegalStateException("Already Initialized Prototypes!");
-		}
-		initializedPrototypes = true;
-		
-		//Ignoring profiles that are not ready
-		List<Profile> profiles = Profile.listProfiles().stream().filter(p -> p.getStatus() == ProfileStatus.READY).collect(Collectors.toList());
-		LOGGER.info("PROFILES: {}", profiles.stream().map(Profile::getName).collect(Collectors.joining(", ")));
-
-		if (profiles.isEmpty()) {
-			throw new IllegalStateException("No ready profiles found! Please ensure at least one profile is ready.");
-		}
-
-		profiles.stream().map(name -> {
-			try {
-				JSONObject fdConfig = new JSONObject();
-				File folderMods = new File(folderModsRoot, name);
-				File folderData = new File(folderDataRoot, name);
-				folderData.mkdir();
-				fdConfig.put("mods", folderMods.getAbsolutePath());
-				fdConfig.put("data", folderData.getAbsolutePath());
-
-				if (hasFactorioInstall) {
-					fdConfig.put("factorio", factorioData.get());
-					fdConfig.put("executable", factorioExecutable.get());
-				}
-
-				FactorioData data = new FactorioData(fdConfig);
-				data.initialize(false);
-
-				Profile profile = new Profile(folderData, data, new AtlasPackage(folderData));
-				return profile;
-
-			} catch (Exception e) {
-				e.printStackTrace();
-				System.exit(-1);
-				return null;
-			}
-
-		}).sequential().forEach(profile -> {
-			FactorioData data = profile.getData();
-			DataTable table = data.getTable();
-			
-			profiles.add(profile);
-			profileByData.put(data, profile);
-			data.getMods().stream().forEach(s -> profileByModName.put(s, profile));
-
-			recipeByName.putAll(table.getRecipes());
-			itemByName.putAll(table.getItems());
-			fluidByName.putAll(table.getFluids());
-			entityByName.putAll(table.getEntities());
-			technologyByName.putAll(table.getTechnologies());
-			tileByName.putAll(table.getTiles());
-			equipmentByName.putAll(table.getEquipments());
-			achievementByName.putAll(table.getAchievements());
-			itemGroupByName.putAll(table.getItemGroups());
-		});
-
-		for (Profile profile : profiles) {
-			File folderData = profile.getFolderData();
-
-			File fileModRendering = new File(folderData, "mod-rendering.json");
-			LOGGER.info("Read Mod Rendering: {}", fileModRendering.getAbsolutePath());
-			JSONObject jsonModRendering = new JSONObject(
-						Files.readString(fileModRendering.toPath()));
-
-			if (jsonModRendering.getJSONObject("entities").has("Base")) {
-				baseProfile = profile;
-			}
-		}
-
-		if (baseProfile == null) {
-			throw new IllegalStateException("No \"Base\" mod defined in any mod-rendering.json!");
-		}
-
-		DataTable baseTable = baseProfile.getFactorioData().getTable();
-		utilitySprites = new FPUtilitySprites(baseProfile, baseTable.getRaw("utility-sprites", "default").get());
-	}
-
-	public static boolean buildData(Profile profile) {
-
-		asdfgsdf //TODO here!
-
-		// FactorioManager.initializePrototypes();
-		// GUIStyle.initialize();
-		// FactorioManager.initializeFactories();
-		// IconManager.initialize();
-
-		// for (Profile profile : FactorioManager.getProfiles()) {
-		// 	profile.getAtlasPackage().initialize();
-		// }
-
-	}
-
 	public static Optional<AchievementPrototype> lookupAchievementByName(String name) {
 		return Optional.ofNullable(achievementByName.get(name));
 	}
 
 	public static Profile lookupProfileByGroupName(String groupName) {
 		return profileByGroupName.get(groupName);
-	}
-
-	public static List<Profile> lookupProfileByModName(String modName) {
-		return profileByModName.get(modName);
 	}
 
 	public static Profile lookupProfileByData(FactorioData data) {
@@ -404,7 +366,7 @@ public class FactorioManager {
 
 	public static BufferedImage lookupModImage(String filename) {
 		if (!hasFactorioInstall) {
-			LOGGER.error("FACTORIO INSTALL NEEDED -- LOAD IMAGES!");
+			LOGGER.error("FACTORIO INSTALL NEEDED TO LOAD IMAGES!");
 			System.exit(-1);
 			return null;
 		}

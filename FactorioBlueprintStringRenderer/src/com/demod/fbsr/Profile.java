@@ -110,10 +110,10 @@ public class Profile {
     private final File folderBuildData;
     private final File fileScriptOutputDump;
 
-    private final FactorioData factorioData;
-    private final RenderingRegistry renderingRegistry;
-    private final AtlasPackage atlasPackage;
-    private final ModLoader modLoader;
+    private FactorioData factorioData;
+    private RenderingRegistry renderingRegistry;
+    private AtlasPackage atlasPackage;
+    private ModLoader modLoader;
 
     public static Profile byName(String name) {
         JSONObject json = Config.get().getJSONObject("factorio_manager");
@@ -150,6 +150,10 @@ public class Profile {
         File folderScriptOutput = new File(folderBuildData, "script-output");
         fileScriptOutputDump = new File(folderScriptOutput, "data-raw-dump.zip");
 
+        resetLoadedData();
+    }
+
+    public void resetLoadedData() {
         factorioData = new FactorioData(fileFactorioData);
         renderingRegistry = new RenderingRegistry();
         atlasPackage = new AtlasPackage(fileAtlasData);
