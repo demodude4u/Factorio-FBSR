@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.demod.fbsr.Atlas;
+import com.demod.fbsr.FBSR;
 import com.demod.fbsr.Atlas.AtlasRef;
 import com.demod.fbsr.IconManager;
 import com.demod.fbsr.Layer;
@@ -29,7 +30,7 @@ public class MapItemLogistics extends MapRenderable {
 
 	private static synchronized Color getItemLogisticColor(String itemName) {
 		return itemColorCache.computeIfAbsent(itemName, k -> {
-			Optional<IconDef> icon = IconManager.lookupItem(k);
+			Optional<IconDef> icon = FBSR.getIconManager().lookupItem(k);
 			if (!icon.isPresent()) {
 				LOGGER.warn("ITEM MISSING FOR LOGISTICS: {}", k);
 				return Color.MAGENTA;

@@ -38,8 +38,10 @@ public class ConstantCombinatorRendering extends EntityWithOwnerRendering {
 					.collect(Collectors.toList());
 			if (!filters.isEmpty()) {
 
+				IconManager iconManager = profile.getIconManager();
+
 				List<IconDefWithQuality> icons = filters.stream()
-						.flatMap(f -> IconManager.lookupFilter(f.type, f.name, f.quality).stream())
+						.flatMap(f -> iconManager.lookupFilter(f.type, f.name, f.quality).stream())
 						.sorted(Comparator.comparing(iwq -> iwq.getDef().getPrototype())).limit(4)
 						.collect(Collectors.toList());
 

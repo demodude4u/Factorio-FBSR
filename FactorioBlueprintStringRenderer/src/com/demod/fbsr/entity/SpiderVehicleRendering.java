@@ -21,7 +21,7 @@ public class SpiderVehicleRendering extends VehicleRendering {
 	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
 		super.createRenderers(register, map, entity);
 
-		Optional<IconDef> icon = IconManager.lookupEntity(entity.fromBlueprint().name);
+		Optional<IconDef> icon = profile.getIconManager().lookupEntity(entity.fromBlueprint().name);
 		if (icon.isPresent()) {
 			register.accept(
 					new MapIcon(entity.getPosition(), icon.get(), 2, OptionalDouble.of(0.2), false, Optional.empty()));

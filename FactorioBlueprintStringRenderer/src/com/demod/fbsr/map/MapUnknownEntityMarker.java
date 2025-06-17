@@ -7,11 +7,12 @@ import java.awt.Graphics2D;
 import java.awt.Stroke;
 import java.awt.geom.Ellipse2D;
 
+import com.demod.fbsr.FBSR;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.gui.GUIStyle;
 
 public class MapUnknownEntityMarker extends MapRenderable {
-	public static final Font FONT = GUIStyle.FONT_BP_BOLD.deriveFont(0.8f);
+	public static final Font FONT = FBSR.getGuiStyle().FONT_BP_BOLD.deriveFont(0.8f);
 	public static final Stroke STROKE = new BasicStroke(0.1f);
 
 	private final MapPosition position;

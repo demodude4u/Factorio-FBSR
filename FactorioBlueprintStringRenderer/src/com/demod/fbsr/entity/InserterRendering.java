@@ -109,8 +109,10 @@ public class InserterRendering extends EntityWithOwnerRendering {
 
 			if (!bsEntity.filters.isEmpty()) {
 
+				IconManager iconManager = profile.getIconManager();
+
 				List<IconDefWithQuality> icons = bsEntity.filters.stream()
-						.flatMap(f -> IconManager.lookupFilter(f.type, f.name, f.quality).stream())
+						.flatMap(f -> iconManager.lookupFilter(f.type, f.name, f.quality).stream())
 						.sorted(Comparator.comparing(iwq -> iwq.getDef().getPrototype())).limit(4)
 						.collect(Collectors.toList());
 
@@ -185,10 +187,12 @@ public class InserterRendering extends EntityWithOwnerRendering {
 		protoPickupPosition = new FPVector(prototype.lua().get("pickup_position"));
 		protoInsertPosition = new FPVector(prototype.lua().get("insert_position"));
 
-		protoIndicationLine = FactorioManager.getUtilitySprites().indicationLine;
-		protoIndicationArrow = FactorioManager.getUtilitySprites().indicationArrow;
+		FactorioManager factorioManager = profile.getFactorioManager();
 
-		protoBlacklist = FactorioManager.getUtilitySprites().filterBlacklist;
+		protoIndicationLine = factorioManager.getUtilitySprites().indicationLine;
+		protoIndicationArrow = factorioManager.getUtilitySprites().indicationArrow;
+
+		protoBlacklist = factorioManager.getUtilitySprites().filterBlacklist;
 	}
 
 	@Override

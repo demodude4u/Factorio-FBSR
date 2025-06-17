@@ -12,7 +12,7 @@ import com.demod.fbsr.map.MapTile;
 import com.demod.fbsr.map.MapUnknownTileMarker;
 
 public class UnknownTileRendering extends TileRendererFactory {
-	public static final Font FONT = GUIStyle.FONT_BP_BOLD.deriveFont(0.4f);
+	public static final Font FONT = FBSR.getGuiStyle().FONT_BP_BOLD.deriveFont(0.4f);
 
 	private final Color color;
 	private final float offset;

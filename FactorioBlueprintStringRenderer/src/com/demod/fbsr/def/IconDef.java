@@ -14,7 +14,7 @@ public class IconDef extends ImageDef {
 	private final DataPrototype prototype;
 
 	public IconDef(Profile profile, String path, List<IconLayer> layers, int size, DataPrototype prototype) {
-		super(profile, path, k -> IconLayer.createIcon(layers, size), new Rectangle(size, size));
+		super(profile, path, k -> IconLayer.createIcon(profile.getFactorioManager(), layers, size), new Rectangle(size, size));
 
 		setTrimmable(false);
 

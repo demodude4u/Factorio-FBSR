@@ -29,7 +29,7 @@ public class LogisticContainerRendering extends ContainerRendering {
 			Optional<BSFilter> filter = bsEntity.requestFilters.get().sections.stream()
 					.flatMap(bs -> bs.filters.stream()).filter(f -> f.name.isPresent() || f.quality.isPresent())
 					.findAny();
-			filter.ifPresent(f -> IconManager.lookupFilter(f.type, f.name, f.quality).ifPresent(
+			filter.ifPresent(f -> profile.getIconManager().lookupFilter(f.type, f.name, f.quality).ifPresent(
 					i -> register.accept(i.createMapIcon(entity.getPosition(), 0.5, OptionalDouble.of(0.05), false))));
 
 		}

@@ -34,7 +34,7 @@ public class MapDebug extends MapRenderable {
 	public static final BasicStroke STROKE_BOLD = new BasicStroke(3f / (float) FBSR.TILE_SIZE, BasicStroke.CAP_ROUND,
 			BasicStroke.JOIN_ROUND);
 
-	private static final Font FONT_PATH_RAIL = GUIStyle.FONT_BP_BOLD.deriveFont(0.4f);
+	private static final Font FONT_PATH_RAIL = FBSR.getGuiStyle().FONT_BP_BOLD.deriveFont(0.4f);
 
 	private static final Color COLOR_PATH_ITEM = Color.cyan;
 	private static final Color COLOR_PATH_RAIL = Color.lightGray;
@@ -127,7 +127,7 @@ public class MapDebug extends MapRenderable {
 
 		// Show entity name
 		g.setColor(Color.white);
-		g.setFont(GUIStyle.FONT_BP_BOLD.deriveFont(0.25f));
+		g.setFont(FBSR.getGuiStyle().FONT_BP_BOLD.deriveFont(0.25f));
 		g.drawString("" + entity.fromBlueprint().name, (float) position.getX(), (float) position.getY() + 0.5f);
 	}
 

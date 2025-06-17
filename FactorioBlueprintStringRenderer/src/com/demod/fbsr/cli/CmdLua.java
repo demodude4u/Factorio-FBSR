@@ -1,6 +1,7 @@
 package com.demod.fbsr.cli;
 
 import java.util.Optional;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import org.json.JSONObject;
@@ -25,9 +26,9 @@ public class CmdLua {
         technology(FactorioManager::lookupTechnologyByName),
         tile(FactorioManager::lookupTileByName)
         ;
-        private Function<String, Optional<? extends DataPrototype>> lookupFunction;
+        private BiFunction<FactorioManager, String, Optional<? extends DataPrototype>> lookupFunction;
 
-        private PrototypeTypes(Function<String, Optional<? extends DataPrototype>> lookupFunction) {
+        private PrototypeTypes(BiFunction<FactorioManager, String, Optional<? extends DataPrototype>> lookupFunction) {
             this.lookupFunction = lookupFunction;
         }
     }

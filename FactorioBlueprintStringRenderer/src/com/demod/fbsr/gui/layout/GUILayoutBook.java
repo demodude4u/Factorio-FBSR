@@ -27,6 +27,7 @@ import java.util.stream.IntStream;
 import com.demod.dcba.CommandReporting;
 import com.demod.fbsr.FBSR;
 import com.demod.fbsr.FactorioManager;
+import com.demod.fbsr.IconManager;
 import com.demod.fbsr.RenderRequest;
 import com.demod.fbsr.RenderResult;
 import com.demod.fbsr.RichText;
@@ -184,6 +185,10 @@ public class GUILayoutBook {
 		return true;
 	}
 
+	private FactorioManager factorioManager = FBSR.getFactorioManager();
+	private GUIStyle guiStyle = FBSR.getGuiStyle();
+	private IconManager iconManager = FBSR.getIconManager();
+
 	private BSBlueprintBook book;
 	private CommandReporting reporting;
 	private List<RenderResult> results;
@@ -201,17 +206,17 @@ public class GUILayoutBook {
 
 		int titleHeight = 50;
 
-		GUIPanel panel = new GUIPanel(bounds, GUIStyle.FRAME_INNER);
+		GUIPanel panel = new GUIPanel(bounds, guiStyle.FRAME_INNER);
 		renderTinted(g, panel);
 
 		drawTitleBar(g, bounds.cutTop(titleHeight));
 		drawImagePane(g, bounds.shrinkTop(titleHeight));
 
 		GUIBox creditBounds = bounds.cutRight(190).cutBottom(24).expandTop(8).cutTop(16).cutLeft(160);
-		GUIPanel creditPanel = new GUIPanel(creditBounds, GUIStyle.FRAME_TAB);
+		GUIPanel creditPanel = new GUIPanel(creditBounds, guiStyle.FRAME_TAB);
 		renderTinted(g, creditPanel);
-		GUILabel lblCredit = new GUILabel(creditBounds, "BlueprintBot " + FBSR.getVersion(),
-				GUIStyle.FONT_BP_BOLD.deriveFont(16f), Color.GRAY, GUIAlign.TOP_CENTER);
+		GUILabel lblCredit = new GUILabel(creditBounds, "BlueprintBot " + FBSR.getFactorioManager().getProfileVanilla().getFactorioData().getVersion(),
+				guiStyle.FONT_BP_BOLD.deriveFont(16f), Color.GRAY, GUIAlign.TOP_CENTER);
 		renderTinted(g, lblCredit);
 
 		g.setComposite(pc);
@@ -220,7 +225,7 @@ public class GUILayoutBook {
 	private void drawImagePane(Graphics2D g, GUIBox bounds) {
 		bounds = bounds.shrink(0, 24, 24, 24);
 
-		GUIPanel panel = new GUIPanel(bounds, GUIStyle.FRAME_DARK_INNER, GUIStyle.FRAME_OUTER);
+		GUIPanel panel = new GUIPanel(bounds, guiStyle.FRAME_DARK_INNER, guiStyle.FRAME_OUTER);
 		renderTinted(g, panel);
 
 		AffineTransform xform = g.getTransform();
@@ -235,7 +240,7 @@ public class GUILayoutBook {
 		int centerShiftX = (int) (20 / renderScaleX);
 		int centerShiftY = (int) (20 / renderScaleY);
 
-		g.setFont(GUIStyle.FONT_BP_REGULAR.deriveFont(12f));
+		g.setFont(guiStyle.FONT_BP_REGULAR.deriveFont(12f));
 		g.setColor(Color.gray);
 		Shape prevClip = g.getClip();
 
@@ -293,15 +298,15 @@ public class GUILayoutBook {
 		int pipeX = (int) (bounds.x + bounds.width / 2 + (-packBounds.width / 2.0) * cellWidth) - 4;
 		int pipeY = (int) (bounds.y + bounds.height / 2 + (-packBounds.height / 2.0) * cellHeight) - 4;
 		g.setComposite(tint);
-		GUIStyle.PIPE.renderDynamicGrid(g, pipeX, pipeY, cellWidth, cellHeight, packBounds, groupings);
+		guiStyle.PIPE.renderDynamicGrid(g, pipeX, pipeY, cellWidth, cellHeight, packBounds, groupings);
 		g.setComposite(pc);
 
 		GUIBox boundsCell = bounds.cutTop(28).cutRight(100);
 
-		Font fontMod = GUIStyle.FONT_BP_BOLD.deriveFont(15f);
+		Font fontMod = guiStyle.FONT_BP_BOLD.deriveFont(15f);
 
 		if (spaceAge) {
-			GUIStyle.CIRCLE_WHITE.render(g, boundsCell);
+			guiStyle.CIRCLE_WHITE.render(g, boundsCell);
 			GUILabel label = new GUILabel(boundsCell, "Space Age", fontMod, Color.black, GUIAlign.CENTER);
 			label.render(g);
 			boundsCell = boundsCell.indexed(1, 0);
@@ -312,7 +317,7 @@ public class GUILayoutBook {
 			int minWidth = fm.stringWidth(mod) + 16;
 			GUIBox boundsLabel = (minWidth > boundsCell.width) ? boundsCell.expandLeft(minWidth - boundsCell.width)
 					: boundsCell;
-			GUIStyle.CIRCLE_YELLOW.render(g, boundsLabel);
+			guiStyle.CIRCLE_YELLOW.render(g, boundsLabel);
 			GUILabel label = new GUILabel(boundsLabel, mod, fontMod, Color.black, GUIAlign.CENTER);
 			label.render(g);
 			boundsCell = boundsCell.indexed(1, 0);
@@ -322,8 +327,8 @@ public class GUILayoutBook {
 
 	private void drawTitleBar(Graphics2D g, GUIBox bounds) {
 		GUIRichText lblTitle = new GUIRichText(bounds.shrinkBottom(6).shrinkLeft(24),
-				book.label.orElse("Untitled Blueprint Book"), GUIStyle.FONT_BP_BOLD.deriveFont(24f),
-				GUIStyle.FONT_BP_COLOR, GUIAlign.CENTER_LEFT);
+				book.label.orElse("Untitled Blueprint Book"), guiStyle.FONT_BP_BOLD.deriveFont(24f),
+				guiStyle.FONT_BP_COLOR, GUIAlign.CENTER_LEFT);
 		lblTitle.render(g);
 
 		StringBuilder iconText = new StringBuilder();
@@ -332,12 +337,12 @@ public class GUILayoutBook {
 			iconText.append(tag.formatted());
 		}));
 		GUIRichText lblIcons = new GUIRichText(bounds.shrinkBottom(6).shrinkRight(22),
-				iconText.toString(), GUIStyle.FONT_BP_BOLD.deriveFont(24f), GUIStyle.FONT_BP_COLOR, GUIAlign.CENTER_RIGHT);
+				iconText.toString(), guiStyle.FONT_BP_BOLD.deriveFont(24f), guiStyle.FONT_BP_COLOR, GUIAlign.CENTER_RIGHT);
 		lblIcons.render(g);
 
 		int startX = bounds.x + (int) (lblTitle.getTextWidth(g) + 44);
 		int endX = bounds.x + bounds.width - (int)lblIcons.getTextWidth(g) - (iconText.length() == 0 ? 24 : 46);
-		GUIPipeFeature pipe = GUIStyle.DRAG_LINES;
+		GUIPipeFeature pipe = guiStyle.DRAG_LINES;
 		g.setComposite(tint);
 		for (int x = endX - pipe.size; x >= startX; x -= pipe.size) {
 			pipe.renderVertical(g, x, bounds.y + 10, bounds.y + bounds.height - 10);
@@ -425,9 +430,9 @@ public class GUILayoutBook {
 			pc = g.getComposite();
 			Set<String> groups = new LinkedHashSet<>();
 			for (BSBlueprint blueprint : book.getAllBlueprints()) {
-				blueprint.entities.stream().map(e -> FactorioManager.lookupEntityFactoryForName(e.name))
+				blueprint.entities.stream().map(e -> factorioManager.lookupEntityFactoryForName(e.name))
 						.map(e -> e.isUnknown() ? "Modded" : e.getGroupName()).forEach(groups::add);
-				blueprint.tiles.stream().map(t -> FactorioManager.lookupTileFactoryForName(t.name)).filter(t -> !t.isUnknown())
+				blueprint.tiles.stream().map(t -> factorioManager.lookupTileFactoryForName(t.name)).filter(t -> !t.isUnknown())
 						.map(t -> t.getGroupName()).forEach(groups::add);
 			}
 

@@ -58,8 +58,10 @@ public abstract class LoaderRendering extends TransportBeltConnectableRendering 
 
 		if (!bsEntity.filters.isEmpty() && map.isAltMode()) {
 
+			IconManager iconManager = profile.getIconManager();
+
 			List<IconDefWithQuality> icons = bsEntity.filters.stream()
-					.flatMap(f -> IconManager.lookupFilter(f.type, f.name, f.quality).stream())
+					.flatMap(f -> iconManager.lookupFilter(f.type, f.name, f.quality).stream())
 					.sorted(Comparator.comparing(iwq -> iwq.getDef().getPrototype())).limit(4)
 					.collect(Collectors.toList());
 

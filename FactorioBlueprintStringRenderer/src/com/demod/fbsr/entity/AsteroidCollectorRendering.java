@@ -31,8 +31,10 @@ public class AsteroidCollectorRendering extends EntityWithOwnerRendering {
 
 		if (!bsEntity.chunkFilter.isEmpty()) {
 
+			IconManager iconManager = profile.getIconManager();
+
 			List<IconDef> icons = bsEntity.chunkFilter.stream()
-					.flatMap(name -> IconManager.lookupAsteroidChunk(name).stream())
+					.flatMap(name -> iconManager.lookupAsteroidChunk(name).stream())
 					.collect(Collectors.toList());
 
 			MapPosition iconStartPos;

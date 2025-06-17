@@ -29,8 +29,10 @@ public class BasicContainerRendering extends ContainerRendering {
 
 		if (items.size() > 0 && map.isAltMode()) {
 
+			IconManager iconManager = profile.getIconManager();
+
 			List<IconDefWithQuality> icons = items.stream()
-					.flatMap(i -> IconManager.lookupItem(i).stream()
+					.flatMap(i -> iconManager.lookupItem(i).stream()
 							.map(d -> new IconDefWithQuality(d, Optional.empty())))
 					.sorted(Comparator.comparing(iwq -> iwq.getDef().getPrototype())).limit(4)
 					.collect(Collectors.toList());

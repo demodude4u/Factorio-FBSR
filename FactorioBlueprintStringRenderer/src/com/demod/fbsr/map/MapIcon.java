@@ -10,6 +10,7 @@ import java.util.Optional;
 import java.util.OptionalDouble;
 
 import com.demod.fbsr.Atlas;
+import com.demod.fbsr.FBSR;
 import com.demod.fbsr.Atlas.AtlasRef;
 import com.demod.fbsr.IconManager;
 import com.demod.fbsr.Layer;
@@ -65,7 +66,7 @@ public class MapIcon extends MapRenderable {
 		g.drawImage(image, 0, 0, 1, 1, source.x, source.y, source.x + source.width, source.y + source.height, null);
 
 		if (quality.isPresent()) {
-			Optional<IconDef> def = IconManager.lookupQuality(quality.get());
+			Optional<IconDef> def = FBSR.getIconManager().lookupQuality(quality.get());
 			double qSize = 0.4;
 			g.translate(0, 1.0 - qSize);
 			g.scale(qSize, qSize);

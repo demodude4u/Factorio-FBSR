@@ -48,49 +48,7 @@ import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimap;
 
 public class FactorioManager {
-
 	private static final Logger LOGGER = LoggerFactory.getLogger(FactorioManager.class);
-
-	private static volatile boolean initializedPrototypes = false;
-	private static volatile boolean initializedFactories = false;
-
-	private static Profile baseProfile = null;
-	private static final List<Profile> profiles = new ArrayList<>();
-	private static final Map<FactorioData, Profile> profileByData = new HashMap<>();
-	private static final Map<String, Profile> profileByGroupName = new HashMap<>();
-	private static final ListMultimap<String, Profile> profileByModName = ArrayListMultimap.create();
-
-	private static final List<EntityRendererFactory> entityFactories = new ArrayList<>();
-	private static final List<TileRendererFactory> tileFactories = new ArrayList<>();
-	private static final Map<String, EntityRendererFactory> entityFactoryByName = new HashMap<>();
-	private static final Map<String, TileRendererFactory> tileFactoryByName = new HashMap<>();
-
-	private static final List<ItemPrototype> items = new ArrayList<>();
-	private static final List<RecipePrototype> recipes = new ArrayList<>();
-	private static final List<FluidPrototype> fluids = new ArrayList<>();
-	private static final List<TechPrototype> technologies = new ArrayList<>();
-	private static final List<EntityPrototype> entities = new ArrayList<>();
-	private static final List<TilePrototype> tiles = new ArrayList<>();
-	private static final List<EquipmentPrototype> equipments = new ArrayList<>();
-	private static final List<AchievementPrototype> achievements = new ArrayList<>();
-	private static final List<ItemGroupPrototype> itemGroups = new ArrayList<>();
-
-	private static final Map<String, ItemPrototype> itemByName = new HashMap<>();
-	private static final Map<String, RecipePrototype> recipeByName = new HashMap<>();
-	private static final Map<String, FluidPrototype> fluidByName = new HashMap<>();
-	private static final Map<String, TechPrototype> technologyByName = new HashMap<>();
-	private static final Map<String, EntityPrototype> entityByName = new HashMap<>();
-	private static final Map<String, TilePrototype> tileByName = new HashMap<>();
-	private static final Map<String, EquipmentPrototype> equipmentByName = new HashMap<>();
-	private static final Map<String, AchievementPrototype> achievementByName = new HashMap<>();
-	private static final Map<String, ItemGroupPrototype> itemGroupByName = new HashMap<>();
-
-	private static FPUtilitySprites utilitySprites;
-
-	private static final Cache<String, UnknownEntityRendering> unknownEntityFactories = CacheBuilder.newBuilder()
-			.expireAfterAccess(1, TimeUnit.HOURS).build();
-	private static final Cache<String, UnknownTileRendering> unknownTileFactories = CacheBuilder.newBuilder()
-			.expireAfterAccess(1, TimeUnit.HOURS).build();
 
 	private static boolean hasFactorioInstall;
 	private static File factorioInstall;
@@ -131,59 +89,105 @@ public class FactorioManager {
 		}
 	}
 
-	public static List<AchievementPrototype> getAchievements() {
+	private volatile boolean initializedPrototypes = false;
+	private volatile boolean initializedFactories = false;
+
+	private Profile profileVanilla = null;
+	private final List<Profile> profiles;
+
+	private final Map<FactorioData, Profile> profileByData = new HashMap<>();
+	private final Map<String, Profile> profileByGroupName = new HashMap<>();
+	private final ListMultimap<String, Profile> profileByModName = ArrayListMultimap.create();
+
+	private final List<EntityRendererFactory> entityFactories = new ArrayList<>();
+	private final List<TileRendererFactory> tileFactories = new ArrayList<>();
+	private final Map<String, EntityRendererFactory> entityFactoryByName = new HashMap<>();
+	private final Map<String, TileRendererFactory> tileFactoryByName = new HashMap<>();
+
+	private final List<ItemPrototype> items = new ArrayList<>();
+	private final List<RecipePrototype> recipes = new ArrayList<>();
+	private final List<FluidPrototype> fluids = new ArrayList<>();
+	private final List<TechPrototype> technologies = new ArrayList<>();
+	private final List<EntityPrototype> entities = new ArrayList<>();
+	private final List<TilePrototype> tiles = new ArrayList<>();
+	private final List<EquipmentPrototype> equipments = new ArrayList<>();
+	private final List<AchievementPrototype> achievements = new ArrayList<>();
+	private final List<ItemGroupPrototype> itemGroups = new ArrayList<>();
+
+	private final Map<String, ItemPrototype> itemByName = new HashMap<>();
+	private final Map<String, RecipePrototype> recipeByName = new HashMap<>();
+	private final Map<String, FluidPrototype> fluidByName = new HashMap<>();
+	private final Map<String, TechPrototype> technologyByName = new HashMap<>();
+	private final Map<String, EntityPrototype> entityByName = new HashMap<>();
+	private final Map<String, TilePrototype> tileByName = new HashMap<>();
+	private final Map<String, EquipmentPrototype> equipmentByName = new HashMap<>();
+	private final Map<String, AchievementPrototype> achievementByName = new HashMap<>();
+	private final Map<String, ItemGroupPrototype> itemGroupByName = new HashMap<>();
+
+	private FPUtilitySprites utilitySprites;
+
+	private final Cache<String, UnknownEntityRendering> unknownEntityFactories = CacheBuilder.newBuilder()
+			.expireAfterAccess(1, TimeUnit.HOURS).build();
+	private final Cache<String, UnknownTileRendering> unknownTileFactories = CacheBuilder.newBuilder()
+			.expireAfterAccess(1, TimeUnit.HOURS).build();
+
+	public FactorioManager(List<Profile> profiles) {
+		this.profiles = profiles;
+	}
+
+	public List<AchievementPrototype> getAchievements() {
 		return achievements;
 	}
 
-	public static Profile getBaseProfile() {
-		return baseProfile;
+	public Profile getProfileVanilla() {
+		return profileVanilla;
 	}
 
-	public static List<Profile> getProfiles() {
+	public List<Profile> getProfiles() {
 		return profiles;
 	}
 
-	public static List<EntityPrototype> getEntities() {
+	public List<EntityPrototype> getEntities() {
 		return entities;
 	}
 
-	public static List<EntityRendererFactory> getEntityFactories() {
+	public List<EntityRendererFactory> getEntityFactories() {
 		return entityFactories;
 	}
 
-	public static List<EquipmentPrototype> getEquipments() {
+	public List<EquipmentPrototype> getEquipments() {
 		return equipments;
 	}
 
-	public static List<FluidPrototype> getFluids() {
+	public List<FluidPrototype> getFluids() {
 		return fluids;
 	}
 
-	public static List<ItemPrototype> getItems() {
+	public List<ItemPrototype> getItems() {
 		return items;
 	}
 
-	public static List<ItemGroupPrototype> getItemGroups() {
+	public List<ItemGroupPrototype> getItemGroups() {
 		return itemGroups;
 	}
 
-	public static List<RecipePrototype> getRecipes() {
+	public List<RecipePrototype> getRecipes() {
 		return recipes;
 	}
 
-	public static List<TechPrototype> getTechnologies() {
+	public List<TechPrototype> getTechnologies() {
 		return technologies;
 	}
 
-	public static List<TileRendererFactory> getTileFactories() {
+	public List<TileRendererFactory> getTileFactories() {
 		return tileFactories;
 	}
 
-	public static List<TilePrototype> getTiles() {
+	public List<TilePrototype> getTiles() {
 		return tiles;
 	}
 
-	public static FPUtilitySprites getUtilitySprites() {
+	public FPUtilitySprites getUtilitySprites() {
 		return utilitySprites;
 	}
 
@@ -211,25 +215,11 @@ public class FactorioManager {
 		return modPortalApiPassword;
 	}
 
-	public static void initializePrototypes() throws JSONException, IOException {
+	public void initializePrototypes() throws JSONException, IOException {
 		if (initializedPrototypes) {
 			throw new IllegalStateException("Already Initialized Prototypes!");
 		}
 		initializedPrototypes = true;
-		
-		//Ignoring profiles that are not ready
-		List<Profile> allProfiles = Profile.listProfiles();
-		List<Profile> profiles = allProfiles.stream().filter(p -> p.getStatus() == ProfileStatus.READY).collect(Collectors.toList());
-		LOGGER.info("READY PROFILES: {}", profiles.stream().map(Profile::getName).collect(Collectors.joining(", ")));
-
-		if (profiles.size() != allProfiles.size()) {
-			LOGGER.warn("NOT READY PROFILES: {}", 
-				allProfiles.stream().filter(p -> p.getStatus() != ProfileStatus.READY).map(Profile::getName).collect(Collectors.joining(", ")));
-		}
-
-		if (profiles.isEmpty()) {
-			throw new IllegalStateException("No ready profiles found! Please ensure at least one profile is ready.");
-		}
 
 		for (Profile profile : profiles) {
 
@@ -259,19 +249,19 @@ public class FactorioManager {
 			itemGroupByName.putAll(table.getItemGroups());
 
 			if (profile.isVanilla()) {
-				baseProfile = profile;
+				profileVanilla = profile;
 			}
 		}
 
-		if (baseProfile == null) {
-			throw new IllegalStateException("No \"Base\" mod defined in any mod-rendering.json!");
+		if (profileVanilla == null) {
+			throw new IllegalStateException("No vanilla profile found!");
 		}
 
-		DataTable baseTable = baseProfile.getFactorioData().getTable();
-		utilitySprites = new FPUtilitySprites(baseProfile, baseTable.getRaw("utility-sprites", "default").get());
+		DataTable baseTable = profileVanilla.getFactorioData().getTable();
+		utilitySprites = new FPUtilitySprites(profileVanilla, baseTable.getRaw("utility-sprites", "default").get());
 	}
 
-	public static void initializeFactories() throws JSONException, IOException {
+	public void initializeFactories() throws JSONException, IOException {
 		if (!initializedPrototypes) {
 			throw new IllegalStateException("Must initialize prototypes first!");
 		}
@@ -283,13 +273,13 @@ public class FactorioManager {
 		for (Profile profile : profiles) {
 			JSONObject jsonProfile = new JSONObject(
 					Files.readString(profile.getFileProfile().toPath()));
-			EntityRendererFactory.registerFactories(FactorioManager::registerEntityFactory, profile,
+			EntityRendererFactory.registerFactories(this::registerEntityFactory, profile,
 					jsonProfile.getJSONObject("entities"));
-			TileRendererFactory.registerFactories(FactorioManager::registerTileFactory, profile,
+			TileRendererFactory.registerFactories(this::registerTileFactory, profile,
 					jsonProfile.getJSONObject("tiles"));
 		}
 
-		DataTable baseTable = baseProfile.getFactorioData().getTable();
+		DataTable baseTable = profileVanilla.getFactorioData().getTable();
 		
 		EntityRendererFactory.initFactories(entityFactories);
 		TileRendererFactory.initFactories(tileFactories);
@@ -320,26 +310,26 @@ public class FactorioManager {
 		itemGroupByName.values().stream().sorted(Comparator.comparing(DataPrototype::getName)).forEach(itemGroups::add);
 	}
 
-	public static Optional<AchievementPrototype> lookupAchievementByName(String name) {
+	public Optional<AchievementPrototype> lookupAchievementByName(String name) {
 		return Optional.ofNullable(achievementByName.get(name));
 	}
 
-	public static Profile lookupProfileByGroupName(String groupName) {
+	public Profile lookupProfileByGroupName(String groupName) {
 		return profileByGroupName.get(groupName);
 	}
 
-	public static Profile lookupProfileByData(FactorioData data) {
+	public Profile lookupProfileByData(FactorioData data) {
 		return profileByData.get(data);
 	}
 
-	public static Optional<EntityPrototype> lookupEntityByName(String name) {
+	public Optional<EntityPrototype> lookupEntityByName(String name) {
 		return Optional.ofNullable(entityByName.get(name));
 	}
 
-	public static EntityRendererFactory lookupEntityFactoryForName(String name) {
+	public EntityRendererFactory lookupEntityFactoryForName(String name) {
 		return Optional.ofNullable(entityFactoryByName.get(name)).orElseGet(() -> {
 			try {
-				return unknownEntityFactories.get(name, () -> new UnknownEntityRendering(name));
+				return unknownEntityFactories.get(name, () -> new UnknownEntityRendering(profileVanilla, name));
 			} catch (ExecutionException e) {
 				e.printStackTrace();
 				System.exit(-1);
@@ -348,23 +338,23 @@ public class FactorioManager {
 		});
 	}
 
-	public static Optional<EquipmentPrototype> lookupEquipmentByName(String name) {
+	public Optional<EquipmentPrototype> lookupEquipmentByName(String name) {
 		return Optional.ofNullable(equipmentByName.get(name));
 	}
 
-	public static Optional<FluidPrototype> lookupFluidByName(String name) {
+	public Optional<FluidPrototype> lookupFluidByName(String name) {
 		return Optional.ofNullable(fluidByName.get(name));
 	}
 
-	public static Optional<ItemPrototype> lookupItemByName(String name) {
+	public Optional<ItemPrototype> lookupItemByName(String name) {
 		return Optional.ofNullable(itemByName.get(name));
 	}
 
-	public static Optional<ItemGroupPrototype> lookupItemGroupByName(String name) {
+	public Optional<ItemGroupPrototype> lookupItemGroupByName(String name) {
 		return Optional.ofNullable(itemGroupByName.get(name));
 	}
 
-	public static BufferedImage lookupModImage(String filename) {
+	public BufferedImage lookupModImage(String filename) {
 		if (!hasFactorioInstall) {
 			LOGGER.error("FACTORIO INSTALL NEEDED TO LOAD IMAGES!");
 			System.exit(-1);
@@ -381,19 +371,19 @@ public class FactorioManager {
 		}
 	}
 
-	public static Optional<RecipePrototype> lookupRecipeByName(String name) {
+	public Optional<RecipePrototype> lookupRecipeByName(String name) {
 		return Optional.ofNullable(recipeByName.get(name));
 	}
 
-	public static Optional<TechPrototype> lookupTechnologyByName(String name) {
+	public Optional<TechPrototype> lookupTechnologyByName(String name) {
 		return Optional.ofNullable(technologyByName.get(name));
 	}
 
-	public static Optional<TilePrototype> lookupTileByName(String name) {
+	public Optional<TilePrototype> lookupTileByName(String name) {
 		return Optional.ofNullable(tileByName.get(name));
 	}
 
-	public static TileRendererFactory lookupTileFactoryForName(String name) {
+	public TileRendererFactory lookupTileFactoryForName(String name) {
 		return Optional.ofNullable(tileFactoryByName.get(name)).orElseGet(() -> {
 			try {
 				return unknownTileFactories.get(name, () -> new UnknownTileRendering(name));
@@ -405,7 +395,7 @@ public class FactorioManager {
 		});
 	}
 
-	private static synchronized void registerEntityFactory(EntityRendererFactory factory) {
+	private synchronized void registerEntityFactory(EntityRendererFactory factory) {
 		String name = factory.getPrototype().getName();
 
 		if (entityFactoryByName.containsKey(name)) {
@@ -422,7 +412,7 @@ public class FactorioManager {
 		entityFactoryByName.put(name, factory);
 	}
 
-	private static synchronized void registerTileFactory(TileRendererFactory factory) {
+	private synchronized void registerTileFactory(TileRendererFactory factory) {
 		String name = factory.getPrototype().getName();
 		if (tileFactoryByName.containsKey(name)) {
 			throw new IllegalArgumentException("Tile already exists! " + name);

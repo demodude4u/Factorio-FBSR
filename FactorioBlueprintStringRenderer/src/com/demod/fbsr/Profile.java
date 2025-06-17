@@ -115,6 +115,10 @@ public class Profile {
     private AtlasPackage atlasPackage;
     private ModLoader modLoader;
 
+    private FactorioManager factorioManager;
+    private GUIStyle guiStyle;
+    private IconManager iconManager;
+
     public static Profile byName(String name) {
         JSONObject json = Config.get().getJSONObject("factorio_manager");
         File folderProfileRoot = new File(json.optString("profiles", "profiles"));
@@ -163,6 +167,10 @@ public class Profile {
         } else {
             modLoader = null;
         }
+
+        factorioManager = null;
+        guiStyle = null;
+        iconManager = null;
     }
 
     @Override
@@ -218,6 +226,30 @@ public class Profile {
         return modLoader;
     }
 
+    public FactorioManager getFactorioManager() {
+        return factorioManager;
+    }
+
+    public GUIStyle getGuiStyle() {
+        return guiStyle;
+    }
+
+    public IconManager getIconManager() {
+        return iconManager;
+    }
+
+    public void setFactorioManager(FactorioManager factorioManager) {
+        this.factorioManager = factorioManager;
+    }
+
+    public void setGuiStyle(GUIStyle guiStyle) {
+        this.guiStyle = guiStyle;
+    }
+
+    public void setIconManager(IconManager iconManager) {
+        this.iconManager = iconManager;
+    }
+
     public static List<Profile> listProfiles() {
         JSONObject json = Config.get().getJSONObject("factorio_manager");
         File folderProfileRoot = new File(json.optString("profiles", "profiles"));
@@ -225,6 +257,9 @@ public class Profile {
 
         List<Profile> profiles = new ArrayList<>();
         for (File folderProfile : folderProfileRoot.listFiles()) {
+            if (folderProfile.getName().equals(".git") || !folderProfile.isDirectory()) {
+                continue;
+            }
             Profile profile = new Profile(folderProfile, new File(folderBuildRoot, folderProfile.getName()));
             profiles.add(profile);
         }
@@ -948,21 +983,12 @@ public class Profile {
             return false;
         }
 
-        //TODO Initialize data to populate atlas package (need to remove singletons?)
-
-        //TODO Vanilla specific initializations
-        if (isVanilla()) {
-
+        if (!FBSR.buildData(this)) {
+            System.out.println("Failed to build data for profile: " + folderProfile.getName());
+            return false;
         }
 
-        //TODO Atlas Package
-
-        if (isVanilla()) {
-            if (!GUIStyle.copyFontsToProfile(this)) {
-                System.out.println("Failed to copy fonts to vanilla profile.");
-                return false;
-            }
-        }
+        return true;
     }
 
     public boolean runFactorio() {

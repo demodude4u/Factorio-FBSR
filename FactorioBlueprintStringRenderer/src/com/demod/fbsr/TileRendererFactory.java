@@ -561,7 +561,7 @@ public class TileRendererFactory {
 		protoVariantsMainSize1 = protoVariants.main.stream().filter(fp -> fp.size == 1).findFirst();
 		protoTransitionMergesWithTileID = FPUtils.optString(prototype.lua().get("transition_merges_with_tile"));
 		protoTransitionMergesWithTile = protoTransitionMergesWithTileID
-				.flatMap(k -> Optional.ofNullable(FactorioManager.lookupTileFactoryForName(k)));
+				.flatMap(k -> Optional.ofNullable(profile.getFactorioManager().lookupTileFactoryForName(k)));
 
 		if (!protoVariants.main.isEmpty())
 			renderProcess = new TileRenderProcessMain();

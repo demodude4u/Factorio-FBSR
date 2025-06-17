@@ -28,15 +28,17 @@ public class DeciderCombinatorRendering extends CombinatorRendering {
 
 		if (bsEntity.deciderConditions.isPresent()) {
 
+			IconManager iconManager = profile.getIconManager();
+
 			List<IconDefWithQuality> inputIcons = new ArrayList<>();
 			bsEntity.deciderConditions.get().conditions.stream()
 					.flatMap(bs -> Arrays.asList(bs.firstSignal, bs.secondSignal).stream().flatMap(s -> s.stream()))
 					.limit(2)
-					.forEach(s -> IconManager.lookupSignalID(s.type, s.name, s.quality).ifPresent(inputIcons::add));
+					.forEach(s -> iconManager.lookupSignalID(s.type, s.name, s.quality).ifPresent(inputIcons::add));
 
 			List<IconDefWithQuality> outputIcons = new ArrayList<>();
 			bsEntity.deciderConditions.get().outputs.stream().flatMap(bs -> bs.signal.stream()).limit(2)
-					.forEach(s -> IconManager.lookupSignalID(s.type, s.name, s.quality).ifPresent(outputIcons::add));
+					.forEach(s -> iconManager.lookupSignalID(s.type, s.name, s.quality).ifPresent(outputIcons::add));
 
 			double iconStartY = entity.getDirection().isHorizontal() ? -0.5 : -0.25;
 

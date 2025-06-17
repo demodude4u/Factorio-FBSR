@@ -57,6 +57,10 @@ public class GUILayoutBlueprint {
 	// This is double so it has a nice zoom but also crisp in detail
 	public static final GUISize DISCORD_IMAGE_SIZE = new GUISize(1100, 700);
 
+	private FactorioManager factorioManager = FBSR.getFactorioManager();
+	private GUIStyle guiStyle = FBSR.getGuiStyle();
+	private IconManager iconManager = FBSR.getIconManager();
+
 	private BSBlueprint blueprint;
 	private CommandReporting reporting;
 	private RenderResult result;
@@ -83,7 +87,7 @@ public class GUILayoutBlueprint {
 		int titleHeight = 50;
 		int infoPaneWidth = 76 + itemColumns * itemCellSize;
 
-		GUIPanel panel = new GUIPanel(bounds, GUIStyle.FRAME_INNER);
+		GUIPanel panel = new GUIPanel(bounds, guiStyle.FRAME_INNER);
 		renderTinted(panel);
 
 		drawTitleBar(bounds.cutTop(titleHeight));
@@ -91,10 +95,10 @@ public class GUILayoutBlueprint {
 		drawImagePane(bounds.shrinkTop(titleHeight).shrinkLeft(infoPaneWidth));
 
 		GUIBox creditBounds = bounds.cutRight(190).cutBottom(24).expandTop(8).cutTop(16).cutLeft(160);
-		GUIPanel creditPanel = new GUIPanel(creditBounds, GUIStyle.FRAME_TAB);
+		GUIPanel creditPanel = new GUIPanel(creditBounds, guiStyle.FRAME_TAB);
 		renderTinted(creditPanel);
-		GUILabel lblCredit = new GUILabel(creditBounds, "BlueprintBot " + FBSR.getVersion(),
-				GUIStyle.FONT_BP_BOLD.deriveFont(16f), Color.GRAY, GUIAlign.TOP_CENTER);
+		GUILabel lblCredit = new GUILabel(creditBounds, "BlueprintBot " + FBSR.getFactorioManager().getProfileVanilla().getFactorioData().getVersion(),
+				guiStyle.FONT_BP_BOLD.deriveFont(16f), Color.GRAY, GUIAlign.TOP_CENTER);
 		renderTinted(lblCredit);
 	}
 
@@ -103,11 +107,11 @@ public class GUILayoutBlueprint {
 
 		// TODO description bar along top
 
-		GUIPanel panel = new GUIPanel(bounds, GUIStyle.FRAME_DARK_INNER, GUIStyle.FRAME_OUTER);
+		GUIPanel panel = new GUIPanel(bounds, guiStyle.FRAME_DARK_INNER, guiStyle.FRAME_OUTER);
 		renderTinted(panel);
 
 		boolean foundation = blueprint.tiles.stream().anyMatch(t -> {
-			Optional<TilePrototype> tile = FactorioManager.lookupTileByName(t.name);
+			Optional<TilePrototype> tile = factorioManager.lookupTileByName(t.name);
 			return tile.isPresent() && tile.get().isFoundation();
 		});
 		if (foundation) {
@@ -135,10 +139,10 @@ public class GUILayoutBlueprint {
 
 		GUIBox boundsCell = bounds.cutTop(28).cutRight(100);
 
-		Font fontMod = GUIStyle.FONT_BP_BOLD.deriveFont(15f);
+		Font fontMod = guiStyle.FONT_BP_BOLD.deriveFont(15f);
 
 		if (spaceAge) {
-			GUIStyle.CIRCLE_WHITE.render(g, boundsCell);
+			guiStyle.CIRCLE_WHITE.render(g, boundsCell);
 			GUILabel label = new GUILabel(boundsCell, "Space Age", fontMod, Color.black, GUIAlign.CENTER);
 			label.render(g);
 			boundsCell = boundsCell.indexed(1, 0);
@@ -149,7 +153,7 @@ public class GUILayoutBlueprint {
 			int minWidth = fm.stringWidth(mod) + 16;
 			GUIBox boundsLabel = (minWidth > boundsCell.width) ? boundsCell.expandLeft(minWidth - boundsCell.width)
 					: boundsCell;
-			GUIStyle.CIRCLE_YELLOW.render(g, boundsLabel);
+			guiStyle.CIRCLE_YELLOW.render(g, boundsLabel);
 			GUILabel label = new GUILabel(boundsLabel, mod, fontMod, Color.black, GUIAlign.CENTER);
 			label.render(g);
 			boundsCell = boundsCell.indexed(1, 0);
@@ -163,10 +167,10 @@ public class GUILayoutBlueprint {
 
 		bounds = bounds.shrink(0, 24, 24, 12);
 
-		GUIPanel backPanel = new GUIPanel(bounds, GUIStyle.FRAME_DARK_INNER, GUIStyle.FRAME_OUTER);
+		GUIPanel backPanel = new GUIPanel(bounds, guiStyle.FRAME_DARK_INNER, guiStyle.FRAME_OUTER);
 		renderTinted(backPanel);
 
-		Font fontQty = GUIStyle.FONT_BP_BOLD.deriveFont(itemFontSize);
+		Font fontQty = guiStyle.FONT_BP_BOLD.deriveFont(itemFontSize);
 
 		abstract class SubPanel {
 			GUIBox bounds;
@@ -179,11 +183,11 @@ public class GUILayoutBlueprint {
 
 			void render(Graphics2D g) {
 				g.setComposite(tint);
-				GUIStyle.PIPE.renderBox(g, bounds.shrink(6, 6, 6, 6));
+				guiStyle.PIPE.renderBox(g, bounds.shrink(6, 6, 6, 6));
 				g.setComposite(pc);
 
 				GUILabel lblTitle = new GUILabel(bounds.cutTop(subPanelInset.top).shrink(20, 24, 8, 24), title,
-						GUIStyle.FONT_BP_BOLD.deriveFont(18f), GUIStyle.FONT_BP_COLOR, GUIAlign.CENTER);
+						guiStyle.FONT_BP_BOLD.deriveFont(18f), guiStyle.FONT_BP_COLOR, GUIAlign.CENTER);
 				lblTitle.render(g);
 			}
 		}
@@ -201,8 +205,8 @@ public class GUILayoutBlueprint {
 					super.render(g);
 
 					GUIBox itemGridBounds = bounds.shrink(subPanelInset).shrink(itemGridInset);
-					GUIPanel itemGridPanel = new GUIPanel(itemGridBounds, GUIStyle.FRAME_DARK_INNER,
-							GUIStyle.FRAME_LIGHT_OUTER);
+					GUIPanel itemGridPanel = new GUIPanel(itemGridBounds, guiStyle.FRAME_DARK_INNER,
+							guiStyle.FRAME_LIGHT_OUTER);
 					renderTinted(itemGridPanel);
 
 					if (itemShowCellBackground) {
@@ -211,7 +215,7 @@ public class GUILayoutBlueprint {
 								GUIBox cellBounds = itemGridCell.toBox(itemGridBounds.x, itemGridBounds.y).indexed(row,
 										col);
 								int bump = itemCellSize / 4;
-								GUIStyle.FRAME_DARK_BUMP_OUTER.render(g, cellBounds.shrink(bump, bump, bump, bump));
+								guiStyle.FRAME_DARK_BUMP_OUTER.render(g, cellBounds.shrink(bump, bump, bump, bump));
 							}
 						}
 					}
@@ -228,18 +232,18 @@ public class GUILayoutBlueprint {
 						int row = i / itemColumns;
 						GUIBox cellBounds = itemGridCell.toBox(itemGridBounds.x, itemGridBounds.y).indexed(row, col);
 
-						GUIStyle.ITEM_SLOT.render(g, cellBounds);
+						guiStyle.ITEM_SLOT.render(g, cellBounds);
 
 						int iconShrink = (int) (itemCellSize * 0.15);
 						GUIBox iconBounds = cellBounds.shrink(iconShrink, iconShrink, iconShrink, iconShrink);
 
-						Optional<IconDef> icon = IconManager.lookupItem(item.name);
+						Optional<IconDef> icon = iconManager.lookupItem(item.name);
 						if (icon.isPresent()) {
 							GUIImageDef imgIcon = new GUIImageDef(iconBounds, icon.get());
 							imgIcon.render(g);
 
 							if (item.quality.isPresent() && !item.quality.get().equals("normal")) {
-								Optional<IconDef> qualityIcon = IconManager.lookupQuality(item.quality.get());
+								Optional<IconDef> qualityIcon = iconManager.lookupQuality(item.quality.get());
 								if (qualityIcon.isPresent()) {
 									int qSize = (int) (0.4 * iconBounds.width);
 									GUIBox iconQualityBounds = iconBounds.cutLeft(qSize).cutBottom(qSize);
@@ -280,8 +284,8 @@ public class GUILayoutBlueprint {
 					super.render(g);
 
 					GUIBox itemGridBounds = bounds.shrink(subPanelInset).shrink(itemGridInset);
-					GUIPanel itemGridPanel = new GUIPanel(itemGridBounds, GUIStyle.FRAME_DARK_INNER,
-							GUIStyle.FRAME_LIGHT_OUTER);
+					GUIPanel itemGridPanel = new GUIPanel(itemGridBounds, guiStyle.FRAME_DARK_INNER,
+							guiStyle.FRAME_LIGHT_OUTER);
 					renderTinted(itemGridPanel);
 
 					if (itemShowCellBackground) {
@@ -290,7 +294,7 @@ public class GUILayoutBlueprint {
 								GUIBox cellBounds = itemGridCell.toBox(itemGridBounds.x, itemGridBounds.y).indexed(row,
 										col);
 								int bump = itemCellSize / 4;
-								GUIStyle.FRAME_DARK_BUMP_OUTER.render(g, cellBounds.shrink(bump, bump, bump, bump));
+								guiStyle.FRAME_DARK_BUMP_OUTER.render(g, cellBounds.shrink(bump, bump, bump, bump));
 							}
 						}
 					}
@@ -307,7 +311,7 @@ public class GUILayoutBlueprint {
 						int row = i / itemColumns;
 						GUIBox cellBounds = itemGridCell.toBox(itemGridBounds.x, itemGridBounds.y).indexed(row, col);
 
-						GUIStyle.ITEM_SLOT.render(g, cellBounds);
+						guiStyle.ITEM_SLOT.render(g, cellBounds);
 
 						int iconSize = (itemCellSize * 32) / 40;
 						GUIBox iconBounds = new GUIBox(cellBounds.x + cellBounds.width / 2 - iconSize / 2,
@@ -315,11 +319,11 @@ public class GUILayoutBlueprint {
 
 						Optional<? extends ImageDef> image = null;
 						if (item.name.equals(TotalRawCalculator.RAW_TIME)) {
-							image = Optional.of(GUIStyle.DEF_CLOCK);
+							image = Optional.of(guiStyle.DEF_CLOCK);
 						} else {
-							image = IconManager.lookupItem(item.name);
+							image = iconManager.lookupItem(item.name);
 							if (image.isEmpty()) {
-								image = IconManager.lookupFluid(item.name);
+								image = iconManager.lookupFluid(item.name);
 							}
 						}
 
@@ -352,7 +356,7 @@ public class GUILayoutBlueprint {
 
 		}
 
-		GUIPanel frontPanel = new GUIPanel(bounds.cutTop(cutY), GUIStyle.FRAME_LIGHT_INNER);
+		GUIPanel frontPanel = new GUIPanel(bounds.cutTop(cutY), guiStyle.FRAME_LIGHT_INNER);
 		renderTinted(frontPanel);
 
 		subPanels.forEach(p -> p.render(g));
@@ -360,8 +364,8 @@ public class GUILayoutBlueprint {
 
 	private void drawTitleBar(GUIBox bounds) {
 		GUIRichText lblTitle = new GUIRichText(bounds.shrinkBottom(6).shrinkLeft(24),
-				blueprint.label.orElse("Untitled Blueprint"), GUIStyle.FONT_BP_BOLD.deriveFont(24f),
-				GUIStyle.FONT_BP_COLOR, GUIAlign.CENTER_LEFT);
+				blueprint.label.orElse("Untitled Blueprint"), guiStyle.FONT_BP_BOLD.deriveFont(24f),
+				guiStyle.FONT_BP_COLOR, GUIAlign.CENTER_LEFT);
 		lblTitle.render(g);
 
 		StringBuilder iconText = new StringBuilder();
@@ -370,12 +374,12 @@ public class GUILayoutBlueprint {
 			iconText.append(tag.formatted());
 		});
 		GUIRichText lblIcons = new GUIRichText(bounds.shrinkBottom(6).shrinkRight(22),
-				iconText.toString(), GUIStyle.FONT_BP_BOLD.deriveFont(24f), GUIStyle.FONT_BP_COLOR, GUIAlign.CENTER_RIGHT);
+				iconText.toString(), guiStyle.FONT_BP_BOLD.deriveFont(24f), guiStyle.FONT_BP_COLOR, GUIAlign.CENTER_RIGHT);
 		lblIcons.render(g);
 
 		int startX = bounds.x + (int)lblTitle.getTextWidth(g) + 44;
 		int endX = bounds.x + bounds.width - (int)lblIcons.getTextWidth(g) - (iconText.length() == 0 ? 24 : 46);
-		GUIPipeFeature pipe = GUIStyle.DRAG_LINES;
+		GUIPipeFeature pipe = guiStyle.DRAG_LINES;
 		g.setComposite(tint);
 		for (int x = endX - pipe.size; x >= startX; x -= pipe.size) {
 			pipe.renderVertical(g, x, bounds.y + 10, bounds.y + bounds.height - 10);
@@ -385,7 +389,7 @@ public class GUILayoutBlueprint {
 
 	public BufferedImage generateDiscordImage() {
 
-		DataTable baseTable = FactorioManager.getBaseProfile().getData().getTable();
+		DataTable baseTable = factorioManager.getProfileVanilla().getFactorioData().getTable();
 		boolean baseDataOnly = blueprint.entities.stream().allMatch(e -> baseTable.getEntity(e.name).isPresent())
 				&& blueprint.tiles.stream().allMatch(t -> baseTable.getTile(t.name).isPresent());
 
@@ -393,9 +397,9 @@ public class GUILayoutBlueprint {
 		totalRawItems = baseDataOnly ? FBSR.generateTotalRawItems(totalItems) : ImmutableMap.of();
 
 		Set<String> groups = new LinkedHashSet<>();
-		blueprint.entities.stream().map(e -> FactorioManager.lookupEntityFactoryForName(e.name))
+		blueprint.entities.stream().map(e -> factorioManager.lookupEntityFactoryForName(e.name))
 				.map(e -> e.isUnknown() ? "Modded" : e.getGroupName()).forEach(groups::add);
-		blueprint.tiles.stream().map(t -> FactorioManager.lookupTileFactoryForName(t.name)).filter(t -> !t.isUnknown())
+		blueprint.tiles.stream().map(t -> factorioManager.lookupTileFactoryForName(t.name)).filter(t -> !t.isUnknown())
 				.map(t -> t.getGroupName()).forEach(groups::add);
 
 		spaceAge = groups.contains("Space Age");

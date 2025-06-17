@@ -18,6 +18,8 @@ import com.demod.fbsr.map.MapIcon;
 import com.demod.fbsr.map.MapPosition;
 import com.demod.fbsr.map.MapRenderable;
 
+import net.dv8tion.jda.api.entities.Icon;
+
 public class InfinityContainerRendering extends ContainerRendering {
 	@Override
 	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
@@ -33,7 +35,7 @@ public class InfinityContainerRendering extends ContainerRendering {
 			if (!items.isEmpty()) {
 				String itemName = items.get(0);
 
-				Optional<IconDef> icon = IconManager.lookupItem(itemName);
+				Optional<IconDef> icon = profile.getIconManager().lookupItem(itemName);
 				if (icon.isPresent()) {
 					register.accept(new MapIcon(entity.getPosition(), icon.get(), 0.6, OptionalDouble.of(0.1), false,
 							Optional.empty()));

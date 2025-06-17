@@ -27,12 +27,13 @@ import com.demod.fbsr.map.MapText;
 import com.demod.fbsr.map.MapUnknownEntityMarker;
 
 public class UnknownEntityRendering extends EntityRendererFactory {
-	public static final Font FONT = GUIStyle.FONT_BP_BOLD.deriveFont(0.4f);
-
 	private final Color color;
 	private final float offset;
 
-	public UnknownEntityRendering(String name) {
+	private Profile profile;
+
+	public UnknownEntityRendering(Profile profile, String name) {
+		this.profile = profile;
 		this.name = name;
 		color = RenderUtils.getUnknownColor(name);
 		offset = RenderUtils.getUnknownTextOffset(name);
@@ -52,6 +53,7 @@ public class UnknownEntityRendering extends EntityRendererFactory {
 		MapPosition pos = entity.getPosition();
 		register.accept(new MapUnknownEntityMarker(pos, color));
 		if (map.addUnknownEntity(name)) {
+			Font FONT = profile.getGuiStyle().FONT_BP_BOLD.deriveFont(0.4f);
 			register.accept(
 					new MapText(Layer.ENTITY_INFO_TEXT, pos.addUnit(-0.5, -0.5 + offset), 0, FONT, Color.white, name, false));
 		}
@@ -65,7 +67,7 @@ public class UnknownEntityRendering extends EntityRendererFactory {
 
 	@Override
 	public Profile getProfile() {
-		return FactorioManager.getBaseProfile();
+		return profile;
 	}
 
 	@Override

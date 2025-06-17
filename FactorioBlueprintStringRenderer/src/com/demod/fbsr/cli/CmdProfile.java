@@ -7,6 +7,7 @@ import java.util.Optional;
 
 import com.demod.fbsr.FactorioManager;
 import com.demod.fbsr.Profile;
+import com.google.common.collect.Multimap;
 
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -107,7 +108,7 @@ public class CmdProfile {
             if (filter != null && !profile.getName().contains(filter)) {
                 continue;
             }
-            System.out.println((profile.equals(this.profile) ? "***** " : " - ") + profile + " (" + profile.getStatus() + ")");
+            System.out.println((profile.equals(this.profile) ? "***** " : " - ") + profile.getName() + " (" + profile.getStatus() + ")");
             if (detailed) {
                 List<String> mods = profile.listMods();
                 for (String mod : mods) {
@@ -182,7 +183,9 @@ public class CmdProfile {
             return;
         }
 
-        profile.runFactorio();
+        if (!profile.runFactorio()) {
+            System.out.println("Failed to run Factorio with profile: " + profile.getName());
+        }
     }
 
     @Command(name = "explore", description = "Open file manager for the specified profile")
@@ -203,18 +206,6 @@ public class CmdProfile {
         } else {
             System.out.println("Desktop is not supported. Cannot open profile in file manager.");
         }
-    }
-
-    @Command(name = "protos", description = "List prototypes (entities and tiles) for the specified profile")
-    public void listPrototypes(
-            @Option(names = "-name", description = "Name of the profile") Optional<String> name
-    ) {
-        if (!checkOrSelectProfile(name)) {
-            return;
-        }
-
-        // TODO
-        asdf
     }
 
     @Command(name = "build-manifest", description = "Build the manifest for the specified profile")

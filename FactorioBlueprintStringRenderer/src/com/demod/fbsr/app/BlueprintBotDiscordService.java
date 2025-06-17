@@ -229,14 +229,13 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 	private String hostingChannelID;
 
 	private void handleDataRawAutoComplete(AutoCompleteEvent event) {
-		event.reply(
-				FactorioManager.getProfiles().stream().map(p -> p.getData().getFolderMods().getName()).collect(Collectors.toList()));
+		event.reply(FBSR.getFactorioManager().getProfiles().stream().map(p -> p.getName()).sorted().collect(Collectors.toList()));
 	}
 
 	private void handleDataRawCommand(SlashCommandEvent event) throws IOException {
 		String profileName = event.getParamString("profile");
-		Optional<Profile> profile = FactorioManager.getProfiles().stream()
-				.filter(p -> p.getData().getFolderMods().getName().equals(profileName)).findAny();
+		Optional<Profile> profile = FBSR.getFactorioManager().getProfiles().stream()
+				.filter(p -> p.getName().equals(profileName)).findAny();
 		if (profile.isEmpty()) {
 			event.reply("Could not find profile!");
 			return;
@@ -244,7 +243,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 		String key = event.getParamString("path");
 		String[] path = key.split("\\.");
-		Optional<LuaValue> lua = profile.get().getData().getTable().getRaw(path);
+		Optional<LuaValue> lua = profile.get().getFactorioData().getTable().getRaw(path);
 		if (!lua.isPresent()) {
 			event.reply("I could not find a lua table for the path [`"
 					+ Arrays.asList(path).stream().collect(Collectors.joining(", ")) + "`] :frowning:");
@@ -351,6 +350,8 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		BSBlueprintString blueprintString = blueprintStrings.get(0);
 		CommandReporting reporting = event.getReporting();
 
+		FactorioManager factorioManager = FBSR.getFactorioManager();
+
 		Multiset<String> unknownNames = LinkedHashMultiset.create();
 		List<Long> renderTimes = new ArrayList<>();
 
@@ -382,9 +383,9 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			renderTimes.add(layout.getResult().renderTime);
 
 			Set<String> groups = new LinkedHashSet<>();
-			blueprint.entities.stream().map(e -> FactorioManager.lookupEntityFactoryForName(e.name))
+			blueprint.entities.stream().map(e -> factorioManager.lookupEntityFactoryForName(e.name))
 					.map(e -> e.isUnknown() ? "Modded" : e.getGroupName()).forEach(groups::add);
-			blueprint.tiles.stream().map(t -> FactorioManager.lookupTileFactoryForName(t.name))
+			blueprint.tiles.stream().map(t -> factorioManager.lookupTileFactoryForName(t.name))
 					.filter(t -> !t.isUnknown()).map(t -> t.getGroupName()).forEach(groups::add);
 			spaceAge = groups.contains("Space Age");
 			groups.removeAll(Arrays.asList("Base", "Space Age"));
@@ -419,10 +420,10 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 			Set<String> groups = new LinkedHashSet<>();
 			blueprints.stream().flatMap(b -> b.entities.stream().map(e -> e.name)).distinct()
-					.map(n -> FactorioManager.lookupEntityFactoryForName(n))
+					.map(n -> factorioManager.lookupEntityFactoryForName(n))
 					.map(e -> e.isUnknown() ? "Modded" : e.getGroupName()).forEach(groups::add);
 			blueprints.stream().flatMap(b -> b.tiles.stream().map(t -> t.name)).distinct()
-					.map(n -> FactorioManager.lookupTileFactoryForName(n)).filter(t -> !t.isUnknown())
+					.map(n -> factorioManager.lookupTileFactoryForName(n)).filter(t -> !t.isUnknown())
 					.map(t -> t.getGroupName()).forEach(groups::add);
 			spaceAge = groups.contains("Space Age");
 			groups.removeAll(Arrays.asList("Base", "Space Age"));
@@ -965,7 +966,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		String entityName = event.getParamString("entity");
 		boolean debug = event.optParamBoolean("debug").orElse(false);
 
-		EntityRendererFactory factory = FactorioManager.lookupEntityFactoryForName(entityName);
+		EntityRendererFactory factory = FBSR.getFactorioManager().lookupEntityFactoryForName(entityName);
 		if (factory.isUnknown()) {
 			event.reply("I could not find a way to display a `" + entityName);
 			return;
@@ -1068,7 +1069,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 		List<String> nameStartsWith = new ArrayList<>();
 		List<String> nameContains = new ArrayList<>();
-		for (EntityRendererFactory factory : FactorioManager.getEntityFactories()) {
+		for (EntityRendererFactory factory : FBSR.getFactorioManager().getEntityFactories()) {
 			String name = factory.getName();
 			String lowerCase = name.toLowerCase();
 			if (lowerCase.startsWith(search)) {
@@ -1421,9 +1422,10 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			json.put("type", luaType.tojstring());
 		}
 		json.put("category", category);
-		json.put("version", FBSR.getVersion());
+		String version = FBSR.getFactorioManager().getProfileVanilla().getFactorioData().getVersion();
+		json.put("version", version);
 		json.put("data", sortedJSON(Utils.<JSONObject>convertLuaToJson(lua)));
-		String fileName = category + "_" + name + "_dump_" + FBSR.getVersion() + ".json";
+		String fileName = category + "_" + name + "_dump_" + version + ".json";
 		event.replyFile(json.toString(2).getBytes(), fileName);
 	}
 
@@ -1452,11 +1454,13 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		configJson = Config.get().getJSONObject("discord");
 
 		FBSR.initialize();
-		LOGGER.info("Factorio {} Data Loaded.", FBSR.getVersion());
+		FactorioManager factorioManager = FBSR.getFactorioManager();
+		String version = factorioManager.getProfileVanilla().getFactorioData().getVersion();
+		LOGGER.info("Factorio {} Data Loaded.", version);
 
 		Set<String> groups = new HashSet<>();
-		FactorioManager.getEntityFactories().forEach(e -> groups.add(e.getGroupName()));
-		FactorioManager.getTileFactories().forEach(t -> groups.add(t.getGroupName()));
+		factorioManager.getEntityFactories().forEach(e -> groups.add(e.getGroupName()));
+		factorioManager.getTileFactories().forEach(t -> groups.add(t.getGroupName()));
 
 		bot = DCBA.builder()//
 				.setInfo("Blueprint Bot")//
@@ -1474,7 +1478,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				.withCredits("Contributors", "Vilsol")//
 				.withCredits("Special Thanks", "AntiElitz")//
 				.withCredits("Special Thanks", "Members of Team Steelaxe")//
-				.withVersion("Multiverse " + FBSR.getVersion())
+				.withVersion("Multiverse " + version)
 				.withCustomField("Mods Loaded",
 						groups.stream().sorted(Comparator.comparing(s -> s.toLowerCase()))
 								.collect(Collectors.joining(", ")))
@@ -1558,38 +1562,38 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				.withOptionalParam(OptionType.ATTACHMENT, "file", "File containing blueprint string.")//
 				//
 				.addSlashCommand("prototype/entity", "Lua data for the specified entity prototype.",
-						createPrototypeCommandHandler("entity", FactorioManager::lookupEntityByName),
-						createPrototypeAutoCompleteHandler(FactorioManager.getEntities()))//
+						createPrototypeCommandHandler("entity", factorioManager::lookupEntityByName),
+						createPrototypeAutoCompleteHandler(factorioManager.getEntities()))//
 				.withAutoParam(OptionType.STRING, "name", "Prototype name of the entity.")//
 				//
 				.addSlashCommand("prototype/recipe", "Lua data for the specified recipe prototype.",
-						createPrototypeCommandHandler("recipe", FactorioManager::lookupRecipeByName),
-						createPrototypeAutoCompleteHandler(FactorioManager.getRecipes()))//
+						createPrototypeCommandHandler("recipe", factorioManager::lookupRecipeByName),
+						createPrototypeAutoCompleteHandler(factorioManager.getRecipes()))//
 				.withAutoParam(OptionType.STRING, "name", "Prototype name of the recipe.")//
 				//
 				.addSlashCommand("prototype/fluid", "Lua data for the specified fluid prototype.",
-						createPrototypeCommandHandler("fluid", FactorioManager::lookupFluidByName),
-						createPrototypeAutoCompleteHandler(FactorioManager.getFluids()))//
+						createPrototypeCommandHandler("fluid", factorioManager::lookupFluidByName),
+						createPrototypeAutoCompleteHandler(factorioManager.getFluids()))//
 				.withAutoParam(OptionType.STRING, "name", "Prototype name of the fluid.")//
 				//
 				.addSlashCommand("prototype/item", "Lua data for the specified item prototype.",
-						createPrototypeCommandHandler("item", FactorioManager::lookupItemByName),
-						createPrototypeAutoCompleteHandler(FactorioManager.getItems()))//
+						createPrototypeCommandHandler("item", factorioManager::lookupItemByName),
+						createPrototypeAutoCompleteHandler(factorioManager.getItems()))//
 				.withAutoParam(OptionType.STRING, "name", "Prototype name of the item.")//
 				//
 				.addSlashCommand("prototype/technology", "Lua data for the specified technology prototype.",
-						createPrototypeCommandHandler("technology", FactorioManager::lookupTechnologyByName),
-						createPrototypeAutoCompleteHandler(FactorioManager.getTechnologies()))//
+						createPrototypeCommandHandler("technology", factorioManager::lookupTechnologyByName),
+						createPrototypeAutoCompleteHandler(factorioManager.getTechnologies()))//
 				.withAutoParam(OptionType.STRING, "name", "Prototype name of the technology.")//
 				//
 				.addSlashCommand("prototype/equipment", "Lua data for the specified equipment prototype.",
-						createPrototypeCommandHandler("equipment", FactorioManager::lookupEquipmentByName),
-						createPrototypeAutoCompleteHandler(FactorioManager.getEquipments()))//
+						createPrototypeCommandHandler("equipment", factorioManager::lookupEquipmentByName),
+						createPrototypeAutoCompleteHandler(factorioManager.getEquipments()))//
 				.withAutoParam(OptionType.STRING, "name", "Prototype name of the equipment.")//
 				//
 				.addSlashCommand("prototype/tile", "Lua data for the specified tile prototype.",
-						createPrototypeCommandHandler("tile", FactorioManager::lookupTileByName),
-						createPrototypeAutoCompleteHandler(FactorioManager.getTiles()))//
+						createPrototypeCommandHandler("tile", factorioManager::lookupTileByName),
+						createPrototypeAutoCompleteHandler(factorioManager.getTiles()))//
 				.withAutoParam(OptionType.STRING, "name", "Prototype name of the tile.")//
 				//
 				//

@@ -51,6 +51,7 @@ import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.factorio.prototype.ItemPrototype;
 import com.demod.factorio.prototype.RecipePrototype;
 import com.demod.factorio.prototype.TilePrototype;
+import com.demod.fbsr.Profile.ProfileStatus;
 import com.demod.fbsr.WirePoints.WirePoint;
 import com.demod.fbsr.bs.BSBlueprint;
 import com.demod.fbsr.bs.BSEntity;
@@ -103,6 +104,10 @@ public class FBSR {
 	public static final double TILE_SIZE = 64.0;
 
 	private static volatile boolean initialized = false;
+
+	private static FactorioManager factorioManager;
+	private static GUIStyle guiStyle;
+	private static IconManager iconManager;
 
 	private static final ExecutorService executor = Executors.newWorkStealingPool();
 
@@ -164,7 +169,7 @@ public class FBSR {
 			unknownNames = LinkedHashMultiset.create();
 
 			for (BSMetaEntity metaEntity : blueprint.entities) {
-				EntityRendererFactory factory = FactorioManager.lookupEntityFactoryForName(metaEntity.name);
+				EntityRendererFactory factory = factorioManager.lookupEntityFactoryForName(metaEntity.name);
 				BSEntity entity;
 				try {
 					if (metaEntity.isLegacy()) {
@@ -189,7 +194,7 @@ public class FBSR {
 				}
 			}
 			for (BSTile tile : blueprint.tiles) {
-				TileRendererFactory factory = FactorioManager.lookupTileFactoryForName(tile.name);
+				TileRendererFactory factory = factorioManager.lookupTileFactoryForName(tile.name);
 				MapTile mapTile = new MapTile(tile, factory);
 				mapTiles.add(mapTile);
 				if (factory.isUnknown()) {
@@ -512,6 +517,18 @@ public class FBSR {
 		}
 	}
 
+	public static FactorioManager getFactorioManager() {
+		return factorioManager;
+	}
+
+	public static GUIStyle getGuiStyle() {
+		return guiStyle;
+	}
+
+	public static IconManager getIconManager() {
+		return iconManager;
+	}
+
 	private static void addToItemAmount(Map<BSItemWithQualityID, Double> items, BSItemWithQualityID item, double add) {
 		double amount = items.getOrDefault(item, 0.0);
 		amount += add;
@@ -522,7 +539,7 @@ public class FBSR {
 
 		Map<BSItemWithQualityID, Double> ret = new LinkedHashMap<>();
 		for (BSEntity entity : blueprint.entities) {
-			EntityRendererFactory entityFactory = FactorioManager.lookupEntityFactoryForName(entity.name);
+			EntityRendererFactory entityFactory = factorioManager.lookupEntityFactoryForName(entity.name);
 			if (entityFactory.isUnknown()) {
 				addToItemAmount(ret, new BSItemWithQualityID(entity.name, entity.quality), 1);
 				continue;
@@ -544,7 +561,7 @@ public class FBSR {
 		}
 		for (BSTile tile : blueprint.tiles) {
 			String tileName = tile.name;
-			TileRendererFactory tileFactory = FactorioManager.lookupTileFactoryForName(tileName);
+			TileRendererFactory tileFactory = factorioManager.lookupTileFactoryForName(tileName);
 			if (tileFactory.isUnknown()) {
 				addToItemAmount(ret, new BSItemWithQualityID(tile.name, Optional.empty()), 1);
 				continue;
@@ -564,7 +581,7 @@ public class FBSR {
 	}
 
 	public static Map<BSItemWithQualityID, Double> generateTotalRawItems(Map<BSItemWithQualityID, Double> totalItems) {
-		DataTable baseTable = FactorioManager.getBaseProfile().getData().getTable();
+		DataTable baseTable = factorioManager.getProfileVanilla().getFactorioData().getTable();
 		Map<String, RecipePrototype> recipes = baseTable.getRecipes();
 		Map<BSItemWithQualityID, Double> ret = new LinkedHashMap<>();
 		TotalRawCalculator calculator = new TotalRawCalculator(recipes);
@@ -587,42 +604,42 @@ public class FBSR {
 		return ret;
 	}
 
-	public static String getVersion() {
-		if (version == null) {
-			File fileInfo = new File(FactorioManager.getFolderDataRoot(), "info.json");
-
-			try {
-				asdfasdfsadf //TODO need to load version from new factorio data location
-				// if (FactorioManager.hasFactorioInstall()) {
-				// 	Files.copy(new File(Config.get().getJSONObject("factorio_manager").getString("install"),
-				// 			"base/info.json").toPath(), fileInfo.toPath(), StandardCopyOption.REPLACE_EXISTING);
-				// }
-
-				ModInfo baseInfo;
-				try (FileInputStream fis = new FileInputStream(fileInfo)) {
-					baseInfo = new ModInfo(Utils.readJsonFromStream(fis));
-					version = baseInfo.getVersion();
-				}
-			} catch (JSONException | IOException e) {
-				e.printStackTrace();
-				System.exit(-1);
-			}
-		}
-		return version;
-	}
-
 	public static synchronized void initialize() throws IOException {
 		if (initialized) {
 			return;
 		}
 		initialized = true;
 
-		FactorioManager.initializePrototypes();
-		GUIStyle.initialize();
-		FactorioManager.initializeFactories();
-		IconManager.initialize();
+		//Ignoring profiles that are not ready
+		List<Profile> allProfiles = Profile.listProfiles();
+		List<Profile> profiles = allProfiles.stream().filter(p -> p.getStatus() == ProfileStatus.READY).collect(Collectors.toList());
+		LOGGER.info("READY PROFILES: {}", profiles.stream().map(Profile::getName).collect(Collectors.joining(", ")));
 
-		for (Profile profile : FactorioManager.getProfiles()) {
+		if (profiles.size() != allProfiles.size()) {
+			LOGGER.warn("NOT READY PROFILES: {}", 
+				allProfiles.stream().filter(p -> p.getStatus() != ProfileStatus.READY).map(Profile::getName).collect(Collectors.joining(", ")));
+		}
+
+		if (profiles.isEmpty()) {
+			throw new IllegalStateException("No ready profiles found! Please ensure at least one profile is ready.");
+		}
+
+		factorioManager = new FactorioManager(profiles);
+		guiStyle = new GUIStyle();
+		iconManager = new IconManager(factorioManager);
+
+		for (Profile profile : profiles) {
+			profile.setFactorioManager(factorioManager);
+			profile.setGuiStyle(guiStyle);
+			profile.setIconManager(iconManager);
+		}
+
+		factorioManager.initializePrototypes();
+		guiStyle.initialize(factorioManager.getProfileVanilla());
+		factorioManager.initializeFactories();
+		iconManager.initialize();
+
+		for (Profile profile : factorioManager.getProfiles()) {
 			profile.getAtlasPackage().initialize();
 		}
 	}
@@ -631,17 +648,64 @@ public class FBSR {
 
 		profile.resetLoadedData();
 
-		asdfgsdf //TODO here!
+		if (!FactorioManager.hasFactorioInstall()) {
+			System.out.println("No Factorio install found, cannot build data for profile: " + profile.getName());
+			return false;
+		}
 
-		// FactorioManager.initializePrototypes();
-		// GUIStyle.initialize();
-		// FactorioManager.initializeFactories();
-		// IconManager.initialize();
+		List<Profile> profiles = new ArrayList<>();
+		profiles.add(profile);
+		
+		Profile profileVanilla;
+		if (!profile.isVanilla()) {
+			profileVanilla = Profile.vanilla();
 
-		// for (Profile profile : FactorioManager.getProfiles()) {
-		// 	profile.getAtlasPackage().initialize();
-		// }
+			if (!profileVanilla.hasDump()) {
+				System.out.println("Vanilla profile must be built first, cannot build data for profile: " + profile.getName());
+				return false;
+			}
 
+			profiles.add(profileVanilla);
+		
+		} else {
+			profileVanilla = profile;
+		}
+
+		FactorioManager factorioManager = new FactorioManager(profiles);
+		GUIStyle guiStyle = new GUIStyle();
+		IconManager iconManager = new IconManager(factorioManager);
+
+		if (profile.isVanilla()) {
+			if (!GUIStyle.copyFontsToProfile(profile)) {
+                System.out.println("Failed to copy fonts to vanilla profile.");
+                return false;
+            }
+		}
+
+		for (Profile p : profiles) {
+			p.setFactorioManager(factorioManager);
+			p.setGuiStyle(guiStyle);
+			p.setIconManager(iconManager);
+		}
+		
+		try {
+			factorioManager.initializePrototypes();
+			guiStyle.initialize(profileVanilla);
+			factorioManager.initializeFactories();
+			iconManager.initialize();
+
+			profile.getAtlasPackage().generateZip();
+
+		} catch (JSONException | IOException e) {
+			e.printStackTrace();
+			return false;
+		}
+
+		if (profile.isVanilla()) {
+			// Copy factorio version into profile
+		}
+
+		return true;
 	}
 
 	private static void populateRailBlocking(WorldMap map, boolean elevated) {
@@ -987,7 +1051,7 @@ public class FBSR {
 
 		MapText label = new MapText(null,
 				MapPosition.byUnit(frameBounds.getX() + 0.15, frameBounds.getY() + frameBounds.getHeight() / 2.0), 0,
-				GUIStyle.FONT_BP_BOLD.deriveFont(0.8f), Color.white, "", false);
+				factory.getProfile().getGuiStyle().FONT_BP_BOLD.deriveFont(0.8f), Color.white, "", false);
 
 		int i = 0;
 		for (MapRenderable renderable : renderables) {

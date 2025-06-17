@@ -67,15 +67,17 @@ public class ArithmeticCombinatorRendering extends CombinatorRendering {
 
 		if (bsEntity.arithmeticConditions.isPresent()) {
 
+			IconManager iconManager = profile.getIconManager();
+
 			List<IconDefWithQuality> inputIcons = new ArrayList<>();
 			bsEntity.arithmeticConditions.get().firstSignal
-					.ifPresent(s -> IconManager.lookupSignalID(s.type, s.name, s.quality).ifPresent(inputIcons::add));
+					.ifPresent(s -> iconManager.lookupSignalID(s.type, s.name, s.quality).ifPresent(inputIcons::add));
 			bsEntity.arithmeticConditions.get().secondSignal
-					.ifPresent(s -> IconManager.lookupSignalID(s.type, s.name, s.quality).ifPresent(inputIcons::add));
+					.ifPresent(s -> iconManager.lookupSignalID(s.type, s.name, s.quality).ifPresent(inputIcons::add));
 
 			List<IconDefWithQuality> outputIcons = new ArrayList<>();
 			bsEntity.arithmeticConditions.get().outputSignal
-					.ifPresent(s -> IconManager.lookupSignalID(s.type, s.name, s.quality).ifPresent(outputIcons::add));
+					.ifPresent(s -> iconManager.lookupSignalID(s.type, s.name, s.quality).ifPresent(outputIcons::add));
 
 			double iconStartY = entity.getDirection().isHorizontal() ? -0.5 : -0.25;
 

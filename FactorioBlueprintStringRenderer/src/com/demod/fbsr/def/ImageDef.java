@@ -48,7 +48,7 @@ public class ImageDef {
 	public ImageDef(Profile profile, String path, Rectangle source, boolean shadow) {
 		this.profile = profile;
 		this.path = path;
-		this.loader = FactorioManager::lookupModImage;
+		this.loader = profile.getFactorioManager()::lookupModImage;
 		this.shadow = shadow;
 		this.source = new Rectangle(source);
 		atlasRef = new AtlasRef();

@@ -36,23 +36,25 @@ public class SelectorCombinatorRendering extends CombinatorRendering {
 
 			List<IconDefWithQuality> icons = new ArrayList<>();
 
+			IconManager iconManager = profile.getIconManager();
+
 			if (operation.equals("count")) {
-				controlBehavior.countSignal.flatMap(s -> IconManager.lookupSignalID(s.type, s.name, s.quality))
+				controlBehavior.countSignal.flatMap(s -> iconManager.lookupSignalID(s.type, s.name, s.quality))
 						.ifPresent(icons::add);
 
 			} else if (operation.equals("select")) {
-				controlBehavior.indexSignal.flatMap(s -> IconManager.lookupSignalID(s.type, s.name, s.quality))
+				controlBehavior.indexSignal.flatMap(s -> iconManager.lookupSignalID(s.type, s.name, s.quality))
 						.ifPresent(icons::add);
 
 			} else if (operation.equals("quality-filter")) {
-				controlBehavior.qualityFilter.flatMap(s -> IconManager.lookupFilter(s.type, s.name, s.quality))
+				controlBehavior.qualityFilter.flatMap(s -> iconManager.lookupFilter(s.type, s.name, s.quality))
 						.ifPresent(icons::add);
 
 			} else if (operation.equals("quality-transfer")) {
-				controlBehavior.qualitySourceSignal.flatMap(s -> IconManager.lookupSignalID(s.type, s.name, s.quality))
+				controlBehavior.qualitySourceSignal.flatMap(s -> iconManager.lookupSignalID(s.type, s.name, s.quality))
 						.ifPresent(icons::add);
 				controlBehavior.qualityDestinationSignal
-						.flatMap(s -> IconManager.lookupSignalID(s.type, s.name, s.quality)).ifPresent(icons::add);
+						.flatMap(s -> iconManager.lookupSignalID(s.type, s.name, s.quality)).ifPresent(icons::add);
 			}
 
 			if (!icons.isEmpty()) {

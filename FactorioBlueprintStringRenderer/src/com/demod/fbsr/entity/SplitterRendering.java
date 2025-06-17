@@ -78,7 +78,7 @@ public class SplitterRendering extends TransportBeltConnectableRendering {
 			if (bsEntity.filter.isPresent()) {
 				MapPosition iconPos = right ? rightPos : leftPos;
 				BSFilter filter = bsEntity.filter.get();
-				IconManager.lookupFilter(filter.type, filter.name, filter.quality)
+				profile.getIconManager().lookupFilter(filter.type, filter.name, filter.quality)
 						.ifPresent(i -> register.accept(i.createMapIcon(iconPos, 0.5, OptionalDouble.of(0.1), false)));
 			} else {
 				register.accept(new MapBeltArrow(outputPos, dir));

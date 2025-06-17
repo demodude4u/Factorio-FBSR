@@ -18,7 +18,7 @@ import com.demod.fbsr.fp.FPVector;
 import com.google.common.collect.ImmutableList;
 
 public class IconLayer {
-	private static final IconLayer ICONLAYER_EMPTY = new IconLayer("__core__/graphics/empty.png",
+	public static final IconLayer EMPTY_LAYER = new IconLayer("__core__/graphics/empty.png",
 			new Rectangle(0, 0, 64, 64), new Rectangle2D.Double(0, 0, 1, 1), Color.white, false);
 
 	private final String path;
@@ -26,6 +26,7 @@ public class IconLayer {
 	private final Rectangle2D.Double bounds;
 	private final Color tint;
 	private final boolean drawBackground;
+
 
 	// For icon details -- https://lua-api.factorio.com/stable/types/IconData.html
 
@@ -120,17 +121,17 @@ public class IconLayer {
 		}
 
 //		LOGGER.error("{} ({}) has no icon.", name, type);
-		return ImmutableList.of(ICONLAYER_EMPTY);
+		return ImmutableList.of(EMPTY_LAYER);
 	}
 
-	public static BufferedImage createIcon(List<IconLayer> defs, int size) {
+	public static BufferedImage createIcon(FactorioManager factorioManager, List<IconLayer> defs, int size) {
 
 		BufferedImage icon = new BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB);
 		Graphics2D g = icon.createGraphics();
 		Composite pc = g.getComposite();
 
 		for (IconLayer layer : defs) {
-			BufferedImage imageSheet = FactorioManager.lookupModImage(layer.path);
+			BufferedImage imageSheet = factorioManager.lookupModImage(layer.path);
 
 			if (!layer.tint.equals(Color.white)) {
 				g.setComposite(new TintComposite(layer.tint));

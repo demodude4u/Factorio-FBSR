@@ -21,7 +21,6 @@ import com.demod.fbsr.map.MapRenderable;
 import com.demod.fbsr.map.MapText;
 
 public class DisplayPanelRendering extends EntityWithOwnerRendering {
-	public static final Font FONT = GUIStyle.FONT_BP_BOLD.deriveFont(0.3f);
 
 	@Override
 	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
@@ -32,7 +31,7 @@ public class DisplayPanelRendering extends EntityWithOwnerRendering {
 		if (bsEntity.icon.isPresent() && map.isAltMode()) {
 			BSSignalID signalID = bsEntity.icon.get();
 
-			Optional<IconDefWithQuality> icon = IconManager.lookupSignalID(signalID.type, signalID.name,
+			Optional<IconDefWithQuality> icon = profile.getIconManager().lookupSignalID(signalID.type, signalID.name,
 					signalID.quality);
 			if (icon.isPresent()) {
 				register.accept(new MapIcon(entity.getPosition().addUnit(0, -0.25), icon.get().getDef(), 0.5,
@@ -41,7 +40,9 @@ public class DisplayPanelRendering extends EntityWithOwnerRendering {
 		}
 
 		if (bsEntity.text.isPresent() && bsEntity.text.get().length > 0 && map.isAltMode()) {
-				register.accept(new MapText(Layer.ENTITY_INFO_TEXT, entity.getPosition().addUnit(0, -0.75), 0, FONT, Color.white, bsEntity.text.get()[0], true));
+
+			Font font = profile.getGuiStyle().FONT_BP_BOLD.deriveFont(0.3f);
+			register.accept(new MapText(Layer.ENTITY_INFO_TEXT, entity.getPosition().addUnit(0, -0.75), 0, font, Color.white, bsEntity.text.get()[0], true));
 		}
 	}
 

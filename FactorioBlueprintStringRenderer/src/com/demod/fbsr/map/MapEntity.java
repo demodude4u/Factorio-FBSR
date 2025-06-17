@@ -9,6 +9,7 @@ import java.util.function.Consumer;
 import com.demod.factorio.prototype.ItemPrototype;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.EntityRendererFactory;
+import com.demod.fbsr.FBSR;
 import com.demod.fbsr.FactorioManager;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.bs.BSEntity;
@@ -28,12 +29,13 @@ public class MapEntity {
 	}
 
 	public static List<EntityModule> findModules(BSEntity entity) {
+		FactorioManager factorioManager = FBSR.getFactorioManager();
 
 		List<EntityModule> modules = new ArrayList<>();
 
 		for (BSItemStack itemStack : entity.items) {
 			String itemName = itemStack.id.name;
-			Optional<ItemPrototype> item = FactorioManager.lookupItemByName(itemName);
+			Optional<ItemPrototype> item = factorioManager.lookupItemByName(itemName);
 			if (item.isPresent() && item.get().getType().equals("module")) {
 				for (int i = 0; i < itemStack.itemsInInventory.size(); i++) {
 					modules.add(new EntityModule(itemName, itemStack.id.quality));

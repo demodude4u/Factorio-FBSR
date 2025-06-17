@@ -132,6 +132,8 @@ public class RichText {
 	}
 
 	private void draw(Graphics2D g, double x, double y, boolean shadow) {
+		IconManager iconManager = FBSR.getIconManager();
+
 		AffineTransform pat = g.getTransform();
 		Composite pc = g.getComposite();
 		Color color = g.getColor();
@@ -168,7 +170,7 @@ public class RichText {
 						g.setComposite(sc);
 					}
 
-					Optional<TagWithQuality> lookupTag = IconManager.lookupTag(tagToken);
+					Optional<TagWithQuality> lookupTag = iconManager.lookupTag(tagToken);
 					if (lookupTag.isPresent()) {
 						TagWithQuality tag = lookupTag.get();
 						Optional<String> quality = tag.getQuality();
@@ -183,7 +185,7 @@ public class RichText {
 						g.drawImage(image, 0, 0, 1, 1, source.x, source.y, source.x + source.width, source.y + source.height, null);
 
 						if (quality.isPresent()) {
-							Optional<IconDef> def = IconManager.lookupQuality(quality.get());
+							Optional<IconDef> def = iconManager.lookupQuality(quality.get());
 							double qSize = 0.4;
 							g.translate(0, 1.0 - qSize);
 							g.scale(qSize, qSize);
@@ -216,6 +218,8 @@ public class RichText {
 	}
 
 	public double getTextWidth(Graphics2D g) {
+		IconManager iconManager = FBSR.getIconManager();
+
 		Font font = g.getFont();
 		FontRenderContext frc = g.getFontRenderContext();
 		float tagSize = font.getSize2D();
@@ -229,7 +233,7 @@ public class RichText {
 
 			} else if (token instanceof TagToken) {
 				TagToken tagToken = (TagToken) token;
-				Optional<TagWithQuality> lookupTag = IconManager.lookupTag(tagToken);
+				Optional<TagWithQuality> lookupTag = iconManager.lookupTag(tagToken);
 				if (lookupTag.isPresent()) {
 					width += tagSize * (ICON_GAP + ICON_SIZE + ICON_GAP);
 				} else {

@@ -152,7 +152,7 @@ public abstract class EntityRendererFactory {
 			return;
 		}
 
-		Optional<IconDef> optDef = IconManager.lookupQuality(quality.get());
+		Optional<IconDef> optDef = entity.getFactory().getProfile().getIconManager().lookupQuality(quality.get());
 		if (optDef.isEmpty()) {
 			return;
 		}
@@ -166,6 +166,7 @@ public abstract class EntityRendererFactory {
 	}
 
 	public void createModuleIcons(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
+		IconManager iconManager = entity.getFactory().getProfile().getIconManager();
 
 		MapPosition position = entity.getPosition();
 		MapRect3D bounds = entity.getBounds();
@@ -177,7 +178,7 @@ public abstract class EntityRendererFactory {
 			double y = position.getY() + 0.7;
 
 			for (EntityModule module : renderModules) {
-				Optional<IconDef> image = IconManager.lookupItem(module.name);
+				Optional<IconDef> image = iconManager.lookupItem(module.name);
 				if (image.isPresent()) {
 					register.accept(new MapIcon(MapPosition.byUnit(x, y), image.get(), 0.5, OptionalDouble.of(0.05),
 							true, module.quality));
@@ -218,7 +219,7 @@ public abstract class EntityRendererFactory {
 				double y = position.getY() - 1.15;
 
 				for (EntityModule module : renderModules) {
-					Optional<IconDef> image = IconManager.lookupItem(module.name);
+					Optional<IconDef> image = iconManager.lookupItem(module.name);
 					if (image.isPresent()) {
 						register.accept(new MapIcon(MapPosition.byUnit(x, y), image.get(), 0.25,
 								OptionalDouble.of(0.025), true, module.quality));

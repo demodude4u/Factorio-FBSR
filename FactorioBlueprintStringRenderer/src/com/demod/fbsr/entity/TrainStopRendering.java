@@ -20,7 +20,6 @@ import com.demod.fbsr.map.MapRenderable;
 import com.demod.fbsr.map.MapText;
 
 public class TrainStopRendering extends EntityWithOwnerRendering {
-	public static final Font FONT = GUIStyle.FONT_BP_BOLD.deriveFont(0.5f);
 	private static final int FRAME = 0;
 
 	private FPColor protoColor;
@@ -51,6 +50,7 @@ public class TrainStopRendering extends EntityWithOwnerRendering {
 
 		if (bsEntity.station.isPresent() && map.isAltMode()) {
 			String stationName = bsEntity.station.get();
+			Font FONT = profile.getGuiStyle().FONT_BP_BOLD.deriveFont(0.5f);
 			register.accept(
 					new MapText(Layer.ENTITY_INFO_TEXT, entity.getPosition().addUnit(0.5, -2.0), -30, FONT, Color.white, stationName, false));
 		}

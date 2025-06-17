@@ -40,7 +40,7 @@ public class IconManager {
 
 	public static final int ICON_SIZE = 64;
 
-	public static class PrototypeResolver extends IconResolver {
+	public class PrototypeResolver extends IconResolver {
 		protected final Map<String, ? extends DataPrototype> map;
 		protected final Map<String, IconDef> defs;
 
@@ -61,7 +61,7 @@ public class IconManager {
 			for (Entry<String, ? extends DataPrototype> entry : map.entrySet()) {
 				DataPrototype proto = entry.getValue();
 				List<IconLayer> layers = IconLayer.fromPrototype(proto.lua());
-				Profile profile = FactorioManager.lookupProfileByData(proto.getTable().getData());
+				Profile profile = factorioManager.lookupProfileByData(proto.getTable().getData());
 				defs.put(entry.getKey(), new IconDef(profile, "TAG[" + category + "]/" + entry.getKey() + "/" + ICON_SIZE,
 						layers, ICON_SIZE, proto));
 			}
@@ -74,7 +74,7 @@ public class IconManager {
 		}
 	}
 
-	public static class RecipeResolver extends PrototypeResolver {
+	public class RecipeResolver extends PrototypeResolver {
 
 		public RecipeResolver(String category, Map<String, RecipePrototype> map) {
 			super(category, map);
@@ -116,9 +116,9 @@ public class IconManager {
 
 					}
 
-					Optional<? extends DataPrototype> luaProduct = FactorioManager.lookupItemByName(resultName);
+					Optional<? extends DataPrototype> luaProduct = factorioManager.lookupItemByName(resultName);
 					if (luaProduct.isEmpty()) {
-						luaProduct = FactorioManager.lookupFluidByName(resultName);
+						luaProduct = factorioManager.lookupFluidByName(resultName);
 						if (luaProduct.isEmpty()) {
 							LOGGER.warn("Unable to find recipe result! {} ({})", entry.getKey(), resultName);
 							continue;
@@ -129,7 +129,7 @@ public class IconManager {
 					iconProto = luaProduct.get();
 				}
 
-				Profile profile = FactorioManager.lookupProfileByData(proto.getTable().getData());
+				Profile profile = factorioManager.lookupProfileByData(proto.getTable().getData());
 				defs.put(entry.getKey(), new IconDef(profile, "TAG[" + category + "]/" + entry.getKey() + "/" + ICON_SIZE,
 						layers, ICON_SIZE, iconProto));
 			}
@@ -137,7 +137,7 @@ public class IconManager {
 		}
 	}
 
-	public static abstract class IconResolver {
+	public abstract class IconResolver {
 		protected final String category;
 
 		public IconResolver(String category) {
@@ -150,52 +150,52 @@ public class IconManager {
 
 		public abstract Optional<IconDef> lookup(String key);
 
-		public static IconResolver forRecipes(String category, List<RecipePrototype> prototypes) {
-			Map<String, RecipePrototype> map = new LinkedHashMap<>();
-			for (RecipePrototype proto : prototypes) {
-				map.put(proto.getName(), proto);
-			}
-			return new RecipeResolver(category, map);
+	}
+	private IconResolver forRecipes(String category, List<RecipePrototype> prototypes) {
+		Map<String, RecipePrototype> map = new LinkedHashMap<>();
+		for (RecipePrototype proto : prototypes) {
+			map.put(proto.getName(), proto);
 		}
-
-		public static IconResolver forPrototypes(String category, List<? extends DataPrototype> prototypes) {
-			Map<String, DataPrototype> map = new LinkedHashMap<>();
-			for (DataPrototype proto : prototypes) {
-				map.put(proto.getName(), proto);
-			}
-			return new PrototypeResolver(category, map);
-		}
-
-		public static IconResolver forPath(String... rawPaths) {
-			Map<String, DataPrototype> map = new LinkedHashMap<>();
-			for (String rawPath : rawPaths) {
-				String[] path = rawPath.split("\\.");
-				for (Profile profile : FactorioManager.getProfiles()) {
-					FactorioData data = profile.getFactorioData();
-					LuaTable lua = data.getTable().getRaw(path).get().totableObject();
-					Utils.forEach(lua, (k, v) -> {
-						DataPrototype proto = new DataPrototype(v.totableObject());
-						Optional<ItemSubGroupPrototype> subgroup = proto.getSubgroup()
-								.flatMap(s -> data.getTable().getItemSubgroup(s));
-						if (subgroup.isPresent()) {
-							proto.setGroup(subgroup.get().getGroup());
-						} else {
-							proto.setGroup(Optional.empty());
-						}
-						proto.setTable(data.getTable());
-						map.put(k.tojstring(), proto);
-					});
-				}
-			}
-			return new PrototypeResolver("path-" + Arrays.stream(rawPaths).collect(Collectors.joining("-")), map);
-		}
+		return new RecipeResolver(category, map);
 	}
 
-	public static abstract class TagResolver {
+	private IconResolver forPrototypes(String category, List<? extends DataPrototype> prototypes) {
+		Map<String, DataPrototype> map = new LinkedHashMap<>();
+		for (DataPrototype proto : prototypes) {
+			map.put(proto.getName(), proto);
+		}
+		return new PrototypeResolver(category, map);
+	}
+
+	private IconResolver forPath(String... rawPaths) {
+		Map<String, DataPrototype> map = new LinkedHashMap<>();
+		for (String rawPath : rawPaths) {
+			String[] path = rawPath.split("\\.");
+			for (Profile profile : factorioManager.getProfiles()) {
+				FactorioData data = profile.getFactorioData();
+				LuaTable lua = data.getTable().getRaw(path).get().totableObject();
+				Utils.forEach(lua, (k, v) -> {
+					DataPrototype proto = new DataPrototype(v.totableObject());
+					Optional<ItemSubGroupPrototype> subgroup = proto.getSubgroup()
+							.flatMap(s -> data.getTable().getItemSubgroup(s));
+					if (subgroup.isPresent()) {
+						proto.setGroup(subgroup.get().getGroup());
+					} else {
+						proto.setGroup(Optional.empty());
+					}
+					proto.setTable(data.getTable());
+					map.put(k.tojstring(), proto);
+				});
+			}
+		}
+		return new PrototypeResolver("path-" + Arrays.stream(rawPaths).collect(Collectors.joining("-")), map);
+	}
+
+	public abstract class TagResolver {
 		public abstract Optional<TagWithQuality> lookup(TagToken tag);
 	}
 
-	public static class DelegateTagResolver extends TagResolver {
+	public class DelegateTagResolver extends TagResolver {
 		private final IconResolver resolver;
 
 		public DelegateTagResolver(IconResolver resolver) {
@@ -208,11 +208,11 @@ public class IconManager {
 		}
 	}
 
-	public static class PlaceholderTagResolver extends TagResolver {
+	public class PlaceholderTagResolver extends TagResolver {
 		private final ImageDef def;
 
 		public PlaceholderTagResolver(FPSprite sprite){
-			def = new ImageDef(FactorioManager.getBaseProfile(), "[TAG]" + sprite.filename.get() + "/" + ICON_SIZE, k -> convertSprite(sprite), new Rectangle(ICON_SIZE, ICON_SIZE));
+			def = new ImageDef(factorioManager.getProfileVanilla(), "[TAG]" + sprite.filename.get() + "/" + ICON_SIZE, k -> convertSprite(sprite), new Rectangle(ICON_SIZE, ICON_SIZE));
 			
 			def.getProfile().getAtlasPackage().registerDef(def);
 		}
@@ -232,7 +232,7 @@ public class IconManager {
 			}
 			SpriteDef def = defs.get(0);
 
-			BufferedImage imageSheet = FactorioManager.lookupModImage(def.getPath());
+			BufferedImage imageSheet = factorioManager.lookupModImage(def.getPath());
 
 			if (def.getTint().isPresent() && !def.getTint().get().equals(Color.white)) {
 				g.setComposite(new TintComposite(def.getTint().get()));
@@ -254,61 +254,67 @@ public class IconManager {
 		}
 	}
 
-	private static final Map<String, Function<String, Optional<IconDef>>> signalResolvers = ImmutableMap
+	private final Map<String, Function<String, Optional<IconDef>>> signalResolvers = ImmutableMap
 			.<String, Function<String, Optional<IconDef>>>builder()//
-			.put("item", IconManager::lookupItem)//
-			.put("fluid", IconManager::lookupFluid)//
-			.put("virtual", IconManager::lookupVirtualSignal)//
-			.put("entity", IconManager::lookupEntity)//
-			.put("recipe", IconManager::lookupRecipe)//
-			.put("space-location", IconManager::lookupSpaceLocation)//
-			.put("asteroid-chunk", IconManager::lookupAsteroidChunk)//
-			.put("quality", IconManager::lookupQuality)//
+			.put("item", this::lookupItem)//
+			.put("fluid", this::lookupFluid)//
+			.put("virtual", this::lookupVirtualSignal)//
+			.put("entity", this::lookupEntity)//
+			.put("recipe", this::lookupRecipe)//
+			.put("space-location", this::lookupSpaceLocation)//
+			.put("asteroid-chunk", this::lookupAsteroidChunk)//
+			.put("quality", this::lookupQuality)//
 			.build();
 
-	private static volatile boolean initialized = false;
+	private final FactorioManager factorioManager;
 
-	private static IconResolver itemResolver;
-	private static IconResolver entityResolver;
-	private static IconResolver technologyResolver;
-	private static IconResolver recipeResolver;
-	private static IconResolver itemGroupResolver;
-	private static IconResolver fluidResolver;
-	private static IconResolver tileResolver;
-	private static IconResolver virtualSignalResolver;
-	private static IconResolver achievementResolver;
-	private static IconResolver armorResolver;
-	private static IconResolver shortcutResolver;
-	private static IconResolver qualityResolver;
-	private static IconResolver planetResolver;
-	private static IconResolver spaceLocationResolver;
-	private static IconResolver asteroidChunkResolver;
+	private volatile boolean initialized = false;
 
-	private static Map<String, TagResolver> tagResolvers = new HashMap<>();
+	private IconResolver itemResolver;
+	private IconResolver entityResolver;
+	private IconResolver technologyResolver;
+	private IconResolver recipeResolver;
+	private IconResolver itemGroupResolver;
+	private IconResolver fluidResolver;
+	private IconResolver tileResolver;
+	private IconResolver virtualSignalResolver;
+	private IconResolver achievementResolver;
+	private IconResolver armorResolver;
+	private IconResolver shortcutResolver;
+	private IconResolver qualityResolver;
+	private IconResolver planetResolver;
+	private IconResolver spaceLocationResolver;
+	private IconResolver asteroidChunkResolver;
 
-	public static void initialize() {
+	private Map<String, TagResolver> tagResolvers = new HashMap<>();
+
+	public IconManager(FactorioManager factorioManager) {
+		this.factorioManager = factorioManager;
+	}
+
+	public void initialize() {
 		if (initialized) {
 			return;
 		}
 		initialized = true;
 
-		itemResolver = IconResolver.forPrototypes("item", FactorioManager.getItems());
-		entityResolver = IconResolver.forPrototypes("entity", FactorioManager.getEntities());
-		technologyResolver = IconResolver.forPrototypes("technology", FactorioManager.getTechnologies());
-		recipeResolver = IconResolver.forRecipes("recipe", FactorioManager.getRecipes());
-		itemGroupResolver = IconResolver.forPrototypes("item-group", FactorioManager.getItemGroups());
-		fluidResolver = IconResolver.forPrototypes("fluid", FactorioManager.getFluids());
-		tileResolver = IconResolver.forPrototypes("tile", FactorioManager.getTiles());
-		virtualSignalResolver = IconResolver.forPath("virtual-signal");
-		achievementResolver = IconResolver.forPrototypes("achievement", FactorioManager.getAchievements());
-		armorResolver = IconResolver.forPath("armor");
-		shortcutResolver = IconResolver.forPath("shortcut");
-		qualityResolver = IconResolver.forPath("quality");
-		planetResolver = IconResolver.forPath("planet");
-		spaceLocationResolver = IconResolver.forPath("space-location", "planet");
-		asteroidChunkResolver = IconResolver.forPath("asteroid-chunk");
+		itemResolver = forPrototypes("item", factorioManager.getItems());
+		entityResolver = forPrototypes("entity", factorioManager.getEntities());
+		technologyResolver = forPrototypes("technology", factorioManager.getTechnologies());
+		recipeResolver = forRecipes("recipe", factorioManager.getRecipes());
+		itemGroupResolver = forPrototypes("item-group", factorioManager.getItemGroups());
+		fluidResolver = forPrototypes("fluid", factorioManager.getFluids());
+		tileResolver = forPrototypes("tile", factorioManager.getTiles());
+		virtualSignalResolver = forPath("virtual-signal");
+		achievementResolver = forPrototypes("achievement", factorioManager.getAchievements());
+		armorResolver = forPath("armor");
+		shortcutResolver = forPath("shortcut");
+		qualityResolver = forPath("quality");
+		planetResolver = forPath("planet");
+		spaceLocationResolver = forPath("space-location", "planet");
+		asteroidChunkResolver = forPath("asteroid-chunk");
 
-		FPUtilitySprites utilitySprites = FactorioManager.getUtilitySprites();
+		FPUtilitySprites utilitySprites = factorioManager.getUtilitySprites();
 		//TODO img should at least resolve class.name format
 		tagResolvers.put("img", new PlaceholderTagResolver(utilitySprites.questionmark));
 		tagResolvers.put("item", new DelegateTagResolver(itemResolver));
@@ -337,67 +343,67 @@ public class IconManager {
 		tagResolvers.put("asteroid-chunk", new DelegateTagResolver(asteroidChunkResolver));
 	}
 
-	public static Optional<IconDef> lookupItem(String name) {
+	public Optional<IconDef> lookupItem(String name) {
 		return itemResolver.lookup(name);
 	}
 
-	public static Optional<IconDef> lookupEntity(String name) {
+	public Optional<IconDef> lookupEntity(String name) {
 		return entityResolver.lookup(name);
 	}
 
-	public static Optional<IconDef> lookupTechnology(String name) {
+	public Optional<IconDef> lookupTechnology(String name) {
 		return technologyResolver.lookup(name);
 	}
 
-	public static Optional<IconDef> lookupRecipe(String name) {
+	public Optional<IconDef> lookupRecipe(String name) {
 		return recipeResolver.lookup(name);
 	}
 
-	public static Optional<IconDef> lookupItemGroup(String name) {
+	public Optional<IconDef> lookupItemGroup(String name) {
 		return itemGroupResolver.lookup(name);
 	}
 
-	public static Optional<IconDef> lookupFluid(String name) {
+	public Optional<IconDef> lookupFluid(String name) {
 		return fluidResolver.lookup(name);
 	}
 
-	public static Optional<IconDef> lookupTile(String name) {
+	public Optional<IconDef> lookupTile(String name) {
 		return tileResolver.lookup(name);
 	}
 
-	public static Optional<IconDef> lookupVirtualSignal(String name) {
+	public Optional<IconDef> lookupVirtualSignal(String name) {
 		return virtualSignalResolver.lookup(name);
 	}
 
-	public static Optional<IconDef> lookupachievement(String name) {
+	public Optional<IconDef> lookupAchievement(String name) {
 		return achievementResolver.lookup(name);
 	}
 
-	public static Optional<IconDef> lookupArmor(String name) {
+	public Optional<IconDef> lookupArmor(String name) {
 		return armorResolver.lookup(name);
 	}
 
-	public static Optional<IconDef> lookupShortcut(String name) {
+	public Optional<IconDef> lookupShortcut(String name) {
 		return shortcutResolver.lookup(name);
 	}
 
-	public static Optional<IconDef> lookupQuality(String name) {
+	public Optional<IconDef> lookupQuality(String name) {
 		return qualityResolver.lookup(name);
 	}
 
-	public static Optional<IconDef> lookupPlanet(String name) {
+	public Optional<IconDef> lookupPlanet(String name) {
 		return planetResolver.lookup(name);
 	}
 
-	public static Optional<IconDef> lookupSpaceLocation(String name) {
+	public Optional<IconDef> lookupSpaceLocation(String name) {
 		return spaceLocationResolver.lookup(name);
 	}
 
-	public static Optional<IconDef> lookupAsteroidChunk(String name) {
+	public Optional<IconDef> lookupAsteroidChunk(String name) {
 		return asteroidChunkResolver.lookup(name);
 	}
 
-	public static Optional<IconDefWithQuality> lookupSignalID(String type, String name, Optional<String> quality) {
+	public Optional<IconDefWithQuality> lookupSignalID(String type, String name, Optional<String> quality) {
 		Function<String, Optional<IconDef>> lookup = signalResolvers.get(type);
 		if (lookup != null) {
 			return lookup.apply(name).map(def -> new IconDefWithQuality(def, quality));
@@ -406,11 +412,11 @@ public class IconManager {
 		}
 	}
 
-	public static Optional<TagWithQuality> lookupTag(TagToken tag) {
+	public Optional<TagWithQuality> lookupTag(TagToken tag) {
 		return Optional.ofNullable(tagResolvers.get(tag.name)).flatMap(r-> r.lookup(tag));
 	}
 
-	public static Optional<IconDefWithQuality> lookupFilter(Optional<String> type, Optional<String> name,
+	public Optional<IconDefWithQuality> lookupFilter(Optional<String> type, Optional<String> name,
 			Optional<String> quality) {
 		type = type.or(() -> Optional.of("item"));
 
