@@ -251,9 +251,13 @@ public class Profile {
     }
 
     public static List<Profile> listProfiles() {
-        JSONObject json = Config.get().getJSONObject("factorio_manager");
-        File folderProfileRoot = new File(json.optString("profiles", "profiles"));
-        File folderBuildRoot = new File(json.optString("build", "build"));
+        JSONObject jsonFactorioManager = Config.get().getJSONObject("factorio_manager");
+        File folderProfileRoot = new File(jsonFactorioManager.optString("profiles", "profiles"));
+        File folderBuildRoot = new File(jsonFactorioManager.optString("build", "build"));
+
+        if (!folderProfileRoot.exists()) {
+            return ImmutableList.of();
+        }
 
         List<Profile> profiles = new ArrayList<>();
         for (File folderProfile : folderProfileRoot.listFiles()) {
@@ -681,6 +685,9 @@ public class Profile {
 
         JSONObject jsonProfile = readJsonFile(fileProfile);
         JSONArray jsonProfileMods = jsonProfile.optJSONArray("mods");
+
+        asfgsag
+        //FIXME the builtin mods are missing
 
         List<String> mods = new ArrayList<>();
         for (int i = 0; i < jsonProfileMods.length(); i++) {

@@ -1,0 +1,25 @@
+   0.000 2025-06-18 19:18:01; Factorio 2.0.42 (build 82066, win64, steam, space-age)
+   0.000 Operating system: Windows 11 (build 26100) 
+   0.000 Program arguments: "F:\Factorio Installs\Factorio 2.0.42\bin\x64\factorio.exe" "--config" "F:\Git Workspace\Factorio-FBSR\FactorioBlueprintStringRenderer\build\vanilla\data\config.ini" "--mod-directory" "F:\Git Workspace\Factorio-FBSR\FactorioBlueprintStringRenderer\build\vanilla\mods" "--dump-data" 
+   0.000 Config path: F:/Git Workspace/Factorio-FBSR/FactorioBlueprintStringRenderer/build/vanilla/data/config.ini
+   0.000 Read data path: F:/Factorio Installs/Factorio 2.0.42/data
+   0.000 Write data path: F:/Git Workspace/Factorio-FBSR/FactorioBlueprintStringRenderer/build/vanilla/data [895539/953851MB]
+   0.000 Binaries path: F:/Factorio Installs/Factorio 2.0.42/bin
+   0.027 System info: [CPU: Intel(R) Core(TM) Ultra 7 265K, 20 cores, RAM: 29038/97746 MB, page: 34827/103890 MB, virtual: 4283/134217727 MB, extended virtual: 0 MB]
+   0.051 Memory info:
+   0.051  [0]: G Skill Intl F5-6400J3239F48G 49152 MB 5600 MHz 1.1 v 64|64
+   0.051  [1]: G Skill Intl F5-6400J3239F48G 49152 MB 5600 MHz 1.1 v 64|64
+   0.077 Running in headless mode
+   0.077 Audio is disabled
+   0.078 Info ModManager.cpp:444: FeatureFlag expansion-shaders = false
+   0.078 Info ModManager.cpp:444: FeatureFlag freezing = false
+   0.078 Info ModManager.cpp:444: FeatureFlag quality = false
+   0.078 Info ModManager.cpp:444: FeatureFlag rail-bridges = false
+   0.078 Info ModManager.cpp:444: FeatureFlag segmented-units = false
+   0.078 Info ModManager.cpp:444: FeatureFlag space-travel = false
+   0.078 Info ModManager.cpp:444: FeatureFlag spoiling = false
+   0.097 Loading mod core 0.0.0 (data.lua)
+   0.230 Checksum for core: 931939137
+   0.240 Error Util.cpp:81: No map settings instance.
+   0.242 Error ModManager.cpp:160: writeModlist threw an exception: Access is denied.
+   0.245 Goodbye

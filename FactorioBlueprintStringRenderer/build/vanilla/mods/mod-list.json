@@ -1,0 +1,18 @@
+{"mods": [
+  {
+    "name": "space-age",
+    "enabled": false
+  },
+  {
+    "name": "elevated-rails",
+    "enabled": false
+  },
+  {
+    "name": "base",
+    "enabled": false
+  },
+  {
+    "name": "quality",
+    "enabled": false
+  }
+]}

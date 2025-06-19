@@ -93,12 +93,72 @@ public class CmdProfile {
         }
     }
 
+    @Command(name = "status", description = "Get the status of a profile")
+    public void getProfileStatus(
+            @Option(names = "-name", description = "Name of the profile") Optional<String> name,
+            @Option(names = "-detailed", description = "Include detailed information about the profile") boolean detailed
+    ) {
+        if (!checkOrSelectProfile(name)) {
+            return;
+        }
+
+        System.out.println();
+        System.out.println(profile.getStateCode()+ " " + profile.getName() + " (" + profile.getStatus() + ")");
+        
+        if (detailed) {
+            System.out.println();
+            System.out.println("Folder: " + profile.getFolderProfile().getAbsolutePath());
+            System.out.println("Build Folder: " + profile.getFolderBuild().getAbsolutePath());
+            System.out.println();
+            System.out.println("Manifest:        " + (profile.hasManifest() ? "Yes" : "No"));
+            System.out.println("Mods Downloaded: " + (profile.hasDownloaded() ? "Yes" : "No"));
+            System.out.println("Factorio Dump:   " + (profile.hasDump() ? "Yes" : "No"));
+            System.out.println("Data Generated:  " + (profile.hasData() ? "Yes" : "No"));
+        }
+
+        System.out.println();
+        switch (profile.getStatus()) {
+            case BUILD_MANIFEST:
+                System.out.println("Profile is in BUILD_MANIFEST status. Next step is to run command 'profile build-manifest'");
+                break;
+            case BUILD_DOWNLOAD:
+                System.out.println("Profile is in BUILD_DOWNLOAD status. Next step is to run command 'profile build-download'");
+                break;
+            case BUILD_DUMP:
+                System.out.println("Profile is in BUILD_DUMP status. Next step is to run command 'profile build-dump'");
+                break;
+            case BUILD_DATA:
+                System.out.println("Profile is in BUILD_DATA status. Next step is to run command 'profile build-data'");
+                break;
+            case READY:
+                System.out.println("Profile is in READY status. To run the bot, use command 'bot run'");
+                break;
+            case DISABLED:
+                System.out.println("Profile is in DISABLED status. It will be ignored when running the bot. To enable this profile, use command 'profile enable'");
+                break;
+            case INVALID:
+                System.out.println("Profile is in INVALID status. It cannot be used until fixed. The profile needs to have a profile.json configured. You can generate a new profile using the command 'profile new -name <name> <mod1> <mod2> <mod3> ...'");
+                break;
+            case NEED_FACTORIO_INSTALL:
+                System.out.println("Profile is in NEED_FACTORIO_INSTALL status. It requires a Factorio installation configured in config.json to be set up in order to dump factorio data.");
+                break;
+            case NEED_MOD_PORTAL_API:
+                System.out.println("Profile is in NEED_MOD_PORTAL_API status. It requires the Factorio Mod Portal API information to be configured in config.json in order to download mods.");
+                break;
+        }
+    }
+
     @Command(name = "list", description = "List all profiles or mods")
     public void listProfiles(
             @Option(names = "-filter", description = "Filter profiles by name (partial)") String filter,
             @Option(names = "-detailed", description = "Include mods in the profile listing") boolean detailed
     ) {
         List<Profile> profiles = Profile.listProfiles();
+
+        if (!profiles.stream().anyMatch(Profile::isVanilla)) {
+            System.out.println("WARNING: No vanilla profile found. You need to create one using command 'profile default-vanilla'.");
+        }
+
         if (profiles.isEmpty()) {
             System.out.println("No profiles found.");
             return;
@@ -108,8 +168,8 @@ public class CmdProfile {
             if (filter != null && !profile.getName().contains(filter)) {
                 continue;
             }
-            System.out.println((profile.equals(this.profile) ? "***** " : " - ") + profile.getName() + " (" + profile.getStatus() + ")");
-            if (detailed) {
+            System.out.println(" - " + profile.getStateCode()+ " " + profile.getName() + " (" + profile.getStatus() + ")");
+            if (detailed && profile.hasManifest()) {
                 List<String> mods = profile.listMods();
                 for (String mod : mods) {
                     System.out.println("      > " + mod);

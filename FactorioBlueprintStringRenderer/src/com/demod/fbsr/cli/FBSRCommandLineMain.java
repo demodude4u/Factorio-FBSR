@@ -57,7 +57,7 @@ public class FBSRCommandLineMain {
                 .variable(LineReader.LIST_MAX, 50)
                 .build();
 
-        String prompt = "FBSR> ";
+        String prompt = "\nFBSR> ";
 
         while (true) {
             String line;
