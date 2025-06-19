@@ -274,6 +274,10 @@ public class Profile {
         return fileProfile.exists();
     }
 
+    public boolean isReady() {
+        return getStatus() == ProfileStatus.READY;
+    }
+
     public boolean isEnabled() {
         if (!isValid()) {
             return false;
@@ -628,42 +632,78 @@ public class Profile {
         // Delete all files and subdirectories in the build folder
         if (folderBuild.exists()) {
             try {
-            Files.walk(folderBuild.toPath())
-                 .map(Path::toFile)
-                 .sorted((f1, f2) -> f2.getAbsolutePath().length() - f1.getAbsolutePath().length()) // Delete children first
-                 .forEach(file -> {
-                 if (!file.delete()) {
-                     success.set(false);
-                 }
-                 });
+                Files.walk(folderBuild.toPath())
+                    .map(Path::toFile)
+                    .sorted((f1, f2) -> f2.getAbsolutePath().length() - f1.getAbsolutePath().length()) // Delete children first
+                    .forEach(file -> {
+                    if (!file.delete()) {
+                        success.set(false);
+                        System.out.println("Failed to delete: " + file.getAbsolutePath());
+                    }
+                    });
             } catch (IOException e) {
-            e.printStackTrace();
-            success.set(false);
+                e.printStackTrace();
+                success.set(false);
+                System.out.println("Failed to delete: " + e.getMessage());
             }
 
             if (!folderBuild.delete()) {
                 success.set(false);
+                System.out.println("Failed to delete: " + folderBuild.getAbsolutePath());
             }
         }
 
         // Delete all files and subdirectories in the profile folder
         if (folderProfile.exists()) {
             try {
-            Files.walk(folderProfile.toPath())
-                 .map(Path::toFile)
-                 .sorted((f1, f2) -> f2.getAbsolutePath().length() - f1.getAbsolutePath().length()) // Delete children first
-                 .forEach(file -> {
-                 if (!file.delete()) {
-                     success.set(false);
-                 }
-                 });
+                Files.walk(folderProfile.toPath())
+                    .map(Path::toFile)
+                    .sorted((f1, f2) -> f2.getAbsolutePath().length() - f1.getAbsolutePath().length()) // Delete children first
+                    .forEach(file -> {
+                    if (!file.delete()) {
+                        success.set(false);
+                        System.out.println("Failed to delete: " + file.getAbsolutePath());
+                    }
+                    });
             } catch (IOException e) {
-            e.printStackTrace();
-            success.set(false);
+                e.printStackTrace();
+                success.set(false);
+                System.out.println("Failed to delete: " + e.getMessage());
             }
 
             if (!folderProfile.delete()) {
                 success.set(false);
+                System.out.println("Failed to delete: " + folderProfile.getAbsolutePath());
+            }
+        }
+
+        return success.get();
+    }
+
+    public boolean deleteBuild() {
+        AtomicBoolean success = new AtomicBoolean(true);
+
+        // Delete all files and subdirectories in the profile folder
+        if (folderProfile.exists()) {
+            try {
+                Files.walk(folderProfile.toPath())
+                    .map(Path::toFile)
+                    .sorted((f1, f2) -> f2.getAbsolutePath().length() - f1.getAbsolutePath().length()) // Delete children first
+                    .forEach(file -> {
+                    if (!file.delete()) {
+                        success.set(false);
+                        System.out.println("Failed to delete: " + file.getAbsolutePath());
+                    }
+                    });
+            } catch (IOException e) {
+                e.printStackTrace();
+                success.set(false);
+                System.out.println("Failed to delete: " + e.getMessage());
+            }
+
+            if (!folderProfile.delete()) {
+                success.set(false);
+                System.out.println("Failed to delete: " + folderProfile.getAbsolutePath());
             }
         }
 
@@ -686,35 +726,41 @@ public class Profile {
         JSONObject jsonProfile = readJsonFile(fileProfile);
         JSONArray jsonProfileMods = jsonProfile.optJSONArray("mods");
 
-        asfgsag
-        //FIXME the builtin mods are missing
-
         List<String> mods = new ArrayList<>();
+        mods.add("base"); // Always include base mod
+
         for (int i = 0; i < jsonProfileMods.length(); i++) {
-            String mod = jsonProfileMods.getString(i).trim();
-            mods.add(mod);
+            String modName = jsonProfileMods.getString(i).trim();
+            if (!mods.contains(modName)) {
+                mods.add(modName);
+            }
         }
 
         Map<String, JSONObject> modInfo = new LinkedHashMap<>();
-        for (String mod : mods) {
-            if (BUILTIN_MODS.contains(mod)) {
+        for (String modName : mods) {
+            if (BUILTIN_MODS.contains(modName)) {
+                modInfo.put(modName, new JSONObject());
                 continue;
             }
             try {
-                walkDependencies(modInfo, mod);
+                walkDependencies(modInfo, modName);
             } catch (IOException e) {
-                System.out.println("Failed to walk dependencies for mod: " + mod);
+                System.out.println("Failed to walk dependencies for mod: " + modName);
                 e.printStackTrace();
                 return false;
             }
         }
 
         JSONObject jsonManifest = new JSONObject();
-
         JSONObject jsonZips = new JSONObject();
         jsonManifest.put("zips", jsonZips);
         for (Entry<String, JSONObject> entry : modInfo.entrySet()) {
             String modName = entry.getKey();
+
+            if (BUILTIN_MODS.contains(modName)) {
+                continue;
+            }
+
             JSONObject jsonRelease = entry.getValue();
 
             String filename = jsonRelease.getString("file_name");
@@ -736,15 +782,8 @@ public class Profile {
 
         JSONArray jsonModList = new JSONArray();
         jsonManifest.put("mod_list", jsonModList);
-        List<String> modList = new ArrayList<>(modInfo.keySet());
-        for (String mod : mods) {
-            if (!modList.contains(mod)) {
-                if (!BUILTIN_MODS.contains(mod)) {
-                    System.out.println("WARNING -- Mod does not have zip file: " + mod);
-                }
-
-                modList.add(mod);
-            }
+        for (String modName : modInfo.keySet()) {
+            jsonModList.put(modName);
         }
 
 
@@ -1077,19 +1116,34 @@ public class Profile {
 
     public List<String> listMods() {
 
-        if (!hasManifest()) {
-            System.out.println("Profile " + folderProfile.getName() + " does not have a manifest.");
+        if (!isValid()) {
+            System.out.println("Profile " + folderProfile.getName() + " is not valid.");
             return ImmutableList.of();
         }
 
-        JSONObject jsonManifest = readJsonFile(fileManifest);
-
-        JSONArray jsonModList = jsonManifest.getJSONArray("mod_list");
         List<String> mods = new ArrayList<>();
-        for (int i = 0; i < jsonModList.length(); i++) {
-            String mod = jsonModList.getString(i);
-            mods.add(mod);
+
+        if (hasManifest()) {
+            JSONObject jsonManifest = readJsonFile(fileManifest);
+            JSONArray jsonModList = jsonManifest.getJSONArray("mod_list");
+            for (int i = 0; i < jsonModList.length(); i++) {
+                String mod = jsonModList.getString(i);
+                mods.add(mod);
+            }
+
+        } else {
+            JSONObject jsonProfile = readJsonFile(fileProfile);
+            JSONArray jsonProfileMods = jsonProfile.optJSONArray("mods");
+            if (jsonProfileMods != null) {
+                for (int i = 0; i < jsonProfileMods.length(); i++) {
+                    String modName = jsonProfileMods.getString(i).trim();
+                    mods.add(modName);
+                }
+            } else {
+                System.out.println("No mods found in profile: " + folderProfile.getName());
+            }
         }
+        
         Collections.sort(mods);
         return mods;
     }

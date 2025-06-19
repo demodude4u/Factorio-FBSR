@@ -665,6 +665,8 @@ public class FBSR {
 				return false;
 			}
 
+			profileVanilla.resetLoadedData();
+
 			profiles.add(profileVanilla);
 		
 		} else {
@@ -675,17 +677,17 @@ public class FBSR {
 		GUIStyle guiStyle = new GUIStyle();
 		IconManager iconManager = new IconManager(factorioManager);
 
+		for (Profile p : profiles) {
+			p.setFactorioManager(factorioManager);
+			p.setGuiStyle(guiStyle);
+			p.setIconManager(iconManager);
+		}
+
 		if (profile.isVanilla()) {
 			if (!GUIStyle.copyFontsToProfile(profile)) {
                 System.out.println("Failed to copy fonts to vanilla profile.");
                 return false;
             }
-		}
-
-		for (Profile p : profiles) {
-			p.setFactorioManager(factorioManager);
-			p.setGuiStyle(guiStyle);
-			p.setIconManager(iconManager);
 		}
 		
 		try {
@@ -699,10 +701,6 @@ public class FBSR {
 		} catch (JSONException | IOException e) {
 			e.printStackTrace();
 			return false;
-		}
-
-		if (profile.isVanilla()) {
-			// Copy factorio version into profile
 		}
 
 		return true;

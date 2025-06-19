@@ -223,8 +223,6 @@ public class FactorioManager {
 
 		for (Profile profile : profiles) {
 
-			profile.resetLoadedData();
-
 			FactorioData factorioData = profile.getFactorioData();
 
 			if (!factorioData.initialize(false)) {
@@ -234,7 +232,6 @@ public class FactorioManager {
 
 			DataTable table = factorioData.getTable();
 
-			profiles.add(profile);
 			profileByData.put(factorioData, profile);
 			profile.getModLoader().getMods().keySet().forEach(mod -> profileByModName.put(mod, profile));
 

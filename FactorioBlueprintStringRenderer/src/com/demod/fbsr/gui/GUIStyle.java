@@ -49,10 +49,10 @@ public final class GUIStyle {
 
 	public ImageDef DEF_CLOCK;
 
-	private static void copyFont(Profile profile, String filename) {
+	private static boolean copyFont(Profile profile, String filename) {
 		if (!FactorioManager.hasFactorioInstall()) {
 			LOGGER.error("Factorio installation not found, cannot copy font: {}", filename);
-			throw new RuntimeException("Factorio installation not found, cannot copy font: " + filename);
+			return false;
 		}
 
 		File fileInstallFont = new File(FactorioManager.getFactorioInstall(), "data/core/fonts/" + filename);
@@ -62,8 +62,10 @@ public final class GUIStyle {
 			LOGGER.info("Copied font: {}", fileProfileFont.getAbsolutePath());
 		} catch (IOException e) {
 			LOGGER.error("FAILED TO COPY FONT: {}", fileProfileFont.getAbsolutePath(), e);
-			throw new RuntimeException("Failed to copy font: " + filename, e);
+			return false;
 		}
+
+		return true;
 	}
 
 	private static Font createFont(Profile profile, String filename) {
@@ -77,14 +79,10 @@ public final class GUIStyle {
 	}
 
 	public static boolean copyFontsToProfile(Profile profile) {
-		if (!profile.hasData()) {
-			System.out.println("Profile is missing factorio data, cannot copy fonts.");
-			return false;
-		}
-
-		copyFont(profile, "Lilittium-Regular.ttf");
-		copyFont(profile, "Lilittium-Bold.ttf");
-		return true;
+		boolean ret = true;
+		ret &= copyFont(profile, "Lilittium-Regular.ttf");
+		ret &= copyFont(profile, "Lilittium-Bold.ttf");
+		return ret;
 	}
 
 	public void initialize(Profile profile) {

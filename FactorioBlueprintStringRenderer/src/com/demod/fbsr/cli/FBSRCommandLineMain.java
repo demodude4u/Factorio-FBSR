@@ -13,6 +13,7 @@ import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 
 import com.demod.factorio.Config;
+import com.demod.fbsr.Profile;
 
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
@@ -29,7 +30,7 @@ import picocli.shell.jline3.PicocliCommands;
 })
 public class FBSRCommandLineMain {
 
-    @Option(names = "-config", description = "Path to the configuration file", defaultValue = "config.json", scope = ScopeType.INHERIT)
+    @Option(names = "-config", description = "Path to the configuration file (optional)", defaultValue = "config.json", scope = ScopeType.INHERIT)
     public void setConfigPath(File configPath) {
         Config.setPath(configPath.getAbsolutePath());
     }
@@ -39,6 +40,22 @@ public class FBSRCommandLineMain {
 
         if (args.length == 0) {
             System.out.println("No command provided. Starting interactive shell...");
+
+            if (!Profile.vanilla().isValid()) {
+                System.out.println();
+                System.out.println("WARNING: The vanilla profile is missing or not valid! Type command 'profile default-vanilla' to get started.");
+            
+            } else if (!Profile.listProfiles().stream().allMatch(Profile::isReady)) {
+                System.out.println();
+                System.out.println("WARNING: Not all profiles are ready!");
+                new CmdProfile().listProfiles(null, false);
+            }
+
+            System.out.println();
+            System.out.println("Type 'help profile' for a list of commands to create, manage, build, clear, or delete profiles.");
+            System.out.println("Type 'help bot' for a list of commands to run the bot or start/stop bot service.");
+            System.out.println("Type 'help render' for a list of commands to render images via CLI.");
+            System.out.println("Type 'help lua' for a list of commands to access factorio data via CLI.");
             interactiveShell(cmd);
         } else {
             System.exit(cmd.execute(args));

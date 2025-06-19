@@ -2,6 +2,7 @@ package com.demod.fbsr.cli;
 
 import java.awt.Desktop;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -29,7 +30,10 @@ public class CmdProfile {
         if (profile == null) {
             System.out.println("Profile not found: " + name);
         } else {
+            System.out.println();
             System.out.println("Selected profile: " + name);
+
+            getProfileStatus(Optional.of(profile.getName()), false);
         }
         this.profile = profile;
     }
@@ -62,6 +66,7 @@ public class CmdProfile {
         if (profile.generateProfile(mods)) {
             this.profile = profile;
             System.out.println("Profile created successfully:" + profile.getName() + " (" + profile.getFolderProfile().getAbsolutePath() + ")");
+            System.out.println("To generate a new rendering table, run the command 'profile default-renderings -name " + profile.getName() + "'");
         } else {
             System.out.println("Failed to create profile!");
         }
@@ -75,8 +80,23 @@ public class CmdProfile {
             return;
         }
 
+        if (!profile.buildManifest(true)) {
+            System.out.println("Failed to build manifest for profile: " + profile.getName());
+            return;
+        }
+
+        if (!profile.buildDownload(true)) {
+            System.out.println("Failed to download mods for profile: " + profile.getName());
+            return;
+        }
+
+        if (!profile.buildDump(true)) {
+            System.out.println("Failed to dump factorio data for profile: " + profile.getName());
+            return;
+        }
+
         if (profile.generateDefaultRenderingConfiguration()) {
-            System.out.println("Default renderings generated successfully.");
+            System.out.println("Default renderings generated successfully. You can finish building the profile by running the command 'profile build-data -name " + profile.getName() + "'");
         } else {
             System.out.println("Failed to generate default renderings. Ensure the profile is at BUILD_DATA or READY status.");
         }
@@ -87,7 +107,7 @@ public class CmdProfile {
             @Option(names = "-force", description = "Force regeneration of the default vanilla profile, even if it already exists") boolean force
     ) {
         if (Profile.generateDefaultVanillaProfile(force)) {
-            System.out.println("Default vanilla profile created successfully.");
+            System.out.println("Default vanilla profile created successfully. You can build the profile by running the command 'profile build-all -name vanilla'");
         } else {
             System.out.println("Failed to create default vanilla profile.");
         }
@@ -119,16 +139,16 @@ public class CmdProfile {
         System.out.println();
         switch (profile.getStatus()) {
             case BUILD_MANIFEST:
-                System.out.println("Profile is in BUILD_MANIFEST status. Next step is to run command 'profile build-manifest'");
+                System.out.println("Profile is in BUILD_MANIFEST status. Next step is to run command 'profile build-manifest' or 'profile build-all'");
                 break;
             case BUILD_DOWNLOAD:
-                System.out.println("Profile is in BUILD_DOWNLOAD status. Next step is to run command 'profile build-download'");
+                System.out.println("Profile is in BUILD_DOWNLOAD status. Next step is to run command 'profile build-download' or 'profile build-all'");
                 break;
             case BUILD_DUMP:
-                System.out.println("Profile is in BUILD_DUMP status. Next step is to run command 'profile build-dump'");
+                System.out.println("Profile is in BUILD_DUMP status. Next step is to run command 'profile build-dump' or 'profile build-all'");
                 break;
             case BUILD_DATA:
-                System.out.println("Profile is in BUILD_DATA status. Next step is to run command 'profile build-data'");
+                System.out.println("Profile is in BUILD_DATA status. Next step is to run command 'profile build-data' or 'profile build-all'");
                 break;
             case READY:
                 System.out.println("Profile is in READY status. To run the bot, use command 'bot run'");
@@ -155,10 +175,6 @@ public class CmdProfile {
     ) {
         List<Profile> profiles = Profile.listProfiles();
 
-        if (!profiles.stream().anyMatch(Profile::isVanilla)) {
-            System.out.println("WARNING: No vanilla profile found. You need to create one using command 'profile default-vanilla'.");
-        }
-
         if (profiles.isEmpty()) {
             System.out.println("No profiles found.");
             return;
@@ -168,13 +184,18 @@ public class CmdProfile {
             if (filter != null && !profile.getName().contains(filter)) {
                 continue;
             }
-            System.out.println(" - " + profile.getStateCode()+ " " + profile.getName() + " (" + profile.getStatus() + ")");
-            if (detailed && profile.hasManifest()) {
+            System.out.println(profile.getStateCode()+ " " + profile.getName() + " (" + profile.getStatus() + ")");
+            if (detailed) {
                 List<String> mods = profile.listMods();
                 for (String mod : mods) {
-                    System.out.println("      > " + mod);
+                    System.out.println(" > " + mod);
                 }
             }
+        }
+
+        if (!profiles.stream().anyMatch(Profile::isVanilla)) {
+            System.out.println();
+            System.out.println("WARNING: No vanilla profile found. You need to create one using command 'profile default-vanilla'.");
         }
     }
 
@@ -271,8 +292,16 @@ public class CmdProfile {
     @Command(name = "build-manifest", description = "Build the manifest for the specified profile")
     public void buildManifest(
             @Option(names = "-name", description = "Name of the profile") Optional<String> name,
-            @Option(names = "-force", description = "Force regeneration of the manifest, even if it already exists") boolean force
+            @Option(names = "-force", description = "Force regeneration of the manifest, even if it already exists") boolean force,
+            @Option(names = "-all-profiles", description = "Build manifest for all profiles, ignoring the selected profile") boolean all
     ) {
+        if (all) {
+            for (Profile profile : Profile.listProfiles()) {
+                buildManifest(Optional.of(profile.getName()), force, false);
+            }
+            return;
+        }
+
         if (!checkOrSelectProfile(name)) {
             return;
         }
@@ -287,8 +316,16 @@ public class CmdProfile {
     @Command(name = "build-download", description = "Download mods for the specified profile")
     public void buildDownloadMods(
             @Option(names = "-name", description = "Name of the profile") Optional<String> name,
-            @Option(names = "-force", description = "Force redownload of mods, even if they already exist") boolean force
+            @Option(names = "-force", description = "Force redownload of mods, even if they already exist") boolean force,
+            @Option(names = "-all-profiles", description = "Download mods for all profiles, ignoring the selected profile") boolean all
     ) {
+        if (all) {
+            for (Profile profile : Profile.listProfiles()) {
+                buildDownloadMods(Optional.of(profile.getName()), force, false);
+            }
+            return;
+        }
+
         if (!checkOrSelectProfile(name)) {
             return;
         }
@@ -303,8 +340,16 @@ public class CmdProfile {
     @Command(name = "build-dump", description = "Dump factorio data for the specified profile")
     public void buildDumpDataRaw(
             @Option(names = "-name", description = "Name of the profile") Optional<String> name,
-            @Option(names = "-force", description = "Force regeneration of data.raw, even if it already exists") boolean force
+            @Option(names = "-force", description = "Force regeneration of data.raw, even if it already exists") boolean force,
+            @Option(names = "-all-profiles", description = "Dump data for all profiles, ignoring the selected profile") boolean all
     ) {
+        if (all) {
+            for (Profile profile : Profile.listProfiles()) {
+                buildDumpDataRaw(Optional.of(profile.getName()), force, false);
+            }
+            return;
+        }
+
         if (!checkOrSelectProfile(name)) {
             return;
         }
@@ -319,8 +364,30 @@ public class CmdProfile {
     @Command(name = "build-data", description = "Generate data for the specified profile")
     public void buildGenerateData(
             @Option(names = "-name", description = "Name of the profile") Optional<String> name,
-            @Option(names = "-force", description = "Force regeneration of data, even if it already exists") boolean force
+            @Option(names = "-force", description = "Force regeneration of data, even if it already exists") boolean force,
+            @Option(names = "-all-profiles", description = "Generate data for all profiles, ignoring the selected profile") boolean all
     ) {
+        if (all) {
+            List<Profile> profiles = new ArrayList<>(Profile.listProfiles());
+
+            //Vanilla profile must be built first
+            Profile vanillaProfile = profiles.stream()
+                    .filter(Profile::isVanilla)
+                    .findFirst()
+                    .orElse(null);
+            if (vanillaProfile == null) {
+                System.out.println("No vanilla profile found, it must be created first using command 'profile default-vanilla'");
+                return;
+            }
+            profiles.remove(vanillaProfile);
+            profiles.add(0, vanillaProfile);
+
+            for (Profile profile : profiles) {
+                buildGenerateData(Optional.of(profile.getName()), force, false);
+            }
+            return;
+        }
+
         if (!checkOrSelectProfile(name)) {
             return;
         }
@@ -332,78 +399,160 @@ public class CmdProfile {
         }
     }
 
+    @Command(name = "build-all", description = "Build all steps for the specified profile")
+    public void buildAll(
+            @Option(names = "-name", description = "Name of the profile") Optional<String> name,
+            @Option(names = "-force", description = "Force regeneration of all steps, even if they already exist") boolean force,
+            @Option(names = "-all-profiles", description = "Build all steps for all profiles, ignoring the selected profile") boolean all
+    ) {
+        buildManifest(name, force, all);
+        buildDownloadMods(name, force, all);
+        buildDumpDataRaw(name, force, all);
+        buildGenerateData(name, force, all);
+
+        if (Profile.listProfiles().stream().allMatch(Profile::isReady)) {
+            System.out.println();
+            System.out.println("All profiles are ready! You can now run the bot using command 'bot run'");
+        
+        } else {
+            System.out.println();
+            System.out.println("Not all profiles are ready!");
+            listProfiles(null, false);
+        }
+    }
+
     @Command(name = "clear-manifest", description = "Clear the manifest for the specified profile")
     public void clearManifest(
-            @Option(names = "-name", description = "Name of the profile") Optional<String> name
+            @Option(names = "-name", description = "Name of the profile") Optional<String> name,
+            @Option(names = "-all-profiles", description = "Clear manifest for all profiles, ignoring the selected profile") boolean all
     ) {
+        if (all) {
+            for (Profile profile : Profile.listProfiles()) {
+                clearManifest(Optional.of(profile.getName()), false);
+            }
+            return;
+        }
+
         if (!checkOrSelectProfile(name)) {
             return;
         }
 
         if (profile.clearManifest()) {
             System.out.println("Manifest cleared successfully for profile: " + profile.getName());
-        } else {
-            System.out.println("Failed to clear manifest for profile: " + profile.getName());
         }
     }
 
     @Command(name = "clear-download", description = "Clear all downloaded mods for the specified profile")
     public void clearDownload(
-            @Option(names = "-name", description = "Name of the profile") Optional<String> name
+            @Option(names = "-name", description = "Name of the profile") Optional<String> name,
+            @Option(names = "-all-profiles", description = "Clear downloaded mods for all profiles, ignoring the selected profile") boolean all
     ) {
+        if (all) {
+            for (Profile profile : Profile.listProfiles()) {
+                clearDownload(Optional.of(profile.getName()), false);
+            }
+            return;
+        }
+
         if (!checkOrSelectProfile(name)) {
             return;
         }
 
         if (profile.clearAllDownloads()) {
             System.out.println("Downloaded mods cleared successfully for profile: " + profile.getName());
-        } else {
-            System.out.println("Failed to clear downloaded mods for profile: " + profile.getName());
         }
     }
 
     @Command(name = "clear-download-invalid", description = "Clear invalid downloaded mods for the specified profile")
     public void clearDownloadInvalid(
-            @Option(names = "-name", description = "Name of the profile") Optional<String> name
+            @Option(names = "-name", description = "Name of the profile") Optional<String> name,
+            @Option(names = "-all-profiles", description = "Clear invalid downloaded mods for all profiles, ignoring the selected profile") boolean all
     ) {
+        if (all) {
+            for (Profile profile : Profile.listProfiles()) {
+                clearDownloadInvalid(Optional.of(profile.getName()), false);
+            }
+            return;
+        }
+
         if (!checkOrSelectProfile(name)) {
             return;
         }
 
         if (profile.clearInvalidDownloads()) {
             System.out.println("Invalid downloaded mods cleared successfully for profile: " + profile.getName());
-        } else {
-            System.out.println("Failed to clear invalid downloaded mods for profile: " + profile.getName());
         }
     }
 
     @Command(name = "clear-dump", description = "Clear dumped factorio data for the specified profile")
     public void clearDumpDataRaw(
-            @Option(names = "-name", description = "Name of the profile") Optional<String> name
+            @Option(names = "-name", description = "Name of the profile") Optional<String> name,
+            @Option(names = "-all-profiles", description = "Clear dumped data for all profiles, ignoring the selected profile") boolean all
     ) {
+        if (all) {
+            for (Profile profile : Profile.listProfiles()) {
+                clearDumpDataRaw(Optional.of(profile.getName()), false);
+            }
+            return;
+        }
+
         if (!checkOrSelectProfile(name)) {
             return;
         }
 
         if (profile.clearDump()) {
             System.out.println("Factorio data dump cleared successfully for profile: " + profile.getName());
-        } else {
-            System.out.println("Failed to clear factorio data dump for profile: " + profile.getName());
         }
     }
 
     @Command(name = "clear-data", description = "Clear generated data for the specified profile")
     public void clearGenerateData(
-            @Option(names = "-name", description = "Name of the profile") Optional<String> name
+            @Option(names = "-name", description = "Name of the profile") Optional<String> name,
+            @Option(names = "-all-profiles", description = "Clear generated data for all profiles, ignoring the selected profile") boolean all
     ) {
+        if (all) {
+            for (Profile profile : Profile.listProfiles()) {
+                clearGenerateData(Optional.of(profile.getName()), false);
+            }
+            return;
+        }
+
         if (!checkOrSelectProfile(name)) {
             return;
         }
 
         if (profile.clearData()) {
             System.out.println("Generated data cleared successfully for profile: " + profile.getName());
-        } else {
-            System.out.println("Failed to clear generated data for profile: " + profile.getName());
         }
+    }
+
+    @Command(name = "clear-all", description = "Clear all data for the specified profile")
+    public void clearAll(
+            @Option(names = "-name", description = "Name of the profile") Optional<String> name,
+            @Option(names = "-all-profiles", description = "Clear all data for all profiles, ignoring the selected profile") boolean all,
+            @Option(names = "-keep-downloads", description = "Keep downloaded mods when clearing all data") boolean keepDownloads
+    ) {
+        clearGenerateData(name, all);
+        clearDumpDataRaw(name, all);
+        if (!keepDownloads) {
+            clearDownload(name, all);
+        }
+        clearManifest(name, all);
+
+        if (!keepDownloads) {
+            if (all) {
+                for (Profile profile : Profile.listProfiles()) {
+                    if (!profile.deleteBuild()) {
+                        System.out.println("Failed to delete build folder for profile: " + profile.getName());
+                    }
+                }
+
+            } else {
+                if (!profile.deleteBuild()) {
+                    System.out.println("Failed to delete build folder for profile: " + profile.getName());
+                }
+            }
+        }
+        
     }
 }
