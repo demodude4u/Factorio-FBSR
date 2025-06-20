@@ -8,6 +8,7 @@ import java.util.Optional;
 
 import com.demod.fbsr.FactorioManager;
 import com.demod.fbsr.Profile;
+import com.demod.fbsr.Profile.ProfileStatus;
 import com.google.common.collect.Multimap;
 
 import picocli.CommandLine.Command;
@@ -405,10 +406,41 @@ public class CmdProfile {
             @Option(names = "-force", description = "Force regeneration of all steps, even if they already exist") boolean force,
             @Option(names = "-all-profiles", description = "Build all steps for all profiles, ignoring the selected profile") boolean all
     ) {
-        buildManifest(name, force, all);
-        buildDownloadMods(name, force, all);
-        buildDumpDataRaw(name, force, all);
-        buildGenerateData(name, force, all);
+        List<Profile> profiles = Profile.listProfiles();
+        Profile profileVanilla = Profile.vanilla();
+
+        if (profileVanilla == null) {
+            System.out.println("No vanilla profile found, it must be created first using command 'profile default-vanilla'");
+            return;
+        }
+
+        //Put vanilla profile first in the list
+        profiles.remove(profileVanilla);
+        profiles.add(0, profileVanilla);
+
+        for (Profile profile : profiles) {
+            if (force || profile.getStatus() == ProfileStatus.BUILD_MANIFEST) {
+                buildManifest(Optional.of(profile.getName()), force, false);
+            }
+        }
+
+        for (Profile profile : profiles) {
+            if (force || profile.getStatus() == ProfileStatus.BUILD_DOWNLOAD) {
+                buildDownloadMods(Optional.of(profile.getName()), force, false);
+            }
+        }
+
+        for (Profile profile : profiles) {
+            if (force || profile.getStatus() == ProfileStatus.BUILD_DUMP) {
+                buildDumpDataRaw(Optional.of(profile.getName()), force, false);
+            }
+        }
+
+        for (Profile profile : profiles) {
+            if (force || profile.getStatus() == ProfileStatus.BUILD_DATA) {
+                buildGenerateData(Optional.of(profile.getName()), force, false);
+            }
+        }
 
         if (Profile.listProfiles().stream().allMatch(Profile::isReady)) {
             System.out.println();
@@ -532,6 +564,10 @@ public class CmdProfile {
             @Option(names = "-all-profiles", description = "Clear all data for all profiles, ignoring the selected profile") boolean all,
             @Option(names = "-keep-downloads", description = "Keep downloaded mods when clearing all data") boolean keepDownloads
     ) {
+        if (!all && !checkOrSelectProfile(name)) {
+            return;
+        }
+
         clearGenerateData(name, all);
         clearDumpDataRaw(name, all);
         if (!keepDownloads) {

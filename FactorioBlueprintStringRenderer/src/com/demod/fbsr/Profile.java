@@ -559,7 +559,6 @@ public class Profile {
 
     public boolean clearAllDownloads() {
         if (!folderBuildMods.exists()) {
-            System.out.println("Profile " + folderProfile.getName() + " does not have a build folder.");
             return false;
         }
          
@@ -636,20 +635,15 @@ public class Profile {
                     .map(Path::toFile)
                     .sorted((f1, f2) -> f2.getAbsolutePath().length() - f1.getAbsolutePath().length()) // Delete children first
                     .forEach(file -> {
-                    if (!file.delete()) {
-                        success.set(false);
-                        System.out.println("Failed to delete: " + file.getAbsolutePath());
-                    }
+                        if (!file.delete()) {
+                            success.set(false);
+                            System.out.println("Failed to delete: " + file.getAbsolutePath());
+                        }
                     });
             } catch (IOException e) {
                 e.printStackTrace();
                 success.set(false);
                 System.out.println("Failed to delete: " + e.getMessage());
-            }
-
-            if (!folderBuild.delete()) {
-                success.set(false);
-                System.out.println("Failed to delete: " + folderBuild.getAbsolutePath());
             }
         }
 
@@ -660,20 +654,15 @@ public class Profile {
                     .map(Path::toFile)
                     .sorted((f1, f2) -> f2.getAbsolutePath().length() - f1.getAbsolutePath().length()) // Delete children first
                     .forEach(file -> {
-                    if (!file.delete()) {
-                        success.set(false);
-                        System.out.println("Failed to delete: " + file.getAbsolutePath());
-                    }
+                        if (!file.delete()) {
+                            success.set(false);
+                            System.out.println("Failed to delete: " + file.getAbsolutePath());
+                        }
                     });
             } catch (IOException e) {
                 e.printStackTrace();
                 success.set(false);
                 System.out.println("Failed to delete: " + e.getMessage());
-            }
-
-            if (!folderProfile.delete()) {
-                success.set(false);
-                System.out.println("Failed to delete: " + folderProfile.getAbsolutePath());
             }
         }
 
@@ -683,27 +672,22 @@ public class Profile {
     public boolean deleteBuild() {
         AtomicBoolean success = new AtomicBoolean(true);
 
-        // Delete all files and subdirectories in the profile folder
-        if (folderProfile.exists()) {
+        // Delete all files and subdirectories in the build folder
+        if (folderBuild.exists()) {
             try {
-                Files.walk(folderProfile.toPath())
+                Files.walk(folderBuild.toPath())
                     .map(Path::toFile)
                     .sorted((f1, f2) -> f2.getAbsolutePath().length() - f1.getAbsolutePath().length()) // Delete children first
                     .forEach(file -> {
-                    if (!file.delete()) {
-                        success.set(false);
-                        System.out.println("Failed to delete: " + file.getAbsolutePath());
-                    }
+                        if (!file.delete()) {
+                            success.set(false);
+                            System.out.println("Failed to delete: " + file.getAbsolutePath());
+                        }
                     });
             } catch (IOException e) {
                 e.printStackTrace();
                 success.set(false);
                 System.out.println("Failed to delete: " + e.getMessage());
-            }
-
-            if (!folderProfile.delete()) {
-                success.set(false);
-                System.out.println("Failed to delete: " + folderProfile.getAbsolutePath());
             }
         }
 
