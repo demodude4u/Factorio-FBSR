@@ -53,10 +53,12 @@ public class FactorioManager {
 	private static boolean hasFactorioInstall;
 	private static File factorioInstall;
 	private static File factorioExecutable;
+	private static String factorioVersion;
 
 	private static boolean hasModPortalApi;
 	private static String modPortalApiUsername;
 	private static String modPortalApiPassword;
+
 
 	static {
 		JSONObject json = Config.get().getJSONObject("factorio_manager");
@@ -65,10 +67,12 @@ public class FactorioManager {
 			hasFactorioInstall = true;
 			factorioInstall = new File(json.getString("install"));
 			factorioExecutable = new File(json.getString("executable"));
+			factorioVersion = FactorioData.getVersionFromExecutable(factorioExecutable).get();
 		} else {
 			hasFactorioInstall = false;
 			factorioInstall = null;
 			factorioExecutable = null;
+			factorioVersion = null;
 		}
 
 		if (json.has("mod_portal_api")) {
@@ -417,4 +421,8 @@ public class FactorioManager {
 		tileFactories.add(factory);
 		tileFactoryByName.put(name, factory);
 	}
+
+    public static String getFactorioVersion() {
+		return factorioVersion;
+    }
 }

@@ -9,6 +9,7 @@ import java.util.Optional;
 import com.demod.fbsr.FactorioManager;
 import com.demod.fbsr.Profile;
 import com.demod.fbsr.Profile.ProfileStatus;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 
 import picocli.CommandLine.Command;
@@ -108,7 +109,7 @@ public class CmdProfile {
             @Option(names = "-force", description = "Force regeneration of the default vanilla profile, even if it already exists") boolean force
     ) {
         if (Profile.generateDefaultVanillaProfile(force)) {
-            System.out.println("Default vanilla profile created successfully. You can build the profile by running the command 'profile build-all -name vanilla'");
+            System.out.println("Default vanilla profile created successfully. You can build the profile by running the command 'profile build -name vanilla'");
         } else {
             System.out.println("Failed to create default vanilla profile.");
         }
@@ -140,16 +141,16 @@ public class CmdProfile {
         System.out.println();
         switch (profile.getStatus()) {
             case BUILD_MANIFEST:
-                System.out.println("Profile is in BUILD_MANIFEST status. Next step is to run command 'profile build-manifest' or 'profile build-all'");
+                System.out.println("Profile is in BUILD_MANIFEST status. Next step is to run command 'profile build-manifest' or 'profile build'");
                 break;
             case BUILD_DOWNLOAD:
-                System.out.println("Profile is in BUILD_DOWNLOAD status. Next step is to run command 'profile build-download' or 'profile build-all'");
+                System.out.println("Profile is in BUILD_DOWNLOAD status. Next step is to run command 'profile build-download' or 'profile build'");
                 break;
             case BUILD_DUMP:
-                System.out.println("Profile is in BUILD_DUMP status. Next step is to run command 'profile build-dump' or 'profile build-all'");
+                System.out.println("Profile is in BUILD_DUMP status. Next step is to run command 'profile build-dump' or 'profile build'");
                 break;
             case BUILD_DATA:
-                System.out.println("Profile is in BUILD_DATA status. Next step is to run command 'profile build-data' or 'profile build-all'");
+                System.out.println("Profile is in BUILD_DATA status. Next step is to run command 'profile build-data' or 'profile build'");
                 break;
             case READY:
                 System.out.println("Profile is in READY status. To run the bot, use command 'bot run'");
@@ -372,11 +373,8 @@ public class CmdProfile {
             List<Profile> profiles = new ArrayList<>(Profile.listProfiles());
 
             //Vanilla profile must be built first
-            Profile vanillaProfile = profiles.stream()
-                    .filter(Profile::isVanilla)
-                    .findFirst()
-                    .orElse(null);
-            if (vanillaProfile == null) {
+            Profile vanillaProfile = Profile.vanilla();
+            if (!vanillaProfile.isValid()) {
                 System.out.println("No vanilla profile found, it must be created first using command 'profile default-vanilla'");
                 return;
             }
@@ -400,24 +398,35 @@ public class CmdProfile {
         }
     }
 
-    @Command(name = "build-all", description = "Build all steps for the specified profile")
-    public void buildAll(
+    @Command(name = "build", description = "Build all steps for the specified profile")
+    public void buildAllSteps(
             @Option(names = "-name", description = "Name of the profile") Optional<String> name,
             @Option(names = "-force", description = "Force regeneration of all steps, even if they already exist") boolean force,
             @Option(names = "-all-profiles", description = "Build all steps for all profiles, ignoring the selected profile") boolean all
     ) {
-        List<Profile> profiles = Profile.listProfiles();
+        if (!all && !checkOrSelectProfile(name)) {
+            return;
+        }
+
         Profile profileVanilla = Profile.vanilla();
 
-        if (profileVanilla == null) {
+        if (!profileVanilla.isValid()) {
             System.out.println("No vanilla profile found, it must be created first using command 'profile default-vanilla'");
             return;
         }
 
-        //Put vanilla profile first in the list
-        profiles.remove(profileVanilla);
-        profiles.add(0, profileVanilla);
+        List<Profile> profiles;
+        if (all) {
+            profiles = new ArrayList<>(Profile.listProfiles());
+        
+            //Put vanilla profile first in the list
+            profiles.remove(profileVanilla);
+            profiles.add(0, profileVanilla);
 
+        } else {
+            profiles = ImmutableList.of(profile);
+        }
+        
         for (Profile profile : profiles) {
             if (force || profile.getStatus() == ProfileStatus.BUILD_MANIFEST) {
                 buildManifest(Optional.of(profile.getName()), force, false);
@@ -558,8 +567,8 @@ public class CmdProfile {
         }
     }
 
-    @Command(name = "clear-all", description = "Clear all data for the specified profile")
-    public void clearAll(
+    @Command(name = "clear", description = "Clear all build and data for the specified profile")
+    public void clearAllSteps(
             @Option(names = "-name", description = "Name of the profile") Optional<String> name,
             @Option(names = "-all-profiles", description = "Clear all data for all profiles, ignoring the selected profile") boolean all,
             @Option(names = "-keep-downloads", description = "Keep downloaded mods when clearing all data") boolean keepDownloads
@@ -590,5 +599,26 @@ public class CmdProfile {
             }
         }
         
+    }
+
+    @Command(name = "clear-build", description = "Clear the build folder for the specified profile")
+    public void clearBuildFolder(
+            @Option(names = "-name", description = "Name of the profile") Optional<String> name,
+            @Option(names = "-all-profiles", description = "Clear build folder for all profiles, ignoring the selected profile") boolean all
+    ) {
+        if (all) {
+            for (Profile profile : Profile.listProfiles()) {
+                clearBuildFolder(Optional.of(profile.getName()), false);
+            }
+            return;
+        }
+
+        if (!checkOrSelectProfile(name)) {
+            return;
+        }
+
+        if (profile.deleteBuild()) {
+            System.out.println("Build folder deleted successfully for profile: " + profile.getName());
+        }
     }
 }

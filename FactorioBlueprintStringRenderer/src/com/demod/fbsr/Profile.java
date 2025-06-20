@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -30,6 +31,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
 
 import org.json.JSONArray;
@@ -332,22 +334,32 @@ public class Profile {
     }
 
     public ProfileStatus getStatus() {
+
+        boolean versionMismatch;
+        if (hasData() && FactorioManager.hasFactorioInstall()) {
+            versionMismatch = !getDataVersion().equals(FactorioManager.getFactorioVersion());
+        } else if (hasDump() && FactorioManager.hasFactorioInstall()) {
+            versionMismatch = !getDumpVersion().equals(FactorioManager.getFactorioVersion());
+        } else {
+            versionMismatch = false;
+        }
+
         if (!isValid()) {
             return ProfileStatus.INVALID;
         } else if (!isEnabled()) {
             return ProfileStatus.DISABLED;
 
-        } else if (hasData()) {
+        } else if (hasData() && !versionMismatch) {
             return ProfileStatus.READY;
 
-        } else if (hasDump() && hasDownloaded()) {
+        } else if (hasDump() && hasDownloaded() && !versionMismatch) {
             if (FactorioManager.hasFactorioInstall()) {
                 return ProfileStatus.BUILD_DATA;
             } else {
                 return ProfileStatus.NEED_FACTORIO_INSTALL;
             }
 
-        } else if (hasManifest() && hasDownloaded()) {
+        } else if ((hasManifest() && hasDownloaded()) || (hasManifest() && versionMismatch)) {
             if (FactorioManager.hasFactorioInstall()) {
                 return ProfileStatus.BUILD_DUMP;
             } else {
@@ -366,6 +378,54 @@ public class Profile {
 
         }
         return null;
+    }
+
+    private Object getDumpVersion() {
+        if (!hasDump()) {
+            return null;
+        }
+        
+        try (ZipFile zipFile = new ZipFile(fileScriptOutputDump)) {
+            
+            ZipEntry entryVersion = zipFile.getEntry("version.txt");
+            if (entryVersion == null) {
+                System.out.println("version.txt not found in factorio-data.zip for profile: " + folderProfile.getName());
+                return null;
+            }
+
+            try (InputStream is = zipFile.getInputStream(entryVersion)) {
+                return new String(is.readAllBytes()).trim();
+            }
+
+        } catch (IOException e) {
+            System.out.println("Failed to read version.txt from factorio-data.zip for profile: " + folderProfile.getName());
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public String getDataVersion() {
+        if (!hasData()) {
+            return null;
+        }
+        
+        try (ZipFile zipFile = new ZipFile(fileFactorioData)) {
+            
+            ZipEntry entryVersion = zipFile.getEntry("version.txt");
+            if (entryVersion == null) {
+                System.out.println("version.txt not found in factorio-data.zip for profile: " + folderProfile.getName());
+                return null;
+            }
+
+            try (InputStream is = zipFile.getInputStream(entryVersion)) {
+                return new String(is.readAllBytes()).trim();
+            }
+
+        } catch (IOException e) {
+            System.out.println("Failed to read version.txt from factorio-data.zip for profile: " + folderProfile.getName());
+            e.printStackTrace();
+            return null;
+        }
     }
 
     public boolean setEnabled(boolean enabled) {
