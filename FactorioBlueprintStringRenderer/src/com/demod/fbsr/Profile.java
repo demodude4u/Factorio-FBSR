@@ -859,6 +859,8 @@ public class Profile {
             return false;
         }
 
+        folderBuildMods.mkdirs();
+
         String username = FactorioManager.getModPortalApiUsername();
         String password = FactorioManager.getModPortalApiPassword();
 
