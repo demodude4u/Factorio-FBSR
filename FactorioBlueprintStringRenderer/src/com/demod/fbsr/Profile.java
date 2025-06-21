@@ -216,6 +216,10 @@ public class Profile {
         return fileFactorioData;
     }
 
+    public File getFileDumpData() {
+        return fileScriptOutputDump;
+    }
+
     public FactorioData getFactorioData() {
         return factorioData;
     }
@@ -335,14 +339,7 @@ public class Profile {
 
     public ProfileStatus getStatus() {
 
-        boolean versionMismatch;
-        if (hasData() && FactorioManager.hasFactorioInstall()) {
-            versionMismatch = !getDataVersion().equals(FactorioManager.getFactorioVersion());
-        } else if (hasDump() && FactorioManager.hasFactorioInstall()) {
-            versionMismatch = !getDumpVersion().equals(FactorioManager.getFactorioVersion());
-        } else {
-            versionMismatch = false;
-        }
+        boolean versionMismatch = hasVersionMismatch();
 
         if (!isValid()) {
             return ProfileStatus.INVALID;
@@ -380,7 +377,7 @@ public class Profile {
         return null;
     }
 
-    private Object getDumpVersion() {
+    private String getDumpVersion() {
         if (!hasDump()) {
             return null;
         }
@@ -426,6 +423,18 @@ public class Profile {
             e.printStackTrace();
             return null;
         }
+    }
+
+    public boolean hasVersionMismatch() {
+        boolean mismatch;
+        if (hasData() && FactorioManager.hasFactorioInstall()) {
+            mismatch = !getDataVersion().equals(FactorioManager.getFactorioVersion());
+        } else if (hasDump() && FactorioManager.hasFactorioInstall()) {
+            mismatch = !getDumpVersion().equals(FactorioManager.getFactorioVersion());
+        } else {
+            mismatch = false;
+        }
+        return mismatch;
     }
 
     public boolean setEnabled(boolean enabled) {

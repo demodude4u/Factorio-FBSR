@@ -1,14 +1,24 @@
 package com.demod.fbsr.cli;
 
 import java.awt.Desktop;
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.BiFunction;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import com.demod.factorio.DataTable;
+import com.demod.factorio.FactorioData;
+import com.demod.factorio.prototype.DataPrototype;
 import com.demod.fbsr.FactorioManager;
 import com.demod.fbsr.Profile;
 import com.demod.fbsr.Profile.ProfileStatus;
+import com.demod.fbsr.RenderRequest.Debug;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 
@@ -186,7 +196,7 @@ public class CmdProfile {
             if (filter != null && !profile.getName().contains(filter)) {
                 continue;
             }
-            System.out.println(profile.getStateCode()+ " " + profile.getName() + " (" + profile.getStatus() + ")");
+            System.out.println(profile.getStateCode()+ " " + profile.getName() + " (" + profile.getStatus() + ")" + (profile.hasVersionMismatch() ? " [VERSION MISMATCH]" : ""));
             if (detailed) {
                 List<String> mods = profile.listMods();
                 for (String mod : mods) {
@@ -203,8 +213,24 @@ public class CmdProfile {
 
     @Command(name = "disable", description = "Disable a profile")
     public void disableProfile(
-            @Option(names = "-name", description = "Name of the profile") Optional<String> name
+            @Option(names = "-name", description = "Name of the profile") Optional<String> name,
+            @Option(names = "-all", description = "Disable all profiles") boolean all
     ) {
+        if (all) {
+            for (Profile profile : Profile.listProfiles()) {
+                if (!profile.isEnabled()) {
+                    continue;
+                }
+
+                if (profile.setEnabled(false)) {
+                    System.out.println("Profile disabled successfully: " + profile.getName());
+                } else {
+                    System.out.println("Failed to disable profile: " + profile.getName());
+                }
+            }
+            return;
+        }
+
         if (!checkOrSelectProfile(name)) {
             return;
         }
@@ -218,8 +244,24 @@ public class CmdProfile {
 
     @Command(name = "enable", description = "Enable a profile")
     public void enableProfile(
-            @Option(names = "-name", description = "Name of the profile") Optional<String> name
+            @Option(names = "-name", description = "Name of the profile") Optional<String> name,
+            @Option(names = "-all", description = "Enable all profiles") boolean all
     ) {
+        if (all) {
+            for (Profile profile : Profile.listProfiles()) {
+                if (profile.isEnabled()) {
+                    continue;
+                }
+
+                if (profile.setEnabled(true)) {
+                    System.out.println("Profile enabled successfully: " + profile.getName());
+                } else {
+                    System.out.println("Failed to enable profile: " + profile.getName());
+                }
+            }
+            return;
+        }
+
         if (!checkOrSelectProfile(name)) {
             return;
         }
@@ -295,7 +337,7 @@ public class CmdProfile {
     public void buildManifest(
             @Option(names = "-name", description = "Name of the profile") Optional<String> name,
             @Option(names = "-force", description = "Force regeneration of the manifest, even if it already exists") boolean force,
-            @Option(names = "-all-profiles", description = "Build manifest for all profiles, ignoring the selected profile") boolean all
+            @Option(names = "-all", description = "Build manifest for all profiles, ignoring the selected profile") boolean all
     ) {
         if (all) {
             for (Profile profile : Profile.listProfiles()) {
@@ -319,7 +361,7 @@ public class CmdProfile {
     public void buildDownloadMods(
             @Option(names = "-name", description = "Name of the profile") Optional<String> name,
             @Option(names = "-force", description = "Force redownload of mods, even if they already exist") boolean force,
-            @Option(names = "-all-profiles", description = "Download mods for all profiles, ignoring the selected profile") boolean all
+            @Option(names = "-all", description = "Download mods for all profiles, ignoring the selected profile") boolean all
     ) {
         if (all) {
             for (Profile profile : Profile.listProfiles()) {
@@ -343,7 +385,7 @@ public class CmdProfile {
     public void buildDumpDataRaw(
             @Option(names = "-name", description = "Name of the profile") Optional<String> name,
             @Option(names = "-force", description = "Force regeneration of data.raw, even if it already exists") boolean force,
-            @Option(names = "-all-profiles", description = "Dump data for all profiles, ignoring the selected profile") boolean all
+            @Option(names = "-all", description = "Dump data for all profiles, ignoring the selected profile") boolean all
     ) {
         if (all) {
             for (Profile profile : Profile.listProfiles()) {
@@ -367,7 +409,7 @@ public class CmdProfile {
     public void buildGenerateData(
             @Option(names = "-name", description = "Name of the profile") Optional<String> name,
             @Option(names = "-force", description = "Force regeneration of data, even if it already exists") boolean force,
-            @Option(names = "-all-profiles", description = "Generate data for all profiles, ignoring the selected profile") boolean all
+            @Option(names = "-all", description = "Generate data for all profiles, ignoring the selected profile") boolean all
     ) {
         if (all) {
             List<Profile> profiles = new ArrayList<>(Profile.listProfiles());
@@ -402,7 +444,7 @@ public class CmdProfile {
     public void buildAllSteps(
             @Option(names = "-name", description = "Name of the profile") Optional<String> name,
             @Option(names = "-force", description = "Force regeneration of all steps, even if they already exist") boolean force,
-            @Option(names = "-all-profiles", description = "Build all steps for all profiles, ignoring the selected profile") boolean all
+            @Option(names = "-all", description = "Build all steps for all profiles, ignoring the selected profile") boolean all
     ) {
         if (!all && !checkOrSelectProfile(name)) {
             return;
@@ -465,7 +507,7 @@ public class CmdProfile {
     @Command(name = "clear-manifest", description = "Clear the manifest for the specified profile")
     public void clearManifest(
             @Option(names = "-name", description = "Name of the profile") Optional<String> name,
-            @Option(names = "-all-profiles", description = "Clear manifest for all profiles, ignoring the selected profile") boolean all
+            @Option(names = "-all", description = "Clear manifest for all profiles, ignoring the selected profile") boolean all
     ) {
         if (all) {
             for (Profile profile : Profile.listProfiles()) {
@@ -486,7 +528,7 @@ public class CmdProfile {
     @Command(name = "clear-download", description = "Clear all downloaded mods for the specified profile")
     public void clearDownload(
             @Option(names = "-name", description = "Name of the profile") Optional<String> name,
-            @Option(names = "-all-profiles", description = "Clear downloaded mods for all profiles, ignoring the selected profile") boolean all
+            @Option(names = "-all", description = "Clear downloaded mods for all profiles, ignoring the selected profile") boolean all
     ) {
         if (all) {
             for (Profile profile : Profile.listProfiles()) {
@@ -507,7 +549,7 @@ public class CmdProfile {
     @Command(name = "clear-download-invalid", description = "Clear invalid downloaded mods for the specified profile")
     public void clearDownloadInvalid(
             @Option(names = "-name", description = "Name of the profile") Optional<String> name,
-            @Option(names = "-all-profiles", description = "Clear invalid downloaded mods for all profiles, ignoring the selected profile") boolean all
+            @Option(names = "-all", description = "Clear invalid downloaded mods for all profiles, ignoring the selected profile") boolean all
     ) {
         if (all) {
             for (Profile profile : Profile.listProfiles()) {
@@ -528,7 +570,7 @@ public class CmdProfile {
     @Command(name = "clear-dump", description = "Clear dumped factorio data for the specified profile")
     public void clearDumpDataRaw(
             @Option(names = "-name", description = "Name of the profile") Optional<String> name,
-            @Option(names = "-all-profiles", description = "Clear dumped data for all profiles, ignoring the selected profile") boolean all
+            @Option(names = "-all", description = "Clear dumped data for all profiles, ignoring the selected profile") boolean all
     ) {
         if (all) {
             for (Profile profile : Profile.listProfiles()) {
@@ -549,7 +591,7 @@ public class CmdProfile {
     @Command(name = "clear-data", description = "Clear generated data for the specified profile")
     public void clearGenerateData(
             @Option(names = "-name", description = "Name of the profile") Optional<String> name,
-            @Option(names = "-all-profiles", description = "Clear generated data for all profiles, ignoring the selected profile") boolean all
+            @Option(names = "-all", description = "Clear generated data for all profiles, ignoring the selected profile") boolean all
     ) {
         if (all) {
             for (Profile profile : Profile.listProfiles()) {
@@ -570,7 +612,7 @@ public class CmdProfile {
     @Command(name = "clear", description = "Clear all build and data for the specified profile")
     public void clearAllSteps(
             @Option(names = "-name", description = "Name of the profile") Optional<String> name,
-            @Option(names = "-all-profiles", description = "Clear all data for all profiles, ignoring the selected profile") boolean all,
+            @Option(names = "-all", description = "Clear all data for all profiles, ignoring the selected profile") boolean all,
             @Option(names = "-keep-downloads", description = "Keep downloaded mods when clearing all data") boolean keepDownloads
     ) {
         if (!all && !checkOrSelectProfile(name)) {
@@ -604,7 +646,7 @@ public class CmdProfile {
     @Command(name = "clear-build", description = "Clear the build folder for the specified profile")
     public void clearBuildFolder(
             @Option(names = "-name", description = "Name of the profile") Optional<String> name,
-            @Option(names = "-all-profiles", description = "Clear build folder for all profiles, ignoring the selected profile") boolean all
+            @Option(names = "-all", description = "Clear build folder for all profiles, ignoring the selected profile") boolean all
     ) {
         if (all) {
             for (Profile profile : Profile.listProfiles()) {
@@ -619,6 +661,75 @@ public class CmdProfile {
 
         if (profile.deleteBuild()) {
             System.out.println("Build folder deleted successfully for profile: " + profile.getName());
+        }
+    }
+
+    public static enum DebugPrototypeType {
+        entity(DataTable::getEntity),
+        item(DataTable::getItem),
+        recipe(DataTable::getRecipe),
+        fluid(DataTable::getFluid),
+        technology(DataTable::getTechnology),
+        equipment(DataTable::getEquipment),
+        tile(DataTable::getTile),
+        itemGroup(DataTable::getItemGroup),
+        itemSubGroup(DataTable::getItemSubgroup),
+        ;
+
+        private BiFunction<DataTable, String, Optional<? extends DataPrototype>> prototypeGetter;
+
+        private DebugPrototypeType(BiFunction<DataTable, String, Optional<? extends DataPrototype>> prototypeGetter) {
+            this.prototypeGetter = prototypeGetter;
+        }
+    }
+
+    @Command(name = "debug-prototype", description = "Dump a prototype from factorio data")
+    public void dumpPrototype(
+            @Option(names = "-name", description = "Name of the profile") Optional<String> name,
+            @Parameters(arity = "1", description = "Prototype type") DebugPrototypeType type,
+            @Parameters(arity = "1", description = "Prototype name") String protoName
+    ) {
+        if (!checkOrSelectProfile(name)) {
+            return;
+        }
+
+        File dataFile;
+        if (profile.hasData()) {
+            dataFile = profile.getFileFactorioData();
+        } else if (profile.hasDump()) {
+            dataFile = profile.getFileDumpData();
+        } else {
+            System.out.println("Profile does not have factorio data or dump. Please run 'profile build-dump' first.");
+            return;
+        }
+
+        FactorioData factorioData = new FactorioData(dataFile);
+        if (!factorioData.initialize(false)) {
+            System.out.println("Failed to initialize factorio data from file: " + dataFile.getAbsolutePath());
+            return;
+        }
+
+        DataTable table = factorioData.getTable();
+        Optional<? extends DataPrototype> prototype = type.prototypeGetter.apply(table, protoName);
+
+        if (prototype.isEmpty()) {
+            System.out.println("Prototype " + type.name() + " not found: " + protoName);
+            return;
+        }
+
+        File folderBuildDebug = new File(profile.getFolderBuild(), "debug");
+        folderBuildDebug.mkdirs();
+
+        JSONObject jsonProto = (JSONObject) prototype.get().lua().getJson();
+        File fileProto = new File(folderBuildDebug, profile.getName() + " " + type.name() + " " + protoName + " " + factorioData.getVersion() + ".json");
+
+        try {
+            Files.writeString(fileProto.toPath(), jsonProto.toString(2));
+            Desktop.getDesktop().open(fileProto);
+        } catch (JSONException | IOException e) {
+            e.printStackTrace();
+            System.out.println("Failed to write prototype to file: " + fileProto.getAbsolutePath());
+            return;
         }
     }
 }
