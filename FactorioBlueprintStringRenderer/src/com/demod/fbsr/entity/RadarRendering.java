@@ -1,7 +1,9 @@
 package com.demod.fbsr.entity;
 
 import com.demod.factorio.fakelua.LuaTable;
+import com.demod.fbsr.EntityType;
 
+@EntityType("radar")
 public class RadarRendering extends EntityWithOwnerRendering {
 	private static final double ORIENTATION = 0.375;
 

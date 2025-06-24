@@ -6,6 +6,7 @@ import java.util.function.Consumer;
 
 import com.demod.factorio.fakelua.LuaTable;
 import com.demod.fbsr.Direction;
+import com.demod.fbsr.EntityType;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.bs.BSEntity;
@@ -19,6 +20,7 @@ import com.demod.fbsr.map.MapPosition;
 import com.demod.fbsr.map.MapRenderable;
 import com.demod.fbsr.map.MapText;
 
+@EntityType("train-stop")
 public class TrainStopRendering extends EntityWithOwnerRendering {
 	private static final int FRAME = 0;
 

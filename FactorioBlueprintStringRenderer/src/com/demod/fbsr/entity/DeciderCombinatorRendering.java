@@ -8,6 +8,7 @@ import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.function.Consumer;
 
+import com.demod.fbsr.EntityType;
 import com.demod.fbsr.IconDefWithQuality;
 import com.demod.fbsr.IconManager;
 import com.demod.fbsr.WorldMap;
@@ -17,6 +18,7 @@ import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapPosition;
 import com.demod.fbsr.map.MapRenderable;
 
+@EntityType("decider-combinator")
 public class DeciderCombinatorRendering extends CombinatorRendering {
 
 	@Override

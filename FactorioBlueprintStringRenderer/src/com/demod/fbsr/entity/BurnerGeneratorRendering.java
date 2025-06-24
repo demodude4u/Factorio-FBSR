@@ -2,7 +2,9 @@ package com.demod.fbsr.entity;
 
 import com.demod.factorio.fakelua.LuaTable;
 import com.demod.factorio.fakelua.LuaValue;
+import com.demod.fbsr.EntityType;
 
+@EntityType("burner-generator")
 public class BurnerGeneratorRendering extends EntityWithOwnerRendering {
 
 	@Override

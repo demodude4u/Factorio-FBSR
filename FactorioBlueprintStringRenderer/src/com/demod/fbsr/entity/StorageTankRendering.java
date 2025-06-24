@@ -1,7 +1,9 @@
 package com.demod.fbsr.entity;
 
 import com.demod.factorio.fakelua.LuaTable;
+import com.demod.fbsr.EntityType;
 
+@EntityType("storage-tank")
 public class StorageTankRendering extends EntityWithOwnerRendering {
 	@Override
 	public void defineEntity(Bindings bind, LuaTable lua) {

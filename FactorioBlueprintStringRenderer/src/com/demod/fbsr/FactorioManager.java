@@ -219,7 +219,7 @@ public class FactorioManager {
 		return modPortalApiPassword;
 	}
 
-	public void initializePrototypes() throws JSONException, IOException {
+	public boolean initializePrototypes() {
 		if (initializedPrototypes) {
 			throw new IllegalStateException("Already Initialized Prototypes!");
 		}
@@ -230,8 +230,8 @@ public class FactorioManager {
 			FactorioData factorioData = profile.getFactorioData();
 
 			if (!factorioData.initialize(false)) {
-				LOGGER.warn("Failed to initialize Factorio data for profile: {}", profile.getName());
-				System.exit(-1);
+				System.out.println("Failed to initialize Factorio data for profile: " + profile.getName());
+				return false;
 			}
 
 			DataTable table = factorioData.getTable();
@@ -255,29 +255,32 @@ public class FactorioManager {
 		}
 
 		if (profileVanilla == null) {
-			throw new IllegalStateException("No vanilla profile found!");
+			System.out.println("No vanilla profile found!");
+			return false;
 		}
 
 		DataTable baseTable = profileVanilla.getFactorioData().getTable();
 		utilitySprites = new FPUtilitySprites(profileVanilla, baseTable.getRaw("utility-sprites", "default").get());
+	
+		return true;
 	}
 
-	public void initializeFactories() throws JSONException, IOException {
+	public boolean initializeFactories() {
 		if (!initializedPrototypes) {
 			throw new IllegalStateException("Must initialize prototypes first!");
 		}
 		if (initializedFactories) {
-			throw new IllegalStateException("Already Initialized Factories!");
+			return true;
 		}
 		initializedFactories = true;
 
 		for (Profile profile : profiles) {
-			JSONObject jsonProfile = new JSONObject(
-					Files.readString(profile.getFileProfile().toPath()));
-			EntityRendererFactory.registerFactories(this::registerEntityFactory, profile,
-					jsonProfile.getJSONObject("entities"));
-			TileRendererFactory.registerFactories(this::registerTileFactory, profile,
-					jsonProfile.getJSONObject("tiles"));
+			if (!EntityRendererFactory.registerFactories(this::registerEntityFactory, profile)) {
+				return false;
+			}
+			if (!TileRendererFactory.registerFactories(this::registerTileFactory, profile)) {
+				return false;
+			}
 		}
 
 		DataTable baseTable = profileVanilla.getFactorioData().getTable();
@@ -309,6 +312,8 @@ public class FactorioManager {
 		achievementByName.values().stream().sorted(Comparator.comparing(DataPrototype::getName))
 				.forEach(achievements::add);
 		itemGroupByName.values().stream().sorted(Comparator.comparing(DataPrototype::getName)).forEach(itemGroups::add);
+	
+		return true;
 	}
 
 	public Optional<AchievementPrototype> lookupAchievementByName(String name) {

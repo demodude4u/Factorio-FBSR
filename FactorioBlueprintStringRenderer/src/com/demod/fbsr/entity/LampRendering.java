@@ -1,7 +1,9 @@
 package com.demod.fbsr.entity;
 
 import com.demod.factorio.fakelua.LuaTable;
+import com.demod.fbsr.EntityType;
 
+@EntityType("lamp")
 public class LampRendering extends EntityWithOwnerRendering {
 
 	// TODO check if I can get the color and show the lit colored state

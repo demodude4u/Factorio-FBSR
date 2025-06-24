@@ -14,7 +14,9 @@ import com.demod.fbsr.fp.FPSprite4Way;
 import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapPosition;
 import com.demod.fbsr.map.MapRenderable;
+import com.demod.fbsr.EntityType;
 
+@EntityType("underground-belt")
 public class UndergroundBeltRendering extends TransportBeltConnectableRendering {
 
 	private FPSprite4Way protoStructureDirectionIn;

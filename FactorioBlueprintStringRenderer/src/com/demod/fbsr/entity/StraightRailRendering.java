@@ -3,12 +3,14 @@ package com.demod.fbsr.entity;
 import java.util.List;
 
 import com.demod.fbsr.Dir16;
+import com.demod.fbsr.EntityType;
 import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapPosition;
 import com.demod.fbsr.map.MapPosition3D;
 import com.demod.fbsr.map.MapRect;
 import com.google.common.collect.ImmutableList;
 
+@EntityType("straight-rail")
 public class StraightRailRendering extends RailRendering {
 
 	public static final RailSpliner SPLINER = new RailSpliner() {

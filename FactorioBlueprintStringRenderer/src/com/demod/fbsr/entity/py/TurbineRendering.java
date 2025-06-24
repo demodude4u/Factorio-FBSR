@@ -1,9 +1,11 @@
 package com.demod.fbsr.entity.py;
 
 import com.demod.factorio.fakelua.LuaTable;
+import com.demod.fbsr.EntityType;
 import com.demod.fbsr.entity.ElectricEnergyInterfaceRendering;
 import com.demod.fbsr.entity.EntityRendering;
 
+@EntityType("electric-energy-interface")
 public class TurbineRendering extends ElectricEnergyInterfaceRendering {
 
 	@Override

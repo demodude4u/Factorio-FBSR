@@ -10,6 +10,7 @@ import java.util.stream.Collectors;
 import com.demod.factorio.fakelua.LuaTable;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.Direction;
+import com.demod.fbsr.EntityType;
 import com.demod.fbsr.FactorioManager;
 import com.demod.fbsr.IconDefWithQuality;
 import com.demod.fbsr.IconManager;
@@ -32,6 +33,7 @@ import com.demod.fbsr.map.MapInserterIndicators;
 import com.demod.fbsr.map.MapPosition;
 import com.demod.fbsr.map.MapRenderable;
 
+@EntityType("inserter")
 public class InserterRendering extends EntityWithOwnerRendering {
 
 	private static final int[][] placeItemDir = //

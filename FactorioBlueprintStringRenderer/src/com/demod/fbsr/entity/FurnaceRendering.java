@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.factorio.prototype.RecipePrototype;
+import com.demod.fbsr.EntityType;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.IconManager;
 import com.demod.fbsr.WorldMap;
@@ -16,6 +17,7 @@ import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapIcon;
 import com.demod.fbsr.map.MapRenderable;
 
+@EntityType("furnace")
 public class FurnaceRendering extends CraftingMachineRendering {
 
 	private List<String> protoCraftingCategories;

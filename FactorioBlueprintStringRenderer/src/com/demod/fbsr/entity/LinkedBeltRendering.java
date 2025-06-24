@@ -4,6 +4,7 @@ import java.util.function.Consumer;
 
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.Direction;
+import com.demod.fbsr.EntityType;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.WorldMap.BeltBend;
@@ -14,6 +15,7 @@ import com.demod.fbsr.fp.FPSprite4Way;
 import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapRenderable;
 
+@EntityType("linked-belt")
 public class LinkedBeltRendering extends TransportBeltConnectableRendering {
 
 	private FPSprite4Way protoStructureDirectionIn;

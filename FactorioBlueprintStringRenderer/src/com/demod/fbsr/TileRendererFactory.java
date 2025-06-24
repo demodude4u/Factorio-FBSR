@@ -8,6 +8,7 @@ import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -26,6 +27,7 @@ import org.slf4j.LoggerFactory;
 import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
 import com.demod.factorio.prototype.TilePrototype;
+import com.demod.fbsr.Profile.ProfileModGroupRenderings;
 import com.demod.fbsr.bs.BSPosition;
 import com.demod.fbsr.bs.BSTile;
 import com.demod.fbsr.def.ImageDef;
@@ -505,21 +507,28 @@ public class TileRendererFactory {
 		LOGGER.info("Initialized {} tiles.", factories.size());
 	}
 
-	public static void registerFactories(Consumer<TileRendererFactory> register, Profile profile, JSONObject json) {
+	public static boolean registerFactories(Consumer<TileRendererFactory> register, Profile profile) {
 		DataTable table = profile.getFactorioData().getTable();
-		for (String groupName : json.keySet().stream().sorted().collect(Collectors.toList())) {
-			JSONArray jsonGroup = json.getJSONArray(groupName);
-			for (int i = 0; i < jsonGroup.length(); i++) {
-				String tileName = jsonGroup.getString(i);
-				TilePrototype prototype = table.getTile(tileName).get();
+		for (ProfileModGroupRenderings renderings : profile.listRenderings()) {
+			for (String tileName : renderings.getTiles()) {
+				
+				Optional<TilePrototype> optProto = table.getTile(tileName);
+				if (optProto.isEmpty()) {
+					System.out.println("Rendering tile not found in factorio data: " + tileName);
+					return false;
+				}
+
+				TilePrototype prototype = optProto.get();
 				TileRendererFactory factory = new TileRendererFactory();
 				factory.setName(tileName);
-				factory.setGroupName(groupName);
+				factory.setGroupName(renderings.getModGroup());
 				factory.setProfile(profile);
 				factory.setPrototype(prototype);
 				register.accept(factory);
 			}
 		}
+		
+		return true;
 	}
 
 	protected String name;

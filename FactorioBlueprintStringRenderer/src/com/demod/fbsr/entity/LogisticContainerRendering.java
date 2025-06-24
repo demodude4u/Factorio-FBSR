@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 
 import com.demod.factorio.fakelua.LuaTable;
 import com.demod.fbsr.Direction;
+import com.demod.fbsr.EntityType;
 import com.demod.fbsr.IconManager;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.bs.BSEntity;
@@ -18,6 +19,7 @@ import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapPosition;
 import com.demod.fbsr.map.MapRenderable;
 
+@EntityType("logistic-container")
 public class LogisticContainerRendering extends ContainerRendering {
 
 	@Override

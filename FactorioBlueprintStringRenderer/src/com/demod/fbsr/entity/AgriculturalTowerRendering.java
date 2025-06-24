@@ -7,6 +7,7 @@ import java.util.function.Function;
 
 import com.demod.factorio.fakelua.LuaTable;
 import com.demod.factorio.fakelua.LuaValue;
+import com.demod.fbsr.EntityType;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.WorldMap;
@@ -25,6 +26,7 @@ import com.demod.fbsr.map.MapRenderable;
 import com.demod.fbsr.map.MapSprite;
 import com.google.common.collect.ImmutableMap;
 
+@EntityType("agricultural-tower")
 public class AgriculturalTowerRendering extends EntityWithOwnerRendering {
 	private static final int FRAME = 0;
 	// private static final float CRANE_ORIENTATION = 0.75f;

@@ -5,6 +5,7 @@ import java.util.OptionalDouble;
 import java.util.function.Consumer;
 
 import com.demod.fbsr.Direction;
+import com.demod.fbsr.EntityType;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.IconManager;
 import com.demod.fbsr.Layer;
@@ -22,6 +23,7 @@ import com.demod.fbsr.map.MapPosition;
 import com.demod.fbsr.map.MapRenderable;
 import com.demod.fbsr.map.MapSprite;
 
+@EntityType("lane-splitter")
 public class LaneSplitterRendering extends TransportBeltConnectableRendering {
 	private static final int STRUCTURE_FRAME = 0;
 	private static final int STRUCTURE_PATCH_FRAME = 0;

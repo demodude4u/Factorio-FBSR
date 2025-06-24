@@ -7,6 +7,7 @@ import java.util.OptionalDouble;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+import com.demod.fbsr.EntityType;
 import com.demod.fbsr.IconDefWithQuality;
 import com.demod.fbsr.IconManager;
 import com.demod.fbsr.LogisticGridCell;
@@ -15,6 +16,7 @@ import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapPosition;
 import com.demod.fbsr.map.MapRenderable;
 
+@EntityType("container")
 public class BasicContainerRendering extends ContainerRendering {
 
 	@Override

@@ -1,7 +1,9 @@
 package com.demod.fbsr.entity;
 
 import com.demod.factorio.fakelua.LuaTable;
+import com.demod.fbsr.EntityType;
 
+@EntityType("roboport")
 public class RoboportRendering extends EntityWithOwnerRendering {
 	@Override
 	public void defineEntity(Bindings bind, LuaTable lua) {

@@ -3,6 +3,7 @@ package com.demod.fbsr.entity;
 import java.util.function.Consumer;
 
 import com.demod.fbsr.EntityRendererFactory;
+import com.demod.fbsr.EntityType;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.def.ImageDef;
@@ -12,6 +13,7 @@ import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapPosition;
 import com.demod.fbsr.map.MapRenderable;
 
+@EntityType("gate")
 public class GateRendering extends EntityWithOwnerRendering {
 	private static final int FRAME = 0;
 

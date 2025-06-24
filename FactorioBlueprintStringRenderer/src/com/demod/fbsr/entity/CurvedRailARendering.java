@@ -4,11 +4,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.demod.fbsr.Dir16;
+import com.demod.fbsr.EntityType;
 import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapPosition;
 import com.demod.fbsr.map.MapPosition3D;
 import com.demod.fbsr.map.MapRect;
 
+@EntityType("curved-rail-a")
 public class CurvedRailARendering extends RailRendering {
 
 	public static final double LENGTH = 5.132284556;

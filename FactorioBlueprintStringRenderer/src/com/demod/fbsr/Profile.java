@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -1201,6 +1202,76 @@ public class Profile {
         
         Collections.sort(mods);
         return mods;
+    }
+
+    public static class ProfileModGroupRenderings {
+        private final String modGroup;
+        private final Map<String, String> entityMappings;
+        private final List<String> tiles;
+
+        public ProfileModGroupRenderings(String modGroup) {
+            this(modGroup, new HashMap<>(), new ArrayList<>());
+        }
+
+        public ProfileModGroupRenderings(String modGroup, Map<String, String> entityMappings, List<String> tiles) {
+            this.modGroup = modGroup;
+            this.entityMappings = entityMappings;
+            this.tiles = tiles;
+        }
+
+        public String getModGroup() {
+            return modGroup;
+        }
+
+        public Map<String, String> getEntityMappings() {
+            return entityMappings;
+        }
+
+        public List<String> getTiles() {
+            return tiles;
+        }
+    }
+
+    public List<ProfileModGroupRenderings> listRenderings() {
+        if (!isValid()) {
+            System.out.println("Profile " + folderProfile.getName() + " is not valid.");
+            return ImmutableList.of();
+        }
+
+        Map<String, ProfileModGroupRenderings> renderingsByModGroup = new HashMap<>();
+        JSONObject jsonProfile = readJsonFile(fileProfile);
+        JSONObject jsonEntities = jsonProfile.optJSONObject("entities");
+        JSONObject jsonTiles = jsonProfile.optJSONObject("tiles");
+
+        for (String modGroup : jsonEntities.keySet()) {
+            ProfileModGroupRenderings renderings = renderingsByModGroup.get(modGroup);
+            if (renderings == null) {
+                renderings = new ProfileModGroupRenderings(modGroup);
+                renderingsByModGroup.put(modGroup, renderings);
+            }
+            
+            JSONObject jsonModGroupEntities = jsonEntities.getJSONObject(modGroup);
+            for (String entityName : jsonModGroupEntities.keySet()) {
+                String rendering = jsonModGroupEntities.getString(entityName);
+                renderings.getEntityMappings().put(entityName, rendering);
+            }
+        }
+
+        for (String modGroup : jsonTiles.keySet()) {
+            ProfileModGroupRenderings renderings = renderingsByModGroup.get(modGroup);
+            if (renderings == null) {
+                renderings = new ProfileModGroupRenderings(modGroup);
+                renderingsByModGroup.put(modGroup, renderings);
+            }
+            
+            JSONArray jsonModGroupTiles = jsonTiles.getJSONArray(modGroup);
+            for (int i = 0; i < jsonModGroupTiles.length(); i++) {
+                String tileName = jsonModGroupTiles.getString(i);
+                renderings.getTiles().add(tileName);
+            }
+        }
+
+        return new ArrayList<>(renderingsByModGroup.values());
     }
 
     private static JSONObject readJsonFile(File file) {

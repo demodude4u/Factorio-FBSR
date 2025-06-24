@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.function.Consumer;
 
 import com.demod.fbsr.Direction;
+import com.demod.fbsr.EntityType;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.WorldMap;
@@ -26,6 +27,7 @@ import com.demod.fbsr.map.MapPosition3D;
 import com.demod.fbsr.map.MapRenderable;
 import com.demod.fbsr.map.MapSprite;
 
+@EntityType("artillery-wagon")
 public class ArtilleryWagonRendering extends RollingStockRendering {
 
 	private FPRollingStockRotatedSlopedGraphics protoCannonBarrelPictures;

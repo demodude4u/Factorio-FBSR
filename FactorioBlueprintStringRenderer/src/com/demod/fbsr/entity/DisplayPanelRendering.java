@@ -7,6 +7,7 @@ import java.util.OptionalDouble;
 import java.util.function.Consumer;
 
 import com.demod.factorio.fakelua.LuaTable;
+import com.demod.fbsr.EntityType;
 import com.demod.fbsr.IconDefWithQuality;
 import com.demod.fbsr.IconManager;
 import com.demod.fbsr.Layer;
@@ -20,6 +21,7 @@ import com.demod.fbsr.map.MapIcon;
 import com.demod.fbsr.map.MapRenderable;
 import com.demod.fbsr.map.MapText;
 
+@EntityType("display-panel")
 public class DisplayPanelRendering extends EntityWithOwnerRendering {
 
 	@Override

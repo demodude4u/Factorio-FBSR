@@ -1,5 +1,6 @@
 package com.demod.fbsr.entity;
 
+import com.demod.fbsr.EntityType;
 import com.demod.factorio.Utils;
 import com.demod.factorio.fakelua.LuaTable;
 import com.demod.factorio.fakelua.LuaValue;

@@ -5,6 +5,7 @@ import java.util.OptionalDouble;
 import java.util.function.Consumer;
 
 import com.demod.fbsr.EntityRendererFactory;
+import com.demod.fbsr.EntityType;
 import com.demod.fbsr.IconManager;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.def.IconDef;
@@ -13,6 +14,7 @@ import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapIcon;
 import com.demod.fbsr.map.MapRenderable;
 
+@EntityType("spider-vehicle")
 public class SpiderVehicleRendering extends VehicleRendering {
 
 	// TODO rendering spider hard, just use icon for now

@@ -8,6 +8,7 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import com.demod.factorio.fakelua.LuaTable;
+import com.demod.fbsr.EntityType;
 import com.demod.fbsr.IconDefWithQuality;
 import com.demod.fbsr.IconManager;
 import com.demod.fbsr.WorldMap;
@@ -19,6 +20,7 @@ import com.demod.fbsr.map.MapIcon;
 import com.demod.fbsr.map.MapPosition;
 import com.demod.fbsr.map.MapRenderable;
 
+@EntityType("asteroid-collector")
 public class AsteroidCollectorRendering extends EntityWithOwnerRendering {
 
 	@Override

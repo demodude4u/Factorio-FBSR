@@ -443,8 +443,10 @@ public class CmdProfile {
     @Command(name = "build", description = "Build all steps for the specified profile")
     public void buildAllSteps(
             @Option(names = "-name", description = "Name of the profile") Optional<String> name,
+            @Option(names = "-all", description = "Build all steps for all profiles") boolean all,
             @Option(names = "-force", description = "Force regeneration of all steps, even if they already exist") boolean force,
-            @Option(names = "-all", description = "Build all steps for all profiles, ignoring the selected profile") boolean all
+            @Option(names = "-force-dump", description = "Force regeneration of factorio dump") boolean forceDump,
+            @Option(names = "-force-data", description = "Force regeneration of data") boolean forceData
     ) {
         if (!all && !checkOrSelectProfile(name)) {
             return;
@@ -467,6 +469,18 @@ public class CmdProfile {
 
         } else {
             profiles = ImmutableList.of(profile);
+        }
+
+        if (forceData) {
+            for (Profile profile : profiles) {
+                profile.clearData();
+            }
+        }
+
+        if (forceDump) {
+            for (Profile profile : profiles) {
+                profile.clearDump();
+            }
         }
         
         for (Profile profile : profiles) {
@@ -661,75 +675,6 @@ public class CmdProfile {
 
         if (profile.deleteBuild()) {
             System.out.println("Build folder deleted successfully for profile: " + profile.getName());
-        }
-    }
-
-    public static enum DebugPrototypeType {
-        entity(DataTable::getEntity),
-        item(DataTable::getItem),
-        recipe(DataTable::getRecipe),
-        fluid(DataTable::getFluid),
-        technology(DataTable::getTechnology),
-        equipment(DataTable::getEquipment),
-        tile(DataTable::getTile),
-        itemGroup(DataTable::getItemGroup),
-        itemSubGroup(DataTable::getItemSubgroup),
-        ;
-
-        private BiFunction<DataTable, String, Optional<? extends DataPrototype>> prototypeGetter;
-
-        private DebugPrototypeType(BiFunction<DataTable, String, Optional<? extends DataPrototype>> prototypeGetter) {
-            this.prototypeGetter = prototypeGetter;
-        }
-    }
-
-    @Command(name = "debug-prototype", description = "Dump a prototype from factorio data")
-    public void dumpPrototype(
-            @Option(names = "-name", description = "Name of the profile") Optional<String> name,
-            @Parameters(arity = "1", description = "Prototype type") DebugPrototypeType type,
-            @Parameters(arity = "1", description = "Prototype name") String protoName
-    ) {
-        if (!checkOrSelectProfile(name)) {
-            return;
-        }
-
-        File dataFile;
-        if (profile.hasData()) {
-            dataFile = profile.getFileFactorioData();
-        } else if (profile.hasDump()) {
-            dataFile = profile.getFileDumpData();
-        } else {
-            System.out.println("Profile does not have factorio data or dump. Please run 'profile build-dump' first.");
-            return;
-        }
-
-        FactorioData factorioData = new FactorioData(dataFile);
-        if (!factorioData.initialize(false)) {
-            System.out.println("Failed to initialize factorio data from file: " + dataFile.getAbsolutePath());
-            return;
-        }
-
-        DataTable table = factorioData.getTable();
-        Optional<? extends DataPrototype> prototype = type.prototypeGetter.apply(table, protoName);
-
-        if (prototype.isEmpty()) {
-            System.out.println("Prototype " + type.name() + " not found: " + protoName);
-            return;
-        }
-
-        File folderBuildDebug = new File(profile.getFolderBuild(), "debug");
-        folderBuildDebug.mkdirs();
-
-        JSONObject jsonProto = (JSONObject) prototype.get().lua().getJson();
-        File fileProto = new File(folderBuildDebug, profile.getName() + " " + type.name() + " " + protoName + " " + factorioData.getVersion() + ".json");
-
-        try {
-            Files.writeString(fileProto.toPath(), jsonProto.toString(2));
-            Desktop.getDesktop().open(fileProto);
-        } catch (JSONException | IOException e) {
-            e.printStackTrace();
-            System.out.println("Failed to write prototype to file: " + fileProto.getAbsolutePath());
-            return;
         }
     }
 }

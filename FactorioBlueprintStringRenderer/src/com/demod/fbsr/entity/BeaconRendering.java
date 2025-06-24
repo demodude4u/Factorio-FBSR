@@ -4,6 +4,7 @@ import java.util.Optional;
 import java.util.function.Consumer;
 
 import com.demod.fbsr.EntityRendererFactory;
+import com.demod.fbsr.EntityType;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.MapUtils;
@@ -18,6 +19,7 @@ import com.demod.fbsr.map.MapPosition;
 import com.demod.fbsr.map.MapRect;
 import com.demod.fbsr.map.MapRenderable;
 
+@EntityType("beacon")
 public class BeaconRendering extends EntityWithOwnerRendering {
 
 	private FPBoundingBox protoSelectionBox;

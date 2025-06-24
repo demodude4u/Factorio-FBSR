@@ -11,6 +11,7 @@ import com.demod.factorio.FactorioData;
 import com.demod.factorio.fakelua.LuaTable;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.EntityRendererFactory;
+import com.demod.fbsr.EntityType;
 import com.demod.fbsr.FactorioManager;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.Profile;
@@ -96,4 +97,8 @@ public class UnknownEntityRendering extends EntityRendererFactory {
 	public void populateWorldMap(WorldMap map, MapEntity entity) {
 	}
 
+	@Override
+	public boolean isEntityTypeMatch(EntityPrototype proto) {
+		return true;
+	}
 }

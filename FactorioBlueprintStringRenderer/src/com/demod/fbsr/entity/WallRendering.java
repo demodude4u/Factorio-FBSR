@@ -1,5 +1,7 @@
 package com.demod.fbsr.entity;
 
+import com.demod.fbsr.EntityType;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
@@ -17,6 +19,7 @@ import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapPosition;
 import com.demod.fbsr.map.MapRenderable;
 
+@EntityType("wall")
 public class WallRendering extends EntityWithOwnerRendering {
 
 	public static final String[] wallSpriteNameMapping = //

@@ -1,8 +1,10 @@
 package com.demod.fbsr.entity;
 
 import com.demod.factorio.fakelua.LuaTable;
+import com.demod.fbsr.EntityType;
 import com.demod.fbsr.Layer;
 
+@EntityType("rocket-silo")
 public class RocketSiloRendering extends AssemblingMachineRendering {
 	@Override
 	public void defineEntity(Bindings bind, LuaTable lua) {

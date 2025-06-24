@@ -26,7 +26,7 @@ import picocli.shell.jline3.PicocliCommands;
     CmdProfile.class, 
     CmdBot.class, 
     CmdRender.class,
-    CmdLua.class
+    CmdDump.class
 })
 public class FBSRCommandLineMain {
 

@@ -691,9 +691,13 @@ public class FBSR {
 		}
 		
 		try {
-			factorioManager.initializePrototypes();
+			if (!factorioManager.initializePrototypes()) {
+				return false;
+			}
 			guiStyle.initialize(profileVanilla);
-			factorioManager.initializeFactories();
+			if (!factorioManager.initializeFactories()) {
+				return false;
+			}
 			iconManager.initialize();
 
 			profile.getAtlasPackage().generateZip();

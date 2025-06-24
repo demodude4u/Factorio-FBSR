@@ -2,6 +2,7 @@ package com.demod.fbsr;
 
 import java.awt.geom.Point2D;
 import java.lang.reflect.Constructor;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -9,6 +10,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.Set;
+import java.util.Map.Entry;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -22,6 +24,7 @@ import com.demod.factorio.FactorioData;
 import com.demod.factorio.fakelua.LuaTable;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.factorio.prototype.RecipePrototype;
+import com.demod.fbsr.Profile.ProfileModGroupRenderings;
 import com.demod.fbsr.WirePoints.WirePoint;
 import com.demod.fbsr.WorldMap.BeaconSource;
 import com.demod.fbsr.bs.BSEntity;
@@ -98,34 +101,50 @@ public abstract class EntityRendererFactory {
 		return MapRect3D.byUnit(x1, y1, x2, y2, drawingBoxVerticalExtension);
 	}
 
-	public static void registerFactories(Consumer<EntityRendererFactory> register, Profile profile, JSONObject json) {
+	public static boolean registerFactories(Consumer<EntityRendererFactory> register, Profile profile) {
 		DataTable table = profile.getFactorioData().getTable();
-		for (String groupName : json.keySet().stream().sorted().collect(Collectors.toList())) {
-			JSONObject jsonGroup = json.getJSONObject(groupName);
-			for (String entityName : jsonGroup.keySet().stream().sorted().collect(Collectors.toList())) {
-				Optional<EntityPrototype> entity = table.getEntity(entityName);
-				if (!entity.isPresent()) {
-					LOGGER.warn("MISSING ENTITY: {}", entityName);
-					continue;
+		boolean hasEntityTypeMismatch = false;
+		for (ProfileModGroupRenderings renderings : profile.listRenderings()) {
+			for (Entry<String, String> entry : renderings.getEntityMappings().entrySet()) {
+				String entityName = entry.getKey();
+				String factoryName = entry.getValue();
+
+				Optional<EntityPrototype> optProto = table.getEntity(entityName);
+				if (!optProto.isPresent()) {
+					System.out.println("Rendering entity not found in factorio data: " + entityName);
+					return false;
 				}
-				EntityPrototype prototype = entity.get();
-				String factoryName = jsonGroup.getString(entityName);
+
+				EntityPrototype proto = optProto.get();
 				String factoryClassName = "com.demod.fbsr.entity." + factoryName;
 				try {
 					EntityRendererFactory factory = (EntityRendererFactory) Class.forName(factoryClassName)
 							.getConstructor().newInstance();
+
+					if (!factory.isEntityTypeMatch(proto)) {
+						System.out.println("ENTITY MISMATCH " + entityName + " -- " + factoryName);
+						hasEntityTypeMismatch = true;
+					}
+
 					factory.setName(entityName);
-					factory.setGroupName(groupName);
+					factory.setGroupName(renderings.getModGroup());
 					factory.setProfile(profile);
-					factory.setPrototype(prototype);
+					factory.setPrototype(proto);
 					register.accept(factory);
 				} catch (Exception e) {
-					prototype.debugPrint();
-					LOGGER.error("FACTORY CLASS: {}", factoryClassName, e);
-					System.exit(-1);
+					e.printStackTrace();
+					System.out.println("Problem registering rendering for entity: " + entityName);
+					return false;
 				}
 			}
 		}
+
+		if (hasEntityTypeMismatch) {
+			System.out.println("Entity rendering type mismatch detected!");
+			return false;
+		}
+
+		return true;
 	}
 
 	protected String name = null;
@@ -369,6 +388,26 @@ public abstract class EntityRendererFactory {
 		protoBeaconed = (!prototype.lua().get("module_specification").isnil()
 				|| prototype.getName().equals("assembling-machine-1")
 				|| prototype.getName().equals("burner-mining-drill")) && !prototype.getName().equals("beacon");
+	}
+
+	private String[] cachedEntityTypeAnnotationValues = null;
+
+	/**
+	 * Checks if the given prototype's type matches the @EntityType annotation on the rendering class.
+	 * Returns true if they match, false otherwise. Returns false if annotation is missing.
+	 * The annotation value is cached for performance.
+	 */
+	public boolean isEntityTypeMatch(EntityPrototype proto) {
+		if (cachedEntityTypeAnnotationValues == null) {
+			EntityType annotation = getClass().getAnnotation(EntityType.class);
+			if (annotation == null) {
+				return false;
+			} else {
+				cachedEntityTypeAnnotationValues = annotation.value();
+			}
+		}
+		String actualType = proto.getType();
+		return Arrays.asList(cachedEntityTypeAnnotationValues).contains(actualType);
 	}
 
 }
