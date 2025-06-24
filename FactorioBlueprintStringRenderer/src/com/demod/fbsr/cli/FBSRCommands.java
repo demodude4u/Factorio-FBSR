@@ -70,7 +70,12 @@ public class FBSRCommands {
             System.out.println();
             System.out.println("WARNING: Not all profiles are ready!");
             new CmdProfile().listProfiles(null, false);
+            
+        } else {
+            System.out.println();
+            System.out.println("All profiles are ready! Type command 'bot run' to start the bot or 'render preview <STRING>' to render an image.");
         }
+
         System.out.println();
         System.out.println("Type 'exit' or 'quit' to exit.");
 
