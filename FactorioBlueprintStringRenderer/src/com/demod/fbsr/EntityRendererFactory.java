@@ -122,7 +122,7 @@ public abstract class EntityRendererFactory {
 							.getConstructor().newInstance();
 
 					if (!factory.isEntityTypeMatch(proto)) {
-						System.out.println("ENTITY MISMATCH " + entityName + " -- " + factoryName);
+						System.out.println("ENTITY MISMATCH " + entityName + " (" + factoryName + " ==> " + proto.getType() + ")");
 						hasEntityTypeMismatch = true;
 					}
 

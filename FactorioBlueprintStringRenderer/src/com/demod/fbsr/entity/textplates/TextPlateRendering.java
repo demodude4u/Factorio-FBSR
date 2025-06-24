@@ -5,6 +5,7 @@ import java.util.function.Consumer;
 import org.json.JSONObject;
 
 import com.demod.fbsr.EntityRendererFactory;
+import com.demod.fbsr.EntityType;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.WorldMap;
@@ -16,6 +17,7 @@ import com.demod.fbsr.legacy.LegacyBlueprintEntity;
 import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapRenderable;
 
+@EntityType("simple-entity-with-force")
 public class TextPlateRendering extends EntityRendererFactory {
 
 	public static class BSTextPlateEntity extends BSEntity {

@@ -56,8 +56,6 @@ public class CmdProfile {
                 System.out.println("No profile selected. Use 'profile select <name>' or insert <name> into command to select a profile.");
                 return false;
             }
-            System.out.println("Selected profile: " + this.profile.getName());
-            return true;
 
         } else {
             Profile profile = Profile.byName(name.get());
@@ -66,9 +64,10 @@ public class CmdProfile {
                 return false;
             }
             this.profile = profile;
-            System.out.println("Selected profile: " + profile.getName());
-            return true;
         }
+
+        System.out.println("Selected profile: " + this.profile.getName());
+        return true;
     }
 
     @Command(name = "new", description = "Create a new profile")
