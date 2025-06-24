@@ -26,7 +26,7 @@ import com.demod.fbsr.WebUtils;
 import com.demod.fbsr.app.BlueprintBotDiscordService;
 import com.demod.fbsr.app.RPCService;
 import com.demod.fbsr.app.ServiceFinder;
-import com.demod.fbsr.app.StartAllServices;
+import com.demod.fbsr.app.FBSRApps;
 import com.demod.fbsr.bs.BSBlueprintString;
 import com.demod.fbsr.gui.layout.GUILayoutBlueprint;
 import com.demod.fbsr.gui.layout.GUILayoutBook;
@@ -53,7 +53,7 @@ public class CmdRPC {
 
     @Command(name = "status")
     public String status() {
-        return StartAllServices.status;
+        return FBSRApps.status;
     }
 
     @Command(name = "kill")

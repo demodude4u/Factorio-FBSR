@@ -13,7 +13,7 @@ import com.demod.factorio.Config;
 import com.demod.fbsr.Profile;
 import com.demod.fbsr.Profile.ProfileStatus;
 import com.demod.fbsr.app.RPCService;
-import com.demod.fbsr.app.StartAllServices;
+import com.demod.fbsr.app.FBSRApps;
 import com.google.common.util.concurrent.Uninterruptibles;
 
 import picocli.CommandLine.Command;
@@ -31,7 +31,7 @@ public class CmdBot {
             return;
         }
 
-        StartAllServices.main(null);
+        FBSRApps.start();
     }
 
     @Command(name = "start", description = "Start Blueprint Bot as a background service")

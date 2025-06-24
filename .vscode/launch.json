@@ -3,28 +3,11 @@
     "configurations": [
         {
             "type": "java",
-            "name": "FBSRCommandLineMain",
+            "name": "FBSRMain",
             "request": "launch",
-            "mainClass": "com.demod.fbsr.cli.FBSRCommandLineMain",
+            "mainClass": "com.demod.fbsr.FBSRMain",
             "projectName": "FactorioBlueprintStringRenderer",
             "cwd": "${workspaceFolder}/FactorioBlueprintStringRenderer"
-        },
-        {
-            "type": "java",
-            "name": "FBSRModDumperTask",
-            "request": "launch",
-            "mainClass": "com.demod.fbsr.task.FBSRModDumperTask",
-            "projectName": "FactorioBlueprintStringRenderer",
-            "cwd": "${workspaceFolder}/FactorioBlueprintStringRenderer"
-        },
-        {
-            "type": "java",
-            "name": "Launch Blueprint Bot",
-            "request": "launch",
-            "mainClass": "com.demod.fbsr.app.StartAllServices",
-            "projectName": "FactorioBlueprintStringRenderer",
-            "cwd": "${workspaceFolder}/FactorioBlueprintStringRenderer",
-            "vmArgs": "-Dfile.encoding=UTF-8 -Xmx16g"
         }
     ]
 }
