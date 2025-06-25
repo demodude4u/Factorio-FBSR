@@ -57,6 +57,11 @@ public final class GUIStyle {
 
 		File fileInstallFont = new File(FactorioManager.getFactorioInstall(), "data/core/fonts/" + filename);
 		File fileProfileFont = new File(profile.getFolderProfile(), filename);
+		if (fileProfileFont.exists()) {
+			LOGGER.info("Font already exists in profile: {}", fileProfileFont.getAbsolutePath());
+			return true;
+		}
+
 		try {
 			Files.copy(fileInstallFont.toPath(), fileProfileFont.toPath(), StandardCopyOption.REPLACE_EXISTING);
 			LOGGER.info("Copied font: {}", fileProfileFont.getAbsolutePath());
