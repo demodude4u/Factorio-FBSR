@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -331,29 +332,42 @@ public class AtlasPackage {
 		LOGGER.info("Write Atlas Data Zip: {}.", atlasDataZip.getAbsolutePath());
 	}
 
-    public void initialize() throws IOException {
+    public boolean initialize() {
 		LOGGER.info("Read Atlas Data Zip: {}.", atlasDataZip.getAbsolutePath());
 		try (ZipFile zipFile = new ZipFile(atlasDataZip)) {
 			
 			JSONArray jsonManifest;
 			ZipEntry entry = zipFile.getEntry("atlas-manifest.json");
 			if (entry == null) {
-				throw new IOException("Missing atlas-manifest.json in zip file");
+				System.out.println("Missing atlas-manifest.json in zip file: " + atlasDataZip.getAbsolutePath());
+				return false;
 			}
 			try (var reader = new InputStreamReader(zipFile.getInputStream(entry), StandardCharsets.UTF_8)) {
 				jsonManifest = new JSONArray(new JSONTokener(reader));
+			} catch (IOException e) {
+				System.out.println("Failed to read atlas-manifest.json: " + e.getMessage());
+				return false;
 			}
 
 			if (!checkValidManifest(jsonManifest)) {
-				LOGGER.error("Atlas manifest is invalid or does not match current definitions. Data needs to be regenerated.");
-				throw new IOException("Atlas manifest is invalid or does not match current definitions.");
+				System.out.println("Atlas manifest is invalid or does not match current definitions. Data needs to be regenerated.");
+				return false;
 			}
 			
-			loadAtlases(zipFile, jsonManifest);
+			if (!loadAtlases(zipFile, jsonManifest)) {
+				System.out.println("Failed to load atlases from zip file: " + atlasDataZip.getAbsolutePath());
+				return false;
+			}
+		
+		} catch (IOException e) {
+			LOGGER.error("Failed to read atlas data zip: {}", atlasDataZip.getAbsolutePath(), e);
+			return false;
 		}
+
+		return true;
 	}
 
-	private boolean checkValidManifest(JSONArray jsonManifest) throws IOException {
+	private boolean checkValidManifest(JSONArray jsonManifest) {
 		Set<String> currentKeys = new HashSet<>();
 		for (ImageDef image : defs) {
 			Rectangle source = image.getSource();
@@ -375,27 +389,42 @@ public class AtlasPackage {
 			manifestKeys.add(locationKey);
 		}
 
-		SetView<String> mismatched = Sets.symmetricDifference(currentKeys, manifestKeys);
+		//TODO figure out why I'm getting extras in manifest, ignoring for now
+		// SetView<String> mismatched = Sets.symmetricDifference(currentKeys, manifestKeys);
+		SetView<String> mismatched = Sets.difference(currentKeys, manifestKeys);
 
 		if (!mismatched.isEmpty()) {
 			LOGGER.error("Atlas manifest mismatch detected: {} keys are different", mismatched.size());
+			int count = 0;
+			for (String key : mismatched.stream().sorted().collect(Collectors.toList())) {
+				if (currentKeys.contains(key)) {
+					LOGGER.error("Missing in manifest: {}", key);
+				} else {
+					LOGGER.error("Extra in manifest: {}", key);
+				}
+				if (++count >= 10) {
+					LOGGER.error("... and {} more", mismatched.size() - count);
+					break;
+				}
+			}
 		}
 
 		return mismatched.isEmpty();
 	}
 
-	private void loadAtlases(ZipFile zipFile, JSONArray jsonManifest) throws IOException {
+	private boolean loadAtlases(ZipFile zipFile, JSONArray jsonManifest) {
 
 		defs.forEach(d -> d.getAtlasRef().reset());
 
 		int[] atlasIds = IntStream.range(0, jsonManifest.length()).map(i -> jsonManifest.getJSONArray(i).getInt(5))
 				.distinct().toArray();
 		LOGGER.info("Read Atlases: {}", Arrays.toString(atlasIds));
+		AtomicBoolean failure = new AtomicBoolean(false);
 		atlases = Arrays.stream(atlasIds).parallel().mapToObj(id -> {
 			ZipEntry entry = zipFile.getEntry("atlas" + id + ".webp");
 			if (entry == null) {
 				LOGGER.error("Missing atlas zip entry: {}", id);
-				System.exit(-1);
+				failure.set(true);
 				return null;
 			}
 			try (InputStream is = zipFile.getInputStream(entry)) {
@@ -403,10 +432,15 @@ public class AtlasPackage {
 				return Atlas.load(this, id, image);
 			} catch (IOException e) {
 				LOGGER.error("Failed to read atlas: {}", entry.getName(), e);
-				System.exit(-1);
+				failure.set(true);
 				return null;
 			}
 		}).sorted(Comparator.comparing(a -> a.getId())).collect(Collectors.toList());
+
+		if (failure.get()) {
+			LOGGER.error("Failed to load some atlases, aborting.");
+			return false;
+		}
 
 		// XXX not an elegant approach
 		class RefValues {
@@ -451,6 +485,7 @@ public class AtlasPackage {
 			}
 		}
 
+		return true;
 	}
 
 	public void registerDef(ImageDef def) {

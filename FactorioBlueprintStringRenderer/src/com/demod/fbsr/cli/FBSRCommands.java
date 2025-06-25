@@ -14,6 +14,7 @@ import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 
 import com.demod.factorio.Config;
+import com.demod.fbsr.FactorioManager;
 import com.demod.fbsr.Profile;
 import com.google.common.util.concurrent.Uninterruptibles;
 
@@ -62,6 +63,14 @@ public class FBSRCommands {
         System.out.println();
         System.out.println("Starting interactive shell...");
 
+        if (FactorioManager.hasFactorioInstall()) {
+            System.out.println();
+            System.out.println("Factorio installed: Version " + FactorioManager.getFactorioVersion());
+        } else {
+            System.out.println();
+            System.out.println("Factorio is not installed.");
+        }
+
         if (!Profile.vanilla().isValid()) {
             System.out.println();
             System.out.println("WARNING: The vanilla profile is missing or not valid! Type command 'profile default-vanilla' to get started.");
@@ -70,7 +79,7 @@ public class FBSRCommands {
             System.out.println();
             System.out.println("WARNING: Not all profiles are ready!");
             new CmdProfile().listProfiles(null, false);
-            
+
         } else {
             System.out.println();
             System.out.println("All profiles are ready! Type command 'bot run' to start the bot or 'render preview <STRING>' to render an image.");

@@ -52,7 +52,7 @@ public class FactorioManager {
 
 	private static boolean hasFactorioInstall;
 	private static File factorioInstall;
-	private static File factorioExecutable;
+	private static Optional<File> factorioExecutableOverride;
 	private static String factorioVersion;
 
 	private static boolean hasModPortalApi;
@@ -61,17 +61,17 @@ public class FactorioManager {
 
 
 	static {
-		JSONObject json = Config.get().getJSONObject("factorio_manager");
+		JSONObject json = Config.get().getJSONObject("factorio");
 		
-		if (json.has("install") && json.has("executable")) {
+		if (json.has("install")) {
 			hasFactorioInstall = true;
 			factorioInstall = new File(json.getString("install"));
-			factorioExecutable = new File(json.getString("executable"));
-			factorioVersion = FactorioData.getVersionFromExecutable(factorioExecutable).get();
+			factorioExecutableOverride = Optional.ofNullable(json.optString("executable", null)).map(path ->new File(factorioInstall, path));
+			factorioVersion = FactorioData.getVersionFromInstall(factorioInstall, factorioExecutableOverride).get();
 		} else {
 			hasFactorioInstall = false;
 			factorioInstall = null;
-			factorioExecutable = null;
+			factorioExecutableOverride = null;
 			factorioVersion = null;
 		}
 
@@ -203,8 +203,12 @@ public class FactorioManager {
 		return factorioInstall;
 	}
 
+	public static Optional<File> getFactorioExecutableOverride() {
+		return factorioExecutableOverride;
+	}
+
 	public static File getFactorioExecutable() {
-		return factorioExecutable;
+		return factorioExecutableOverride.orElseGet(() -> FactorioData.getFactorioExecutable(factorioInstall));
 	}
 	
 	public static boolean hasModPortalApi() {

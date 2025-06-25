@@ -604,15 +604,15 @@ public class FBSR {
 		return ret;
 	}
 
-	public static synchronized void initialize() throws IOException {
+	public static synchronized boolean initialize() {
 		if (initialized) {
-			return;
+			return true;
 		}
 		initialized = true;
 
 		//Ignoring profiles that are not ready
 		List<Profile> allProfiles = Profile.listProfiles();
-		List<Profile> profiles = allProfiles.stream().filter(p -> p.getStatus() == ProfileStatus.READY).collect(Collectors.toList());
+		List<Profile> profiles = new ArrayList<>(allProfiles.stream().filter(p -> p.getStatus() == ProfileStatus.READY).collect(Collectors.toList()));
 		LOGGER.info("READY PROFILES: {}", profiles.stream().map(Profile::getName).collect(Collectors.joining(", ")));
 
 		if (profiles.size() != allProfiles.size()) {
@@ -621,7 +621,8 @@ public class FBSR {
 		}
 
 		if (profiles.isEmpty()) {
-			throw new IllegalStateException("No ready profiles found! Please ensure at least one profile is ready.");
+			System.out.println("No ready profiles found! Please ensure at least one profile is ready.");
+			return false;
 		}
 
 		factorioManager = new FactorioManager(profiles);
@@ -634,14 +635,28 @@ public class FBSR {
 			profile.setIconManager(iconManager);
 		}
 
-		factorioManager.initializePrototypes();
+		if (!factorioManager.initializePrototypes()) {
+			System.out.println("Failed to initialize prototypes.");
+			return false;
+		}
+
 		guiStyle.initialize(factorioManager.getProfileVanilla());
-		factorioManager.initializeFactories();
+
+		if (!factorioManager.initializeFactories()) {
+			System.out.println("Failed to initialize factories.");
+			return false;
+		}
+
 		iconManager.initialize();
 
 		for (Profile profile : factorioManager.getProfiles()) {
-			profile.getAtlasPackage().initialize();
+			if (!profile.getAtlasPackage().initialize()) {
+				System.out.println("Failed to initialize atlas package for profile: " + profile.getName());
+				return false;
+			}
 		}
+
+		return true;
 	}
 
 	public static boolean buildData(Profile profile) {

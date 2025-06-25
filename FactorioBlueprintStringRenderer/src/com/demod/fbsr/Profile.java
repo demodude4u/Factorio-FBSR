@@ -123,7 +123,7 @@ public class Profile {
     private IconManager iconManager;
 
     public static Profile byName(String name) {
-        JSONObject json = Config.get().getJSONObject("factorio_manager");
+        JSONObject json = Config.get().getJSONObject("factorio");
         File folderProfileRoot = new File(json.optString("profiles", "profiles"));
         File folderBuildRoot = new File(json.optString("build", "build"));
 
@@ -258,7 +258,7 @@ public class Profile {
     }
 
     public static List<Profile> listProfiles() {
-        JSONObject jsonFactorioManager = Config.get().getJSONObject("factorio_manager");
+        JSONObject jsonFactorioManager = Config.get().getJSONObject("factorio");
         File folderProfileRoot = new File(jsonFactorioManager.optString("profiles", "profiles"));
         File folderBuildRoot = new File(jsonFactorioManager.optString("build", "build"));
 
@@ -989,9 +989,9 @@ public class Profile {
         }
 
         File factorioInstall = FactorioManager.getFactorioInstall();
-        File factorioExecutable = FactorioManager.getFactorioExecutable();
+        Optional<File> factorioExecutableOverride = FactorioManager.getFactorioExecutableOverride();
 
-        if (!FactorioData.buildDataZip(fileScriptOutputDump, folderBuildData, folderBuildMods, factorioInstall, factorioExecutable, force)) {
+        if (!FactorioData.buildDataZip(fileScriptOutputDump, folderBuildData, folderBuildMods, factorioInstall, factorioExecutableOverride, force)) {
             System.out.println("Failed to build dump file for profile: " + folderProfile.getName());
             return false;
         }

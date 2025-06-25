@@ -1453,7 +1453,10 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 	protected void startUp() throws JSONException, IOException {
 		configJson = Config.get().getJSONObject("discord");
 
-		FBSR.initialize();
+		if (!FBSR.initialize()) {
+			throw new RuntimeException("Failed to initialize FBSR.");
+		}
+
 		FactorioManager factorioManager = FBSR.getFactorioManager();
 		String version = factorioManager.getProfileVanilla().getFactorioData().getVersion();
 		LOGGER.info("Factorio {} Data Loaded.", version);

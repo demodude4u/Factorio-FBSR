@@ -43,7 +43,7 @@ public class FBSRApps {
 			public void failure(Service service) {
 				status = "failed";
 				LOGGER.info("SERVICE FAILURE: {}", service.getClass().getSimpleName());
-				service.failureCause().printStackTrace();
+				// service.failureCause().printStackTrace();
 			}
 
 			@Override
@@ -59,7 +59,12 @@ public class FBSRApps {
 			}
 		});
 
-		manager.startAsync().awaitHealthy();
+		try {
+			manager.startAsync().awaitHealthy();
+		} catch (IllegalStateException e) {
+			System.out.println(e.getMessage());
+			return;
+		}
 		Runtime.getRuntime().addShutdownHook(new Thread(() -> manager.stopAsync().awaitStopped()));
 
 		PluginFinder.loadPlugins().forEach(Plugin::run);

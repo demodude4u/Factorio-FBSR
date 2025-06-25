@@ -6,7 +6,7 @@
         "reporting_channel_id": "",
         "hosting_channel_id": ""
     },
-    "reddit": {
+    "//reddit": {
         "credentials": {
             "username": "",
             "password": "",
@@ -19,13 +19,6 @@
         "age_limit_hours": 24,
         "process_messages": true,
 		"imgbb-api-key": ""
-    },
-    "irc": {
-        "server": "",
-        "channel": "",
-        "name": "",
-        "password": "",
-        "command": "!blueprint"
     },
     "webapi": {
         "bind": "0.0.0.0",
@@ -40,13 +33,13 @@
         "file": "log.txt"
     },
     "watchdog_interval_minutes": 1,
-	"factorio_manager": {
+
+	"factorio": {
 		"install": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Factorio",
-		"mods": "mods",
-		"data": "data",
+		"profiles": "C:\\Factorio-BPBot-Mods",
 		"mod_portal_api": {
-			"username": "",
-			"password": ""
+			"username": "<USERNAME>",
+			"password": "<PASSWORD>"
 		}
 	}
 }
