@@ -493,38 +493,34 @@ public class TileRendererFactory {
 		renderProcess.initAtlas(register);
 	}
 
-	public static void initFactories(List<TileRendererFactory> factories) {
-		for (TileRendererFactory factory : factories) {
-			try {
-				Profile profile = factory.getProfile();
-				factory.initFromPrototype(profile.getFactorioData().getTable());
-				factory.initAtlas(profile.getAtlasPackage()::registerDef);
-			} catch (Exception e) {
-				LOGGER.error("TILE {}", factory.getName());
-				throw e;
-			}
-		}
-		LOGGER.info("Initialized {} tiles.", factories.size());
-	}
-
-	public static boolean registerFactories(Consumer<TileRendererFactory> register, Profile profile) {
+	public static boolean initFactories(Consumer<TileRendererFactory> register, Profile profile) {
 		DataTable table = profile.getFactorioData().getTable();
 		for (ProfileModGroupRenderings renderings : profile.listRenderings()) {
 			for (String tileName : renderings.getTiles()) {
 				
-				Optional<TilePrototype> optProto = table.getTile(tileName);
-				if (optProto.isEmpty()) {
-					System.out.println("Rendering tile not found in factorio data: " + tileName);
+				try {
+					Optional<TilePrototype> optProto = table.getTile(tileName);
+					if (optProto.isEmpty()) {
+						System.out.println("Rendering tile not found in factorio data: " + tileName);
+						return false;
+					}
+
+					TilePrototype prototype = optProto.get();
+					TileRendererFactory factory = new TileRendererFactory();
+					factory.setName(tileName);
+					factory.setGroupName(renderings.getModGroup());
+					factory.setProfile(profile);
+					factory.setPrototype(prototype);
+					factory.initFromPrototype(profile.getFactorioData().getTable());
+					factory.initAtlas(profile.getAtlasPackage()::registerDef);
+					
+					register.accept(factory);
+
+				} catch (Exception e) {
+					e.printStackTrace();
+					System.out.println("Problem registering rendering for tile: " + tileName);
 					return false;
 				}
-
-				TilePrototype prototype = optProto.get();
-				TileRendererFactory factory = new TileRendererFactory();
-				factory.setName(tileName);
-				factory.setGroupName(renderings.getModGroup());
-				factory.setProfile(profile);
-				factory.setPrototype(prototype);
-				register.accept(factory);
 			}
 		}
 		
@@ -569,8 +565,7 @@ public class TileRendererFactory {
 		protoVariants = new FPTileTransitionsVariants(profile, prototype.lua().get("variants"), 10);
 		protoVariantsMainSize1 = protoVariants.main.stream().filter(fp -> fp.size == 1).findFirst();
 		protoTransitionMergesWithTileID = FPUtils.optString(prototype.lua().get("transition_merges_with_tile"));
-		protoTransitionMergesWithTile = protoTransitionMergesWithTileID
-				.flatMap(k -> Optional.ofNullable(profile.getFactorioManager().lookupTileFactoryForName(k)));
+		protoTransitionMergesWithTile = protoTransitionMergesWithTileID.map(k -> resolveMergeTileID(k));
 
 		if (!protoVariants.main.isEmpty())
 			renderProcess = new TileRenderProcessMain();
@@ -581,6 +576,13 @@ public class TileRendererFactory {
 		protoDoubleSided = protoVariants.transition.stream()
 				.flatMap(fp -> ImmutableList.of(fp.layout.background, fp.layout.mask, fp.layout.overlay).stream())
 				.anyMatch(fp -> fp.flatMap(fp2 -> fp2.doubleSide).isPresent());
+	}
+
+	private TileRendererFactory resolveMergeTileID(String name) {
+		List<TileRendererFactory> factories = profile.getFactorioManager().lookupTileFactoryForName(name);
+		Optional<TileRendererFactory> myFactory = factories.stream().filter(f->f.profile.equals(profile)).findFirst();
+		Optional<TileRendererFactory> vanillaFactory = factories.stream().filter(f -> f.profile.isVanilla()).findFirst();
+		return myFactory.or(() -> vanillaFactory).get();
 	}
 
 	public boolean isUnknown() {

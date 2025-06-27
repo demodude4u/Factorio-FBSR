@@ -100,33 +100,21 @@ public class FactorioManager {
 	private final List<Profile> profiles;
 
 	private final Map<FactorioData, Profile> profileByData = new HashMap<>();
-	private final Map<String, Profile> profileByGroupName = new HashMap<>();
+	private final ListMultimap<String, Profile> profileByGroupName = ArrayListMultimap.create();
 	private final ListMultimap<String, Profile> profileByModName = ArrayListMultimap.create();
 
-	private final List<EntityRendererFactory> entityFactories = new ArrayList<>();
-	private final List<TileRendererFactory> tileFactories = new ArrayList<>();
-	private final Map<String, EntityRendererFactory> entityFactoryByName = new HashMap<>();
-	private final Map<String, TileRendererFactory> tileFactoryByName = new HashMap<>();
+	private final ListMultimap<String, EntityRendererFactory> entityFactoryByName = ArrayListMultimap.create();
+	private final ListMultimap<String, TileRendererFactory> tileFactoryByName = ArrayListMultimap.create();
 
-	private final List<ItemPrototype> items = new ArrayList<>();
-	private final List<RecipePrototype> recipes = new ArrayList<>();
-	private final List<FluidPrototype> fluids = new ArrayList<>();
-	private final List<TechPrototype> technologies = new ArrayList<>();
-	private final List<EntityPrototype> entities = new ArrayList<>();
-	private final List<TilePrototype> tiles = new ArrayList<>();
-	private final List<EquipmentPrototype> equipments = new ArrayList<>();
-	private final List<AchievementPrototype> achievements = new ArrayList<>();
-	private final List<ItemGroupPrototype> itemGroups = new ArrayList<>();
-
-	private final Map<String, ItemPrototype> itemByName = new HashMap<>();
-	private final Map<String, RecipePrototype> recipeByName = new HashMap<>();
-	private final Map<String, FluidPrototype> fluidByName = new HashMap<>();
-	private final Map<String, TechPrototype> technologyByName = new HashMap<>();
-	private final Map<String, EntityPrototype> entityByName = new HashMap<>();
-	private final Map<String, TilePrototype> tileByName = new HashMap<>();
-	private final Map<String, EquipmentPrototype> equipmentByName = new HashMap<>();
-	private final Map<String, AchievementPrototype> achievementByName = new HashMap<>();
-	private final Map<String, ItemGroupPrototype> itemGroupByName = new HashMap<>();
+	private final ListMultimap<String, ItemPrototype> itemByName = ArrayListMultimap.create();
+	private final ListMultimap<String, RecipePrototype> recipeByName = ArrayListMultimap.create();
+	private final ListMultimap<String, FluidPrototype> fluidByName = ArrayListMultimap.create();
+	private final ListMultimap<String, TechPrototype> technologyByName = ArrayListMultimap.create();
+	private final ListMultimap<String, EntityPrototype> entityByName = ArrayListMultimap.create();
+	private final ListMultimap<String, TilePrototype> tileByName = ArrayListMultimap.create();
+	private final ListMultimap<String, EquipmentPrototype> equipmentByName = ArrayListMultimap.create();
+	private final ListMultimap<String, AchievementPrototype> achievementByName = ArrayListMultimap.create();
+	private final ListMultimap<String, ItemGroupPrototype> itemGroupByName = ArrayListMultimap.create();
 
 	private FPUtilitySprites utilitySprites;
 
@@ -139,8 +127,8 @@ public class FactorioManager {
 		this.profiles = profiles;
 	}
 
-	public List<AchievementPrototype> getAchievements() {
-		return achievements;
+	public ListMultimap<String, AchievementPrototype> getAchievementByNameMap() {
+		return achievementByName;
 	}
 
 	public Profile getProfileVanilla() {
@@ -151,44 +139,44 @@ public class FactorioManager {
 		return profiles;
 	}
 
-	public List<EntityPrototype> getEntities() {
-		return entities;
+	public ListMultimap<String, EntityPrototype> getEntityByNameMap() {
+		return entityByName;
 	}
 
-	public List<EntityRendererFactory> getEntityFactories() {
-		return entityFactories;
+	public ListMultimap<String, EntityRendererFactory> getEntityFactoryByNameMap() {
+		return entityFactoryByName;
 	}
 
-	public List<EquipmentPrototype> getEquipments() {
-		return equipments;
+	public ListMultimap<String, EquipmentPrototype> getEquipmentByNameMap() {
+		return equipmentByName;
 	}
 
-	public List<FluidPrototype> getFluids() {
-		return fluids;
+	public ListMultimap<String, FluidPrototype> getFluidByNameMap() {
+		return fluidByName;
 	}
 
-	public List<ItemPrototype> getItems() {
-		return items;
+	public ListMultimap<String, ItemPrototype> getItemByNameMap() {
+		return itemByName;
 	}
 
-	public List<ItemGroupPrototype> getItemGroups() {
-		return itemGroups;
+	public ListMultimap<String, ItemGroupPrototype> getItemGroupByNameMap() {
+		return itemGroupByName;
 	}
 
-	public List<RecipePrototype> getRecipes() {
-		return recipes;
+	public ListMultimap<String, RecipePrototype> getRecipeByNameMap() {
+		return recipeByName;
 	}
 
-	public List<TechPrototype> getTechnologies() {
-		return technologies;
+	public ListMultimap<String, TechPrototype> getTechnologyByNameMap() {
+		return technologyByName;
 	}
 
-	public List<TileRendererFactory> getTileFactories() {
-		return tileFactories;
+	public ListMultimap<String, TileRendererFactory> getTileFactoryByNameMap() {
+		return tileFactoryByName;
 	}
 
-	public List<TilePrototype> getTiles() {
-		return tiles;
+	public ListMultimap<String, TilePrototype> getTileByNameMap() {
+		return tileByName;
 	}
 
 	public FPUtilitySprites getUtilitySprites() {
@@ -243,15 +231,15 @@ public class FactorioManager {
 			profileByData.put(factorioData, profile);
 			profile.getModLoader().getMods().keySet().forEach(mod -> profileByModName.put(mod, profile));
 
-			recipeByName.putAll(table.getRecipes());
-			itemByName.putAll(table.getItems());
-			fluidByName.putAll(table.getFluids());
-			entityByName.putAll(table.getEntities());
-			technologyByName.putAll(table.getTechnologies());
-			tileByName.putAll(table.getTiles());
-			equipmentByName.putAll(table.getEquipments());
-			achievementByName.putAll(table.getAchievements());
-			itemGroupByName.putAll(table.getItemGroups());
+			table.getRecipes().forEach(recipeByName::put);
+			table.getItems().forEach(itemByName::put);
+			table.getFluids().forEach(fluidByName::put);
+			table.getEntities().forEach(entityByName::put);
+			table.getTechnologies().forEach(technologyByName::put);
+			table.getTiles().forEach(tileByName::put);
+			table.getEquipments().forEach(equipmentByName::put);
+			table.getAchievements().forEach(achievementByName::put);
+			table.getItemGroups().forEach(itemGroupByName::put);
 
 			if (profile.isVanilla()) {
 				profileVanilla = profile;
@@ -279,52 +267,31 @@ public class FactorioManager {
 		initializedFactories = true;
 
 		for (Profile profile : profiles) {
-			if (!EntityRendererFactory.registerFactories(this::registerEntityFactory, profile)) {
+			List<EntityRendererFactory> entityFactories = new ArrayList<>();
+			if (!EntityRendererFactory.initFactories(entityFactories::add, profile)) {
 				return false;
 			}
-			if (!TileRendererFactory.registerFactories(this::registerTileFactory, profile)) {
+
+			List<TileRendererFactory> tileFactories = new ArrayList<>();
+			if (!TileRendererFactory.initFactories(tileFactories::add, profile)) {
 				return false;
 			}
 		}
 
 		DataTable baseTable = profileVanilla.getFactorioData().getTable();
-		
-		EntityRendererFactory.initFactories(entityFactories);
-		TileRendererFactory.initFactories(tileFactories);
 
-		entityFactories.forEach(e -> profileByGroupName.put(e.getGroupName(), e.getProfile()));
+		//Could be done better
+		entityFactoryByName.values().forEach(e -> profileByGroupName.put(e.getGroupName(), e.getProfile()));
+		tileFactoryByName.values().forEach(e -> profileByGroupName.put(e.getGroupName(), e.getProfile()));
 
-		// Place vanilla protos again to be the priority
-		recipeByName.putAll(baseTable.getRecipes());
-		itemByName.putAll(baseTable.getItems());
-		fluidByName.putAll(baseTable.getFluids());
-		entityByName.putAll(baseTable.getEntities());
-		technologyByName.putAll(baseTable.getTechnologies());
-		tileByName.putAll(baseTable.getTiles());
-		equipmentByName.putAll(baseTable.getEquipments());
-		achievementByName.putAll(baseTable.getAchievements());
-		itemGroupByName.putAll(baseTable.getItemGroups());
-
-		recipeByName.values().stream().sorted(Comparator.comparing(DataPrototype::getName)).forEach(recipes::add);
-		itemByName.values().stream().sorted(Comparator.comparing(DataPrototype::getName)).forEach(items::add);
-		fluidByName.values().stream().sorted(Comparator.comparing(DataPrototype::getName)).forEach(fluids::add);
-		entityByName.values().stream().sorted(Comparator.comparing(DataPrototype::getName)).forEach(entities::add);
-		technologyByName.values().stream().sorted(Comparator.comparing(DataPrototype::getName))
-				.forEach(technologies::add);
-		tileByName.values().stream().sorted(Comparator.comparing(DataPrototype::getName)).forEach(tiles::add);
-		equipmentByName.values().stream().sorted(Comparator.comparing(DataPrototype::getName)).forEach(equipments::add);
-		achievementByName.values().stream().sorted(Comparator.comparing(DataPrototype::getName))
-				.forEach(achievements::add);
-		itemGroupByName.values().stream().sorted(Comparator.comparing(DataPrototype::getName)).forEach(itemGroups::add);
-	
 		return true;
 	}
 
-	public Optional<AchievementPrototype> lookupAchievementByName(String name) {
-		return Optional.ofNullable(achievementByName.get(name));
+	public List<AchievementPrototype> lookupAchievementByName(String name) {
+		return achievementByName.get(name);
 	}
 
-	public Profile lookupProfileByGroupName(String groupName) {
+	public List<Profile> lookupProfileByGroupName(String groupName) {
 		return profileByGroupName.get(groupName);
 	}
 
@@ -332,36 +299,38 @@ public class FactorioManager {
 		return profileByData.get(data);
 	}
 
-	public Optional<EntityPrototype> lookupEntityByName(String name) {
-		return Optional.ofNullable(entityByName.get(name));
+	public List<EntityPrototype> lookupEntityByName(String name) {
+		return entityByName.get(name);
 	}
 
-	public EntityRendererFactory lookupEntityFactoryForName(String name) {
-		return Optional.ofNullable(entityFactoryByName.get(name)).orElseGet(() -> {
-			try {
-				return unknownEntityFactories.get(name, () -> new UnknownEntityRendering(profileVanilla, name));
-			} catch (ExecutionException e) {
-				e.printStackTrace();
-				System.exit(-1);
-				return null;
-			}
-		});
+	public List<EntityRendererFactory> lookupEntityFactoryForName(String name) {
+		return entityFactoryByName.get(name);
 	}
 
-	public Optional<EquipmentPrototype> lookupEquipmentByName(String name) {
-		return Optional.ofNullable(equipmentByName.get(name));
+	public UnknownEntityRendering getUnknownEntityRenderingForName(String name) {
+		try {
+			return unknownEntityFactories.get(name, () -> new UnknownEntityRendering(profileVanilla, name));
+		} catch (ExecutionException e) {
+			e.printStackTrace();
+			System.exit(-1);
+			return null;
+		}
 	}
 
-	public Optional<FluidPrototype> lookupFluidByName(String name) {
-		return Optional.ofNullable(fluidByName.get(name));
+	public List<EquipmentPrototype> lookupEquipmentByName(String name) {
+		return equipmentByName.get(name);
 	}
 
-	public Optional<ItemPrototype> lookupItemByName(String name) {
-		return Optional.ofNullable(itemByName.get(name));
+	public List<FluidPrototype> lookupFluidByName(String name) {
+		return fluidByName.get(name);
 	}
 
-	public Optional<ItemGroupPrototype> lookupItemGroupByName(String name) {
-		return Optional.ofNullable(itemGroupByName.get(name));
+	public List<ItemPrototype> lookupItemByName(String name) {
+		return itemByName.get(name);
+	}
+
+	public List<ItemGroupPrototype> lookupItemGroupByName(String name) {
+		return itemGroupByName.get(name);
 	}
 
 	public BufferedImage lookupModImage(String filename) {
@@ -381,54 +350,30 @@ public class FactorioManager {
 		}
 	}
 
-	public Optional<RecipePrototype> lookupRecipeByName(String name) {
-		return Optional.ofNullable(recipeByName.get(name));
+	public List<RecipePrototype> lookupRecipeByName(String name) {
+		return recipeByName.get(name);
 	}
 
-	public Optional<TechPrototype> lookupTechnologyByName(String name) {
-		return Optional.ofNullable(technologyByName.get(name));
+	public List<TechPrototype> lookupTechnologyByName(String name) {
+		return technologyByName.get(name);
 	}
 
-	public Optional<TilePrototype> lookupTileByName(String name) {
-		return Optional.ofNullable(tileByName.get(name));
+	public List<TilePrototype> lookupTileByName(String name) {
+		return tileByName.get(name);
 	}
 
-	public TileRendererFactory lookupTileFactoryForName(String name) {
-		return Optional.ofNullable(tileFactoryByName.get(name)).orElseGet(() -> {
-			try {
-				return unknownTileFactories.get(name, () -> new UnknownTileRendering(name));
-			} catch (ExecutionException e) {
-				e.printStackTrace();
-				System.exit(-1);
-				return null;
-			}
-		});
+	public List<TileRendererFactory> lookupTileFactoryForName(String name) {
+		return tileFactoryByName.get(name);
 	}
 
-	private synchronized void registerEntityFactory(EntityRendererFactory factory) {
-		String name = factory.getPrototype().getName();
-
-		if (entityFactoryByName.containsKey(name)) {
-			EntityRendererFactory existingFactory = entityFactoryByName.get(name);
-
-			String detailMessage = String.format(
-					"Entity '%s' is already registered in group '%s' from profile '%s'. Attempted re-registration from profile '%s' is not allowed.",
-					name, existingFactory.getGroupName(), existingFactory.getProfile().getName(),
-					factory.getProfile().getName());
-			throw new IllegalArgumentException(detailMessage);
+	public UnknownTileRendering getUnknownTileRenderingForName(String name) {
+		try {
+			return unknownTileFactories.get(name, () -> new UnknownTileRendering(name));
+		} catch (ExecutionException e) {
+			e.printStackTrace();
+			System.exit(-1);
+			return null;
 		}
-
-		entityFactories.add(factory);
-		entityFactoryByName.put(name, factory);
-	}
-
-	private synchronized void registerTileFactory(TileRendererFactory factory) {
-		String name = factory.getPrototype().getName();
-		if (tileFactoryByName.containsKey(name)) {
-			throw new IllegalArgumentException("Tile already exists! " + name);
-		}
-		tileFactories.add(factory);
-		tileFactoryByName.put(name, factory);
 	}
 
     public static String getFactorioVersion() {

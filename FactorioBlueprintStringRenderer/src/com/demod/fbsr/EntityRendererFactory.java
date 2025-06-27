@@ -46,24 +46,6 @@ public abstract class EntityRendererFactory {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(EntityRendererFactory.class);
 
-	public static void initFactories(List<EntityRendererFactory> factories) {
-		for (EntityRendererFactory factory : factories) {
-			EntityPrototype prototype = factory.getPrototype();
-			try {
-				factory.initFromPrototype();
-				factory.wirePointsById = new LinkedHashMap<>();
-				factory.defineWirePoints(factory.wirePointsById::put, prototype.lua());
-				factory.drawBounds = factory.computeBounds();
-				factory.initAtlas(factory.getProfile().getAtlasPackage()::registerDef);
-			} catch (Exception e) {
-				LOGGER.error("ENTITY {} ({})", prototype.getName(), prototype.getType());
-				throw e;
-			}
-		}
-
-		LOGGER.info("Initialized {} entities.", factories.size());
-	}
-
 	protected MapRect3D computeBounds() {
 		return defaultComputeBounds();
 	}
@@ -101,7 +83,7 @@ public abstract class EntityRendererFactory {
 		return MapRect3D.byUnit(x1, y1, x2, y2, drawingBoxVerticalExtension);
 	}
 
-	public static boolean registerFactories(Consumer<EntityRendererFactory> register, Profile profile) {
+	public static boolean initFactories(Consumer<EntityRendererFactory> register, Profile profile) {
 		DataTable table = profile.getFactorioData().getTable();
 		boolean hasEntityTypeMismatch = false;
 		for (ProfileModGroupRenderings renderings : profile.listRenderings()) {
@@ -130,7 +112,14 @@ public abstract class EntityRendererFactory {
 					factory.setGroupName(renderings.getModGroup());
 					factory.setProfile(profile);
 					factory.setPrototype(proto);
+					factory.initFromPrototype();
+					factory.wirePointsById = new LinkedHashMap<>();
+					factory.defineWirePoints(factory.wirePointsById::put, proto.lua());
+					factory.drawBounds = factory.computeBounds();
+					factory.initAtlas(factory.getProfile().getAtlasPackage()::registerDef);
+					
 					register.accept(factory);
+
 				} catch (Exception e) {
 					e.printStackTrace();
 					System.out.println("Problem registering rendering for entity: " + entityName);
