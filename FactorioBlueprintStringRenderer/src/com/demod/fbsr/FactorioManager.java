@@ -267,13 +267,13 @@ public class FactorioManager {
 		initializedFactories = true;
 
 		for (Profile profile : profiles) {
-			List<EntityRendererFactory> entityFactories = new ArrayList<>();
-			if (!EntityRendererFactory.initFactories(entityFactories::add, profile)) {
+			RenderingRegistry registry = profile.getRenderingRegistry();
+
+			if (!EntityRendererFactory.initFactories(registry::addEntity, profile)) {
 				return false;
 			}
 
-			List<TileRendererFactory> tileFactories = new ArrayList<>();
-			if (!TileRendererFactory.initFactories(tileFactories::add, profile)) {
+			if (!TileRendererFactory.initFactories(registry::addTile, profile)) {
 				return false;
 			}
 		}

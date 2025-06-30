@@ -245,6 +245,10 @@ public class Profile {
         return iconManager;
     }
 
+    public RenderingRegistry getRenderingRegistry() {
+        return renderingRegistry;
+    }
+
     public void setFactorioManager(FactorioManager factorioManager) {
         this.factorioManager = factorioManager;
     }
@@ -446,7 +450,7 @@ public class Profile {
         JSONObject jsonProfile = readJsonFile(fileProfile);
         jsonProfile.put("enabled", enabled);
 
-        if (!writeJsonFile(fileProfile, jsonProfile)) {
+        if (!writeProfileSortedJsonFile(fileProfile, jsonProfile)) {
             System.out.println("Failed to write profile.json for profile: " + folderProfile.getName());
             return false;
         }
@@ -460,15 +464,17 @@ public class Profile {
             return false;
         }
         
-        JSONObject jsonProfile = readJsonFile(fileProfile);
+        JSONObject jsonProfile = new JSONObject();
         jsonProfile.put("enabled", true);
         JSONArray jsonMods = new JSONArray();
         for (String mod : mods) {
             jsonMods.put(mod);
         }
         jsonProfile.put("mods", jsonMods);
+        jsonProfile.put("entities", new JSONObject());
+        jsonProfile.put("tiles", new JSONObject());
 
-        if (!writeJsonFile(fileProfile, jsonProfile)) {
+        if (!writeProfileSortedJsonFile(fileProfile, jsonProfile)) {
             System.out.println("Failed to write profile.json for profile: " + folderProfile.getName());
             return false;
         }
@@ -588,7 +594,7 @@ public class Profile {
 
         if (changed.get()) {
 
-            if (!writeJsonFile(fileProfile, jsonProfile)) {
+            if (!writeProfileSortedJsonFile(fileProfile, jsonProfile)) {
                 System.out.println("Failed to write profile.json for profile: " + folderProfile.getName());
                 return false;
             }
@@ -1290,6 +1296,63 @@ public class Profile {
         } catch (IOException e) {
             e.printStackTrace();
             return false;
+        }
+    }
+
+    private static boolean writeProfileSortedJsonFile(File file, JSONObject json) {
+        try (FileWriter fw = new FileWriter(file)) {
+            List<String> preferredOrder = Arrays.asList("enabled", "mods", "entities", "tiles");
+
+            JSONObject sorted = new JSONObject();
+            Utils.terribleHackToHaveOrderedJSONObject(sorted);
+
+            for (String key : preferredOrder) {
+                if (json.has(key)) {
+                    Object value = json.get(key);
+                    sorted.put(key, sortJsonRecursively(value));
+                }
+            }
+
+            List<String> remainingKeys = new ArrayList<>();
+            for (String key : json.keySet()) {
+                if (!preferredOrder.contains(key)) {
+                    remainingKeys.add(key);
+                }
+            }
+            Collections.sort(remainingKeys);
+            for (String key : remainingKeys) {
+                Object value = json.get(key);
+                sorted.put(key, sortJsonRecursively(value));
+            }
+
+            fw.write(sorted.toString(2));
+            return true;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    private static Object sortJsonRecursively(Object value) {
+        if (value instanceof JSONObject) {
+            JSONObject obj = (JSONObject) value;
+            List<String> keys = new ArrayList<>(obj.keySet());
+            Collections.sort(keys);
+            JSONObject sorted = new JSONObject();
+            Utils.terribleHackToHaveOrderedJSONObject(sorted);
+            for (String key : keys) {
+                sorted.put(key, sortJsonRecursively(obj.get(key)));
+            }
+            return sorted;
+        } else if (value instanceof JSONArray) {
+            JSONArray arr = (JSONArray) value;
+            JSONArray sortedArr = new JSONArray();
+            for (int i = 0; i < arr.length(); i++) {
+                sortedArr.put(sortJsonRecursively(arr.get(i)));
+            }
+            return sortedArr;
+        } else {
+            return value;
         }
     }
 }
