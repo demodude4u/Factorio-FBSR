@@ -1,7 +1,10 @@
 package com.demod.fbsr;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import com.demod.factorio.prototype.DataPrototype;
@@ -15,15 +18,15 @@ import com.google.common.collect.Multiset;
 
 public abstract class ModdingResolver {
 
-    public static ModdingResolver byProfileOrder(FactorioManager factorioManager, Profile... profileOrder) {
-        return new ModdingResolver() {
+    public static ModdingResolver byProfileOrder(FactorioManager factorioManager, List<Profile> profileOrder) {
+        return new ModdingResolver(factorioManager) {
             @Override
-            public <T extends DataPrototype> Optional<T> resolvePrototype(List<T> prototypes) {
-                List<Profile> protoProfiles = prototypes.stream().map(p -> factorioManager.lookupProfileByData(p.getTable().getData())).collect(Collectors.toList());
+            public <T> Optional<T> pick(List<T> items, Function<T, ? extends DataPrototype> prototypeMapper) {
+                List<Profile> protoProfiles = items.stream().map(item -> factorioManager.lookupProfileByData(prototypeMapper.apply(item).getTable().getData())).collect(Collectors.toList());
                 for (Profile profile : profileOrder) {
                     for (int i=0;i<protoProfiles.size();i++) {
                         if (profile.equals(protoProfiles.get(i))) {
-                            return Optional.of(prototypes.get(i));
+                            return Optional.of(items.get(i));
                         }
                     }
                 }
@@ -54,9 +57,39 @@ public abstract class ModdingResolver {
         for (BSTile tile : blueprint.tiles) {
             blueprintProfileCounts.addAll(tileProfiles.get(tile.name));
         }
+        List<Profile> profileRanking = blueprintProfileCounts.entrySet().stream()
+                .sorted(Comparator.comparingInt(Multiset.Entry<Profile>::getCount).reversed())
+                .map(Multiset.Entry::getElement)
+                .collect(Collectors.toCollection(ArrayList::new));
 
-        //TODO
+        //Order: <Top Profile> ==> <Vanilla> ==> <Other Profiles>
+        List<Profile> profileOrder = new ArrayList<>();
+        if (!profileRanking.isEmpty()) {
+            profileOrder.add(profileRanking.remove(0));
+        }
+        profileRanking.stream().filter(Profile::isVanilla).forEach(profileOrder::add);
+        profileRanking.stream().filter(p -> !p.isVanilla()).forEach(profileOrder::add);
+
+        return byProfileOrder(factorioManager, profileOrder);
     }
 
-    public abstract <T extends DataPrototype> Optional<T> resolvePrototype(List<T> prototypes);
+    private final FactorioManager factorioManager;
+
+    private ModdingResolver(FactorioManager factorioManager) {
+        this.factorioManager = factorioManager;
+    }
+
+    public abstract <T> Optional<T> pick(List<T> items, Function<T, ? extends DataPrototype> prototypeMapper);
+    
+    public <T extends DataPrototype> Optional<T> pickPrototype(List<T> prototypes) {
+        return pick(prototypes, Function.identity());
+    }
+
+    public Optional<EntityRendererFactory> resolveEntityName(String entityName) {
+        return pick(factorioManager.lookupEntityFactoryForName(entityName), EntityRendererFactory::getPrototype);
+    }
+
+    public Optional<TileRendererFactory> resolveTileName(String tileName) {
+        return pick(factorioManager.lookupTileFactoryForName(tileName), TileRendererFactory::getPrototype);
+    }
 }

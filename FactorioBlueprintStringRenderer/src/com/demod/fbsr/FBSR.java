@@ -537,6 +537,8 @@ public class FBSR {
 
 	public static Map<BSItemWithQualityID, Double> generateTotalItems(BSBlueprint blueprint) {
 
+		ModdingResolver resolver = ModdingResolver.byBlueprintBiases(factorioManager, blueprint);
+
 		Map<BSItemWithQualityID, Double> ret = new LinkedHashMap<>();
 		for (BSEntity entity : blueprint.entities) {
 			EntityRendererFactory entityFactory = factorioManager.lookupEntityFactoryForName(entity.name);
