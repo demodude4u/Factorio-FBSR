@@ -8,9 +8,11 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import com.demod.factorio.prototype.DataPrototype;
+import com.demod.factorio.prototype.ItemPrototype;
 import com.demod.fbsr.bs.BSBlueprint;
 import com.demod.fbsr.bs.BSMetaEntity;
 import com.demod.fbsr.bs.BSTile;
+import com.demod.fbsr.def.IconDef;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Multimap;
@@ -34,6 +36,8 @@ public abstract class ModdingResolver {
             }
         };
     }
+
+    
 
     public static ModdingResolver byBlueprintBiases(FactorioManager factorioManager, BSBlueprint blueprint) {
         List<Profile> profiles = factorioManager.getProfiles();
@@ -85,11 +89,22 @@ public abstract class ModdingResolver {
         return pick(prototypes, Function.identity());
     }
 
-    public Optional<EntityRendererFactory> resolveEntityName(String entityName) {
-        return pick(factorioManager.lookupEntityFactoryForName(entityName), EntityRendererFactory::getPrototype);
+    public Optional<ItemPrototype> resolveItemName(String itemName) {
+        return pick(factorioManager.lookupItemByName(itemName), Function.identity());
     }
 
-    public Optional<TileRendererFactory> resolveTileName(String tileName) {
-        return pick(factorioManager.lookupTileFactoryForName(tileName), TileRendererFactory::getPrototype);
+    public EntityRendererFactory resolveFactoryEntityName(String entityName) {
+        return pick(factorioManager.lookupEntityFactoryForName(entityName), EntityRendererFactory::getPrototype)
+                .orElseGet(() -> factorioManager.getUnknownEntityRenderingForName(entityName));
     }
+
+    public TileRendererFactory resolveFactoryTileName(String tileName) {
+        return pick(factorioManager.lookupTileFactoryForName(tileName), TileRendererFactory::getPrototype)
+                .orElseGet(() -> factorioManager.getUnknownTileRenderingForName(tileName));
+    }
+
+    public Optional<IconDef> resolveIconQualityName(String string) {
+        return pick(factorioManager.getIconManager().lookupQuality(string), IconDef::getPrototype);
+    }
+
 }

@@ -12,6 +12,7 @@ import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.FBSR;
 import com.demod.fbsr.FactorioManager;
 import com.demod.fbsr.Layer;
+import com.demod.fbsr.ModdingResolver;
 import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.bs.BSItemStack;
 import com.demod.fbsr.def.LayeredSpriteDef;
@@ -28,14 +29,33 @@ public class MapEntity {
 		}
 	}
 
-	public static List<EntityModule> findModules(BSEntity entity) {
-		FactorioManager factorioManager = FBSR.getFactorioManager();
+	private final BSEntity entity;
+	private final EntityRendererFactory factory;
+	private final ModdingResolver resolver;
 
+	private final MapPosition position;
+	private final Direction direction;
+	private final MapRect3D bounds;
+
+	private final List<EntityModule> modules;
+
+	public <E extends BSEntity> MapEntity(E entity, EntityRendererFactory factory, ModdingResolver resolver) {
+		this.entity = entity;
+		this.factory = factory;
+		this.resolver = resolver;
+
+		position = entity.position.createPoint();
+		direction = entity.direction;
+		bounds = factory.getDrawBounds(this);
+		modules = findModules();
+	}
+
+	private List<EntityModule> findModules() {
 		List<EntityModule> modules = new ArrayList<>();
 
 		for (BSItemStack itemStack : entity.items) {
 			String itemName = itemStack.id.name;
-			Optional<ItemPrototype> item = factorioManager.lookupItemByName(itemName);
+			Optional<ItemPrototype> item = resolver.resolveItemName(itemName);
 			if (item.isPresent() && item.get().getType().equals("module")) {
 				for (int i = 0; i < itemStack.itemsInInventory.size(); i++) {
 					modules.add(new EntityModule(itemName, itemStack.id.quality));
@@ -44,25 +64,6 @@ public class MapEntity {
 		}
 
 		return modules;
-	}
-
-	private final BSEntity entity;
-
-	private final EntityRendererFactory factory;
-	private final MapPosition position;
-	private final Direction direction;
-	private final MapRect3D bounds;
-
-	private final List<EntityModule> modules;
-
-	public <E extends BSEntity> MapEntity(E entity, EntityRendererFactory factory) {
-		this.entity = entity;
-		this.factory = factory;
-
-		position = entity.position.createPoint();
-		direction = entity.direction;
-		bounds = factory.getDrawBounds(this);
-		modules = findModules(entity);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -80,6 +81,10 @@ public class MapEntity {
 
 	public EntityRendererFactory getFactory() {
 		return factory;
+	}
+
+	public ModdingResolver getResolver() {
+		return resolver;
 	}
 
 	public List<EntityModule> getModules() {

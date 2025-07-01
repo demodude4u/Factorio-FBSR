@@ -168,8 +168,10 @@ public class FBSR {
 			mapEntityByNumber = new HashMap<>();
 			unknownNames = LinkedHashMultiset.create();
 
+			ModdingResolver resolver = ModdingResolver.byBlueprintBiases(factorioManager, blueprint);
+
 			for (BSMetaEntity metaEntity : blueprint.entities) {
-				EntityRendererFactory factory = factorioManager.lookupEntityFactoryForName(metaEntity.name);
+				EntityRendererFactory factory = resolver.resolveFactoryEntityName(metaEntity.name);
 				BSEntity entity;
 				try {
 					if (metaEntity.isLegacy()) {
@@ -194,7 +196,7 @@ public class FBSR {
 				}
 			}
 			for (BSTile tile : blueprint.tiles) {
-				TileRendererFactory factory = factorioManager.lookupTileFactoryForName(tile.name);
+				TileRendererFactory factory = resolver.resolveFactoryTileName(tile.name);
 				MapTile mapTile = new MapTile(tile, factory);
 				mapTiles.add(mapTile);
 				if (factory.isUnknown()) {
@@ -541,7 +543,7 @@ public class FBSR {
 
 		Map<BSItemWithQualityID, Double> ret = new LinkedHashMap<>();
 		for (BSEntity entity : blueprint.entities) {
-			EntityRendererFactory entityFactory = factorioManager.lookupEntityFactoryForName(entity.name);
+			EntityRendererFactory entityFactory = resolver.resolveFactoryEntityName(entity.name);
 			if (entityFactory.isUnknown()) {
 				addToItemAmount(ret, new BSItemWithQualityID(entity.name, entity.quality), 1);
 				continue;
@@ -563,7 +565,7 @@ public class FBSR {
 		}
 		for (BSTile tile : blueprint.tiles) {
 			String tileName = tile.name;
-			TileRendererFactory tileFactory = factorioManager.lookupTileFactoryForName(tileName);
+			TileRendererFactory tileFactory = resolver.resolveFactoryTileName(tileName);
 			if (tileFactory.isUnknown()) {
 				addToItemAmount(ret, new BSItemWithQualityID(tile.name, Optional.empty()), 1);
 				continue;
@@ -1014,7 +1016,7 @@ public class FBSR {
 		}
 	}
 
-	public static RenderDebugLayersResult renderDebugLayers(EntityRendererFactory factory, JSONObject jsonEntity)
+	public static RenderDebugLayersResult renderDebugLayers(EntityRendererFactory factory, JSONObject jsonEntity, ModdingResolver resolver)
 			throws Exception {
 
 		ListMultimap<Layer, MapRenderable> renderOrder = MultimapBuilder.enumKeys(Layer.class).arrayListValues()
@@ -1022,7 +1024,7 @@ public class FBSR {
 		Consumer<MapRenderable> register = r -> renderOrder.put(r.getLayer(), r);
 
 		BSEntity bsEntity = factory.parseEntity(jsonEntity);
-		MapEntity entity = new MapEntity(bsEntity, factory);
+		MapEntity entity = new MapEntity(bsEntity, factory, resolver);
 
 		WorldMap map = new WorldMap();
 		map.setAltMode(true);

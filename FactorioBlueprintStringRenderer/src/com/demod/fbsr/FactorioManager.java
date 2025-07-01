@@ -96,8 +96,10 @@ public class FactorioManager {
 	private volatile boolean initializedPrototypes = false;
 	private volatile boolean initializedFactories = false;
 
-	private Profile profileVanilla = null;
 	private final List<Profile> profiles;
+	
+	private IconManager iconManager;
+	private Profile profileVanilla = null;
 
 	private final Map<FactorioData, Profile> profileByData = new HashMap<>();
 	private final ListMultimap<String, Profile> profileByGroupName = ArrayListMultimap.create();
@@ -137,6 +139,14 @@ public class FactorioManager {
 
 	public List<Profile> getProfiles() {
 		return profiles;
+	}
+
+	public IconManager getIconManager() {
+		return iconManager;
+	}
+
+	public void setIconManager(IconManager iconManager) {
+		this.iconManager = iconManager;
 	}
 
 	public ListMultimap<String, EntityPrototype> getEntityByNameMap() {

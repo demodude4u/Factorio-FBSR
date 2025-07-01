@@ -12,6 +12,7 @@ import java.net.MalformedURLException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -56,6 +57,7 @@ import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.FBSR;
 import com.demod.fbsr.FBSR.RenderDebugLayersResult;
 import com.demod.fbsr.FactorioManager;
+import com.demod.fbsr.ModdingResolver;
 import com.demod.fbsr.Profile;
 import com.demod.fbsr.RenderRequest;
 import com.demod.fbsr.RenderResult;
@@ -79,6 +81,7 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.LinkedHashMultiset;
+import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multiset;
 import com.google.common.util.concurrent.AbstractIdleService;
 
@@ -252,7 +255,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		sendLuaDumpFile(event, "raw", key, lua.get());
 	}
 
-	private AutoCompleteHandler createPrototypeAutoCompleteHandler(List<? extends DataPrototype> options) {
+	private AutoCompleteHandler createPrototypeAutoCompleteHandler(ListMultimap<String, ? extends DataPrototype> options) {
 		return (event) -> {
 			String search = event.getParamString("name").trim().toLowerCase();
 
@@ -263,8 +266,8 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 			List<String> nameStartsWith = new ArrayList<>();
 			List<String> nameContains = new ArrayList<>();
-			for (DataPrototype proto : options) {
-				String name = proto.getName();
+			for (Collection<? extends DataPrototype> protos : options.asMap().values()) {
+				String name = protos.iterator().next().getName();
 				String lowerCase = name.toLowerCase();
 				if (lowerCase.startsWith(search)) {
 					nameStartsWith.add(name);
@@ -283,11 +286,15 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 	}
 
 	private SlashCommandHandler createPrototypeCommandHandler(String category,
-			Function<String, Optional<? extends DataPrototype>> lookup) {
+			Function<String, List<? extends DataPrototype>> lookup) {
 		return (event) -> {
 			String search = event.getParamString("name");
-			Optional<? extends DataPrototype> prototype = lookup.apply(search);
-			if (!prototype.isPresent()) {
+			List<? extends DataPrototype> prototypes = lookup.apply(search);
+			
+			ModdingResolver resolver = ModdingResolver.byVanillaFirst(FBSR.getFactorioManager());
+			Optional<? extends DataPrototype> prototype = resolver.pick(prototypes, Function.identity());
+			
+			if (prototype.isEmpty()) {
 				event.reply("I could not find the " + category + " prototype for `" + search);
 				return;
 			}
@@ -373,6 +380,8 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		if (blueprintString.blueprint.isPresent()) {
 			BSBlueprint blueprint = blueprintString.blueprint.get();
 
+			ModdingResolver resolver = ModdingResolver.byBlueprintBiases(factorioManager, blueprint);
+
 			reporting.addField(new Field("Blueprint Version", blueprint.version.toString(), true));
 
 			GUILayoutBlueprint layout = new GUILayoutBlueprint();
@@ -383,9 +392,9 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			renderTimes.add(layout.getResult().renderTime);
 
 			Set<String> groups = new LinkedHashSet<>();
-			blueprint.entities.stream().map(e -> factorioManager.lookupEntityFactoryForName(e.name))
+			blueprint.entities.stream().map(e -> resolver.resolveFactoryEntityName(e.name))
 					.map(e -> e.isUnknown() ? "Modded" : e.getGroupName()).forEach(groups::add);
-			blueprint.tiles.stream().map(t -> factorioManager.lookupTileFactoryForName(t.name))
+			blueprint.tiles.stream().map(t -> resolver.resolveFactoryTileName(t.name))
 					.filter(t -> !t.isUnknown()).map(t -> t.getGroupName()).forEach(groups::add);
 			spaceAge = groups.contains("Space Age");
 			groups.removeAll(Arrays.asList("Base", "Space Age"));
@@ -417,14 +426,19 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			renderTimes.add(layout.getResults().stream().mapToLong(r -> r.renderTime).sum());
 
 			List<BSBlueprint> blueprints = book.getAllBlueprints();
+			List<ModdingResolver> resolvers = blueprints.stream()
+					.map(b -> ModdingResolver.byBlueprintBiases(factorioManager, b))
+					.collect(Collectors.toList());
 
 			Set<String> groups = new LinkedHashSet<>();
-			blueprints.stream().flatMap(b -> b.entities.stream().map(e -> e.name)).distinct()
-					.map(n -> factorioManager.lookupEntityFactoryForName(n))
-					.map(e -> e.isUnknown() ? "Modded" : e.getGroupName()).forEach(groups::add);
-			blueprints.stream().flatMap(b -> b.tiles.stream().map(t -> t.name)).distinct()
-					.map(n -> factorioManager.lookupTileFactoryForName(n)).filter(t -> !t.isUnknown())
-					.map(t -> t.getGroupName()).forEach(groups::add);
+			for (int i = 0; i < blueprints.size(); i++) {
+				BSBlueprint b = blueprints.get(i);
+				ModdingResolver resolver = resolvers.get(i);
+				b.entities.stream().map(e -> resolver.resolveFactoryEntityName(e.name))
+						.map(e -> e.isUnknown() ? "Modded" : e.getGroupName()).forEach(groups::add);
+				b.tiles.stream().map(t -> resolver.resolveFactoryTileName(t.name)).filter(t -> !t.isUnknown())
+						.map(t -> t.getGroupName()).forEach(groups::add);
+			}
 			spaceAge = groups.contains("Space Age");
 			groups.removeAll(Arrays.asList("Base", "Space Age"));
 			mods.addAll(groups.stream().sorted().collect(Collectors.toList()));
@@ -966,24 +980,14 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		String entityName = event.getParamString("entity");
 		boolean debug = event.optParamBoolean("debug").orElse(false);
 
-		EntityRendererFactory factory = FBSR.getFactorioManager().lookupEntityFactoryForName(entityName);
-		if (factory.isUnknown()) {
-			event.reply("I could not find a way to display a `" + entityName);
-			return;
-		}
-
 		String jsonRaw;
+		JSONObject jsonEntity;
 		try {
 			JSONObject json = new JSONObject("{\"blueprint\":{\"entities\":[{\"entity_number\":1,\"name\":\""
 					+ entityName + "\",\"position\":{\"x\":0,\"y\":0}}],\"version\":562949955649542}}");
-			JSONObject jsonEntity = json.getJSONObject("blueprint").getJSONArray("entities").getJSONObject(0);
+			jsonEntity = json.getJSONObject("blueprint").getJSONArray("entities").getJSONObject(0);
 			JSONObject jsonCustom = new JSONObject(event.optParamString("json").orElse("{}"));
 			Utils.forEach(jsonCustom, (k, v) -> jsonEntity.put(k, v));
-
-			if (event.optParamBoolean("debug-layers").orElse(false)) {
-				handleShowEntityCommand_DebugLayers(event, factory, jsonEntity);
-				return;
-			}
 
 			jsonRaw = json.toString();
 		} catch (Exception e) {
@@ -994,6 +998,20 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		List<FindBlueprintResult> searchResults = BlueprintFinder.search(jsonRaw);
 		searchResults.forEach(f -> f.failureCause.ifPresent(e -> event.getReporting().addException(e)));
 		BSBlueprint blueprint = searchResults.get(0).blueprintString.get().findAllBlueprints().get(0);
+
+		FactorioManager factorioManager = FBSR.getFactorioManager();
+		ModdingResolver resolver = ModdingResolver.byBlueprintBiases(factorioManager, blueprint);
+
+		EntityRendererFactory factory = resolver.resolveFactoryEntityName(entityName);
+		if (factory.isUnknown()) {
+			event.reply("I could not find a way to display a `" + entityName);
+			return;
+		}
+
+		if (event.optParamBoolean("debug-layers").orElse(false)) {
+			handleShowEntityCommand_DebugLayers(event, factory, jsonEntity, resolver);
+			return;
+		}
 
 		RenderRequest request = new RenderRequest(blueprint, event.getReporting());
 		request.setBackground(Optional.empty());
@@ -1009,11 +1027,11 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 	}
 
 	private void handleShowEntityCommand_DebugLayers(SlashCommandEvent event, EntityRendererFactory factory,
-			JSONObject jsonEntity) {
+			JSONObject jsonEntity, ModdingResolver resolver) {
 
 		RenderDebugLayersResult result;
 		try {
-			result = FBSR.renderDebugLayers(factory, jsonEntity);
+			result = FBSR.renderDebugLayers(factory, jsonEntity, resolver);
 		} catch (Exception e) {
 			e.printStackTrace();
 
@@ -1069,8 +1087,8 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 		List<String> nameStartsWith = new ArrayList<>();
 		List<String> nameContains = new ArrayList<>();
-		for (EntityRendererFactory factory : FBSR.getFactorioManager().getEntityFactories()) {
-			String name = factory.getName();
+		for (Collection<EntityRendererFactory> factories : FBSR.getFactorioManager().getEntityFactoryByNameMap().asMap().values()) {
+			String name = factories.iterator().next().getName();
 			String lowerCase = name.toLowerCase();
 			if (lowerCase.startsWith(search)) {
 				nameStartsWith.add(name);
@@ -1462,8 +1480,8 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		LOGGER.info("Factorio {} Data Loaded.", version);
 
 		Set<String> groups = new HashSet<>();
-		factorioManager.getEntityFactories().forEach(e -> groups.add(e.getGroupName()));
-		factorioManager.getTileFactories().forEach(t -> groups.add(t.getGroupName()));
+		factorioManager.getEntityFactoryByNameMap().values().forEach(e -> groups.add(e.getGroupName()));
+		factorioManager.getTileFactoryByNameMap().values().forEach(t -> groups.add(t.getGroupName()));
 
 		bot = DCBA.builder()//
 				.setInfo("Blueprint Bot")//
