@@ -44,6 +44,7 @@ import com.demod.fbsr.gui.GUIStyle;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimap;
 
@@ -104,6 +105,8 @@ public class FactorioManager {
 	private final Map<FactorioData, Profile> profileByData = new HashMap<>();
 	private final ListMultimap<String, Profile> profileByGroupName = ArrayListMultimap.create();
 	private final ListMultimap<String, Profile> profileByModName = ArrayListMultimap.create();
+	private final ListMultimap<String, Profile> profileByEntityName = ArrayListMultimap.create();
+	private final ListMultimap<String, Profile> profileByTileName = ArrayListMultimap.create();
 
 	private final ListMultimap<String, EntityRendererFactory> entityFactoryByName = ArrayListMultimap.create();
 	private final ListMultimap<String, TileRendererFactory> tileFactoryByName = ArrayListMultimap.create();
@@ -293,6 +296,8 @@ public class FactorioManager {
 		//Could be done better
 		entityFactoryByName.values().forEach(e -> profileByGroupName.put(e.getGroupName(), e.getProfile()));
 		tileFactoryByName.values().forEach(e -> profileByGroupName.put(e.getGroupName(), e.getProfile()));
+		entityFactoryByName.values().forEach(e -> profileByEntityName.put(e.getName(), e.getProfile()));
+		tileFactoryByName.values().forEach(e -> profileByTileName.put(e.getName(), e.getProfile()));
 
 		return true;
 	}
@@ -303,6 +308,14 @@ public class FactorioManager {
 
 	public List<Profile> lookupProfileByGroupName(String groupName) {
 		return profileByGroupName.get(groupName);
+	}
+
+	public List<Profile> lookupProfileByEntityName(String entityName) {
+		return profileByEntityName.get(entityName);
+	}
+
+	public List<Profile> lookupProfileByTileName(String tileName) {
+		return profileByTileName.get(tileName);
 	}
 
 	public Profile lookupProfileByData(FactorioData data) {

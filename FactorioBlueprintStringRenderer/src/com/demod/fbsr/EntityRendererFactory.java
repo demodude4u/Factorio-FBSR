@@ -160,7 +160,7 @@ public abstract class EntityRendererFactory {
 			return;
 		}
 
-		Optional<IconDef> optDef = entity.getFactory().getProfile().getIconManager().lookupQuality(quality.get());
+		Optional<IconDef> optDef = entity.getResolver().resolveIconQualityName(quality.get());
 		if (optDef.isEmpty()) {
 			return;
 		}
@@ -170,12 +170,10 @@ public abstract class EntityRendererFactory {
 		double size = Math.round(Math.min(bounds.getX2() - bounds.getX1(), bounds.getY2() - bounds.getY1())) > 1 ? 0.5
 				: 0.25;
 		register.accept(new MapIcon(MapPosition.byUnit(bounds.getX1() + size / 2.0, bounds.getY2() - size / 2.0), def,
-				size, OptionalDouble.empty(), false, Optional.empty()));
+				size, OptionalDouble.empty(), false, Optional.empty(), entity.getResolver()));
 	}
 
 	public void createModuleIcons(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
-		IconManager iconManager = entity.getFactory().getProfile().getIconManager();
-
 		MapPosition position = entity.getPosition();
 		MapRect3D bounds = entity.getBounds();
 
@@ -186,10 +184,10 @@ public abstract class EntityRendererFactory {
 			double y = position.getY() + 0.7;
 
 			for (EntityModule module : renderModules) {
-				Optional<IconDef> image = iconManager.lookupItem(module.name);
+				Optional<IconDef> image = entity.getResolver().resolveIconItemName(module.name);
 				if (image.isPresent()) {
 					register.accept(new MapIcon(MapPosition.byUnit(x, y), image.get(), 0.5, OptionalDouble.of(0.05),
-							true, module.quality));
+							true, module.quality, entity.getResolver()));
 					x += 0.7;
 				}
 			}
@@ -227,10 +225,10 @@ public abstract class EntityRendererFactory {
 				double y = position.getY() - 1.15;
 
 				for (EntityModule module : renderModules) {
-					Optional<IconDef> image = iconManager.lookupItem(module.name);
+					Optional<IconDef> image = entity.getResolver().resolveIconItemName(module.name);
 					if (image.isPresent()) {
 						register.accept(new MapIcon(MapPosition.byUnit(x, y), image.get(), 0.25,
-								OptionalDouble.of(0.025), true, module.quality));
+								OptionalDouble.of(0.025), true, module.quality, entity.getResolver()));
 						x += 0.3;
 					}
 				}

@@ -16,9 +16,9 @@ public class IconDefWithQuality {
 		this.quality = quality;
 	}
 
-	public MapIcon createMapIcon(MapPosition position, double size, OptionalDouble border, boolean above) {
+	public MapIcon createMapIcon(MapPosition position, double size, OptionalDouble border, boolean above, ModdingResolver resolver) {
 		Optional<String> quality = this.quality.filter(s -> !s.equals("normal"));
-		return new MapIcon(position, def, size, border, above, quality);
+		return new MapIcon(position, def, size, border, above, quality, resolver);
 	}
 
 	public IconDef getDef() {

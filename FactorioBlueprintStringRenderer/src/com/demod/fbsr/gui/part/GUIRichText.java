@@ -4,6 +4,7 @@ import java.awt.Color;
 import java.awt.Font;
 import java.awt.Graphics2D;
 
+import com.demod.fbsr.ModdingResolver;
 import com.demod.fbsr.RichText;
 import com.demod.fbsr.gui.GUIBox;
 import com.demod.fbsr.gui.GUIAlign;
@@ -14,9 +15,9 @@ public class GUIRichText extends GUIPart {
 	public final Color color;
 	public final GUIAlign align;
 
-	public GUIRichText(GUIBox box, String text, Font font, Color color, GUIAlign align) {
+	public GUIRichText(GUIBox box, String text, Font font, Color color, GUIAlign align, ModdingResolver resolver) {
 		super(box);
-		this.text = new RichText(text);
+		this.text = new RichText(text, resolver);
 		this.font = font;
 		this.color = color;
 		this.align = align;

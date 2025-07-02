@@ -32,6 +32,7 @@ import com.demod.fbsr.RenderResult;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.RichText.TagToken;
 import com.demod.fbsr.IconManager;
+import com.demod.fbsr.ModdingResolver;
 import com.demod.fbsr.bs.BSBlueprint;
 import com.demod.fbsr.bs.BSItemWithQualityID;
 import com.demod.fbsr.composite.TintComposite;
@@ -62,6 +63,7 @@ public class GUILayoutBlueprint {
 	private IconManager iconManager = FBSR.getIconManager();
 
 	private BSBlueprint blueprint;
+	private ModdingResolver resolver;
 	private CommandReporting reporting;
 	private RenderResult result;
 
@@ -111,7 +113,7 @@ public class GUILayoutBlueprint {
 		renderTinted(panel);
 
 		boolean foundation = blueprint.tiles.stream().anyMatch(t -> {
-			Optional<TilePrototype> tile = factorioManager.lookupTileByName(t.name);
+			Optional<TilePrototype> tile = resolver.resolveTileName(t.name);
 			return tile.isPresent() && tile.get().isFoundation();
 		});
 		if (foundation) {
@@ -237,13 +239,13 @@ public class GUILayoutBlueprint {
 						int iconShrink = (int) (itemCellSize * 0.15);
 						GUIBox iconBounds = cellBounds.shrink(iconShrink, iconShrink, iconShrink, iconShrink);
 
-						Optional<IconDef> icon = iconManager.lookupItem(item.name);
+						Optional<IconDef> icon = resolver.resolveIconItemName(item.name);
 						if (icon.isPresent()) {
 							GUIImageDef imgIcon = new GUIImageDef(iconBounds, icon.get());
 							imgIcon.render(g);
 
 							if (item.quality.isPresent() && !item.quality.get().equals("normal")) {
-								Optional<IconDef> qualityIcon = iconManager.lookupQuality(item.quality.get());
+								Optional<IconDef> qualityIcon = resolver.resolveIconQualityName(item.quality.get());
 								if (qualityIcon.isPresent()) {
 									int qSize = (int) (0.4 * iconBounds.width);
 									GUIBox iconQualityBounds = iconBounds.cutLeft(qSize).cutBottom(qSize);
@@ -321,9 +323,9 @@ public class GUILayoutBlueprint {
 						if (item.name.equals(TotalRawCalculator.RAW_TIME)) {
 							image = Optional.of(guiStyle.DEF_CLOCK);
 						} else {
-							image = iconManager.lookupItem(item.name);
+							image = resolver.resolveIconItemName(item.name);
 							if (image.isEmpty()) {
-								image = iconManager.lookupFluid(item.name);
+								image = resolver.resolveIconFluidName(item.name);
 							}
 						}
 
@@ -365,7 +367,7 @@ public class GUILayoutBlueprint {
 	private void drawTitleBar(GUIBox bounds) {
 		GUIRichText lblTitle = new GUIRichText(bounds.shrinkBottom(6).shrinkLeft(24),
 				blueprint.label.orElse("Untitled Blueprint"), guiStyle.FONT_BP_BOLD.deriveFont(24f),
-				guiStyle.FONT_BP_COLOR, GUIAlign.CENTER_LEFT);
+				guiStyle.FONT_BP_COLOR, GUIAlign.CENTER_LEFT, resolver);
 		lblTitle.render(g);
 
 		StringBuilder iconText = new StringBuilder();
@@ -374,7 +376,7 @@ public class GUILayoutBlueprint {
 			iconText.append(tag.formatted());
 		});
 		GUIRichText lblIcons = new GUIRichText(bounds.shrinkBottom(6).shrinkRight(22),
-				iconText.toString(), guiStyle.FONT_BP_BOLD.deriveFont(24f), guiStyle.FONT_BP_COLOR, GUIAlign.CENTER_RIGHT);
+				iconText.toString(), guiStyle.FONT_BP_BOLD.deriveFont(24f), guiStyle.FONT_BP_COLOR, GUIAlign.CENTER_RIGHT, resolver);
 		lblIcons.render(g);
 
 		int startX = bounds.x + (int)lblTitle.getTextWidth(g) + 44;
@@ -397,9 +399,9 @@ public class GUILayoutBlueprint {
 		totalRawItems = baseDataOnly ? FBSR.generateTotalRawItems(totalItems) : ImmutableMap.of();
 
 		Set<String> groups = new LinkedHashSet<>();
-		blueprint.entities.stream().map(e -> factorioManager.lookupEntityFactoryForName(e.name))
+		blueprint.entities.stream().map(e -> resolver.resolveFactoryEntityName(e.name))
 				.map(e -> e.isUnknown() ? "Modded" : e.getGroupName()).forEach(groups::add);
-		blueprint.tiles.stream().map(t -> factorioManager.lookupTileFactoryForName(t.name)).filter(t -> !t.isUnknown())
+		blueprint.tiles.stream().map(t -> resolver.resolveFactoryTileName(t.name)).filter(t -> !t.isUnknown())
 				.map(t -> t.getGroupName()).forEach(groups::add);
 
 		spaceAge = groups.contains("Space Age");
@@ -485,6 +487,7 @@ public class GUILayoutBlueprint {
 
 	public void setBlueprint(BSBlueprint blueprint) {
 		this.blueprint = blueprint;
+		this.resolver = ModdingResolver.byBlueprintBiases(factorioManager, blueprint);
 	}
 
 	public void setReporting(CommandReporting reporting) {

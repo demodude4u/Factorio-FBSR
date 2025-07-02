@@ -121,6 +121,7 @@ public class FBSR {
 		private List<MapTile> mapTiles;
 		private Map<Integer, MapEntity> mapEntityByNumber;
 		private Multiset<String> unknownNames;
+		private ModdingResolver resolver;
 
 		private WorldMap map;
 
@@ -167,8 +168,8 @@ public class FBSR {
 			mapTiles = new ArrayList<MapTile>();
 			mapEntityByNumber = new HashMap<>();
 			unknownNames = LinkedHashMultiset.create();
-
-			ModdingResolver resolver = ModdingResolver.byBlueprintBiases(factorioManager, blueprint);
+			
+			resolver = ModdingResolver.byBlueprintBiases(factorioManager, blueprint);
 
 			for (BSMetaEntity metaEntity : blueprint.entities) {
 				EntityRendererFactory factory = resolver.resolveFactoryEntityName(metaEntity.name);
@@ -188,7 +189,7 @@ public class FBSR {
 					reporting.addException(metaEntity.getParseException().get(),
 							entity.name + " " + entity.entityNumber);
 				}
-				MapEntity mapEntity = new MapEntity(entity, factory);
+				MapEntity mapEntity = new MapEntity(entity, factory, resolver);
 				mapEntities.add(mapEntity);
 				mapEntityByNumber.put(entity.entityNumber, mapEntity);
 				if (factory.isUnknown()) {
@@ -197,7 +198,7 @@ public class FBSR {
 			}
 			for (BSTile tile : blueprint.tiles) {
 				TileRendererFactory factory = resolver.resolveFactoryTileName(tile.name);
-				MapTile mapTile = new MapTile(tile, factory);
+				MapTile mapTile = new MapTile(tile, factory, resolver);
 				mapTiles.add(mapTile);
 				if (factory.isUnknown()) {
 					unknownNames.add(tile.name);
@@ -214,6 +215,7 @@ public class FBSR {
 			map = new WorldMap();
 
 			map.setAltMode(request.show.altMode);
+			map.setResolver(resolver);
 
 			map.setFoundation(mapTiles.stream().anyMatch(t -> t.getFactory().getPrototype().isFoundation()));
 
@@ -1072,7 +1074,7 @@ public class FBSR {
 
 		MapText label = new MapText(null,
 				MapPosition.byUnit(frameBounds.getX() + 0.15, frameBounds.getY() + frameBounds.getHeight() / 2.0), 0,
-				factory.getProfile().getGuiStyle().FONT_BP_BOLD.deriveFont(0.8f), Color.white, "", false);
+				factory.getProfile().getGuiStyle().FONT_BP_BOLD.deriveFont(0.8f), Color.white, "", false, resolver);
 
 		int i = 0;
 		for (MapRenderable renderable : renderables) {

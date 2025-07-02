@@ -28,6 +28,7 @@ import com.demod.dcba.CommandReporting;
 import com.demod.fbsr.FBSR;
 import com.demod.fbsr.FactorioManager;
 import com.demod.fbsr.IconManager;
+import com.demod.fbsr.ModdingResolver;
 import com.demod.fbsr.RenderRequest;
 import com.demod.fbsr.RenderResult;
 import com.demod.fbsr.RichText;
@@ -463,6 +464,7 @@ public class GUILayoutBook {
 
 	public void setBook(BSBlueprintBook book) {
 		this.book = book;
+		this.resolver = ModdingResolver.byBlueprintBiases(factorioManager, book);
 	}
 
 	public void setReporting(CommandReporting reporting) {
