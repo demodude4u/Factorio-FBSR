@@ -6,6 +6,7 @@ import java.util.Optional;
 
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.Direction;
+import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.Profile;
 import com.demod.fbsr.def.SpriteDef;
 import com.demod.fbsr.Dir16;
@@ -34,6 +35,7 @@ public class FPSpriteNWaySheet extends FPSpriteParameters {
 		frameRepeat  = lua.get("frame_repeat").optint(1);
 
 		defs = createDefs(profile);
+		FPUtils.verifyNotNull(lua.getDebugPath() + " defs", defs);
 	}
 
 	private List<SpriteDef> createDefs(Profile profile) {

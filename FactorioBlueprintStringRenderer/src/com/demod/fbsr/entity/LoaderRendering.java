@@ -12,8 +12,8 @@ import java.util.stream.Collectors;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.IconDefWithQuality;
-import com.demod.fbsr.IconManager;
 import com.demod.fbsr.Layer;
+import com.demod.fbsr.ModdingResolver;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.WorldMap.BeltBend;
 import com.demod.fbsr.bs.BSEntity;
@@ -58,10 +58,10 @@ public abstract class LoaderRendering extends TransportBeltConnectableRendering 
 
 		if (!bsEntity.filters.isEmpty() && map.isAltMode()) {
 
-			IconManager iconManager = profile.getIconManager();
+			ModdingResolver resolver = entity.getResolver();
 
 			List<IconDefWithQuality> icons = bsEntity.filters.stream()
-					.flatMap(f -> iconManager.lookupFilter(f.type, f.name, f.quality).stream())
+					.flatMap(f -> resolver.resolveFilter(f.type, f.name, f.quality).stream())
 					.sorted(Comparator.comparing(iwq -> iwq.getDef().getPrototype())).limit(4)
 					.collect(Collectors.toList());
 
@@ -82,7 +82,7 @@ public abstract class LoaderRendering extends TransportBeltConnectableRendering 
 			for (int i = 0; i < icons.size(); i++) {
 				IconDefWithQuality icon = icons.get(i);
 				MapPosition iconPos = iconStartPos.addUnit((i % 2) * iconShift, (i / 2) * iconShift);
-				register.accept(icon.createMapIcon(iconPos, iconSize, OptionalDouble.of(iconBorder), false));
+				register.accept(icon.createMapIcon(iconPos, iconSize, OptionalDouble.of(iconBorder), false, resolver));
 			}
 		}
 	}

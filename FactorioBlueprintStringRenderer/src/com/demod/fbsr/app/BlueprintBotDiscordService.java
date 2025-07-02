@@ -291,8 +291,9 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			String search = event.getParamString("name");
 			List<? extends DataPrototype> prototypes = lookup.apply(search);
 			
-			ModdingResolver resolver = ModdingResolver.byVanillaFirst(FBSR.getFactorioManager());
-			Optional<? extends DataPrototype> prototype = resolver.pick(prototypes, Function.identity());
+			FactorioManager factorioManager = FBSR.getFactorioManager();
+			ModdingResolver resolver = ModdingResolver.byProfileOrder(factorioManager, ImmutableList.of(factorioManager.getProfileVanilla()), true);
+			Optional<? extends DataPrototype> prototype = resolver.pickPrototype(prototypes);
 			
 			if (prototype.isEmpty()) {
 				event.reply("I could not find the " + category + " prototype for `" + search);
@@ -979,6 +980,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 	private void handleShowEntityCommand(SlashCommandEvent event) {
 		String entityName = event.getParamString("entity");
 		boolean debug = event.optParamBoolean("debug").orElse(false);
+		Optional<String> modGroup = event.optParamString("mod");
 
 		String jsonRaw;
 		JSONObject jsonEntity;
@@ -1000,11 +1002,30 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		BSBlueprint blueprint = searchResults.get(0).blueprintString.get().findAllBlueprints().get(0);
 
 		FactorioManager factorioManager = FBSR.getFactorioManager();
-		ModdingResolver resolver = ModdingResolver.byBlueprintBiases(factorioManager, blueprint);
+
+		ModdingResolver resolver;
+		if (modGroup.isPresent()) {
+
+			List<Profile> profiles = new ArrayList<>(factorioManager.lookupProfileByGroupName(modGroup.get()));
+			
+			if (profiles.isEmpty()) {
+				event.reply("No profile found for mod: " + modGroup.get());
+				return;
+			}
+
+			if (!profiles.stream().anyMatch(p -> p.isVanilla())) {
+				profiles.add(factorioManager.getProfileVanilla());
+			}
+
+			resolver = ModdingResolver.byProfileOrder(factorioManager, profiles, false);
+
+		} else {
+			resolver = ModdingResolver.byBlueprintBiases(factorioManager, blueprint);
+		}
 
 		EntityRendererFactory factory = resolver.resolveFactoryEntityName(entityName);
 		if (factory.isUnknown()) {
-			event.reply("I could not find a way to display a `" + entityName);
+			event.reply("I could not find a way to display a `" + entityName + "`");
 			return;
 		}
 
@@ -1469,15 +1490,13 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 	@Override
 	protected void startUp() throws JSONException, IOException {
-		configJson = Config.get().getJSONObject("discord");
 
-		if (!FBSR.initialize()) {
-			throw new RuntimeException("Failed to initialize FBSR.");
-		}
+		ServiceFinder.findService(FactorioService.class).get().awaitRunning();
+
+		configJson = Config.get().getJSONObject("discord");
 
 		FactorioManager factorioManager = FBSR.getFactorioManager();
 		String version = factorioManager.getProfileVanilla().getFactorioData().getVersion();
-		LOGGER.info("Factorio {} Data Loaded.", version);
 
 		Set<String> groups = new HashSet<>();
 		factorioManager.getEntityFactoryByNameMap().values().forEach(e -> groups.add(e.getGroupName()));
@@ -1584,43 +1603,44 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 				//
 				.addSlashCommand("prototype/entity", "Lua data for the specified entity prototype.",
 						createPrototypeCommandHandler("entity", factorioManager::lookupEntityByName),
-						createPrototypeAutoCompleteHandler(factorioManager.getEntities()))//
+						createPrototypeAutoCompleteHandler(factorioManager.getEntityByNameMap()))//
 				.withAutoParam(OptionType.STRING, "name", "Prototype name of the entity.")//
 				//
 				.addSlashCommand("prototype/recipe", "Lua data for the specified recipe prototype.",
 						createPrototypeCommandHandler("recipe", factorioManager::lookupRecipeByName),
-						createPrototypeAutoCompleteHandler(factorioManager.getRecipes()))//
+						createPrototypeAutoCompleteHandler(factorioManager.getRecipeByNameMap()))//
 				.withAutoParam(OptionType.STRING, "name", "Prototype name of the recipe.")//
 				//
 				.addSlashCommand("prototype/fluid", "Lua data for the specified fluid prototype.",
 						createPrototypeCommandHandler("fluid", factorioManager::lookupFluidByName),
-						createPrototypeAutoCompleteHandler(factorioManager.getFluids()))//
+						createPrototypeAutoCompleteHandler(factorioManager.getFluidByNameMap()))//
 				.withAutoParam(OptionType.STRING, "name", "Prototype name of the fluid.")//
 				//
 				.addSlashCommand("prototype/item", "Lua data for the specified item prototype.",
 						createPrototypeCommandHandler("item", factorioManager::lookupItemByName),
-						createPrototypeAutoCompleteHandler(factorioManager.getItems()))//
+						createPrototypeAutoCompleteHandler(factorioManager.getItemByNameMap()))//
 				.withAutoParam(OptionType.STRING, "name", "Prototype name of the item.")//
 				//
 				.addSlashCommand("prototype/technology", "Lua data for the specified technology prototype.",
 						createPrototypeCommandHandler("technology", factorioManager::lookupTechnologyByName),
-						createPrototypeAutoCompleteHandler(factorioManager.getTechnologies()))//
+						createPrototypeAutoCompleteHandler(factorioManager.getTechnologyByNameMap()))//
 				.withAutoParam(OptionType.STRING, "name", "Prototype name of the technology.")//
 				//
 				.addSlashCommand("prototype/equipment", "Lua data for the specified equipment prototype.",
 						createPrototypeCommandHandler("equipment", factorioManager::lookupEquipmentByName),
-						createPrototypeAutoCompleteHandler(factorioManager.getEquipments()))//
+						createPrototypeAutoCompleteHandler(factorioManager.getEquipmentByNameMap()))//
 				.withAutoParam(OptionType.STRING, "name", "Prototype name of the equipment.")//
 				//
 				.addSlashCommand("prototype/tile", "Lua data for the specified tile prototype.",
 						createPrototypeCommandHandler("tile", factorioManager::lookupTileByName),
-						createPrototypeAutoCompleteHandler(factorioManager.getTiles()))//
+						createPrototypeAutoCompleteHandler(factorioManager.getTileByNameMap()))//
 				.withAutoParam(OptionType.STRING, "name", "Prototype name of the tile.")//
 				//
 				//
 				.addSlashCommand("show/entity", "Display an example of the specified entity.",
 						this::handleShowEntityCommand, this::handleShowEntityAutoComplete)//
 				.withAutoParam(OptionType.STRING, "entity", "Entity name to be shown.")
+				.withOptionalParam(OptionType.STRING, "mod", "Mod group name, as shown in blueprint renders.")
 				.withOptionalParam(OptionType.STRING, "json", "JSON properties to add to the entity.")
 				.withOptionalParam(OptionType.BOOLEAN, "debug", "Show debug markers.")
 				.withOptionalParam(OptionType.BOOLEAN, "debug-layers",
@@ -1660,9 +1680,10 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 		bot.startAsync().awaitRunning();
 
+		LOGGER.info("Discord {} started successfully!", bot.getJDA().getSelfUser().getEffectiveName());
+
 		hostingChannelID = configJson.getString("hosting_channel_id");
 
-		ServiceFinder.addService(this);
 		ServiceFinder.addService(WatchdogReporter.class, new WatchdogReporter() {
 			@Override
 			public void notifyInactive(String label) {

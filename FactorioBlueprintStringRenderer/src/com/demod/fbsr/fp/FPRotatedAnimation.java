@@ -48,6 +48,7 @@ public class FPRotatedAnimation extends FPAnimationParameters {
 		this.limitedDirectionCount = Math.min(limitDirectionCount, directionCount);
 		List<List<SpriteDef>> allDefs = createDefs(profile);
 		defs = limitedDirectionDefs(allDefs);
+		FPUtils.verifyNotNull(lua.getDebugPath() + " defs", defs);
 	}
 
 	private List<List<SpriteDef>> createDefs(Profile profile) {

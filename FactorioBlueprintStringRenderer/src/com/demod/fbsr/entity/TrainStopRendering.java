@@ -54,7 +54,7 @@ public class TrainStopRendering extends EntityWithOwnerRendering {
 			String stationName = bsEntity.station.get();
 			Font FONT = profile.getGuiStyle().FONT_BP_BOLD.deriveFont(0.5f);
 			register.accept(
-					new MapText(Layer.ENTITY_INFO_TEXT, entity.getPosition().addUnit(0.5, -2.0), -30, FONT, Color.white, stationName, false));
+					new MapText(Layer.ENTITY_INFO_TEXT, entity.getPosition().addUnit(0.5, -2.0), -30, FONT, Color.white, stationName, false, entity.getResolver()));
 		}
 	}
 

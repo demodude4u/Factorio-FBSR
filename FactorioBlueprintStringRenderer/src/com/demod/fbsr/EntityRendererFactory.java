@@ -120,6 +120,10 @@ public abstract class EntityRendererFactory {
 					
 					register.accept(factory);
 
+				} catch (ClassNotFoundException e) {
+					System.out.println("Entity rendering class for " + entityName + " not found: " + factoryName);
+					return false;
+
 				} catch (Exception e) {
 					e.printStackTrace();
 					System.out.println("Problem registering rendering for entity: " + entityName);
@@ -174,6 +178,8 @@ public abstract class EntityRendererFactory {
 	}
 
 	public void createModuleIcons(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
+		ModdingResolver resolver = entity.getResolver();
+
 		MapPosition position = entity.getPosition();
 		MapRect3D bounds = entity.getBounds();
 
@@ -184,10 +190,10 @@ public abstract class EntityRendererFactory {
 			double y = position.getY() + 0.7;
 
 			for (EntityModule module : renderModules) {
-				Optional<IconDef> image = entity.getResolver().resolveIconItemName(module.name);
+				Optional<IconDef> image = resolver.resolveIconItemName(module.name);
 				if (image.isPresent()) {
 					register.accept(new MapIcon(MapPosition.byUnit(x, y), image.get(), 0.5, OptionalDouble.of(0.05),
-							true, module.quality, entity.getResolver()));
+							true, module.quality, resolver));
 					x += 0.7;
 				}
 			}
@@ -225,10 +231,10 @@ public abstract class EntityRendererFactory {
 				double y = position.getY() - 1.15;
 
 				for (EntityModule module : renderModules) {
-					Optional<IconDef> image = entity.getResolver().resolveIconItemName(module.name);
+					Optional<IconDef> image = resolver.resolveIconItemName(module.name);
 					if (image.isPresent()) {
 						register.accept(new MapIcon(MapPosition.byUnit(x, y), image.get(), 0.25,
-								OptionalDouble.of(0.025), true, module.quality, entity.getResolver()));
+								OptionalDouble.of(0.025), true, module.quality, resolver));
 						x += 0.3;
 					}
 				}

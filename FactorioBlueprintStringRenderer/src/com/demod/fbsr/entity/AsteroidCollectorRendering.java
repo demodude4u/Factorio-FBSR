@@ -10,7 +10,7 @@ import java.util.stream.Collectors;
 import com.demod.factorio.fakelua.LuaTable;
 import com.demod.fbsr.EntityType;
 import com.demod.fbsr.IconDefWithQuality;
-import com.demod.fbsr.IconManager;
+import com.demod.fbsr.ModdingResolver;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.bs.entity.BSAsteroidCollectorEntity;
@@ -33,10 +33,10 @@ public class AsteroidCollectorRendering extends EntityWithOwnerRendering {
 
 		if (!bsEntity.chunkFilter.isEmpty()) {
 
-			IconManager iconManager = profile.getIconManager();
+			ModdingResolver resolver = entity.getResolver();
 
 			List<IconDef> icons = bsEntity.chunkFilter.stream()
-					.flatMap(name -> iconManager.lookupAsteroidChunk(name).stream())
+					.flatMap(name -> resolver.resolveIconAsteroidChunkName(name).stream())
 					.collect(Collectors.toList());
 
 			MapPosition iconStartPos;
@@ -56,7 +56,7 @@ public class AsteroidCollectorRendering extends EntityWithOwnerRendering {
 			for (int i = 0; i < icons.size(); i++) {
 				IconDef icon = icons.get(i);
 				MapPosition iconPos = iconStartPos.addUnit((i % 2) * iconShift, (i / 2) * iconShift);
-				register.accept(new MapIcon(iconPos, icon, iconSize, OptionalDouble.of(iconBorder), false, Optional.empty()));
+				register.accept(new MapIcon(iconPos, icon, iconSize, OptionalDouble.of(iconBorder), false, Optional.empty(), resolver));
 			}
 		}
 	}

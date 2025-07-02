@@ -38,6 +38,7 @@ public class FPSprite4Way {
 		}
 
 		defs = createDefs();
+		FPUtils.verifyNotNull(lua.getDebugPath() + " defs", defs);
 	}
 
 	private List<List<SpriteDef>> createDefs() {

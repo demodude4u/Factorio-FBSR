@@ -31,7 +31,6 @@ import com.demod.fbsr.RenderRequest;
 import com.demod.fbsr.RenderResult;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.RichText.TagToken;
-import com.demod.fbsr.IconManager;
 import com.demod.fbsr.ModdingResolver;
 import com.demod.fbsr.bs.BSBlueprint;
 import com.demod.fbsr.bs.BSItemWithQualityID;
@@ -60,7 +59,6 @@ public class GUILayoutBlueprint {
 
 	private FactorioManager factorioManager = FBSR.getFactorioManager();
 	private GUIStyle guiStyle = FBSR.getGuiStyle();
-	private IconManager iconManager = FBSR.getIconManager();
 
 	private BSBlueprint blueprint;
 	private ModdingResolver resolver;

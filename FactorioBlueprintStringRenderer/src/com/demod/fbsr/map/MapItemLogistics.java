@@ -15,7 +15,6 @@ import org.slf4j.LoggerFactory;
 import com.demod.fbsr.Atlas;
 import com.demod.fbsr.FBSR;
 import com.demod.fbsr.Atlas.AtlasRef;
-import com.demod.fbsr.IconManager;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.LogisticGridCell;
 import com.demod.fbsr.RenderUtils;

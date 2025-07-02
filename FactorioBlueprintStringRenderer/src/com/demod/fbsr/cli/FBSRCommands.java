@@ -27,16 +27,16 @@ import picocli.shell.jline3.PicocliCommands;
 @Command(name = "", mixinStandardHelpOptions = true, subcommands = {
     CommandLine.HelpCommand.class,
     CmdProfile.class, 
-    CmdBot.class, 
     CmdRender.class,
-    CmdDump.class
+    CmdDump.class,
+    CmdBot.class,
 })
 public class FBSRCommands {
 
-    @Option(names = "-config", description = "Path to the configuration file (optional)", defaultValue = "config.json", scope = ScopeType.INHERIT)
-    public void setConfigPath(File configPath) {
-        Config.setPath(configPath.getAbsolutePath());
-    }
+    // @Option(names = "-config", description = "Path to the configuration file (optional)", defaultValue = "config.json", scope = ScopeType.INHERIT)
+    // public void setConfigPath(File configPath) {
+    //     Config.setPath(configPath.getAbsolutePath());
+    // }
 
     public static void interactiveShell() {
         System.out.println(" _____ _____ _____ _____ ");

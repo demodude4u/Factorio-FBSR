@@ -4,11 +4,13 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalDouble;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import com.demod.factorio.prototype.DataPrototype;
 import com.demod.factorio.prototype.ItemPrototype;
+import com.demod.factorio.prototype.RecipePrototype;
 import com.demod.factorio.prototype.TilePrototype;
 import com.demod.fbsr.RichText.TagToken;
 import com.demod.fbsr.bs.BSBlueprint;
@@ -49,26 +51,38 @@ public abstract class ModdingResolver {
 
     public static ModdingResolver byBlueprintBiases(FactorioManager factorioManager, BSBlueprint blueprint) {
         Multiset<Profile> blueprintProfileCounts = HashMultiset.create();
+        
         for (BSMetaEntity entity : blueprint.entities) {
-            blueprintProfileCounts.addAll(factorioManager.lookupProfileByEntityName(entity.name));
+            List<Profile> entityProfiles = factorioManager.lookupProfileByEntityName(entity.name);
+            
+            if (entityProfiles.stream().anyMatch(p -> p.isVanilla())) {
+                blueprintProfileCounts.add(factorioManager.getProfileVanilla());
+            
+            } else {
+                blueprintProfileCounts.addAll(entityProfiles);
+            }
         }
+        
         for (BSTile tile : blueprint.tiles) {
-            blueprintProfileCounts.addAll(factorioManager.lookupProfileByTileName(tile.name));
+            List<Profile> tileProfiles = factorioManager.lookupProfileByTileName(tile.name);
+
+            if (tileProfiles.stream().anyMatch(p -> p.isVanilla())) {
+                blueprintProfileCounts.add(factorioManager.getProfileVanilla());
+            
+            } else {
+                blueprintProfileCounts.addAll(tileProfiles);
+            }
         }
-        List<Profile> profileRanking = blueprintProfileCounts.entrySet().stream()
+
+        // Order: <Profiles in Blueprint> ==> <Vanilla Profile> ==> <Other Profiles>
+        List<Profile> profileOrder = blueprintProfileCounts.entrySet().stream()
                 .sorted(Comparator.comparingInt(Multiset.Entry<Profile>::getCount).reversed())
                 .map(Multiset.Entry::getElement)
                 .collect(Collectors.toCollection(ArrayList::new));
+        profileOrder.removeIf(p -> p.isVanilla());
+        profileOrder.add(factorioManager.getProfileVanilla());
 
-        //Order: <Top Profile> ==> <Vanilla> ==> <Other Profiles>
-        List<Profile> profileOrder = new ArrayList<>();
-        if (!profileRanking.isEmpty()) {
-            profileOrder.add(profileRanking.remove(0));
-        }
-        profileRanking.stream().filter(Profile::isVanilla).forEach(profileOrder::add);
-        profileRanking.stream().filter(p -> !p.isVanilla()).forEach(profileOrder::add);
-
-        return byProfileOrder(factorioManager, profileOrder);
+        return byProfileOrder(factorioManager, profileOrder, true);
     }
 
     public static ModdingResolver byBlueprintBiases(FactorioManager factorioManager, BSBlueprintBook book) {
@@ -94,7 +108,7 @@ public abstract class ModdingResolver {
         profileRanking.stream().filter(Profile::isVanilla).forEach(profileOrder::add);
         profileRanking.stream().filter(p -> !p.isVanilla()).forEach(profileOrder::add);
 
-        return byProfileOrder(factorioManager, profileOrder);
+        return byProfileOrder(factorioManager, profileOrder, true);
     }
 
     private final FactorioManager factorioManager;
@@ -121,6 +135,10 @@ public abstract class ModdingResolver {
         return pickByImageDef(imageDefs, Function.identity());
     }
 
+    //////////////////////////////////
+    /// Prototypes
+    //////////////////////////////////
+
     public Optional<ItemPrototype> resolveItemName(String itemName) {
         return pickPrototype(factorioManager.lookupItemByName(itemName));
     }
@@ -128,6 +146,14 @@ public abstract class ModdingResolver {
     public Optional<TilePrototype> resolveTileName(String name) {
         return pickPrototype(factorioManager.lookupTileByName(name));
     }
+
+    public Optional<RecipePrototype> resolveRecipeName(String name) {
+        return pickPrototype(factorioManager.lookupRecipeByName(name));
+    }
+
+    //////////////////////////////////
+    /// Factories
+    //////////////////////////////////
 
     public EntityRendererFactory resolveFactoryEntityName(String entityName) {
         return pickByPrototype(factorioManager.lookupEntityFactoryForName(entityName), EntityRendererFactory::getPrototype)
@@ -139,6 +165,10 @@ public abstract class ModdingResolver {
                 .orElseGet(() -> factorioManager.getUnknownTileRenderingForName(tileName));
     }
 
+    //////////////////////////////////
+    /// Icons
+    //////////////////////////////////
+
     public Optional<IconDef> resolveIconQualityName(String string) {
         return pickImageDef(factorioManager.getIconManager().lookupQuality(string));
     }
@@ -147,11 +177,35 @@ public abstract class ModdingResolver {
         return pickImageDef(factorioManager.getIconManager().lookupItem(name));
     }
 
-    public Optional<? extends ImageDef> resolveIconFluidName(String name) {
+    public Optional<IconDef> resolveIconFluidName(String name) {
         return pickImageDef(factorioManager.getIconManager().lookupFluid(name));
     }
 
+    public Optional<IconDef> resolveIconRecipeName(String string) {
+        return pickImageDef(factorioManager.getIconManager().lookupRecipe(string));
+    }
+
+    public Optional<IconDef> resolveIconEntityName(String name) {
+        return pickImageDef(factorioManager.getIconManager().lookupEntity(name));
+    }
+
+    public Optional<IconDef> resolveIconAsteroidChunkName(String name) {
+        return pickImageDef(factorioManager.getIconManager().lookupAsteroidChunk(name));
+    }
+
+    //////////////////////////////////
+    /// Others
+    //////////////////////////////////
+
     public Optional<TagWithQuality> resolveTag(TagToken tagToken) {
         return pickByImageDef(factorioManager.getIconManager().lookupTag(tagToken), t -> t.getDef());
+    }
+
+    public Optional<IconDefWithQuality> resolveSignalID(String type, String name, Optional<String> quality) {
+        return pickByImageDef(factorioManager.getIconManager().lookupSignalID(type, name, quality), i -> i.getDef());
+    }
+
+    public Optional<IconDefWithQuality> resolveFilter(Optional<String> type, Optional<String> name, Optional<String> quality) {
+        return pickByImageDef(factorioManager.getIconManager().lookupFilter(type, name, quality), i -> i.getDef());
     }
 }

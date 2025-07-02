@@ -37,6 +37,7 @@ public class FPSpriteSheet extends FPSpriteParameters {
 		}
 
 		defs = createDefs(profile);
+		FPUtils.verifyNotNull(lua.getDebugPath() + " defs", defs);
 	}
 
 	private List<SpriteDef> createDefs(Profile profile) {

@@ -662,6 +662,28 @@ public class FBSR {
 			}
 		}
 
+		LOGGER.info("FBSR initialized, Factorio {}", FactorioManager.getFactorioVersion());
+
+		return true;
+	}
+
+	public static synchronized boolean unload() {
+		if (!initialized) {
+			return true;
+		}
+		initialized = false;
+
+		for (Profile profile : factorioManager.getProfiles()) {
+			profile.resetLoadedData();
+		}
+
+		factorioManager = null;
+		guiStyle = null;
+		iconManager = null;
+
+		System.gc();
+
+		System.out.println("FBSR unloaded.");
 		return true;
 	}
 

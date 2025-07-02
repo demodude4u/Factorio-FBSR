@@ -10,7 +10,6 @@ import com.demod.factorio.prototype.ItemPrototype;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.FBSR;
-import com.demod.fbsr.FactorioManager;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.ModdingResolver;
 import com.demod.fbsr.bs.BSEntity;

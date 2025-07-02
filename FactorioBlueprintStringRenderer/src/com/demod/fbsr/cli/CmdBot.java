@@ -31,7 +31,14 @@ public class CmdBot {
             return;
         }
 
-        FBSRApps.start();
+        if (!FBSRApps.start()) {
+            LOGGER.error("Failed to start Blueprint Bot service. Please check the configuration and try again.");
+            return;
+        }
+
+        if (!FBSRApps.waitForStopped(true)) {
+            LOGGER.error("Unexpected error occurred while waiting for Blueprint Bot service to stop.");
+        }
     }
 
     @Command(name = "start", description = "Start Blueprint Bot as a background service")

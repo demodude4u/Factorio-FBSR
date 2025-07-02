@@ -282,22 +282,26 @@ public class FactorioManager {
 		for (Profile profile : profiles) {
 			RenderingRegistry registry = profile.getRenderingRegistry();
 
-			if (!EntityRendererFactory.initFactories(registry::addEntity, profile)) {
+			if (!EntityRendererFactory.initFactories(f -> {
+				registry.addEntity(f);
+				entityFactoryByName.put(f.getName(), f);
+				profileByGroupName.put(f.getGroupName(), profile);
+				profileByEntityName.put(f.getName(), profile);
+			}, profile)) {
 				return false;
 			}
 
-			if (!TileRendererFactory.initFactories(registry::addTile, profile)) {
+			if (!TileRendererFactory.initFactories(f -> {
+				registry.addTile(f);
+				tileFactoryByName.put(f.getName(), f);
+				profileByGroupName.put(f.getGroupName(), profile);
+				profileByTileName.put(f.getName(), profile);
+			}, profile)) {
 				return false;
 			}
 		}
 
 		DataTable baseTable = profileVanilla.getFactorioData().getTable();
-
-		//Could be done better
-		entityFactoryByName.values().forEach(e -> profileByGroupName.put(e.getGroupName(), e.getProfile()));
-		tileFactoryByName.values().forEach(e -> profileByGroupName.put(e.getGroupName(), e.getProfile()));
-		entityFactoryByName.values().forEach(e -> profileByEntityName.put(e.getName(), e.getProfile()));
-		tileFactoryByName.values().forEach(e -> profileByTileName.put(e.getName(), e.getProfile()));
 
 		return true;
 	}

@@ -334,6 +334,25 @@ public class CmdProfile {
         }
     }
 
+    @Command(name = "edit", description = "Open the profile configuration file in the default editor")
+    public void editProfile(
+            @Parameters(arity = "0..1", description = "Name of the profile", paramLabel = "PROFILE") Optional<String> name
+    ) {
+        if (!checkOrSelectProfile(name)) {
+            return;
+        }
+
+        if (Desktop.isDesktopSupported()) {
+            try {
+                Desktop.getDesktop().open(profile.getFileProfile());
+            } catch (IOException e) {
+                System.out.println("Failed to open profile in editor: " + e.getMessage());
+            }
+        } else {
+            System.out.println("Desktop is not supported. Cannot open profile in editor.");
+        }
+    }
+
     @Command(name = "build-manifest", description = "Build the manifest for the specified profile")
     public void buildManifest(
             @Parameters(arity = "0..1", description = "Name of the profile", paramLabel = "PROFILE") Optional<String> name,
@@ -474,13 +493,13 @@ public class CmdProfile {
 
         if (forceData) {
             for (Profile profile : profiles) {
-                profile.clearData();
+                profile.cleanData();
             }
         }
 
         if (forceDump) {
             for (Profile profile : profiles) {
-                profile.clearDump();
+                profile.cleanDump();
             }
         }
         
@@ -519,14 +538,14 @@ public class CmdProfile {
         }
     }
 
-    @Command(name = "clear-manifest", description = "Clear the manifest for the specified profile")
-    public void clearManifest(
+    @Command(name = "clean-manifest", description = "Clean the manifest for the specified profile")
+    public void cleanManifest(
             @Parameters(arity = "0..1", description = "Name of the profile", paramLabel = "PROFILE") Optional<String> name,
-            @Option(names = "-all", description = "Clear manifest for all profiles, ignoring the selected profile") boolean all
+            @Option(names = "-all", description = "Clean manifest for all profiles, ignoring the selected profile") boolean all
     ) {
         if (all) {
             for (Profile profile : Profile.listProfiles()) {
-                clearManifest(Optional.of(profile.getName()), false);
+                cleanManifest(Optional.of(profile.getName()), false);
             }
             return;
         }
@@ -535,19 +554,19 @@ public class CmdProfile {
             return;
         }
 
-        if (profile.clearManifest()) {
-            System.out.println("Manifest cleared successfully for profile: " + profile.getName());
+        if (profile.cleanManifest()) {
+            System.out.println("Manifest cleaned successfully for profile: " + profile.getName());
         }
     }
 
-    @Command(name = "clear-download", description = "Clear all downloaded mods for the specified profile")
-    public void clearDownload(
+    @Command(name = "clean-download", description = "Clean all downloaded mods for the specified profile")
+    public void cleanDownload(
             @Parameters(arity = "0..1", description = "Name of the profile", paramLabel = "PROFILE") Optional<String> name,
-            @Option(names = "-all", description = "Clear downloaded mods for all profiles, ignoring the selected profile") boolean all
+            @Option(names = "-all", description = "Clean downloaded mods for all profiles, ignoring the selected profile") boolean all
     ) {
         if (all) {
             for (Profile profile : Profile.listProfiles()) {
-                clearDownload(Optional.of(profile.getName()), false);
+                cleanDownload(Optional.of(profile.getName()), false);
             }
             return;
         }
@@ -556,19 +575,19 @@ public class CmdProfile {
             return;
         }
 
-        if (profile.clearAllDownloads()) {
-            System.out.println("Downloaded mods cleared successfully for profile: " + profile.getName());
+        if (profile.cleanAllDownloads()) {
+            System.out.println("Downloaded mods cleaned successfully for profile: " + profile.getName());
         }
     }
 
-    @Command(name = "clear-download-invalid", description = "Clear invalid downloaded mods for the specified profile")
-    public void clearDownloadInvalid(
+    @Command(name = "clean-download-invalid", description = "Clean invalid downloaded mods for the specified profile")
+    public void cleanDownloadInvalid(
             @Parameters(arity = "0..1", description = "Name of the profile", paramLabel = "PROFILE") Optional<String> name,
-            @Option(names = "-all", description = "Clear invalid downloaded mods for all profiles, ignoring the selected profile") boolean all
+            @Option(names = "-all", description = "Clean invalid downloaded mods for all profiles, ignoring the selected profile") boolean all
     ) {
         if (all) {
             for (Profile profile : Profile.listProfiles()) {
-                clearDownloadInvalid(Optional.of(profile.getName()), false);
+                cleanDownloadInvalid(Optional.of(profile.getName()), false);
             }
             return;
         }
@@ -577,19 +596,19 @@ public class CmdProfile {
             return;
         }
 
-        if (profile.clearInvalidDownloads()) {
-            System.out.println("Invalid downloaded mods cleared successfully for profile: " + profile.getName());
+        if (profile.cleanInvalidDownloads()) {
+            System.out.println("Invalid downloaded mods cleaned successfully for profile: " + profile.getName());
         }
     }
 
-    @Command(name = "clear-dump", description = "Clear dumped factorio data for the specified profile")
-    public void clearDumpDataRaw(
+    @Command(name = "clean-dump", description = "Clean dumped factorio data for the specified profile")
+    public void cleanDumpDataRaw(
             @Parameters(arity = "0..1", description = "Name of the profile", paramLabel = "PROFILE") Optional<String> name,
-            @Option(names = "-all", description = "Clear dumped data for all profiles, ignoring the selected profile") boolean all
+            @Option(names = "-all", description = "Clean dumped data for all profiles, ignoring the selected profile") boolean all
     ) {
         if (all) {
             for (Profile profile : Profile.listProfiles()) {
-                clearDumpDataRaw(Optional.of(profile.getName()), false);
+                cleanDumpDataRaw(Optional.of(profile.getName()), false);
             }
             return;
         }
@@ -598,19 +617,19 @@ public class CmdProfile {
             return;
         }
 
-        if (profile.clearDump()) {
-            System.out.println("Factorio data dump cleared successfully for profile: " + profile.getName());
+        if (profile.cleanDump()) {
+            System.out.println("Factorio data dump cleaned successfully for profile: " + profile.getName());
         }
     }
 
-    @Command(name = "clear-data", description = "Clear generated data for the specified profile")
-    public void clearGenerateData(
+    @Command(name = "clean-data", description = "Clean generated data for the specified profile")
+    public void cleanGenerateData(
             @Parameters(arity = "0..1", description = "Name of the profile", paramLabel = "PROFILE") Optional<String> name,
-            @Option(names = "-all", description = "Clear generated data for all profiles, ignoring the selected profile") boolean all
+            @Option(names = "-all", description = "Clean generated data for all profiles, ignoring the selected profile") boolean all
     ) {
         if (all) {
             for (Profile profile : Profile.listProfiles()) {
-                clearGenerateData(Optional.of(profile.getName()), false);
+                cleanGenerateData(Optional.of(profile.getName()), false);
             }
             return;
         }
@@ -619,29 +638,29 @@ public class CmdProfile {
             return;
         }
 
-        if (profile.clearData()) {
-            System.out.println("Generated data cleared successfully for profile: " + profile.getName());
+        if (profile.cleanData()) {
+            System.out.println("Generated data cleaned successfully for profile: " + profile.getName());
         }
     }
 
-    @Command(name = "clear", description = "Clear all build and data for the specified profile")
-    public void clearAllSteps(
+    @Command(name = "clean", description = "Clean all build and data for the specified profile")
+    public void cleanAllSteps(
             @Parameters(arity = "0..1", description = "Name of the profile", paramLabel = "PROFILE") Optional<String> name,
-            @Option(names = "-all", description = "Clear all data for all profiles, ignoring the selected profile") boolean all,
-            @Option(names = "-keep-downloads", description = "Keep downloaded mods when clearing all data") boolean keepDownloads
+            @Option(names = "-all", description = "Clean all data for all profiles, ignoring the selected profile") boolean all,
+            @Option(names = "-delete-build", description = "Delete build folder (including downloaded mods) when cleaning all data") boolean deleteBuild
     ) {
         if (!all && !checkOrSelectProfile(name)) {
             return;
         }
 
-        clearGenerateData(name, all);
-        clearDumpDataRaw(name, all);
-        if (!keepDownloads) {
-            clearDownload(name, all);
+        cleanGenerateData(name, all);
+        cleanDumpDataRaw(name, all);
+        if (deleteBuild) {
+            cleanDownload(name, all);
         }
-        clearManifest(name, all);
+        cleanManifest(name, all);
 
-        if (!keepDownloads) {
+        if (deleteBuild) {
             if (all) {
                 for (Profile profile : Profile.listProfiles()) {
                     if (!profile.deleteBuild()) {
@@ -658,14 +677,14 @@ public class CmdProfile {
         
     }
 
-    @Command(name = "clear-build", description = "Clear the build folder for the specified profile")
-    public void clearBuildFolder(
+    @Command(name = "clean-build", description = "Clean the build folder for the specified profile")
+    public void cleanBuildFolder(
             @Parameters(arity = "0..1", description = "Name of the profile", paramLabel = "PROFILE") Optional<String> name,
-            @Option(names = "-all", description = "Clear build folder for all profiles, ignoring the selected profile") boolean all
+            @Option(names = "-all", description = "Clean build folder for all profiles, ignoring the selected profile") boolean all
     ) {
         if (all) {
             for (Profile profile : Profile.listProfiles()) {
-                clearBuildFolder(Optional.of(profile.getName()), false);
+                cleanBuildFolder(Optional.of(profile.getName()), false);
             }
             return;
         }

@@ -11,8 +11,8 @@ import com.demod.factorio.fakelua.LuaTable;
 import com.demod.fbsr.EntityType;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.IconDefWithQuality;
-import com.demod.fbsr.IconManager;
 import com.demod.fbsr.Layer;
+import com.demod.fbsr.ModdingResolver;
 import com.demod.fbsr.WirePoints;
 import com.demod.fbsr.WirePoints.WireColor;
 import com.demod.fbsr.WorldMap;
@@ -40,10 +40,10 @@ public class ConstantCombinatorRendering extends EntityWithOwnerRendering {
 					.collect(Collectors.toList());
 			if (!filters.isEmpty()) {
 
-				IconManager iconManager = profile.getIconManager();
+				ModdingResolver resolver = entity.getResolver();
 
 				List<IconDefWithQuality> icons = filters.stream()
-						.flatMap(f -> iconManager.lookupFilter(f.type, f.name, f.quality).stream())
+						.flatMap(f -> resolver.resolveFilter(f.type, f.name, f.quality).stream())
 						.sorted(Comparator.comparing(iwq -> iwq.getDef().getPrototype())).limit(4)
 						.collect(Collectors.toList());
 
@@ -64,7 +64,7 @@ public class ConstantCombinatorRendering extends EntityWithOwnerRendering {
 				for (int i = 0; i < icons.size(); i++) {
 					IconDefWithQuality icon = icons.get(i);
 					MapPosition iconPos = iconStartPos.addUnit((i % 2) * iconShift, (i / 2) * iconShift);
-					register.accept(icon.createMapIcon(iconPos, iconSize, OptionalDouble.of(iconBorder), false));
+					register.accept(icon.createMapIcon(iconPos, iconSize, OptionalDouble.of(iconBorder), false, entity.getResolver()));
 				}
 			}
 		}

@@ -32,6 +32,7 @@ public class FPTileMainPictures extends FPTileSpriteLayout {
 		limitedCount = Math.min(limitCount, count);
 		List<SpriteDef> allDefs = createDefs(profile);
 		defs = allDefs.stream().limit(limitedCount).collect(Collectors.toList());
+		FPUtils.verifyNotNull(lua.getDebugPath() + " defs", defs);
 	}
 
 	private List<SpriteDef> createDefs(Profile profile) {

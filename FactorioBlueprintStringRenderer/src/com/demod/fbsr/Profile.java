@@ -629,11 +629,11 @@ public class Profile {
 		return true;
 	}
 
-    public boolean clearManifest() {
+    public boolean cleanManifest() {
         return fileManifest.delete();
     }
 
-    public boolean clearAllDownloads() {
+    public boolean cleanAllDownloads() {
         if (!folderBuildMods.exists()) {
             return false;
         }
@@ -658,7 +658,7 @@ public class Profile {
         return true;
     }
 
-    public boolean clearInvalidDownloads() {
+    public boolean cleanInvalidDownloads() {
         if (!hasManifest()) {
             System.out.println("Profile " + folderProfile.getName() + " does not have a manifest.");
             return false;
@@ -693,11 +693,11 @@ public class Profile {
         return true;
     }
 
-    public boolean clearDump() {
+    public boolean cleanDump() {
         return fileScriptOutputDump.delete();
     }
 
-    public boolean clearData() {
+    public boolean cleanData() {
         return fileFactorioData.delete() && fileAtlasData.delete();
     }
 
@@ -856,9 +856,9 @@ public class Profile {
             return false;
         }
 
-        clearInvalidDownloads();
-        clearDump();
-        clearData();
+        cleanInvalidDownloads();
+        cleanDump();
+        cleanData();
 
         return true;
     }
@@ -952,9 +952,9 @@ public class Profile {
             }
         }
 
-        clearInvalidDownloads();
-        clearDump();
-        clearData();
+        cleanInvalidDownloads();
+        cleanDump();
+        cleanData();
 
         if (modLoader != null) {
             modLoader.reload();
@@ -1007,7 +1007,7 @@ public class Profile {
             return false;
         }
 
-        clearData();
+        cleanData();
 
         return true;
     }

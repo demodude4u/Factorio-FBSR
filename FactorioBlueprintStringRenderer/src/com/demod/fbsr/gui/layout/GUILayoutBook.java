@@ -27,7 +27,6 @@ import java.util.stream.IntStream;
 import com.demod.dcba.CommandReporting;
 import com.demod.fbsr.FBSR;
 import com.demod.fbsr.FactorioManager;
-import com.demod.fbsr.IconManager;
 import com.demod.fbsr.ModdingResolver;
 import com.demod.fbsr.RenderRequest;
 import com.demod.fbsr.RenderResult;
@@ -188,9 +187,9 @@ public class GUILayoutBook {
 
 	private FactorioManager factorioManager = FBSR.getFactorioManager();
 	private GUIStyle guiStyle = FBSR.getGuiStyle();
-	private IconManager iconManager = FBSR.getIconManager();
 
 	private BSBlueprintBook book;
+	private ModdingResolver resolver;
 	private CommandReporting reporting;
 	private List<RenderResult> results;
 	private List<ImageBlock> blocks;
@@ -275,7 +274,7 @@ public class GUILayoutBook {
 			}
 
 			if (labelText.length() > 0) {
-				RichText label = new RichText(labelText.toString());
+				RichText label = new RichText(labelText.toString(), resolver);
 				label.draw(g, x + 25, y + 35);
 			}
 		}
@@ -329,7 +328,7 @@ public class GUILayoutBook {
 	private void drawTitleBar(Graphics2D g, GUIBox bounds) {
 		GUIRichText lblTitle = new GUIRichText(bounds.shrinkBottom(6).shrinkLeft(24),
 				book.label.orElse("Untitled Blueprint Book"), guiStyle.FONT_BP_BOLD.deriveFont(24f),
-				guiStyle.FONT_BP_COLOR, GUIAlign.CENTER_LEFT);
+				guiStyle.FONT_BP_COLOR, GUIAlign.CENTER_LEFT, resolver);
 		lblTitle.render(g);
 
 		StringBuilder iconText = new StringBuilder();
@@ -338,7 +337,7 @@ public class GUILayoutBook {
 			iconText.append(tag.formatted());
 		}));
 		GUIRichText lblIcons = new GUIRichText(bounds.shrinkBottom(6).shrinkRight(22),
-				iconText.toString(), guiStyle.FONT_BP_BOLD.deriveFont(24f), guiStyle.FONT_BP_COLOR, GUIAlign.CENTER_RIGHT);
+				iconText.toString(), guiStyle.FONT_BP_BOLD.deriveFont(24f), guiStyle.FONT_BP_COLOR, GUIAlign.CENTER_RIGHT, resolver);
 		lblIcons.render(g);
 
 		int startX = bounds.x + (int) (lblTitle.getTextWidth(g) + 44);
@@ -431,9 +430,9 @@ public class GUILayoutBook {
 			pc = g.getComposite();
 			Set<String> groups = new LinkedHashSet<>();
 			for (BSBlueprint blueprint : book.getAllBlueprints()) {
-				blueprint.entities.stream().map(e -> factorioManager.lookupEntityFactoryForName(e.name))
+				blueprint.entities.stream().map(e -> resolver.resolveFactoryEntityName(e.name))
 						.map(e -> e.isUnknown() ? "Modded" : e.getGroupName()).forEach(groups::add);
-				blueprint.tiles.stream().map(t -> factorioManager.lookupTileFactoryForName(t.name)).filter(t -> !t.isUnknown())
+				blueprint.tiles.stream().map(t -> resolver.resolveFactoryTileName(t.name)).filter(t -> !t.isUnknown())
 						.map(t -> t.getGroupName()).forEach(groups::add);
 			}
 

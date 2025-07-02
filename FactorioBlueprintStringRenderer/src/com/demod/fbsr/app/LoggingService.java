@@ -33,13 +33,10 @@ public class LoggingService extends AbstractIdleService {
 
 	@Override
 	protected void shutDown() {
-		ServiceFinder.removeService(this);
 	}
 
 	@Override
 	protected void startUp() {
-		ServiceFinder.addService(this);
-
 	}
 
 }

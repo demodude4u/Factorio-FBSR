@@ -12,7 +12,6 @@ import java.util.OptionalDouble;
 import com.demod.fbsr.Atlas;
 import com.demod.fbsr.FBSR;
 import com.demod.fbsr.Atlas.AtlasRef;
-import com.demod.fbsr.IconManager;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.ModdingResolver;
 import com.demod.fbsr.def.IconDef;

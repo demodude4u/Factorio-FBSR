@@ -13,9 +13,8 @@ import com.demod.factorio.prototype.RecipePrototype;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.FPUtils;
-import com.demod.fbsr.FactorioManager;
 import com.demod.fbsr.Layer;
-import com.demod.fbsr.IconManager;
+import com.demod.fbsr.ModdingResolver;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.bs.entity.BSCraftingMachineEntity;
@@ -92,9 +91,9 @@ public abstract class CraftingMachineRendering extends EntityWithOwnerRendering 
 
 		if (bsEntity.recipe.isPresent() && map.isAltMode()) {
 
-			IconManager iconManager = profile.getIconManager();
+			ModdingResolver resolver = entity.getResolver();
 
-			Optional<IconDef> icon = iconManager.lookupRecipe(bsEntity.recipe.get());
+			Optional<IconDef> icon = resolver.resolveIconRecipeName(bsEntity.recipe.get());
 			if (icon.isEmpty()) {
 				if (bsEntity.getProtoRecipe().isPresent()) {
 					RecipePrototype protoRecipe = bsEntity.getProtoRecipe().get();
@@ -104,15 +103,15 @@ public abstract class CraftingMachineRendering extends EntityWithOwnerRendering 
 					} else {
 						name = protoRecipe.lua().get("result").toString();
 					}
-					icon = iconManager.lookupItem(name);
+					icon = resolver.resolveIconItemName(name);
 					if (icon.isEmpty()) {
-						icon = iconManager.lookupFluid(name);
+						icon = resolver.resolveIconFluidName(name);
 					}
 				}
 			}
 			if (icon.isPresent()) {
 				register.accept(new MapIcon(entity.getPosition().addUnit(0, -0.3), icon.get(), 1.4,
-						OptionalDouble.of(0.1), false, bsEntity.recipeQuality.filter(s -> !s.equals("normal"))));
+						OptionalDouble.of(0.1), false, bsEntity.recipeQuality.filter(s -> !s.equals("normal")), resolver));
 			}
 		}
 	}
@@ -165,9 +164,7 @@ public abstract class CraftingMachineRendering extends EntityWithOwnerRendering 
 
 		BSCraftingMachineEntity bsEntity = entity.<BSCraftingMachineEntity>fromBlueprint();
 
-		FactorioManager factorioManager = profile.getFactorioManager();
-
-		bsEntity.setProtoRecipe(bsEntity.recipe.flatMap(n -> factorioManager.lookupRecipeByName(n)));
+		bsEntity.setProtoRecipe(bsEntity.recipe.flatMap(n -> entity.getResolver().resolveRecipeName(n)));
 
 		if (bsEntity.getProtoRecipe().isPresent()) {
 			RecipePrototype protoRecipe = bsEntity.getProtoRecipe().get();

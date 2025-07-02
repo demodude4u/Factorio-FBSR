@@ -9,7 +9,7 @@ import java.util.stream.Collectors;
 
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.EntityType;
-import com.demod.fbsr.IconManager;
+import com.demod.fbsr.ModdingResolver;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.bs.entity.BSInfinityContainerEntity;
@@ -37,10 +37,12 @@ public class InfinityContainerRendering extends ContainerRendering {
 			if (!items.isEmpty()) {
 				String itemName = items.get(0);
 
-				Optional<IconDef> icon = profile.getIconManager().lookupItem(itemName);
+				ModdingResolver resolver = entity.getResolver();
+
+				Optional<IconDef> icon = resolver.resolveIconItemName(itemName);
 				if (icon.isPresent()) {
 					register.accept(new MapIcon(entity.getPosition(), icon.get(), 0.6, OptionalDouble.of(0.1), false,
-							Optional.empty()));
+							Optional.empty(), resolver));
 				}
 			}
 		}

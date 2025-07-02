@@ -43,6 +43,7 @@ public class FPTileSpriteLayoutVariant {
 		this.rowCount = rowCount;
 
 		defs = createDefs(profile);
+		FPUtils.verifyNotNull(lua.getDebugPath() + " defs", defs);
 	}
 
 	private List<SpriteDef> createDefs(Profile profile) {

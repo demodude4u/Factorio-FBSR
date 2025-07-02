@@ -1,6 +1,8 @@
 package com.demod.fbsr;
 
+import java.lang.reflect.Array;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.OptionalInt;
@@ -9,6 +11,8 @@ import java.util.function.Function;
 
 import com.demod.factorio.Utils;
 import com.demod.factorio.fakelua.LuaValue;
+import com.demod.fbsr.def.ImageDef;
+import com.demod.fbsr.def.SpriteDef;
 import com.demod.fbsr.fp.FPColor;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
@@ -169,5 +173,28 @@ public final class FPUtils {
 		}
 		return OptionalDouble.of(lua.todouble());
 	}
+
+    public static void verifyNotNull(String label, Object obj) {
+        if (obj == null) {
+			throw new IllegalArgumentException(label + " is null!");
+		}
+		
+		if (obj instanceof Iterable) {
+			int i = 0;
+			for (Object def : (Iterable<?>) obj) {
+				verifyNotNull(label + "[" + (i++) + "]", def);
+			}
+		
+		} else if (obj.getClass().isArray()) {
+			for (int i = 0; i < Array.getLength(obj); i++) {
+				verifyNotNull(label + "[" + i + "]", Array.get(obj, i));
+			}
+		
+		} else if (obj instanceof Map) {
+			for (Map.Entry<?, ?> entry : ((Map<?, ?>) obj).entrySet()) {
+				verifyNotNull(label + "[" + entry.getKey() + "]", entry.getValue());
+			}
+		}
+    }
 
 }

@@ -83,6 +83,7 @@ public class FPRotatedSprite extends FPSpriteParameters {
 		this.limitedDirectionCount = Math.min(limitDirectionCount, directionCount);
 		List<SpriteDef> allDefs = createDefs(profile);
 		defs = limitedDirectionDefs(allDefs);
+		FPUtils.verifyNotNull(lua.getDebugPath() + " defs", defs);
 	}
 
 	private List<SpriteDef> createDefs(Profile profile) {

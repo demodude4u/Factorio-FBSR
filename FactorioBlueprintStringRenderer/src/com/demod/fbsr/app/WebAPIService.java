@@ -70,11 +70,7 @@ public class WebAPIService extends AbstractIdleService {
 	@Override
 	protected void startUp() throws JSONException, IOException {
 
-		if (!FBSR.initialize()) {
-			throw new RuntimeException("Failed to initialize FBSR.");
-		}
-
-		ServiceFinder.addService(this);
+		ServiceFinder.findService(FactorioService.class).get().awaitRunning();
 
 		configJson = Config.get().getJSONObject("webapi");
 

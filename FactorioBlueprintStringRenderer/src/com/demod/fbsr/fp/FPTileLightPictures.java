@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.demod.factorio.fakelua.LuaValue;
+import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.Profile;
 import com.demod.fbsr.def.ImageDef;
 
@@ -18,6 +19,7 @@ public class FPTileLightPictures extends FPTileSpriteLayout {
 		size = lua.get("size").checkint();
 
 		defs = createDefs(profile);
+		FPUtils.verifyNotNull(lua.getDebugPath() + " defs", defs);
 	}
 
 	private List<ImageDef> createDefs(Profile profile) {

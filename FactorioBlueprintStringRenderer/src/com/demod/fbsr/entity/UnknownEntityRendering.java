@@ -12,7 +12,6 @@ import com.demod.factorio.fakelua.LuaTable;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.EntityType;
-import com.demod.fbsr.FactorioManager;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.Profile;
 import com.demod.fbsr.RenderUtils;
@@ -56,7 +55,7 @@ public class UnknownEntityRendering extends EntityRendererFactory {
 		if (map.addUnknownEntity(name)) {
 			Font FONT = profile.getGuiStyle().FONT_BP_BOLD.deriveFont(0.4f);
 			register.accept(
-					new MapText(Layer.ENTITY_INFO_TEXT, pos.addUnit(-0.5, -0.5 + offset), 0, FONT, Color.white, name, false));
+					new MapText(Layer.ENTITY_INFO_TEXT, pos.addUnit(-0.5, -0.5 + offset), 0, FONT, Color.white, name, false, entity.getResolver()));
 		}
 	}
 

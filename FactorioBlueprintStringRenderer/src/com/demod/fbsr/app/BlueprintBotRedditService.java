@@ -541,9 +541,7 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 	@Override
 	protected void startUp() throws JSONException, IOException {
 
-		if (!FBSR.initialize()) {
-			throw new RuntimeException("Failed to initialize FBSR.");
-		}
+		ServiceFinder.findService(FactorioService.class).get().awaitRunning();
 
 		reddit = new RedditClient(UserAgent.of("server", "com.demod.fbsr", "0.0.1", "demodude4u"));
 		account = new AccountManager(reddit);
@@ -570,7 +568,5 @@ public class BlueprintBotRedditService extends AbstractScheduledService {
 
 		myUserName = redditCredentialsJson.getString("username");
 		myUserNameMention = ("u/" + myUserName).toLowerCase();
-
-		ServiceFinder.addService(this);
 	}
 }

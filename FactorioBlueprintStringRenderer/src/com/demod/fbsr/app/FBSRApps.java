@@ -1,5 +1,6 @@
 package com.demod.fbsr.app;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
@@ -15,10 +16,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class FBSRApps {
-
-	public static volatile String status = "loading";
+	public static volatile String status = "idle";
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(FBSRApps.class);
+
+	private static volatile ServiceManager manager = null;
+	private static volatile boolean started = false;
 
 	private static void addServiceIfEnabled(List<Service> services, String configKey,
 			Supplier<? extends Service> factory) {
@@ -28,7 +31,12 @@ public class FBSRApps {
 		}
 	}
 
-	public static void start() {
+	public static synchronized boolean start() {
+		if (started) {
+			LOGGER.info("Services are already started.");
+			return true;
+		}
+
 		List<Service> services = new ArrayList<>();
 		addServiceIfEnabled(services, "discord", BlueprintBotDiscordService::new);
 		addServiceIfEnabled(services, "reddit", BlueprintBotRedditService::new);
@@ -36,8 +44,14 @@ public class FBSRApps {
 		addServiceIfEnabled(services, "watchdog", WatchdogService::new);
 		addServiceIfEnabled(services, "logging", LoggingService::new);
 		services.add(new RPCService());
+		services.add(new FactorioService());
+		
+		for (Service service : services) {
+			ServiceFinder.addService(service);
+		}
 
-		ServiceManager manager = new ServiceManager(services);
+		status = "starting";
+		manager = new ServiceManager(services);
 		manager.addListener(new Listener() {
 			@Override
 			public void failure(Service service) {
@@ -63,11 +77,61 @@ public class FBSRApps {
 			manager.startAsync().awaitHealthy();
 		} catch (IllegalStateException e) {
 			System.out.println(e.getMessage());
-			return;
+			return false;
 		}
 		Runtime.getRuntime().addShutdownHook(new Thread(() -> manager.stopAsync().awaitStopped()));
 
 		PluginFinder.loadPlugins().forEach(Plugin::run);
+
+		started = true;
+		return true;
+	}
+
+	public static synchronized boolean isStarted() {
+		return started;
+	}
+
+	public static synchronized boolean stopAsync() {
+		if (!started) {
+			LOGGER.info("Services are not started, nothing to stop.");
+			return true;
+		}
+		
+		manager.stopAsync();
+		started = false;
+		return true;
+	}
+
+	public static synchronized boolean stop() {
+		if (!started) {
+			LOGGER.info("Services are not started, nothing to stop.");
+			return true;
+		}
+
+		manager.stopAsync().awaitStopped();
+		started = false;
+		return true;
+	}
+
+	public static synchronized boolean waitForStopped(boolean forceStopOnKeyPress) {
+		if (!started) {
+			return true;
+		}
+
+		if (forceStopOnKeyPress) {
+			System.out.println("Press Any Key to stop...");
+			try {
+				System.in.read();
+				System.out.println("Stopping services...");
+				manager.stopAsync();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+
+		manager.awaitStopped();
+		started = false;
+		return true;
 	}
 
 }

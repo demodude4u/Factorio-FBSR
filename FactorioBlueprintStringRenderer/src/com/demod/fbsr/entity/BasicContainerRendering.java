@@ -9,8 +9,8 @@ import java.util.stream.Collectors;
 
 import com.demod.fbsr.EntityType;
 import com.demod.fbsr.IconDefWithQuality;
-import com.demod.fbsr.IconManager;
 import com.demod.fbsr.LogisticGridCell;
+import com.demod.fbsr.ModdingResolver;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapPosition;
@@ -31,10 +31,10 @@ public class BasicContainerRendering extends ContainerRendering {
 
 		if (items.size() > 0 && map.isAltMode()) {
 
-			IconManager iconManager = profile.getIconManager();
+			ModdingResolver resolver = entity.getResolver();
 
 			List<IconDefWithQuality> icons = items.stream()
-					.flatMap(i -> iconManager.lookupItem(i).stream()
+					.flatMap(i -> resolver.resolveIconItemName(i).stream()
 							.map(d -> new IconDefWithQuality(d, Optional.empty())))
 					.sorted(Comparator.comparing(iwq -> iwq.getDef().getPrototype())).limit(4)
 					.collect(Collectors.toList());
@@ -56,7 +56,7 @@ public class BasicContainerRendering extends ContainerRendering {
 			for (int i = 0; i < icons.size(); i++) {
 				IconDefWithQuality icon = icons.get(i);
 				MapPosition iconPos = iconStartPos.addUnit((i % 2) * iconShift, (i / 2) * iconShift);
-				register.accept(icon.createMapIcon(iconPos, iconSize, OptionalDouble.of(iconBorder), false));
+				register.accept(icon.createMapIcon(iconPos, iconSize, OptionalDouble.of(iconBorder), false, entity.getResolver()));
 			}
 		}
 	}

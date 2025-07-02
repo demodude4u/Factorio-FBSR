@@ -63,13 +63,10 @@ public class WatchdogService extends AbstractScheduledService {
 
 	@Override
 	protected void shutDown() {
-		ServiceFinder.removeService(this);
 	}
 
 	@Override
 	protected void startUp() {
-		ServiceFinder.addService(this);
-
 		configJson = Config.get().getJSONObject("watchdog");
 	}
 

@@ -579,10 +579,20 @@ public class TileRendererFactory {
 	}
 
 	private TileRendererFactory resolveMergeTileID(String name) {
-		List<TileRendererFactory> factories = profile.getFactorioManager().lookupTileFactoryForName(name);
-		Optional<TileRendererFactory> myFactory = factories.stream().filter(f->f.profile.equals(profile)).findFirst();
-		Optional<TileRendererFactory> vanillaFactory = factories.stream().filter(f -> f.profile.isVanilla()).findFirst();
-		return myFactory.or(() -> vanillaFactory).get();
+		List<Profile> profileOrder;
+		if (profile.isVanilla()) {
+			profileOrder = ImmutableList.of(profile);
+		} else {
+			profileOrder = ImmutableList.of(profile, profile.getFactorioManager().getProfileVanilla());
+		}
+		ModdingResolver resolver = ModdingResolver.byProfileOrder(profile.getFactorioManager(), profileOrder, false);
+		TileRendererFactory mergeTile = resolver.resolveFactoryTileName(name);
+		
+		if (mergeTile.isUnknown()) {
+			throw new IllegalStateException("Tile transition merge with tile not found: " + name);
+		}
+		
+		return mergeTile;
 	}
 
 	public boolean isUnknown() {

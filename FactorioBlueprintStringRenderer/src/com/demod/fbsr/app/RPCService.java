@@ -39,6 +39,9 @@ public class RPCService extends AbstractIdleService {
 
     @Override
     protected void startUp() throws Exception {
+        
+        ServiceFinder.findService(FactorioService.class).get().awaitRunning();
+
         port = getPort();
         commandLine = new CommandLine(new CmdRPC());
 

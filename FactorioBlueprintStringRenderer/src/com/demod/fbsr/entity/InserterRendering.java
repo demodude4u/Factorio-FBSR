@@ -13,9 +13,9 @@ import com.demod.fbsr.Direction;
 import com.demod.fbsr.EntityType;
 import com.demod.fbsr.FactorioManager;
 import com.demod.fbsr.IconDefWithQuality;
-import com.demod.fbsr.IconManager;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.LogisticGridCell;
+import com.demod.fbsr.ModdingResolver;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.WorldMap.BeltBend;
 import com.demod.fbsr.WorldMap.BeltCell;
@@ -109,12 +109,12 @@ public class InserterRendering extends EntityWithOwnerRendering {
 		if (bsEntity.useFilters && map.isAltMode()) {
 			boolean blacklist = bsEntity.filterMode.map(s -> s.equals("blacklist")).orElse(false);
 
+			ModdingResolver resolver = entity.getResolver();
+
 			if (!bsEntity.filters.isEmpty()) {
 
-				IconManager iconManager = profile.getIconManager();
-
 				List<IconDefWithQuality> icons = bsEntity.filters.stream()
-						.flatMap(f -> iconManager.lookupFilter(f.type, f.name, f.quality).stream())
+						.flatMap(f -> resolver.resolveFilter(f.type, f.name, f.quality).stream())
 						.sorted(Comparator.comparing(iwq -> iwq.getDef().getPrototype())).limit(4)
 						.collect(Collectors.toList());
 
@@ -135,16 +135,16 @@ public class InserterRendering extends EntityWithOwnerRendering {
 				for (int i = 0; i < icons.size(); i++) {
 					IconDefWithQuality icon = icons.get(i);
 					MapPosition iconPos = iconStartPos.addUnit((i % 2) * iconShift, (i / 2) * iconShift);
-					register.accept(icon.createMapIcon(iconPos, iconSize, OptionalDouble.of(iconBorder), false));
+					register.accept(icon.createMapIcon(iconPos, iconSize, OptionalDouble.of(iconBorder), false, resolver));
 					if (blacklist) {
 						register.accept(new MapIcon(iconPos, protoBlacklist.defineSprites().get(0), iconSize,
-								OptionalDouble.empty(), false, Optional.empty()));
+								OptionalDouble.empty(), false, Optional.empty(), resolver));
 					}
 				}
 
 			} else if (blacklist) {
 				register.accept(new MapIcon(pos, protoBlacklist.defineSprites().get(0), 0.5, OptionalDouble.of(0.1),
-						false, Optional.empty()));
+						false, Optional.empty(), resolver));
 			}
 		}
 	}

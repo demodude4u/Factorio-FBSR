@@ -27,6 +27,7 @@ public class FPAnimationSheet extends FPAnimationParameters {
 		linesPerFile = lua.get("lines_per_file").optint(0);
 
 		defs = createDefs(profile);
+		FPUtils.verifyNotNull(lua.getDebugPath() + " defs", defs);
 	}
 
 	private List<SpriteDef> createDefs(Profile profile) {
