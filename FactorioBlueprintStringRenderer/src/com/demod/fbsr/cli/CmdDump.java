@@ -27,7 +27,7 @@ public class CmdDump {
     @Command(name = "entity", description = "Dump an entity prototype from factorio data")
     public void dumpEntity(
             @Option(names = "-profile", description = "Load from profile (default vanilla)", defaultValue = "vanilla") String profileName,
-            @Parameters(arity = "1", description = "Prototype name") String protoName
+            @Parameters(arity = "1", description = "Prototype name", paramLabel="PROTOTYPE") String protoName
     ) {
         dumpProto(profileName, protoName, "entity", DataTable::getEntity);
     }
@@ -35,7 +35,7 @@ public class CmdDump {
     @Command(name = "item", description = "Dump an item prototype from factorio data")
     public void dumpItem(
             @Option(names = "-profile", description = "Load from profile (default vanilla)", defaultValue = "vanilla") String profileName,
-            @Parameters(arity = "1", description = "Prototype name") String protoName
+            @Parameters(arity = "1", description = "Prototype name", paramLabel="PROTOTYPE") String protoName
     ) {
         dumpProto(profileName, protoName, "item", DataTable::getItem);
     }
@@ -43,7 +43,7 @@ public class CmdDump {
     @Command(name = "recipe", description = "Dump a recipe prototype from factorio data")
     public void dumpRecipe(
             @Option(names = "-profile", description = "Load from profile (default vanilla)", defaultValue = "vanilla") String profileName,
-            @Parameters(arity = "1", description = "Prototype name") String protoName
+            @Parameters(arity = "1", description = "Prototype name", paramLabel="PROTOTYPE") String protoName
     ) {
         dumpProto(profileName, protoName, "recipe", DataTable::getRecipe);
     }
@@ -51,7 +51,7 @@ public class CmdDump {
     @Command(name = "fluid", description = "Dump a fluid prototype from factorio data")
     public void dumpFluid(
             @Option(names = "-profile", description = "Load from profile (default vanilla)", defaultValue = "vanilla") String profileName,
-            @Parameters(arity = "1", description = "Prototype name") String protoName
+            @Parameters(arity = "1", description = "Prototype name", paramLabel="PROTOTYPE") String protoName
     ) {
         dumpProto(profileName, protoName, "fluid", DataTable::getFluid);
     }
@@ -59,7 +59,7 @@ public class CmdDump {
     @Command(name = "technology", description = "Dump a technology prototype from factorio data")
     public void dumpTechnology(
             @Option(names = "-profile", description = "Load from profile (default vanilla)", defaultValue = "vanilla") String profileName,
-            @Parameters(arity = "1", description = "Prototype name") String protoName
+            @Parameters(arity = "1", description = "Prototype name", paramLabel="PROTOTYPE") String protoName
     ) {
         dumpProto(profileName, protoName, "technology", DataTable::getTechnology);
     }
@@ -67,7 +67,7 @@ public class CmdDump {
     @Command(name = "equipment", description = "Dump an equipment prototype from factorio data")
     public void dumpEquipment(
             @Option(names = "-profile", description = "Load from profile (default vanilla)", defaultValue = "vanilla") String profileName,
-            @Parameters(arity = "1", description = "Prototype name") String protoName
+            @Parameters(arity = "1", description = "Prototype name", paramLabel="PROTOTYPE") String protoName
     ) {
         dumpProto(profileName, protoName, "equipment", DataTable::getEquipment);
     }
@@ -75,7 +75,7 @@ public class CmdDump {
     @Command(name = "tile", description = "Dump a tile prototype from factorio data")
     public void dumpTile(
             @Option(names = "-profile", description = "Load from profile (default vanilla)", defaultValue = "vanilla") String profileName,
-            @Parameters(arity = "1", description = "Prototype name") String protoName
+            @Parameters(arity = "1", description = "Prototype name", paramLabel="PROTOTYPE") String protoName
     ) {
         dumpProto(profileName, protoName, "tile", DataTable::getTile);
     }
