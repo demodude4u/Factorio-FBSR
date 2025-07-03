@@ -103,7 +103,7 @@ public class FBSR {
 
 	public static final double TILE_SIZE = 64.0;
 
-	private static volatile boolean initialized = false;
+	private static volatile boolean loaded = false;
 
 	private static FactorioManager factorioManager;
 	private static GUIStyle guiStyle;
@@ -610,12 +610,11 @@ public class FBSR {
 		return ret;
 	}
 
-	public static synchronized boolean initialize() {
-		if (initialized) {
-			return true;
-		}
-		initialized = true;
+	public static boolean isLoaded() {
+		return loaded;
+	}
 
+	public static synchronized boolean load() {
 		//Ignoring profiles that are not ready
 		List<Profile> allProfiles = Profile.listProfiles();
 		List<Profile> profiles = new ArrayList<>(allProfiles.stream().filter(p -> p.getStatus() == ProfileStatus.READY).collect(Collectors.toList()));
@@ -630,6 +629,15 @@ public class FBSR {
 			System.out.println("No ready profiles found! Please ensure at least one profile is ready.");
 			return false;
 		}
+
+		return load(profiles);
+	}
+
+	public static synchronized boolean load(List<Profile> profiles) {
+		if (loaded) {
+			unload();
+		}
+		loaded = true;
 
 		factorioManager = new FactorioManager(profiles);
 		guiStyle = new GUIStyle();
@@ -662,16 +670,16 @@ public class FBSR {
 			}
 		}
 
-		LOGGER.info("FBSR initialized, Factorio {}", FactorioManager.getFactorioVersion());
+		LOGGER.info("FBSR loaded -- Factorio {}", FactorioManager.getFactorioVersion());
 
 		return true;
 	}
 
 	public static synchronized boolean unload() {
-		if (!initialized) {
+		if (!loaded) {
 			return true;
 		}
-		initialized = false;
+		loaded = false;
 
 		for (Profile profile : factorioManager.getProfiles()) {
 			profile.resetLoadedData();

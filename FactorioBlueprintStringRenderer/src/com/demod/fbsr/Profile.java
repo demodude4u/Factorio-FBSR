@@ -50,9 +50,12 @@ import com.demod.factorio.ModLoader;
 import com.demod.factorio.Utils;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.factorio.prototype.TilePrototype;
+import com.demod.fbsr.BlueprintFinder.FindBlueprintResult;
+import com.demod.fbsr.bs.BSBlueprintString;
 import com.demod.fbsr.cli.CmdBot;
 import com.demod.fbsr.gui.GUISize;
 import com.demod.fbsr.gui.GUIStyle;
+import com.demod.fbsr.gui.layout.GUILayoutBlueprint;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -113,6 +116,9 @@ public class Profile {
     private final File folderBuildData;
     private final File fileScriptOutputDump;
 
+    private final File folderProfileTests;
+    private final File folderBuildTests;
+
     private FactorioData factorioData;
     private RenderingRegistry renderingRegistry;
     private AtlasPackage atlasPackage;
@@ -156,6 +162,9 @@ public class Profile {
         folderBuildData = new File(folderBuild, "data");
         File folderScriptOutput = new File(folderBuildData, "script-output");
         fileScriptOutputDump = new File(folderScriptOutput, "data-raw-dump.zip");
+
+        folderProfileTests = new File(folderProfile, "tests");
+        folderBuildTests = new File(folderBuild, "tests");
 
         resetLoadedData();
     }
@@ -1353,6 +1362,100 @@ public class Profile {
             return sortedArr;
         } else {
             return value;
+        }
+    }
+
+    public boolean deleteTests() {
+        AtomicBoolean success = new AtomicBoolean(true);
+
+        // Delete all files and subdirectories in the tests folder
+        if (folderBuildTests.exists()) {
+            try {
+                Files.walk(folderBuildTests.toPath())
+                    .map(Path::toFile)
+                    .sorted((f1, f2) -> f2.getAbsolutePath().length() - f1.getAbsolutePath().length()) // Delete children first
+                    .forEach(file -> {
+                        if (!file.delete()) {
+                            success.set(false);
+                            System.out.println("Failed to delete: " + file.getAbsolutePath());
+                        }
+                    });
+            } catch (IOException e) {
+                e.printStackTrace();
+                success.set(false);
+                System.out.println("Failed to delete: " + e.getMessage());
+            }
+        }
+
+        return success.get();
+    }
+
+    public boolean renderTests() {
+
+        if (!hasData()) {
+            System.out.println("Profile " + getName() + " does not have data files.");
+            return false;
+        }
+
+        if (!folderProfileTests.exists()) {
+            System.out.println("Profile " + getName() + " does not have a tests folder.");
+            return true;
+        }
+
+        List<File> testFiles = Arrays.asList(folderProfileTests.listFiles());
+        if (testFiles.isEmpty()) {
+            System.out.println("No test files found in profile: " + getName());
+            return true;
+        }
+
+        List<Profile> profiles;
+        if (isVanilla()) {
+            profiles = ImmutableList.of(this);
+        } else {
+            profiles = ImmutableList.of(this, vanilla());
+        }
+
+        try {
+
+            if (!FBSR.load(profiles)) {
+                System.out.println("Failed to load FBSR for profile: " + getName());
+                return false;
+            }
+
+            folderBuildTests.mkdirs();
+
+            for (File testFile : testFiles) {
+                if (!testFile.getName().endsWith(".txt")) {
+                    System.out.println("Skipping test file: " + testFile.getName());
+                    continue;
+                }
+
+                System.out.println("Rendering test file: " + testFile.getName());
+                String blueprintStringRaw = Files.readString(testFile.toPath());
+
+                List<FindBlueprintResult> searchResults = BlueprintFinder.search(blueprintStringRaw);
+
+		        List<BSBlueprintString> blueprintStrings = searchResults.stream().flatMap(f -> f.blueprintString.stream())
+				        .collect(Collectors.toList());
+
+                if (blueprintStrings.isEmpty()) {
+                    System.out.println("No valid blueprint found in test file: " + testFile.getName());
+                    return false;
+                }
+                
+                GUILayoutBlueprint layout = new GUILayoutBlueprint();
+                layout.setBlueprint(blueprint);
+                layout.setReporting(reporting);
+                image = layout.generateDiscordImage();
+                unknownNames.addAll(layout.getResult().unknownNames);
+                renderTimes.add(layout.getResult().renderTime);
+                
+            }
+
+        } finally {
+            if (!FBSR.unload()) {
+                System.out.println("Failed to unload FBSR");
+            }
         }
     }
 }

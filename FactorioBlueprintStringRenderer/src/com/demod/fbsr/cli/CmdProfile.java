@@ -8,6 +8,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.BiFunction;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -695,6 +697,59 @@ public class CmdProfile {
 
         if (profile.deleteBuild()) {
             System.out.println("Build folder deleted successfully for profile: " + profile.getName());
+        }
+    }
+
+    @Command(name = "test", description = "Render test blueprints for the specified profile")
+    public void testRender(
+            @Parameters(arity = "0..1", description = "Name of the profile", paramLabel = "PROFILE") Optional<String> name,
+            @Option(names = "-all", description = "Render test blueprints for all profiles, ignoring the selected profile") boolean all,
+            @Option(names = "-all-enabled", description = "Render test blueprints for all enabled profiles, ignoring the selected profile") boolean allEnabled,
+            @Option(names = "-all-ready", description = "Render test blueprints for all ready profiles, ignoring the selected profile") boolean allReady
+    ) {
+        if (!checkOrSelectProfile(name)) {
+            return;
+        }
+
+        List<Profile> profiles;
+        if (all || allEnabled || allReady) {
+            Stream<Profile> stream = Profile.listProfiles().stream();
+            if (allEnabled) {
+                stream = stream.filter(Profile::isEnabled);
+            } else if (allReady) {
+                stream = stream.filter(Profile::isReady);
+            }
+            profiles = new ArrayList<>(stream.collect(Collectors.toList()));
+        } else {
+            profiles = ImmutableList.of(profile);
+        }
+
+        boolean checkFail = false;
+        for (Profile profile : profiles) {
+            if (!profile.isEnabled()) {
+                System.out.println("Profile is not enabled: " + profile.getName());
+                checkFail = true;
+            } else if (!profile.isReady()) {
+                System.out.println("Profile is not ready: " + profile.getName());
+                checkFail = true;
+            }
+        }
+        if (checkFail) {
+            return;
+        }
+
+        for (Profile profile : profiles) {
+            if (!profile.deleteTests()) {
+                System.out.println("Failed to delete old test files for profile: " + profile.getName());
+                return;
+            }
+        }
+
+        for (Profile profile : profiles) {
+            if (!profile.renderTests()) {
+                System.out.println("Failed to render test blueprints for profile: " + profile.getName());
+                return;
+            }
         }
     }
 }
