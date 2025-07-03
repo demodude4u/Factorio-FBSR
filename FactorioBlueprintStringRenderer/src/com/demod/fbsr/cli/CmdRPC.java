@@ -38,7 +38,7 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
-@Command(name = "rpc", description = "Internal commands for RPC (Remote Procedure Call) operations")
+@Command(name = "")
 public class CmdRPC {
 	private static final Logger LOGGER = LoggerFactory.getLogger(CmdRPC.class);
 

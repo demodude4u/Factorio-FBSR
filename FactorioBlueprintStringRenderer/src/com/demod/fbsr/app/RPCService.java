@@ -5,15 +5,18 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.lang.reflect.Method;
 import java.net.ConnectException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -34,16 +37,11 @@ public class RPCService extends AbstractIdleService {
     private final ExecutorService executor = Executors.newCachedThreadPool();
 
     private int port;
-    private CommandLine commandLine;
     private ServerSocket serverSocket;
 
     @Override
     protected void startUp() throws Exception {
-        
-        ServiceFinder.findService(FactorioService.class).get().awaitRunning();
-
         port = getPort();
-        commandLine = new CommandLine(new CmdRPC());
 
         if (sendCommand("kill").isPresent()) {// Ensure any previous instance is killed
             LOGGER.info("Previous RPC service instance found, sending kill command...");
@@ -67,10 +65,11 @@ public class RPCService extends AbstractIdleService {
             while (!serverSocket.isClosed()) {
                 try {
                     Socket socket = serverSocket.accept();
+                    LOGGER.debug("Accepted RPC connection from {}", socket.getRemoteSocketAddress());
                     executor.submit(() -> handleConnection(socket));
                 } catch (IOException e) {
                     if (!serverSocket.isClosed()) {
-                        e.printStackTrace();
+                        LOGGER.error("Error handling RPC connection", e);
                     }
                 }
             }
@@ -84,18 +83,48 @@ public class RPCService extends AbstractIdleService {
             BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()))
         ) {
             String inputLine = reader.readLine();
+            LOGGER.debug("Received RPC command: {}", inputLine);
             if (inputLine == null || inputLine.isBlank()) return;
 
-            String[] args = new JSONArray(inputLine).toList().toArray(String[]::new);
-            commandLine.execute(args);
-            Object ret = commandLine.getExecutionResult();
-            if (ret != null) {
-                writer.write(ret.toString());
+            List<String> args = new ArrayList<>(new JSONArray(inputLine).toList().stream().map(Object::toString).collect(Collectors.toList()));
+
+            boolean error = false;
+            String errorMessage = null;
+            Object result = null;
+            
+            if (args.isEmpty()) {
+                error = true;
+                errorMessage = "No command provided.";
+            } else {
+                String command = args.remove(0);
+                Optional<Method> commandMethod = CommandLine.getCommandMethods(CmdRPC.class, command).stream().findFirst();
+                if (!commandMethod.isEmpty()) {
+                    CommandLine commandLine = new CommandLine(commandMethod.get());
+                    commandLine.execute(args.toArray(String[]::new));
+                    result = commandLine.getExecutionResult();
+                } else {
+                    error = true;
+                    errorMessage = "Unknown command: " + command;
+                }
             }
+
+            JSONObject jsonResponse = new JSONObject();
+            jsonResponse.put("error", error);
+
+            if (error) {
+                LOGGER.error("Error executing RPC command: {}", errorMessage);
+                jsonResponse.put("errorMessage", errorMessage);
+
+            } else {
+                LOGGER.debug("RPC command result: {}", result.toString());
+                jsonResponse.put("result", result);
+            }
+
+            writer.write(jsonResponse.toString());
             writer.write('\n');
             writer.flush();
         } catch (IOException e) {
-            e.printStackTrace();
+            LOGGER.error("Error handling RPC connection", e);
         } finally {
             try {
                 socket.close();
@@ -114,7 +143,8 @@ public class RPCService extends AbstractIdleService {
         return config.optInt("port", 50832);
     }
 
-    public static Optional<String> sendCommand(String... args) {
+    @SuppressWarnings("unchecked")
+    public static <T> Optional<T> sendCommand(String... args) {
         int port = getPort();
 
         try (Socket socket = new Socket("localhost", port);
@@ -128,7 +158,17 @@ public class RPCService extends AbstractIdleService {
             writer.write(jsonArgs.toString() + "\n");
             writer.flush();
 
-            return Optional.of(reader.readLine());
+            try {
+                JSONObject jsonResponse = new JSONObject(reader.readLine());
+                if (jsonResponse.getBoolean("error")) {
+                    System.out.println("RPC Error: " + jsonResponse.getString("errorMessage"));
+                    return Optional.empty();
+                }
+                return Optional.of((T) jsonResponse.get("result"));
+            } catch (Exception e) {
+                System.out.println("Error parsing RPC response: " + e.getMessage());
+                return Optional.empty();
+            }
         } catch (ConnectException e) {
             return Optional.empty();
         } catch (IOException e) {

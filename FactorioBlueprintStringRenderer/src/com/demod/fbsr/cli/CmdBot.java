@@ -59,8 +59,9 @@ public class CmdBot {
             
             LOGGER.info("Awaiting for Blueprint Bot service to become healthy...");
             
+            List<String> waitStatuses = List.of("idle", "starting");
             String status;
-            while ((status = RPCService.sendCommand("status").get()).equals("loading")) {
+            while (waitStatuses.contains(status = RPCService.<String>sendCommand("status").get())) {
                 Uninterruptibles.sleepUninterruptibly(1, TimeUnit.SECONDS);
             }
 
@@ -104,7 +105,7 @@ public class CmdBot {
 
     @Command(name = "status", description = "Get the status of Blueprint Bot service")
     public void status() {
-        String status = RPCService.sendCommand("status").orElse("not running");
+        String status = RPCService.<String>sendCommand("status").orElse("not running");
         LOGGER.info("Blueprint Bot service status: {}", status);
     }
 
