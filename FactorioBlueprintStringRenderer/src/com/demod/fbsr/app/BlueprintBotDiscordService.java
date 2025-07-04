@@ -389,7 +389,8 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			layout.setBlueprint(blueprint);
 			layout.setReporting(reporting);
 			image = layout.generateDiscordImage();
-			unknownNames.addAll(layout.getResult().unknownNames);
+			unknownNames.addAll(layout.getResult().unknownEntities);
+			unknownNames.addAll(layout.getResult().unknownTiles);
 			renderTimes.add(layout.getResult().renderTime);
 
 			Set<String> groups = new LinkedHashSet<>();
@@ -423,7 +424,8 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			layout.setBook(book);
 			layout.setReporting(reporting);
 			image = layout.generateDiscordImage();
-			layout.getResults().stream().forEach(r -> unknownNames.addAll(r.unknownNames));
+			layout.getResults().stream().forEach(r -> unknownNames.addAll(r.unknownEntities));
+			layout.getResults().stream().forEach(r -> unknownNames.addAll(r.unknownTiles));
 			renderTimes.add(layout.getResults().stream().mapToLong(r -> r.renderTime).sum());
 
 			List<BSBlueprint> blueprints = book.getAllBlueprints();
@@ -710,12 +712,18 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 		RenderResult result = FBSR.renderBlueprint(request);
 
-		if (!result.unknownNames.isEmpty()) {
+		if (!result.unknownEntities.isEmpty()) {
 			event.getReporting()
 					.addField(new Field(
-							"Unknown Names", result.unknownNames.entrySet().stream()
+							"Unknown Entities", result.unknownEntities.entrySet().stream()
 									.map(e -> e.getElement() + ": " + e.getCount()).collect(Collectors.joining("\n")),
 							true));
+			event.getReporting().setLevel(Level.DEBUG);
+		}
+		if (!result.unknownTiles.isEmpty()) {
+			event.getReporting()
+					.addField(new Field("Unknown Tiles", result.unknownTiles.entrySet().stream()
+							.map(e -> e.getElement() + ": " + e.getCount()).collect(Collectors.joining("\n")), true));
 			event.getReporting().setLevel(Level.DEBUG);
 		}
 

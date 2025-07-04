@@ -1,5 +1,7 @@
 package com.demod.fbsr;
 
+import java.awt.Desktop;
+import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -30,10 +32,13 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
+
+import javax.imageio.ImageIO;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -43,6 +48,8 @@ import org.rapidoid.commons.Str;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.demod.dcba.CommandReporting;
+import com.demod.dcba.CommandReporting.ExceptionWithBlame;
 import com.demod.factorio.Config;
 import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
@@ -56,6 +63,7 @@ import com.demod.fbsr.cli.CmdBot;
 import com.demod.fbsr.gui.GUISize;
 import com.demod.fbsr.gui.GUIStyle;
 import com.demod.fbsr.gui.layout.GUILayoutBlueprint;
+import com.demod.fbsr.gui.layout.GUILayoutBook;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -1134,19 +1142,19 @@ public class Profile {
             JSONObject fdConfig = new JSONObject();
             folderBuildData.mkdirs();
 
-            File folderFactorio = FactorioManager.getFactorioInstall();
+            File factorioInstall = FactorioManager.getFactorioInstall();
 		    File factorioExecutable = FactorioManager.getFactorioExecutable();
 
             File fileConfig = new File(folderBuildData, "config.ini");
             try (PrintWriter pw = new PrintWriter(fileConfig)) {
                 pw.println("[path]");
-                pw.println("read-data=" + folderFactorio.getAbsolutePath());
+                pw.println("read-data=" + new File(factorioInstall, "data").getAbsolutePath());
                 pw.println("write-data=" + folderBuildData.getAbsolutePath());
             }
 
             ProcessBuilder pb = new ProcessBuilder(factorioExecutable.getAbsolutePath(), "--config",
 					fileConfig.getAbsolutePath(), "--mod-directory", folderBuildMods.getAbsolutePath());
-			pb.directory(folderFactorio);
+			pb.directory(factorioInstall);
 
 			LOGGER.debug("Running command " + pb.command().stream().collect(Collectors.joining(",", "[", "]")));
 
@@ -1424,14 +1432,26 @@ public class Profile {
 
             folderBuildTests.mkdirs();
 
+            Map<String, EntityRendererFactory> entitiesRemaining = renderingRegistry.getEntityFactories().stream().collect(Collectors.toMap(EntityRendererFactory::getName, Function.identity()));
+            Map<String, TileRendererFactory> tilesRemaining = renderingRegistry.getTileFactories().stream().collect(Collectors.toMap(TileRendererFactory::getName, Function.identity()));
+            Set<String> unknownEntities = new HashSet<>();
+            Set<String> unknownTiles = new HashSet<>();
+            List<ExceptionWithBlame> exceptions = new ArrayList<>();
+
             for (File testFile : testFiles) {
                 if (!testFile.getName().endsWith(".txt")) {
-                    System.out.println("Skipping test file: " + testFile.getName());
+                    System.out.println("Skipping non-.txt test file: " + testFile.getName());
                     continue;
                 }
 
                 System.out.println("Rendering test file: " + testFile.getName());
-                String blueprintStringRaw = Files.readString(testFile.toPath());
+                String blueprintStringRaw;
+                try {
+                    blueprintStringRaw = Files.readString(testFile.toPath());
+                } catch (IOException e) {
+                    System.out.println("Failed to read test file: " + testFile.getName() + " (" + e.getMessage() + ")");
+                    return false;
+                }
 
                 List<FindBlueprintResult> searchResults = BlueprintFinder.search(blueprintStringRaw);
 
@@ -1442,14 +1462,118 @@ public class Profile {
                     System.out.println("No valid blueprint found in test file: " + testFile.getName());
                     return false;
                 }
+
+                if (blueprintStrings.size() > 1) {
+                    System.out.println("Can only have one blueprint string per test file: " + testFile.getName());
+                    return false;
+                }
+
+                BSBlueprintString blueprintString = blueprintStrings.get(0);
+
+                CommandReporting reporting = new CommandReporting(null, null, null);
                 
-                GUILayoutBlueprint layout = new GUILayoutBlueprint();
-                layout.setBlueprint(blueprint);
-                layout.setReporting(reporting);
-                image = layout.generateDiscordImage();
-                unknownNames.addAll(layout.getResult().unknownNames);
-                renderTimes.add(layout.getResult().renderTime);
+                BufferedImage image = null;
+
+                if (blueprintString.blueprintBook.isPresent()) {
+                    GUILayoutBook layout = new GUILayoutBook();
+                    layout.setBook(blueprintString.blueprintBook.get());
+                    layout.setReporting(reporting);
+                    image = layout.generateDiscordImage();
+
+                    for (RenderResult result : layout.getResults()) {
+                        result.request.getBlueprint().entities.forEach(e -> entitiesRemaining.remove(e.name));
+                        result.request.getBlueprint().tiles.forEach(t -> tilesRemaining.remove(t.name));
+                        unknownEntities.addAll(result.unknownEntities);
+                        unknownTiles.addAll(result.unknownTiles);
+                    }
+
+                } else if (blueprintString.blueprint.isPresent()) {
+                    GUILayoutBlueprint layout = new GUILayoutBlueprint();
+                    layout.setBlueprint(blueprintString.blueprint.get());
+                    layout.setReporting(reporting);
+                    image = layout.generateDiscordImage();
+
+                    layout.getResult().request.getBlueprint().entities.forEach(e -> entitiesRemaining.remove(e.name));
+                    layout.getResult().request.getBlueprint().tiles.forEach(t -> tilesRemaining.remove(t.name));
+                    unknownEntities.addAll(layout.getResult().unknownEntities);
+                    unknownTiles.addAll(layout.getResult().unknownTiles);
+                }
+
+                exceptions.addAll(reporting.getExceptionsWithBlame());
+
+                if (image == null) {
+                    System.out.println("Failed to generate image for test file: " + testFile.getName());
+                    return false;
+                }
+
+                File fileTestOutput = new File(folderBuildTests, testFile.getName().replace(".txt", ".png"));
+                try {
+                    ImageIO.write(image, "png", fileTestOutput);
+                    System.out.println("Test output written to: " + fileTestOutput.getAbsolutePath());
+                } catch (IOException e) {
+                    System.out.println("Failed to write test output: " + e.getMessage());
+                    return false;
+                }
+            }
+
+            try {
+                Desktop.getDesktop().open(folderBuildTests);
+            } catch (IOException e) {
+                System.out.println("Failed to open test output folder: " + e.getMessage());
+                return false;
+            }
+            
+            boolean renderProblem = false;
                 
+            for (Entry<String, EntityRendererFactory> entry : entitiesRemaining.entrySet()) {
+                String entityName = entry.getKey();
+                EntityRendererFactory factory = entry.getValue();
+                System.out.println("Entity not rendered: " + factory.profile.name + " / " + factory.groupName + " / " + entityName);
+                renderProblem = true;
+            }
+            for (Entry<String, TileRendererFactory> entry : tilesRemaining.entrySet()) {
+                String tileName = entry.getKey();
+                TileRendererFactory factory = entry.getValue();
+                System.out.println("Tile not rendered: " + factory.profile.name + " / " + factory.groupName + " / " + tileName);
+                renderProblem = true;
+            }
+
+            for (String entityName : unknownEntities) {
+                System.out.println("Unknown entity: " + entityName);
+                renderProblem = true;
+            }
+            for (String tileName : unknownTiles) {
+                System.out.println("Unknown tile: " + tileName);
+                renderProblem = true;
+            }
+
+            if (!exceptions.isEmpty()) {
+                System.out.println("Exceptions occurred during rendering:");
+                int count = 0;
+                for (ExceptionWithBlame exception : exceptions) {
+
+                    System.out.println();
+                    if (exception.getBlame().isPresent()) {
+                        System.out.println("Blame: " + exception.getBlame().get());
+                    }
+                    exception.getException().printStackTrace();
+
+                    if (++count > 5) {
+                        System.out.println();
+                        System.out.println("... and " + (exceptions.size() - count) + " more exception(s).");
+                        break;
+                    }
+                }
+                renderProblem = true;
+            }
+            
+            if (renderProblem) {
+                System.out.println("Some entities or tiles were not rendered.");
+                return false;
+                
+            } else {
+                System.out.println("All entities and tiles rendered successfully for profile " + getName() + ".");
+                return true;
             }
 
         } finally {

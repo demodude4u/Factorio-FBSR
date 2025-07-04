@@ -9,14 +9,16 @@ public class RenderResult {
 	public final BufferedImage image;
 	public final long renderTime;
 	public final double renderScale;
-	public final Multiset<String> unknownNames;
+	public final Multiset<String> unknownEntities;
+	public final Multiset<String> unknownTiles;
 
 	public RenderResult(RenderRequest request, BufferedImage image, long renderTime, double renderScale,
-			Multiset<String> unknownNames) {
+			Multiset<String> unknownEntities, Multiset<String> unknownTiles) {
 		this.request = request;
 		this.image = image;
 		this.renderTime = renderTime;
 		this.renderScale = renderScale;
-		this.unknownNames = unknownNames;
+		this.unknownEntities = unknownEntities;
+		this.unknownTiles = unknownTiles;
 	}
 }
