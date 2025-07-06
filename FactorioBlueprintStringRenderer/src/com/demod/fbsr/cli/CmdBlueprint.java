@@ -12,8 +12,8 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
-@Command(name = "render", description = "Render images from blueprint strings")
-public class CmdRender {
+@Command(name = "blueprint", description = "Render images and other commands related to blueprint strings")
+public class CmdBlueprint {
 
     @Command(name = "preview", description = "Render image with frame layout")
     public void previewRender(

@@ -27,7 +27,7 @@ import picocli.shell.jline3.PicocliCommands;
 @Command(name = "", mixinStandardHelpOptions = true, subcommands = {
     CommandLine.HelpCommand.class,
     CmdProfile.class, 
-    CmdRender.class,
+    CmdBlueprint.class,
     CmdDump.class,
     CmdBot.class,
 })
