@@ -86,6 +86,7 @@ public abstract class EntityRendererFactory {
 	public static boolean initFactories(Consumer<EntityRendererFactory> register, Profile profile) {
 		DataTable table = profile.getFactorioData().getTable();
 		boolean hasEntityTypeMismatch = false;
+		boolean failed = false;
 		for (ProfileModGroupRenderings renderings : profile.listRenderings()) {
 			for (Entry<String, String> entry : renderings.getEntityMappings().entrySet()) {
 				String entityName = entry.getKey();
@@ -94,7 +95,8 @@ public abstract class EntityRendererFactory {
 				Optional<EntityPrototype> optProto = table.getEntity(entityName);
 				if (!optProto.isPresent()) {
 					System.out.println("Rendering entity not found in factorio data: " + entityName);
-					return false;
+					failed = true;
+					continue;
 				}
 
 				EntityPrototype proto = optProto.get();
@@ -122,7 +124,7 @@ public abstract class EntityRendererFactory {
 
 				} catch (ClassNotFoundException e) {
 					System.out.println("Entity rendering class for " + entityName + " not found: " + factoryName);
-					return false;
+					failed = true;
 
 				} catch (Exception e) {
 					e.printStackTrace();
@@ -130,6 +132,11 @@ public abstract class EntityRendererFactory {
 					return false;
 				}
 			}
+		}
+
+		if (failed) {
+			System.out.println("Entity rendering registration failed!");
+			return false;
 		}
 
 		if (hasEntityTypeMismatch) {
