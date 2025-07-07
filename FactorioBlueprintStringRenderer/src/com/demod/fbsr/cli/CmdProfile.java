@@ -82,6 +82,10 @@ public class CmdProfile {
             this.profile = profile;
             System.out.println("Profile created successfully:" + profile.getName() + " (" + profile.getFolderProfile().getAbsolutePath() + ")");
             System.out.println("To generate a new rendering table, run the command 'profile default-renderings " + profile.getName() + "'");
+
+            if (!profile.updateMods()) {
+                System.out.println("Failed to update mods for profile: " + profile.getName());
+            }
         } else {
             System.out.println("Failed to create profile!");
         }
@@ -355,6 +359,29 @@ public class CmdProfile {
         }
     }
 
+    @Command(name = "update-mods", description = "Update mod versions for the specified profile")
+    public void updateMods(
+            @Parameters(arity = "0..1", description = "Name of the profile", paramLabel = "PROFILE") Optional<String> name,
+            @Option(names = "-all", description = "Update mods for all profiles, ignoring the selected profile") boolean all
+    ) {
+        if (all) {
+            for (Profile profile : Profile.listProfiles()) {
+                updateMods(Optional.of(profile.getName()), false);
+            }
+            return;
+        }
+
+        if (!checkOrSelectProfile(name)) {
+            return;
+        }
+
+        if (profile.updateMods()) {
+            System.out.println("Mods updated successfully for profile: " + profile.getName());
+        } else {
+            System.out.println("Failed to update mods for profile: " + profile.getName());
+        }
+    }
+
     @Command(name = "build-manifest", description = "Build the manifest for the specified profile")
     public void buildManifest(
             @Parameters(arity = "0..1", description = "Name of the profile", paramLabel = "PROFILE") Optional<String> name,
@@ -382,12 +409,12 @@ public class CmdProfile {
     @Command(name = "build-download", description = "Download mods for the specified profile")
     public void buildDownloadMods(
             @Parameters(arity = "0..1", description = "Name of the profile", paramLabel = "PROFILE") Optional<String> name,
-            @Option(names = "-force", description = "Force redownload of mods, even if they already exist") boolean force,
+            @Option(names = "-force-download", description = "Force redownload of mods, even if they are already downloaded") boolean forceDownload,
             @Option(names = "-all", description = "Download mods for all profiles, ignoring the selected profile") boolean all
     ) {
         if (all) {
             for (Profile profile : Profile.listProfiles()) {
-                buildDownloadMods(Optional.of(profile.getName()), force, false);
+                buildDownloadMods(Optional.of(profile.getName()), forceDownload, false);
             }
             return;
         }
@@ -396,7 +423,7 @@ public class CmdProfile {
             return;
         }
 
-        if (profile.buildDownload(force)) {
+        if (profile.buildDownload(forceDownload)) {
             System.out.println("Mods downloaded successfully for profile: " + profile.getName());
         } else {
             System.out.println("Failed to download mods for profile: " + profile.getName());
@@ -467,6 +494,7 @@ public class CmdProfile {
             @Parameters(arity = "0..1", description = "Name of the profile", paramLabel = "PROFILE") Optional<String> name,
             @Option(names = "-all", description = "Build all steps for all profiles") boolean all,
             @Option(names = "-force", description = "Force regeneration of all steps, even if they already exist") boolean force,
+            @Option(names = "-force-download", description = "Force redownload of mods, even if they are already downloaded") boolean forceDownload,
             @Option(names = "-force-dump", description = "Force regeneration of factorio dump") boolean forceDump,
             @Option(names = "-force-data", description = "Force regeneration of data") boolean forceData
     ) {
@@ -512,8 +540,8 @@ public class CmdProfile {
         }
 
         for (Profile profile : profiles) {
-            if (force || profile.getStatus() == ProfileStatus.BUILD_DOWNLOAD) {
-                buildDownloadMods(Optional.of(profile.getName()), force, false);
+            if (forceDownload || profile.getStatus() == ProfileStatus.BUILD_DOWNLOAD) {
+                buildDownloadMods(Optional.of(profile.getName()), forceDownload, false);
             }
         }
 

@@ -804,10 +804,27 @@ public class Profile {
         JSONArray jsonProfileMods = jsonProfile.optJSONArray("mods");
 
         List<String> mods = new ArrayList<>();
+        Map<String, String> modVersions = new HashMap<>();
         mods.add("base"); // Always include base mod
 
         for (int i = 0; i < jsonProfileMods.length(); i++) {
-            String modName = jsonProfileMods.getString(i).trim();
+            String dependency = jsonProfileMods.getString(i).trim();
+
+            String modName;
+            Optional<String> modVersion;
+            if (dependency.contains("=")) {
+                String[] parts = dependency.split("=", 2);
+                modName = parts[0].trim();
+                modVersion = Optional.of(parts[1].trim());
+            } else {
+                modName = dependency.trim();
+                modVersion = Optional.empty();
+            }
+
+            if (modVersion.isPresent()) {
+                modVersions.put(modName, modVersion.get());
+            }
+
             if (!mods.contains(modName)) {
                 mods.add(modName);
             }
@@ -820,7 +837,7 @@ public class Profile {
                 continue;
             }
             try {
-                walkDependencies(modInfo, modName);
+                walkDependencies(modInfo, modName, modVersions);
             } catch (IOException e) {
                 System.out.println("Failed to walk dependencies for mod: " + modName);
                 e.printStackTrace();
@@ -880,8 +897,14 @@ public class Profile {
         return true;
     }
 
-    private static void walkDependencies(Map<String, JSONObject> results, String mod) throws IOException {
-		JSONObject jsonRelease = FactorioModPortal.findLatestModReleaseInfoFull(mod);
+    private static void walkDependencies(Map<String, JSONObject> results, String mod, Map<String, String> modVersions) throws IOException {
+		JSONObject jsonRelease;
+        if (modVersions.containsKey(mod)) {
+            jsonRelease = FactorioModPortal.findModReleaseInfoFull(mod, modVersions.get(mod));
+        } else {
+            jsonRelease = FactorioModPortal.findLatestModReleaseInfoFull(mod);
+        }
+
         if (results.put(mod, jsonRelease) != null) {
             return; // Already processed this mod
         }
@@ -919,7 +942,8 @@ public class Profile {
 			}
 
 			if (!BUILTIN_MODS.contains(depMod)) {
-				walkDependencies(results, depMod);
+                //TODO we need to solve specific version dependencies
+				walkDependencies(results, depMod, modVersions);
 			}
 		}
 	}
@@ -1581,5 +1605,57 @@ public class Profile {
                 System.out.println("Failed to unload FBSR");
             }
         }
+    }
+
+    public boolean updateMods() {
+        if (!isValid()) {
+            System.out.println("Profile " + folderProfile.getName() + " is not valid.");
+            return false;
+        }
+
+        JSONObject jsonProfile = readJsonFile(fileProfile);
+        JSONArray jsonMods = jsonProfile.getJSONArray("mods");
+        boolean changed = false;
+        for (int i = 0; i < jsonMods.length(); i++) {
+            String dependency = jsonMods.getString(i);
+            
+            String modName;
+            Optional<String> modVersion;
+            if (dependency.contains("=")) {
+                String[] parts = dependency.split("=", 2);
+                modName = parts[0].trim();
+                modVersion = Optional.of(parts[1].trim());
+            } else {
+                modName = dependency.trim();
+                modVersion = Optional.empty();
+            }
+
+            if (BUILTIN_MODS.contains(modName)) {
+                continue; // Skip built-in mods
+            }
+
+            try {
+                JSONObject jsonRelease = FactorioModPortal.findLatestModReleaseInfo(modName);
+                String latestVersion = jsonRelease.getString("version");
+
+                if (!modVersion.equals(Optional.of(latestVersion))) {
+                    jsonMods.put(i, modName + " = " + latestVersion);
+                    changed = true;
+                    System.out.println("Updating mod: " + modName + " from " + modVersion.orElse("<empty>") + " to " + latestVersion);
+                }
+
+            } catch (Exception e) {
+                System.out.println("Failed to update mod: " + modName + " - " + e.getMessage());
+                return false;
+            }
+        }
+
+        if (changed) {
+            writeProfileSortedJsonFile(fileProfile, jsonProfile);
+
+            cleanManifest();
+        }
+
+        return true;
     }
 }
