@@ -7,6 +7,7 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalDouble;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -17,6 +18,7 @@ import org.json.JSONObject;
 import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
 import com.demod.factorio.prototype.DataPrototype;
+import com.demod.fbsr.Dir16;
 import com.demod.fbsr.FactorioManager;
 import com.demod.fbsr.Profile;
 import com.demod.fbsr.Profile.ProfileStatus;
@@ -799,6 +801,25 @@ public class CmdProfile {
             failedProfiles.forEach(profileName -> System.out.println(" - " + profileName));
         } else {
             System.out.println("Test blueprints rendered successfully.");
+        }
+    }
+
+    @Command(name = "test-entity", description = "Render test image of an entity")
+    public void testEntityRender(
+            @Parameters(arity = "1", description = "Name of the profile", paramLabel = "PROFILE") String name,
+            @Parameters(arity = "1", description = "Name of the entity", paramLabel = "ENTITY") String entity,
+            @Option(names = {"-d", "-dir",  "-direction"}, description = "Direction of the entity (N, NE, NNE, ...)") Optional<Dir16> direction,
+            @Option(names = {"-o", "-orientation"}, description = "Orientation of the entity (0-3, default 0)") Optional<Double> orientation,
+            @Option(names = {"-c", "-custom"}, description = "JSON object containing entity fields and values") Optional<String> custom
+    ) {
+        Profile profile = Profile.byName(name);
+        if (!profile.isValid()) {
+            System.out.println("Profile not found or invalid: " + name);
+            return;
+        }
+
+        if (!profile.renderTestEntity(entity, direction, orientation.isPresent() ? OptionalDouble.of(orientation.get()) : OptionalDouble.empty(), custom)) {
+            System.out.println("Failed to render test image for entity: " + entity);
         }
     }
 }

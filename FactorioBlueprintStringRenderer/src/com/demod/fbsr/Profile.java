@@ -27,6 +27,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalDouble;
 import java.util.Set;
 import java.util.Map.Entry;
 import java.util.concurrent.ExecutorService;
@@ -35,6 +36,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
@@ -61,12 +63,15 @@ import com.demod.factorio.Utils;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.factorio.prototype.TilePrototype;
 import com.demod.fbsr.BlueprintFinder.FindBlueprintResult;
+import com.demod.fbsr.app.BlueprintBotDiscordService.ImageShrinkResult;
+import com.demod.fbsr.bs.BSBlueprint;
 import com.demod.fbsr.bs.BSBlueprintString;
 import com.demod.fbsr.cli.CmdBot;
 import com.demod.fbsr.gui.GUISize;
 import com.demod.fbsr.gui.GUIStyle;
 import com.demod.fbsr.gui.layout.GUILayoutBlueprint;
 import com.demod.fbsr.gui.layout.GUILayoutBook;
+import com.demod.fbsr.map.MapVersion;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -1721,6 +1726,123 @@ public class Profile {
             writeProfileSortedJsonFile(fileProfile, jsonProfile);
 
             cleanManifest();
+        }
+
+        return true;
+    }
+
+    public boolean renderTestEntity(String entity, Optional<Dir16> direction, OptionalDouble orientation, Optional<String> custom) {
+        
+        if (!hasData()) {
+            System.out.println("Profile " + getName() + " does not have data files.");
+            return false;
+        }
+
+        JSONObject jsonBlueprintString = new JSONObject();
+        JSONObject jsonBlueprint = new JSONObject();
+        jsonBlueprint.put("version", 562949955649542L);
+        jsonBlueprintString.put("blueprint", jsonBlueprint);
+        JSONArray jsonEntities = new JSONArray();
+        jsonBlueprint.put("entities", jsonEntities);
+        JSONObject jsonEntity = new JSONObject();
+        jsonEntity.put("entity_number", 1);
+        jsonEntity.put("name", entity);
+        JSONObject jsonPosition = new JSONObject();
+        jsonPosition.put("x", 0);
+        jsonPosition.put("y", 0);
+        jsonEntity.put("position", jsonPosition);
+        jsonEntities.put(jsonEntity);
+
+        if (direction.isPresent()) {
+            jsonEntity.put("direction", direction.get().ordinal());
+        }
+
+        if (orientation.isPresent()) {
+            jsonEntity.put("orientation", orientation.getAsDouble());
+        }
+
+        if (custom.isPresent()) {
+            try {
+                JSONObject jsonCustom = new JSONObject(custom.get());
+                Utils.forEach(jsonCustom, (k, v) -> jsonEntity.put(k, v));
+            } catch (JSONException e) {
+                System.out.println("Failed to parse custom JSON for entity: " + e.getMessage());
+                return false;
+            }
+        }
+
+        String blueprintStringRaw = jsonBlueprintString.toString();
+        System.out.println();
+        System.out.println(blueprintStringRaw);
+        System.out.println();
+
+        BSBlueprint blueprint;
+        try {
+            List<FindBlueprintResult> searchResults = BlueprintFinder.search(blueprintStringRaw);
+            if (searchResults.stream().anyMatch(r -> r.failureCause.isPresent())) {
+                System.out.println("Failed to parse blueprint string: " + searchResults.stream()
+                        .filter(r -> r.failureCause.isPresent())
+                        .map(r -> r.failureCause.get().getMessage())
+                        .collect(Collectors.joining(", ")));
+                return false;
+            }
+            blueprint = searchResults.get(0).blueprintString.get().findAllBlueprints().get(0);
+        } catch (Exception e) {
+            System.out.println("Failed to parse blueprint string: " + e.getMessage());
+            return false;
+        }
+
+        List<Profile> profiles;
+        if (isVanilla()) {
+            profiles = ImmutableList.of(this);
+        } else {
+            profiles = ImmutableList.of(this, vanilla());
+        }
+
+        folderBuildTests.mkdirs();
+
+        if (!FBSR.load(profiles)) {
+            System.out.println("Failed to load FBSR for profile: " + getName());
+            return false;
+        }
+
+        try {
+            FactorioManager factorioManager = FBSR.getFactorioManager();
+            ModdingResolver resolver = ModdingResolver.byProfileOrder(factorioManager, profiles, false);
+            
+            EntityRendererFactory factory = resolver.resolveFactoryEntityName(entity);
+            if (factory.isUnknown()) {
+                System.out.println("Unknown entity: " + entity);
+                return false;
+            }
+
+            CommandReporting reporting = new CommandReporting(null, null, null);
+            RenderRequest request = new RenderRequest(blueprint, reporting);
+            request.setBackground(Optional.empty());
+            request.setGridLines(Optional.empty());
+            request.setDontClipSprites(true);
+
+            RenderResult result = FBSR.renderBlueprint(request);
+
+            File fileImage = new File(folderBuildTests, name+"-" + entity + ".png");
+            ImageIO.write(result.image, "PNG", fileImage);
+
+            try {
+                Desktop.getDesktop().open(folderBuildTests);
+            } catch (IOException e) {
+                System.out.println("Failed to open image: " + e.getMessage());
+                return false;
+            }
+
+        } catch (Exception e) {
+            System.out.println("Failed to render " + entity + " for profile: " + getName() + " - " + e.getMessage());
+            e.printStackTrace();
+            return false;
+
+        } finally{
+            if (!FBSR.unload()) {
+                System.out.println("Failed to unload FBSR");
+            }
         }
 
         return true;
