@@ -67,12 +67,13 @@ public class MapIcon extends MapRenderable {
 		g.scale(bounds.getWidth(), bounds.getHeight());
 		g.drawImage(image, 0, 0, 1, 1, source.x, source.y, source.x + source.width, source.y + source.height, null);
 
-		if (quality.isPresent()) {
-			Optional<IconDef> def = resolver.resolveIconQualityName(quality.get());
+		Optional<IconDef> qualityIcon = quality.flatMap(resolver::resolveIconQualityName);
+		if (qualityIcon.isPresent()) {
+			IconDef qDef = qualityIcon.get();
 			double qSize = 0.4;
 			g.translate(0, 1.0 - qSize);
 			g.scale(qSize, qSize);
-			AtlasRef qRef = def.get().getAtlasRef();
+			AtlasRef qRef = qDef.getAtlasRef();
 			Image qImage = qRef.getAtlas().getImage();
 			Rectangle qSource = qRef.getRect();
 			g.drawImage(qImage, 0, 0, 1, 1, qSource.x, qSource.y, qSource.x + qSource.width, qSource.y + qSource.height,
