@@ -411,11 +411,12 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 		} else if (blueprintString.blueprintBook.isPresent()) {
 			BSBlueprintBook book = blueprintString.blueprintBook.get();
+			List<BSBlueprint> blueprints = book.getAllBlueprints();
 
-			if (book.blueprints.isEmpty()) {
+			if (blueprints.isEmpty()) {
 				event.replyEmbed(new EmbedBuilder()//
 						.setColor(Color.red)//
-						.setDescription("Blueprint Book is empty!")//
+						.setDescription("Blueprint Book has no renderable blueprints!")//
 						.build());
 				return;
 			}
@@ -428,7 +429,6 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			layout.getResults().stream().forEach(r -> unknownNames.addAll(r.unknownTiles));
 			renderTimes.add(layout.getResults().stream().mapToLong(r -> r.renderTime).sum());
 
-			List<BSBlueprint> blueprints = book.getAllBlueprints();
 			List<ModdingResolver> resolvers = blueprints.stream()
 					.map(b -> ModdingResolver.byBlueprintBiases(factorioManager, b))
 					.collect(Collectors.toList());
@@ -447,6 +447,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 			mods.addAll(groups.stream().sorted().collect(Collectors.toList()));
 
 			StringSelectMenu.Builder menuBuilder = StringSelectMenu.create("reply-book-blueprint");
+			boolean emptyMenu = true;
 			for (int i = 0; i < blueprints.size(); i++) {
 				if (i < 25) {
 					BSBlueprint blueprint = blueprints.get(i);
@@ -455,11 +456,13 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 						optionLabel = optionLabel.substring(0, 97) + "...";
 					}
 					menuBuilder.addOption(optionLabel, futBlueprintStringUpload.get().getId() + "|" + i);
+					emptyMenu = false;
 				}
 				// TODO figure out how to handle more than 25 blueprint options
 			}
-			actionRows.add(ImmutableList.of(menuBuilder.build()));
-			// TODO each blueprint renders and upload
+			if (!emptyMenu) {
+				actionRows.add(ImmutableList.of(menuBuilder.build()));
+			}
 
 			label = book.label;
 
