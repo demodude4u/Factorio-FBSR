@@ -105,7 +105,11 @@ public class BSBlueprintString {
 			}
 		}
 		if (blueprintBook.isPresent()) {
-			return blueprintBook.get().blueprints.stream().flatMap(bs -> bs.findFirstLabel().stream()).findFirst();
+			BSBlueprintBook bp = blueprintBook.get();
+			if (bp.label.isPresent()) {
+				return bp.label;
+			}
+			return bp.blueprints.stream().flatMap(bs -> bs.findFirstLabel().stream()).findFirst();
 		}
 		return Optional.empty();
 	}
