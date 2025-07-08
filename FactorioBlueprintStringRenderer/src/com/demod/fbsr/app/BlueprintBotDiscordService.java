@@ -1036,7 +1036,7 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 
 		EntityRendererFactory factory = resolver.resolveFactoryEntityName(entityName);
 		if (factory.isUnknown()) {
-			event.reply("I could not find a way to display a `" + entityName + "`");
+			event.reply("I could not find a way to display `" + entityName + "`");
 			return;
 		}
 
