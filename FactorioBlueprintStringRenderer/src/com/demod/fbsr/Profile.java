@@ -15,6 +15,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -32,6 +33,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
@@ -40,6 +42,7 @@ import java.util.zip.ZipOutputStream;
 
 import javax.imageio.ImageIO;
 
+import org.apache.commons.io.output.TeeOutputStream;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -126,6 +129,7 @@ public class Profile {
 
     private final File folderProfileTests;
     private final File folderBuildTests;
+    private final File fileBuildTestsReport;
 
     private FactorioData factorioData;
     private RenderingRegistry renderingRegistry;
@@ -173,6 +177,7 @@ public class Profile {
 
         folderProfileTests = new File(folderProfile, "tests");
         folderBuildTests = new File(folderBuild, "tests");
+        fileBuildTestsReport = new File(folderBuildTests, "test-report.txt");
 
         resetLoadedData();
     }
@@ -1422,7 +1427,7 @@ public class Profile {
         return success.get();
     }
 
-    public boolean renderTests() {
+    public boolean renderTests(boolean openFolder) {
 
         if (!hasData()) {
             System.out.println("Profile " + getName() + " does not have data files.");
@@ -1447,14 +1452,28 @@ public class Profile {
             profiles = ImmutableList.of(this, vanilla());
         }
 
-        try {
+        folderBuildTests.mkdirs();
+
+        try (PrintWriter pw = new PrintWriter(fileBuildTestsReport)) {
+            Consumer<String> report = message -> {
+                pw.println(message);
+                System.out.println(message);
+            };
+
+            report.accept("Rendering tests for profile: " + getName());
+            report.accept("Test time: " + Instant.now());
+            report.accept("Test files:");
+            for (File testFile : testFiles) {
+                report.accept(" - " + testFile.getName());
+            }
+            report.accept("");
+            report.accept("/////////////////////////////////////////////");
+            report.accept("");
 
             if (!FBSR.load(profiles)) {
-                System.out.println("Failed to load FBSR for profile: " + getName());
+                report.accept("Failed to load FBSR for profile: " + getName());
                 return false;
             }
-
-            folderBuildTests.mkdirs();
 
             Map<String, EntityRendererFactory> entitiesRemaining = renderingRegistry.getEntityFactories().stream().collect(Collectors.toMap(EntityRendererFactory::getName, Function.identity()));
             Map<String, TileRendererFactory> tilesRemaining = renderingRegistry.getTileFactories().stream().collect(Collectors.toMap(TileRendererFactory::getName, Function.identity()));
@@ -1462,19 +1481,23 @@ public class Profile {
             Set<String> unknownTiles = new HashSet<>();
             List<ExceptionWithBlame> exceptions = new ArrayList<>();
 
+            boolean failed = false;
             for (File testFile : testFiles) {
+                report.accept("");
+
                 if (!testFile.getName().endsWith(".txt")) {
-                    System.out.println("Skipping non-.txt test file: " + testFile.getName());
+                    report.accept("Skipping non-.txt test file: " + testFile.getName());
                     continue;
                 }
 
-                System.out.println("Rendering test file: " + testFile.getName());
+                report.accept("Rendering test file: " + testFile.getName());
                 String blueprintStringRaw;
                 try {
                     blueprintStringRaw = Files.readString(testFile.toPath());
                 } catch (IOException e) {
-                    System.out.println("Failed to read test file: " + testFile.getName() + " (" + e.getMessage() + ")");
-                    return false;
+                    report.accept("Failed to read test file: " + testFile.getName() + " (" + e.getMessage() + ")");
+                    failed = true;
+                    continue;
                 }
 
                 List<FindBlueprintResult> searchResults = BlueprintFinder.search(blueprintStringRaw);
@@ -1483,13 +1506,15 @@ public class Profile {
 				        .collect(Collectors.toList());
 
                 if (blueprintStrings.isEmpty()) {
-                    System.out.println("No valid blueprint found in test file: " + testFile.getName());
-                    return false;
+                    report.accept("No valid blueprint found in test file: " + testFile.getName());
+                    failed = true;
+                    continue;
                 }
 
                 if (blueprintStrings.size() > 1) {
-                    System.out.println("Can only have one blueprint string per test file: " + testFile.getName());
-                    return false;
+                    report.accept("Can only have one blueprint string per test file: " + testFile.getName());
+                    failed = true;
+                    continue;
                 }
 
                 BSBlueprintString blueprintString = blueprintStrings.get(0);
@@ -1505,10 +1530,22 @@ public class Profile {
                     image = layout.generateDiscordImage();
 
                     for (RenderResult result : layout.getResults()) {
-                        result.request.getBlueprint().entities.forEach(e -> entitiesRemaining.remove(e.name));
-                        result.request.getBlueprint().tiles.forEach(t -> tilesRemaining.remove(t.name));
-                        unknownEntities.addAll(result.unknownEntities);
-                        unknownTiles.addAll(result.unknownTiles);
+                        result.request.getBlueprint().entities.forEach(e -> {
+                            report.accept(" - " + e.name);
+                            entitiesRemaining.remove(e.name);
+                        });
+                        result.request.getBlueprint().tiles.forEach(t -> {
+                            report.accept(" - " + t.name);
+                            tilesRemaining.remove(t.name);
+                        });
+                        result.unknownEntities.forEach(e -> {
+                            report.accept("(UNKNOWN) - " + e);
+                            unknownEntities.add(e);
+                        });
+                        result.unknownTiles.forEach(t -> {
+                            report.accept("(UNKNOWN) - " + t);
+                            unknownTiles.add(t);
+                        });
                     }
 
                 } else if (blueprintString.blueprint.isPresent()) {
@@ -1517,34 +1554,59 @@ public class Profile {
                     layout.setReporting(reporting);
                     image = layout.generateDiscordImage();
 
-                    layout.getResult().request.getBlueprint().entities.forEach(e -> entitiesRemaining.remove(e.name));
-                    layout.getResult().request.getBlueprint().tiles.forEach(t -> tilesRemaining.remove(t.name));
-                    unknownEntities.addAll(layout.getResult().unknownEntities);
-                    unknownTiles.addAll(layout.getResult().unknownTiles);
+                    layout.getResult().request.getBlueprint().entities.forEach(e -> {
+                        report.accept(" - " + e.name);
+                        entitiesRemaining.remove(e.name);
+                    });
+                    layout.getResult().request.getBlueprint().tiles.forEach(t -> {
+                        report.accept(" - " + t.name);
+                        tilesRemaining.remove(t.name);
+                    });
+                    layout.getResult().unknownEntities.forEach(e -> {
+                        report.accept("(UNKNOWN) - " + e);
+                        unknownEntities.add(e);
+                    });
+                    layout.getResult().unknownTiles.forEach(t -> {
+                        report.accept("(UNKNOWN) - " + t);
+                        unknownTiles.add(t);
+                    });
                 }
 
                 exceptions.addAll(reporting.getExceptionsWithBlame());
 
                 if (image == null) {
-                    System.out.println("Failed to generate image for test file: " + testFile.getName());
-                    return false;
+                    report.accept("Failed to generate image for test file: " + testFile.getName());
+                    failed = true;
+                    continue;
                 }
 
                 File fileTestOutput = new File(folderBuildTests, testFile.getName().replace(".txt", ".png"));
                 try {
                     ImageIO.write(image, "png", fileTestOutput);
-                    System.out.println("Test output written to: " + fileTestOutput.getAbsolutePath());
+                    report.accept("Test output written to: " + fileTestOutput.getName());
                 } catch (IOException e) {
-                    System.out.println("Failed to write test output: " + e.getMessage());
-                    return false;
+                    report.accept("Failed to write test output: " + e.getMessage());
+                    failed = true;
+                    continue;
                 }
             }
 
-            try {
-                Desktop.getDesktop().open(folderBuildTests);
-            } catch (IOException e) {
-                System.out.println("Failed to open test output folder: " + e.getMessage());
+            report.accept("");
+            report.accept("/////////////////////////////////////////////");
+            report.accept("");
+
+            if (failed) {
+                report.accept("Some tests failed to render. Check the output above for details.");
                 return false;
+            }
+
+            if (openFolder) {
+                try {
+                    Desktop.getDesktop().open(folderBuildTests);
+                } catch (IOException e) {
+                    report.accept("Failed to open test output folder: " + e.getMessage());
+                    return false;
+                }
             }
             
             boolean renderProblem = false;
@@ -1552,39 +1614,39 @@ public class Profile {
             for (Entry<String, EntityRendererFactory> entry : entitiesRemaining.entrySet()) {
                 String entityName = entry.getKey();
                 EntityRendererFactory factory = entry.getValue();
-                System.out.println("Entity not rendered: " + factory.profile.name + " / " + factory.groupName + " / " + entityName);
+                report.accept("Entity not rendered: " + factory.profile.name + " / " + factory.groupName + " / " + entityName);
                 renderProblem = true;
             }
             for (Entry<String, TileRendererFactory> entry : tilesRemaining.entrySet()) {
                 String tileName = entry.getKey();
                 TileRendererFactory factory = entry.getValue();
-                System.out.println("Tile not rendered: " + factory.profile.name + " / " + factory.groupName + " / " + tileName);
+                report.accept("Tile not rendered: " + factory.profile.name + " / " + factory.groupName + " / " + tileName);
                 renderProblem = true;
             }
 
             for (String entityName : unknownEntities) {
-                System.out.println("Unknown entity: " + entityName);
+                report.accept("Unknown entity: " + entityName);
                 renderProblem = true;
             }
             for (String tileName : unknownTiles) {
-                System.out.println("Unknown tile: " + tileName);
+                report.accept("Unknown tile: " + tileName);
                 renderProblem = true;
             }
 
             if (!exceptions.isEmpty()) {
-                System.out.println("Exceptions occurred during rendering:");
+                report.accept("Exceptions occurred during rendering:");
                 int count = 0;
                 for (ExceptionWithBlame exception : exceptions) {
 
-                    System.out.println();
+                    report.accept("");
                     if (exception.getBlame().isPresent()) {
-                        System.out.println("Blame: " + exception.getBlame().get());
+                        report.accept("Blame: " + exception.getBlame().get());
                     }
                     exception.getException().printStackTrace();
 
                     if (++count > 5) {
-                        System.out.println();
-                        System.out.println("... and " + (exceptions.size() - count) + " more exception(s).");
+                        report.accept("");
+                        report.accept("... and " + (exceptions.size() - count) + " more exception(s).");
                         break;
                     }
                 }
@@ -1592,13 +1654,18 @@ public class Profile {
             }
             
             if (renderProblem) {
-                System.out.println("Some entities or tiles were not rendered.");
+                report.accept("Some entities or tiles were not rendered.");
                 return false;
                 
             } else {
-                System.out.println("All entities and tiles rendered successfully for profile " + getName() + ".");
+                report.accept("All entities and tiles rendered successfully for profile " + getName() + ".");
                 return true;
             }
+
+        } catch (Exception e) {
+            System.out.println("Failed to render tests for profile: " + getName() + " - " + e.getMessage());
+            e.printStackTrace();
+            return false;
 
         } finally {
             if (!FBSR.unload()) {

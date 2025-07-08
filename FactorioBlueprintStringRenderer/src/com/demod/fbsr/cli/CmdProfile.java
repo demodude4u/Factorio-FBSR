@@ -735,7 +735,7 @@ public class CmdProfile {
             @Option(names = "-all-enabled", description = "Render test blueprints for all enabled profiles, ignoring the selected profile") boolean allEnabled,
             @Option(names = "-all-ready", description = "Render test blueprints for all ready profiles, ignoring the selected profile") boolean allReady
     ) {
-        if (!checkOrSelectProfile(name)) {
+        if (!all && !allEnabled && !allReady && !checkOrSelectProfile(name)) {
             return;
         }
 
@@ -773,11 +773,20 @@ public class CmdProfile {
             }
         }
 
+        boolean openFolder = profiles.size() == 1;
+        List<String> failedProfiles = new ArrayList<>();
         for (Profile profile : profiles) {
-            if (!profile.renderTests()) {
+            if (!profile.renderTests(openFolder)) {
                 System.out.println("Failed to render test blueprints for profile: " + profile.getName());
-                return;
+                failedProfiles.add(profile.getName());
             }
+        }
+        System.out.println();
+        if (!failedProfiles.isEmpty()) {
+            System.out.println("Some profiles failed to render test blueprints. Check the logs for details.");
+            failedProfiles.forEach(profileName -> System.out.println(" - " + profileName));
+        } else {
+            System.out.println("Test blueprints rendered successfully.");
         }
     }
 }
