@@ -104,6 +104,8 @@ public class FBSRCommands {
                 // .completer(picocliCommands.compileCompleters()) //TODO crashes
                 .parser(new DefaultParser())
                 .variable(LineReader.LIST_MAX, 50)
+                .variable(LineReader.HISTORY_FILE, "fbsrcli.history")
+                .variable(LineReader.HISTORY_FILE_SIZE, 100)
                 .build();
 
         String prompt = "\nFBSR> ";
@@ -122,6 +124,11 @@ public class FBSRCommands {
             }
         }
 
+        try {
+            reader.getHistory().save();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         System.out.println("Goodbye.");
     }
 
