@@ -2,6 +2,10 @@ package com.demod.fbsr.cli;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Map;
 import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
 
@@ -24,12 +28,18 @@ import picocli.CommandLine.Option;
 import picocli.CommandLine.ScopeType;
 import picocli.shell.jline3.PicocliCommands;
 
+import picocli.CommandLine.Model.CommandSpec;
+import picocli.CommandLine.Model.OptionSpec;
+import picocli.CommandLine.Model.PositionalParamSpec;
+import picocli.CommandLine.Model.ArgSpec;
+
 @Command(name = "", mixinStandardHelpOptions = true, subcommands = {
     CommandLine.HelpCommand.class,
     CmdProfile.class, 
     CmdBlueprint.class,
-    CmdDump.class,
+    CmdFactorio.class,
     CmdBot.class,
+    FBSRCommands.DumpHelpCommand.class
 })
 public class FBSRCommands {
 
@@ -135,5 +145,68 @@ public class FBSRCommands {
     public static void execute(String[] args) throws IOException {
         CommandLine cmd = new CommandLine(new FBSRCommands());
         System.exit(cmd.execute(args));
+    }
+
+    @Command(name = "dump-help", description = "Dump all command help into a Markdown file")
+    public static class DumpHelpCommand implements Runnable {
+        @Option(names = {"-o", "--output"}, description = "Output Markdown file", defaultValue = "fbsr-cli-help.md")
+        private String outputFile;
+
+        @Override
+        public void run() {
+            try {
+                CommandLine rootCmd = new CommandLine(new FBSRCommands());
+                StringBuilder sb = new StringBuilder();
+                dumpHelpRecursive(rootCmd, sb, 1, "");
+                Path outPath = Path.of(outputFile);
+                try (PrintWriter pw = new PrintWriter(Files.newBufferedWriter(outPath))) {
+                    pw.print(sb.toString());
+                }
+                System.out.println("Help dumped to: " + outPath.toAbsolutePath());
+            } catch (Exception e) {
+                System.err.println("Failed to dump help: " + e.getMessage());
+                e.printStackTrace();
+            }
+        }
+
+        private void dumpHelpRecursive(CommandLine cmd, StringBuilder sb, int level, String parentPath) {
+            CommandSpec spec = cmd.getCommandSpec();
+            String cmdName = spec.name();
+            String fullPath = parentPath.isEmpty() ? cmdName : parentPath + " " + cmdName;
+            String headerPrefix = "#".repeat(Math.min(level, 6));
+            sb.append(headerPrefix).append(" `").append(fullPath.trim()).append("`");
+            if (spec.usageMessage().description().length > 0) {
+                sb.append(" — ").append(String.join(" ", spec.usageMessage().description()));
+            }
+            sb.append("\n\n");
+
+            // Usage
+            sb.append("```shell\n");
+            sb.append(cmd.getUsageMessage(CommandLine.Help.Ansi.OFF));
+            sb.append("\n```\n");
+
+            // List subcommands
+            if (!spec.subcommands().isEmpty()) {
+                sb.append("**Subcommands:**\n\n");
+                for (Map.Entry<String, CommandLine> entry : spec.subcommands().entrySet()) {
+                    CommandSpec subSpec = entry.getValue().getCommandSpec();
+                    if (!subSpec.usageMessage().hidden()) {
+                        sb.append("- `").append(entry.getKey()).append("`");
+                        if (subSpec.usageMessage().description().length > 0) {
+                            sb.append(": ").append(String.join(" ", subSpec.usageMessage().description()));
+                        }
+                        sb.append("\n");
+                    }
+                }
+                sb.append("\n");
+            }
+
+            for (Map.Entry<String, CommandLine> entry : spec.subcommands().entrySet()) {
+                CommandSpec subSpec = entry.getValue().getCommandSpec();
+                if (!subSpec.usageMessage().hidden()) {
+                    dumpHelpRecursive(entry.getValue(), sb, level + 1, fullPath);
+                }
+            }
+        }
     }
 }

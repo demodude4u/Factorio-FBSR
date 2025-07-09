@@ -21,8 +21,8 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
-@Command(name = "dump", description = "Factorio Dump related commands")
-public class CmdDump {
+@Command(name = "factorio", description = "Factorio Dump related commands")
+public class CmdFactorio {
 
     @Command(name = "entity", description = "Dump an entity prototype from factorio data")
     public void dumpEntity(
