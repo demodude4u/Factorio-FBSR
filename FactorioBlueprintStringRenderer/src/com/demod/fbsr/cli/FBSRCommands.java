@@ -87,6 +87,7 @@ public class FBSRCommands {
                 System.exit(-1);
             }
             System.out.println("File created: " + fileConfig.getAbsolutePath());
+            new CmdConfig().findDefaultFactorio();
         }
 
         if (FactorioManager.hasFactorioInstall()) {
@@ -94,7 +95,7 @@ public class FBSRCommands {
             System.out.println("Factorio installed: Version " + FactorioManager.getFactorioVersion());
         } else {
             System.out.println();
-            System.out.println("Factorio is not installed. Type `help config factorio` to learn how to configure it.");
+            System.out.println("Factorio is not installed. Type `help config factorio` to learn how to configure it, or type `config find-factorio` to find the installation.");
         }
 
         if (!Profile.vanilla().isValid()) {
