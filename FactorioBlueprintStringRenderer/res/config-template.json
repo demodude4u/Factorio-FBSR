@@ -1,0 +1,15 @@
+{
+    "discord": {
+        "enabled": false
+    },
+    "webapi": {
+        "enabled": false
+    },
+    "logging": {
+        "file": "log.txt"
+    },
+	"factorio": {
+		"profiles": "profiles",
+        "build": "build"
+	}
+}
