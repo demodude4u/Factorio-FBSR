@@ -76,12 +76,12 @@ public class FactorioManager {
 			factorioVersion = null;
 		}
 
-		if (json.has("mod_portal_api")) {
-			JSONObject jsonModPortalAPI = json.getJSONObject("mod_portal_api");
-			if (jsonModPortalAPI.has("username") && jsonModPortalAPI.has("password")) {
+		if (json.has("portal")) {
+			JSONObject jsonPortalAPI = json.getJSONObject("portal");
+			if (jsonPortalAPI.has("username") && jsonPortalAPI.has("password")) {
 				hasModPortalApi = true;
-				modPortalApiUsername = jsonModPortalAPI.getString("username");
-				modPortalApiPassword = jsonModPortalAPI.getString("password");
+				modPortalApiUsername = jsonPortalAPI.getString("username");
+				modPortalApiPassword = jsonPortalAPI.getString("password");
 			} else {
 				hasModPortalApi = false;
 				modPortalApiUsername = null;

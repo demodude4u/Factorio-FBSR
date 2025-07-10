@@ -165,8 +165,8 @@ public class CmdProfile {
             case NEED_FACTORIO_INSTALL:
                 System.out.println("Profile is in NEED_FACTORIO_INSTALL status. It requires a Factorio installation configured in config.json to be set up in order to dump factorio data.");
                 break;
-            case NEED_MOD_PORTAL_API:
-                System.out.println("Profile is in NEED_MOD_PORTAL_API status. It requires the Factorio Mod Portal API information to be configured in config.json in order to download mods.");
+            case NEED_MOD_PORTAL_CREDENTIALS:
+                System.out.println("Profile is in NEED_MOD_PORTAL_CREDENTIALS status. It requires the Factorio Mod Portal API information to be configured in config.json in order to download mods.");
                 break;
         }
     }

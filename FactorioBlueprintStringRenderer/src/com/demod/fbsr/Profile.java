@@ -113,7 +113,7 @@ public class Profile {
         BUILD_DATA, // Rendering Updates
         
         NEED_FACTORIO_INSTALL, // Factorio is not configured
-        NEED_MOD_PORTAL_API, // Mod Portal API is not configured
+        NEED_MOD_PORTAL_CREDENTIALS, // Mod Portal API is not configured
     }
 
     private final String name;
@@ -399,7 +399,7 @@ public class Profile {
             if (FactorioManager.hasModPortalApi()) {
                 return ProfileStatus.BUILD_DOWNLOAD;
             } else {
-                return ProfileStatus.NEED_MOD_PORTAL_API;
+                return ProfileStatus.NEED_MOD_PORTAL_CREDENTIALS;
             }
 
         } else if (isValid()) {

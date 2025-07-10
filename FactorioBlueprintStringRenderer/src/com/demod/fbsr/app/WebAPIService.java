@@ -92,7 +92,7 @@ public class WebAPIService extends AbstractIdleService {
 				List<String> infos = new ArrayList<>();
 				List<Entry<Optional<String>, String>> imageLinks = new ArrayList<>();
 
-				boolean useLocalStorage = configJson.optBoolean("use-local-storage", false);
+				boolean useLocalStorage = configJson.has("local-storage");
 
 				try {
 					if (req.body() == null) {

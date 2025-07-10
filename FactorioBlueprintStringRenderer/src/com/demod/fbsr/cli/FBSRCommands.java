@@ -2,6 +2,7 @@ package com.demod.fbsr.cli;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -35,6 +36,7 @@ import picocli.CommandLine.Model.ArgSpec;
 
 @Command(name = "", mixinStandardHelpOptions = true, subcommands = {
     CommandLine.HelpCommand.class,
+    CmdConfig.class,
     CmdProfile.class, 
     CmdBlueprint.class,
     CmdFactorio.class,
@@ -73,12 +75,26 @@ public class FBSRCommands {
         System.out.println();
         System.out.println("Starting interactive shell...");
 
+        File fileConfig = new File(Config.getPath());
+        if (!fileConfig.exists()) {
+            System.out.println();
+            System.out.println("The configuration file is missing! Creating a new config file.");
+            InputStream template = FBSRCommands.class.getClassLoader().getResourceAsStream("config-template.json");
+            try {
+                Files.copy(template, fileConfig.toPath());
+            } catch (IOException e) {
+                e.printStackTrace();
+                System.exit(-1);
+            }
+            System.out.println("File created: " + fileConfig.getAbsolutePath());
+        }
+
         if (FactorioManager.hasFactorioInstall()) {
             System.out.println();
             System.out.println("Factorio installed: Version " + FactorioManager.getFactorioVersion());
         } else {
             System.out.println();
-            System.out.println("Factorio is not installed.");
+            System.out.println("Factorio is not installed. Type `help config factorio` to learn how to configure it.");
         }
 
         if (!Profile.vanilla().isValid()) {
@@ -143,6 +159,13 @@ public class FBSRCommands {
     }
 
     public static void execute(String[] args) throws IOException {
+        File fileConfig = new File(Config.getPath());
+        if (!fileConfig.exists()) {
+            System.err.println("Configuration file not found: " + fileConfig.getAbsolutePath());
+            System.err.println("Please run in interactive mode (no arguments) to create a new configuration file.");
+            System.exit(1);
+        }
+
         CommandLine cmd = new CommandLine(new FBSRCommands());
         System.exit(cmd.execute(args));
     }
@@ -174,7 +197,7 @@ public class FBSRCommands {
             String cmdName = spec.name();
             String fullPath = parentPath.isEmpty() ? cmdName : parentPath + " " + cmdName;
             String headerPrefix = "#".repeat(Math.min(level, 6));
-            sb.append(headerPrefix).append(" `").append(fullPath.trim()).append("`");
+            sb.append(headerPrefix).append(" `").append(fullPath.trim().isEmpty() ? "FBSR CLI Commands" : fullPath.trim()).append("`");
             if (spec.usageMessage().description().length > 0) {
                 sb.append(" — ").append(String.join(" ", spec.usageMessage().description()));
             }
@@ -186,20 +209,20 @@ public class FBSRCommands {
             sb.append("\n```\n");
 
             // List subcommands
-            if (!spec.subcommands().isEmpty()) {
-                sb.append("**Subcommands:**\n\n");
-                for (Map.Entry<String, CommandLine> entry : spec.subcommands().entrySet()) {
-                    CommandSpec subSpec = entry.getValue().getCommandSpec();
-                    if (!subSpec.usageMessage().hidden()) {
-                        sb.append("- `").append(entry.getKey()).append("`");
-                        if (subSpec.usageMessage().description().length > 0) {
-                            sb.append(": ").append(String.join(" ", subSpec.usageMessage().description()));
-                        }
-                        sb.append("\n");
-                    }
-                }
-                sb.append("\n");
-            }
+            // if (!spec.subcommands().isEmpty()) {
+            //     sb.append("**Subcommands:**\n\n");
+            //     for (Map.Entry<String, CommandLine> entry : spec.subcommands().entrySet()) {
+            //         CommandSpec subSpec = entry.getValue().getCommandSpec();
+            //         if (!subSpec.usageMessage().hidden()) {
+            //             sb.append("- `").append(entry.getKey()).append("`");
+            //             if (subSpec.usageMessage().description().length > 0) {
+            //                 sb.append(": ").append(String.join(" ", subSpec.usageMessage().description()));
+            //             }
+            //             sb.append("\n");
+            //         }
+            //     }
+            //     sb.append("\n");
+            // }
 
             for (Map.Entry<String, CommandLine> entry : spec.subcommands().entrySet()) {
                 CommandSpec subSpec = entry.getValue().getCommandSpec();
