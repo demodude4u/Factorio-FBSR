@@ -40,7 +40,6 @@ public class FBSRApps {
 		List<Service> services = new ArrayList<>();
 		addServiceIfEnabled(services, "discord", BlueprintBotDiscordService::new);
 		addServiceIfEnabled(services, "webapi", WebAPIService::new);
-		addServiceIfEnabled(services, "watchdog", WatchdogService::new);
 		addServiceIfEnabled(services, "logging", LoggingService::new);
 		services.add(new RPCService());
 		services.add(new FactorioService());

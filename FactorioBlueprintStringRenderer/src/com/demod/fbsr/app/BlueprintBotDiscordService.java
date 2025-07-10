@@ -63,7 +63,6 @@ import com.demod.fbsr.RenderRequest;
 import com.demod.fbsr.RenderResult;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.WebUtils;
-import com.demod.fbsr.app.WatchdogService.WatchdogReporter;
 import com.demod.fbsr.bs.BSBlueprint;
 import com.demod.fbsr.bs.BSBlueprintBook;
 import com.demod.fbsr.bs.BSBlueprintString;
@@ -1495,7 +1494,6 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 	@Override
 	protected void shutDown() {
 		ServiceFinder.removeService(this);
-		ServiceFinder.removeService(WatchdogReporter.class);
 		bot.stopAsync().awaitTerminated();
 	}
 
@@ -1694,22 +1692,6 @@ public class BlueprintBotDiscordService extends AbstractIdleService {
 		LOGGER.info("Discord {} started successfully!", bot.getJDA().getSelfUser().getEffectiveName());
 
 		hostingChannelID = configJson.getString("hosting_channel_id");
-
-		ServiceFinder.addService(WatchdogReporter.class, new WatchdogReporter() {
-			@Override
-			public void notifyInactive(String label) {
-				CommandReporting reporting = new CommandReporting("Watchdog Reporter", null, null);
-				reporting.addWarning(label + " has gone inactive!");
-				bot.submitReport(reporting);
-			}
-
-			@Override
-			public void notifyReactive(String label) {
-				CommandReporting reporting = new CommandReporting("Watchdog Reporter", null, null);
-				reporting.addWarning(label + " is now active again!");
-				bot.submitReport(reporting);
-			}
-		});
 	}
 
 	public Future<Message> useDiscordForFileHosting(String filename, BufferedImage image) throws IOException {
