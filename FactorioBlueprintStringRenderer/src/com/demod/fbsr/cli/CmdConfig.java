@@ -4,12 +4,14 @@ import java.awt.Desktop;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 import org.json.JSONObject;
 
 import com.demod.factorio.Config;
+import com.demod.factorio.FactorioData;
 import com.demod.factorio.Utils;
 
 import picocli.CommandLine.ArgGroup;
@@ -120,6 +122,8 @@ public class CmdConfig {
             @Parameters(arity = "1..*", description = "Features to enable (${COMPLETION-CANDIDATES})", paramLabel = "FEATURE") List<EnableFeatureSelect> features
     ) {
         for (EnableFeatureSelect feature : features) {
+            Config.setPath(Config.getPath()); // Ensure we have the latest config
+            
             JSONObject jsonFeature = Config.get().getJSONObject(feature.name());
             jsonFeature.put("enabled", true);
 
@@ -136,6 +140,8 @@ public class CmdConfig {
             @Parameters(arity = "1..*", description = "Features to disable (${COMPLETION-CANDIDATES})", paramLabel = "FEATURE") List<EnableFeatureSelect> features
     ) {
         for (EnableFeatureSelect feature : features) {
+            Config.setPath(Config.getPath()); // Ensure we have the latest config
+            
             JSONObject jsonFeature = Config.get().getJSONObject(feature.name());
             jsonFeature.put("enabled", false);
 
@@ -239,6 +245,72 @@ public class CmdConfig {
     public void reloadConfig() {
         Config.setPath(Config.getPath());
         System.out.println("Configuration reloaded from file: " + Config.getPath());
+    }
+
+    @Command(name = "find-factorio", description = "Attempt to automatically find and set the default Factorio installation")
+    public void findDefaultFactorio() {
+        
+        List<String> searchDirs = new ArrayList<>(List.of(
+            "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Factorio",
+            "C:\\Program Files\\Steam\\steamapps\\common\\Factorio",
+            "/usr/games/factorio",
+            "/usr/local/games/factorio",
+            "/Applications/Factorio.app/Contents/Resources/app"
+        ));
+        for (File dir : new File(".").listFiles()) {
+            if (dir.isDirectory() && !searchDirs.contains(dir.getAbsolutePath())) {
+                searchDirs.add(dir.getAbsolutePath());
+            }
+        }
+        List<String> foundPaths = new ArrayList<>();
+        for (String dirPath : searchDirs) {
+            File dir = new File(dirPath);
+            if (dir.exists() && dir.isDirectory()) {
+                File factorioExecutable = FactorioData.getFactorioExecutable(dir);
+                if (factorioExecutable.exists()) {
+                    foundPaths.add(dir.getAbsolutePath());
+                }
+            }
+        }
+
+        if (foundPaths.isEmpty()) {
+            System.out.println("No Factorio installations found.");
+            return;
+        }
+
+        String installPath;
+        if (foundPaths.size() == 1) {
+            installPath = foundPaths.get(0);
+            System.out.println("Found Factorio installation: " + installPath);
+        
+        } else {
+            System.out.println("Multiple Factorio installations found:");
+            for (int i = 0; i < foundPaths.size(); i++) {
+                System.out.println((i + 1) + ": " + foundPaths.get(i));
+            }
+            System.out.print("Select the number of the installation to use: ");
+            try {
+                int selection = Integer.parseInt(System.console().readLine());
+                if (selection < 1 || selection > foundPaths.size()) {
+                    System.out.println("Invalid selection.");
+                    return;
+                }
+                installPath = foundPaths.get(selection - 1);
+            } catch (Exception e) {
+                System.out.println("Invalid input.");
+                return;
+            }
+        }
+
+        Config.setPath(Config.getPath()); // Ensure we have the latest config
+        JSONObject jsonFactorio = Config.get().getJSONObject("factorio");
+        jsonFactorio.put("install", installPath);
+
+        if (writeConfigFeature("factorio", jsonFactorio)) {
+            System.out.println("Factorio install updated successfully.");
+        } else {
+            System.out.println("Failed to update Factorio install.");
+        }
     }
 
     private boolean writeConfigFeature(String feature, JSONObject jsonFeature) {
