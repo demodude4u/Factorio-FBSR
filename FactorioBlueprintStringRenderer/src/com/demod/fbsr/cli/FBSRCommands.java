@@ -1,5 +1,6 @@
 package com.demod.fbsr.cli;
 
+import java.awt.Color;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -25,8 +26,10 @@ import com.google.common.util.concurrent.Uninterruptibles;
 
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
+import picocli.CommandLine.ITypeConverter;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.ScopeType;
+import picocli.CommandLine.TypeConversionException;
 import picocli.shell.jline3.PicocliCommands;
 
 import picocli.CommandLine.Model.CommandSpec;
@@ -75,6 +78,8 @@ public class FBSRCommands {
         System.out.println();
         System.out.println("Starting interactive shell...");
 
+        CommandLine cmd = createCommandLine();
+
         File fileConfig = new File(Config.getPath());
         if (!fileConfig.exists()) {
             System.out.println();
@@ -87,7 +92,11 @@ public class FBSRCommands {
                 System.exit(-1);
             }
             System.out.println("File created: " + fileConfig.getAbsolutePath());
-            new CmdConfig().findDefaultFactorio();
+
+            // Run initial setup commands
+            cmd.execute("dump-help");
+            cmd.execute("config","find-factorio");
+            cmd.execute("profile","default-vanilla");
         }
 
         if (FactorioManager.hasFactorioInstall()) {
@@ -102,9 +111,9 @@ public class FBSRCommands {
             System.out.println();
             System.out.println("WARNING: The vanilla profile is missing or not valid! Type command 'profile default-vanilla' to get started.");
         
-        } else if (!Profile.listProfiles().stream().allMatch(Profile::isReady)) {
+        } else if (!Profile.listProfiles().stream().allMatch(p -> !p.isEnabled() || p.isReady())) {
             System.out.println();
-            System.out.println("WARNING: Not all profiles are ready!");
+            System.out.println("WARNING: Not all profiles are ready! Type 'profile build -all' to build all profiles.");
             new CmdProfile().listProfiles(null, false);
 
         } else {
@@ -113,7 +122,7 @@ public class FBSRCommands {
         }
 
         System.out.println();
-        System.out.println("Type 'exit' or 'quit' to exit.");
+        System.out.println("Type 'exit' or 'quit' or ctrl-c to exit.");
 
         Terminal terminal;
         try {
@@ -167,8 +176,15 @@ public class FBSRCommands {
             System.exit(1);
         }
 
-        CommandLine cmd = new CommandLine(new FBSRCommands());
+        CommandLine cmd = createCommandLine();
         System.exit(cmd.execute(args));
+    }
+
+    public static CommandLine createCommandLine() {
+        CommandLine cmd = new CommandLine(new FBSRCommands());
+        cmd.setCaseInsensitiveEnumValuesAllowed(true);
+        cmd.registerConverter(Color.class, new ColorConverter());
+        return cmd;
     }
 
     @Command(name = "dump-help", description = "Dump all command help into a Markdown file")
@@ -236,6 +252,31 @@ public class FBSRCommands {
                 if (!subSpec.usageMessage().hidden()) {
                     dumpHelpRecursive(entry.getValue(), sb, level + 1, fullPath);
                 }
+            }
+        }
+    }
+
+    public static class ColorConverter implements ITypeConverter<Color> {
+        @Override
+        public Color convert(String value) throws Exception {
+            String hex = value.trim();
+            if (hex.startsWith("#")) {
+                hex = hex.substring(1);
+            }
+            try {
+                if (hex.length() == 8) {
+                    // AARRGGBB
+                    int val = (int) Long.parseLong(hex, 16);
+                    return new Color(val, true);
+                } else if (hex.length() == 6) {
+                    // RRGGBB
+                    int val = Integer.parseInt(hex, 16);
+                    return new Color(val, false);
+                } else {
+                    throw new TypeConversionException("Color hex must be 6 (RRGGBB) or 8 (AARRGGBB) hex digits: " + value);
+                }
+            } catch (NumberFormatException e) {
+                throw new TypeConversionException("Invalid color hex: " + value);
             }
         }
     }
