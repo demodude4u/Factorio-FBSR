@@ -17,6 +17,15 @@ public class BSColor {
 		a = json.getDouble("a");
 	}
 
+	public static JSONObject toJson(Color color) {
+		JSONObject json = new JSONObject();
+		json.put("r", color.getRed());
+		json.put("g", color.getGreen());
+		json.put("b", color.getBlue());
+		json.put("a", color.getAlpha());
+		return json;
+	}
+
 	// Assuming NOT pre-multiplied alpha
 	public Color createColor() {
 		if (r > 1 || g > 1 || b > 1 || a > 1) { // 0 to 255
