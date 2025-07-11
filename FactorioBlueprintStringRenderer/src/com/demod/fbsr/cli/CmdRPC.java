@@ -23,7 +23,7 @@ import com.demod.fbsr.RenderRequest;
 import com.demod.fbsr.RenderResult;
 import com.demod.fbsr.BlueprintFinder.FindBlueprintResult;
 import com.demod.fbsr.WebUtils;
-import com.demod.fbsr.app.BlueprintBotDiscordService;
+import com.demod.fbsr.app.DiscordService;
 import com.demod.fbsr.app.RPCService;
 import com.demod.fbsr.app.ServiceFinder;
 import com.demod.fbsr.app.FBSRApps;
@@ -146,7 +146,7 @@ public class CmdRPC {
             reportAddResponse(reporting, ret);
             return ret;
         } finally {
-            ServiceFinder.findService(BlueprintBotDiscordService.class).ifPresent(s -> s.getBot().submitReport(reporting));
+            ServiceFinder.findService(DiscordService.class).ifPresent(s -> s.getBot().submitReport(reporting));
         }
     }
 
@@ -234,7 +234,7 @@ public class CmdRPC {
             reportAddResponse(reporting, ret);
             return ret;
         } finally {
-            ServiceFinder.findService(BlueprintBotDiscordService.class).ifPresent(s -> s.getBot().submitReport(reporting));
+            ServiceFinder.findService(DiscordService.class).ifPresent(s -> s.getBot().submitReport(reporting));
         }
     }
 

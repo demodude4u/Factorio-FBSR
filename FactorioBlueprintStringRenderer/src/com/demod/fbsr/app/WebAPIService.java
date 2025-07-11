@@ -145,8 +145,8 @@ public class WebAPIService extends AbstractIdleService {
 								imageLinks.add(new SimpleEntry<>(blueprint.label, imageLink));
 							} else {
 								// TODO links expire, need a new approach
-								Optional<BlueprintBotDiscordService> discordService = ServiceFinder
-										.findService(BlueprintBotDiscordService.class);
+								Optional<DiscordService> discordService = ServiceFinder
+										.findService(DiscordService.class);
 								if (discordService.isPresent()) {
 									imageLinks
 											.add(new SimpleEntry<>(blueprint.label,
@@ -224,7 +224,7 @@ public class WebAPIService extends AbstractIdleService {
 				}
 
 			} finally {
-				ServiceFinder.findService(BlueprintBotDiscordService.class)
+				ServiceFinder.findService(DiscordService.class)
 						.ifPresent(s -> s.getBot().submitReport(reporting));
 			}
 

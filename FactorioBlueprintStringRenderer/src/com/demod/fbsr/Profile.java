@@ -63,7 +63,7 @@ import com.demod.factorio.Utils;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.factorio.prototype.TilePrototype;
 import com.demod.fbsr.BlueprintFinder.FindBlueprintResult;
-import com.demod.fbsr.app.BlueprintBotDiscordService.ImageShrinkResult;
+import com.demod.fbsr.app.DiscordService.ImageShrinkResult;
 import com.demod.fbsr.bs.BSBlueprint;
 import com.demod.fbsr.bs.BSBlueprintString;
 import com.demod.fbsr.cli.CmdBot;

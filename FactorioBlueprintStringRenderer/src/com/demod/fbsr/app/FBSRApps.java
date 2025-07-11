@@ -38,7 +38,7 @@ public class FBSRApps {
 		}
 
 		List<Service> services = new ArrayList<>();
-		addServiceIfEnabled(services, "discord", BlueprintBotDiscordService::new);
+		addServiceIfEnabled(services, "discord", DiscordService::new);
 		addServiceIfEnabled(services, "webapi", WebAPIService::new);
 		services.add(new LoggingService());
 		services.add(new RPCService());
