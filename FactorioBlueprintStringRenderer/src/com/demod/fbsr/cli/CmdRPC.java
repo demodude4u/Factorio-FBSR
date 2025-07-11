@@ -34,6 +34,7 @@ import com.fasterxml.jackson.databind.JsonSerializable.Base;
 import com.google.common.util.concurrent.Uninterruptibles;
 
 import net.dv8tion.jda.api.entities.MessageEmbed.Field;
+import picocli.CommandLine.ArgGroup;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
@@ -76,170 +77,174 @@ public class CmdRPC {
         return true;
     }
 
-    @Command(name = "render")
-    public static class SubCmdRender {
-
-        @Parameters
-        public String blueprintString;
-
-        @Command(name = "preview")
-        public JSONObject preview() {
-            JSONObject ret = new JSONObject();
-            CommandReporting reporting = new CommandReporting(null, null, "preview", Instant.now());
-            try {
-                List<FindBlueprintResult> search = BlueprintFinder.search(blueprintString);
-                
-                if (search.isEmpty()) {
-                    ret.put("success", false);
-                    ret.put("message", "No blueprint found for the given string");
-                    return ret;
-                }
-                
-                FindBlueprintResult searchResult = search.get(0);
-                if (searchResult.failureCause.isPresent()) {
-                    ret.put("success", false);
-                    ret.put("message", "Error while parsing blueprint");
-                    ret.put("reason", searchResult.failureCause.get().getMessage());
-                    return ret;
-                }
-
-                BSBlueprintString blueprintString = searchResult.blueprintString.get();
-                
-                String type;
-                BufferedImage image;
-                if (blueprintString.blueprint.isPresent()) {
-                    type = "blueprint";
-                    GUILayoutBlueprint layout = new GUILayoutBlueprint();
-                    layout.setBlueprint(blueprintString.blueprint.get());
-                    layout.setReporting(reporting);
-                    image = layout.generateDiscordImage();
-
-                } else if (blueprintString.blueprintBook.isPresent()) {
-                    type = "book";
-                    GUILayoutBook layout = new GUILayoutBook();
-                    layout.setBook(blueprintString.blueprintBook.get());
-                    layout.setReporting(reporting);
-                    image = layout.generateDiscordImage();
-
-                } else {
-                    ret.put("success", false);
-                    ret.put("message", "Blueprint string is not a blueprint or blueprint book");
-                    return ret;
-                }
-
-                ret.put("success", true);
-                ret.put("type", type);
-                Optional<String> firstLabel = blueprintString.findFirstLabel();
-                if (firstLabel.isPresent()) {
-                    ret.put("label", firstLabel.get());
-                }
-                try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-                    ImageIO.write(image, "PNG", baos);
-                    baos.flush();
-                    ret.put("filename", WebUtils.formatBlueprintFilename(blueprintString.findFirstLabel(), "png"));
-                    ret.put("filedata", Base64.getEncoder().encodeToString(baos.toByteArray()));
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    System.exit(-1);
-                }
-                
+    @Command(name = "preview")
+    public JSONObject preview(
+            @Parameters(arity = "1") String blueprintStringRaw
+    ) {
+        JSONObject ret = new JSONObject();
+        CommandReporting reporting = new CommandReporting(null, null, "preview " + blueprintStringRaw, Instant.now());
+        try {
+            List<FindBlueprintResult> search = BlueprintFinder.search(blueprintStringRaw);
+            
+            if (search.isEmpty()) {
+                ret.put("success", false);
+                ret.put("message", "No blueprint found for the given string");
+                reportAddResponse(reporting, ret);
                 return ret;
-            } finally {
-                Utils.forEach(ret, (key, value) -> {
-                    if (key.equals("filedata")) {
-                        return;
-                    }
-                    reporting.addField(new Field(key, value.toString(), false));
-                });
-                ServiceFinder.findService(BlueprintBotDiscordService.class).ifPresent(s -> s.getBot().submitReport(reporting));
             }
-        }
-
-        @Command(name = "full")
-        public JSONObject full(
-                @Parameters(arity = "0..1") Optional<String> options
-        ) {
-            JSONObject ret = new JSONObject();
-            CommandReporting reporting = new CommandReporting(null, null, "preview", Instant.now());
-            try {
-                Optional<JSONObject> jsonOptions;
-                if (options.isPresent()) {
-                    try {
-                        jsonOptions = Optional.of(new JSONObject(options.get()));
-                    } catch (Exception e) {
-                        ret.put("success", false);
-                        ret.put("message", "Invalid options JSON");
-                        ret.put("reason", e.getMessage());
-                        return ret;
-                    }
-                } else {
-                    jsonOptions = Optional.empty();
-                }
-
-                List<FindBlueprintResult> search = BlueprintFinder.search(blueprintString);
-                
-                if (search.isEmpty()) {
-                    ret.put("success", false);
-                    ret.put("message", "No blueprint found for the given string");
-                    return ret;
-                }
-                
-                FindBlueprintResult searchResult = search.get(0);
-                if (searchResult.failureCause.isPresent()) {
-                    ret.put("success", false);
-                    ret.put("message", "Error while parsing blueprint");
-                    ret.put("reason", searchResult.failureCause.get().getMessage());
-                    return ret;
-                }
-
-                BSBlueprintString blueprintString = searchResult.blueprintString.get();
-                
-                BufferedImage image;
-                if (blueprintString.blueprint.isPresent()) {
-                    RenderRequest request;
-                    if (jsonOptions.isPresent()) {
-                        request = new RenderRequest(blueprintString.blueprint.get(), reporting, jsonOptions.get());
-                    } else {
-                        request = new RenderRequest(blueprintString.blueprint.get(), reporting);
-                    }
-
-                    RenderResult result = FBSR.renderBlueprint(request);
-                    
-                    image = result.image;
-
-                } else {
-                    ret.put("success", false);
-                    ret.put("message", "Blueprint string is not a blueprint");
-                    return ret;
-                }
-
-                ret.put("success", true);
-                Optional<String> firstLabel = blueprintString.findFirstLabel();
-                if (firstLabel.isPresent()) {
-                    ret.put("label", firstLabel.get());
-                }
-                try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-                    ImageIO.write(image, "PNG", baos);
-                    baos.flush();
-                    ret.put("filename", WebUtils.formatBlueprintFilename(blueprintString.findFirstLabel(), "png"));
-                    ret.put("filedata", Base64.getEncoder().encodeToString(baos.toByteArray()));
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    System.exit(-1);
-                }
-                
+            
+            FindBlueprintResult searchResult = search.get(0);
+            if (searchResult.failureCause.isPresent()) {
+                ret.put("success", false);
+                ret.put("message", "Error while parsing blueprint");
+                ret.put("reason", searchResult.failureCause.get().getMessage());
+                reportAddResponse(reporting, ret);
                 return ret;
-            } finally {
-                Utils.forEach(ret, (key, value) -> {
-                    if (key.equals("filedata")) {
-                        return;
-                    }
-                    reporting.addField(new Field(key, value.toString(), false));
-                });
-                ServiceFinder.findService(BlueprintBotDiscordService.class).ifPresent(s -> s.getBot().submitReport(reporting));
             }
-        }
 
+            BSBlueprintString blueprintString = searchResult.blueprintString.get();
+            
+            String type;
+            BufferedImage image;
+            if (blueprintString.blueprint.isPresent()) {
+                type = "blueprint";
+                GUILayoutBlueprint layout = new GUILayoutBlueprint();
+                layout.setBlueprint(blueprintString.blueprint.get());
+                layout.setReporting(reporting);
+                image = layout.generateDiscordImage();
+
+            } else if (blueprintString.blueprintBook.isPresent()) {
+                type = "book";
+                GUILayoutBook layout = new GUILayoutBook();
+                layout.setBook(blueprintString.blueprintBook.get());
+                layout.setReporting(reporting);
+                image = layout.generateDiscordImage();
+
+            } else {
+                ret.put("success", false);
+                ret.put("message", "Blueprint string is not a blueprint or blueprint book");
+                reportAddResponse(reporting, ret);
+                return ret;
+            }
+
+            ret.put("success", true);
+            ret.put("type", type);
+            Optional<String> firstLabel = blueprintString.findFirstLabel();
+            if (firstLabel.isPresent()) {
+                ret.put("label", firstLabel.get());
+            }
+            try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+                ImageIO.write(image, "PNG", baos);
+                baos.flush();
+                ret.put("filename", WebUtils.formatBlueprintFilename(blueprintString.findFirstLabel(), "png"));
+                ret.put("filedata", Base64.getEncoder().encodeToString(baos.toByteArray()));
+            } catch (Exception e) {
+                e.printStackTrace();
+                System.exit(-1);
+            }
+            
+            reportAddResponse(reporting, ret);
+            return ret;
+        } finally {
+            ServiceFinder.findService(BlueprintBotDiscordService.class).ifPresent(s -> s.getBot().submitReport(reporting));
+        }
+    }
+
+    @Command(name = "request")
+    public JSONObject request(
+            @Parameters(arity = "1") String blueprintStringRaw,
+            @Parameters(arity = "0..1") Optional<String> options
+    ) {
+        JSONObject ret = new JSONObject();
+        CommandReporting reporting = new CommandReporting(null, null, "request " + blueprintStringRaw, Instant.now());
+        
+        try {
+            Optional<JSONObject> jsonOptions;
+            if (options.isPresent()) {
+                try {
+                    jsonOptions = Optional.of(new JSONObject(options.get()));
+                    reporting.addField(new Field("Options", jsonOptions.get().toString(2), false));
+                } catch (Exception e) {
+                    reporting.addField(new Field("Options (Invalid)", options.get(), false));
+                    ret.put("success", false);
+                    ret.put("message", "Invalid options JSON");
+                    ret.put("reason", e.getMessage());
+                    reportAddResponse(reporting, ret);
+                    return ret;
+                }
+            } else {
+                jsonOptions = Optional.empty();
+            }
+
+            List<FindBlueprintResult> search = BlueprintFinder.search(blueprintStringRaw);
+            
+            if (search.isEmpty()) {
+                ret.put("success", false);
+                ret.put("message", "No blueprint found for the given string");
+                reportAddResponse(reporting, ret);
+                return ret;
+            }
+            
+            FindBlueprintResult searchResult = search.get(0);
+            if (searchResult.failureCause.isPresent()) {
+                ret.put("success", false);
+                ret.put("message", "Error while parsing blueprint");
+                ret.put("reason", searchResult.failureCause.get().getMessage());
+                reportAddResponse(reporting, ret);
+                return ret;
+            }
+
+            BSBlueprintString blueprintString = searchResult.blueprintString.get();
+            
+            BufferedImage image;
+            if (blueprintString.blueprint.isPresent()) {
+                RenderRequest request;
+                if (jsonOptions.isPresent()) {
+                    request = new RenderRequest(blueprintString.blueprint.get(), reporting, jsonOptions.get());
+                } else {
+                    request = new RenderRequest(blueprintString.blueprint.get(), reporting);
+                }
+
+                RenderResult result = FBSR.renderBlueprint(request);
+                
+                image = result.image;
+
+            } else {
+                ret.put("success", false);
+                ret.put("message", "Blueprint string is not a single blueprint");
+                reportAddResponse(reporting, ret);
+                return ret;
+            }
+
+            ret.put("success", true);
+            Optional<String> firstLabel = blueprintString.findFirstLabel();
+            if (firstLabel.isPresent()) {
+                ret.put("label", firstLabel.get());
+            }
+            try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+                ImageIO.write(image, "PNG", baos);
+                baos.flush();
+                ret.put("filename", WebUtils.formatBlueprintFilename(blueprintString.findFirstLabel(), "png"));
+                ret.put("filedata", Base64.getEncoder().encodeToString(baos.toByteArray()));
+            } catch (Exception e) {
+                e.printStackTrace();
+                System.exit(-1);
+            }
+            
+            reportAddResponse(reporting, ret);
+            return ret;
+        } finally {
+            ServiceFinder.findService(BlueprintBotDiscordService.class).ifPresent(s -> s.getBot().submitReport(reporting));
+        }
+    }
+
+    private void reportAddResponse(CommandReporting reporting, JSONObject ret) {
+        JSONObject retCopy = new JSONObject(ret.toString());
+        String fileData = (String)retCopy.remove("filedata");
+        if (fileData != null) {
+            retCopy.put("filedata", "... (" + fileData.length() + " characters)");
+        }
+        reporting.addField(new Field("Response", retCopy.toString(2), false));
     }
 
 }

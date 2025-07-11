@@ -40,8 +40,7 @@ import picocli.CommandLine.Model.ArgSpec;
 @Command(name = "", mixinStandardHelpOptions = true, subcommands = {
     CommandLine.HelpCommand.class,
     CmdConfig.class,
-    CmdProfile.class, 
-    CmdBlueprint.class,
+    CmdProfile.class,
     CmdFactorio.class,
     CmdBot.class,
     FBSRCommands.DumpHelpCommand.class
@@ -132,7 +131,6 @@ public class FBSRCommands {
             return;
         }
 
-        CommandLine cmd = new CommandLine(new FBSRCommands());
         PicocliCommands picocliCommands = new PicocliCommands(cmd);
 
         LineReader reader = LineReaderBuilder.builder()

@@ -8,11 +8,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import javax.swing.FocusManager;
+
 import org.json.JSONObject;
 
 import com.demod.factorio.Config;
 import com.demod.factorio.FactorioData;
 import com.demod.factorio.Utils;
+import com.demod.fbsr.FactorioManager;
 
 import picocli.CommandLine.ArgGroup;
 import picocli.CommandLine.Command;
@@ -97,7 +100,7 @@ public class CmdConfig {
         }
     }
 
-    @Command(name = "logging", description = "Setup Logging configuration")
+    @Command(name = "logging", description = "Setup Logging configuration (needs restart to take effect)")
     public void setupLogging(
             @Option(names = "-file", description = "Path to the log file", defaultValue = "log.txt") File file
     ) {
@@ -122,7 +125,7 @@ public class CmdConfig {
             @Parameters(arity = "1..*", description = "Features to enable (${COMPLETION-CANDIDATES})", paramLabel = "FEATURE") List<EnableFeatureSelect> features
     ) {
         for (EnableFeatureSelect feature : features) {
-            Config.setPath(Config.getPath()); // Ensure we have the latest config
+            FactorioManager.reloadConfig();
             
             JSONObject jsonFeature = Config.get().getJSONObject(feature.name());
             jsonFeature.put("enabled", true);
@@ -140,7 +143,7 @@ public class CmdConfig {
             @Parameters(arity = "1..*", description = "Features to disable (${COMPLETION-CANDIDATES})", paramLabel = "FEATURE") List<EnableFeatureSelect> features
     ) {
         for (EnableFeatureSelect feature : features) {
-            Config.setPath(Config.getPath()); // Ensure we have the latest config
+            FactorioManager.reloadConfig();
             
             JSONObject jsonFeature = Config.get().getJSONObject(feature.name());
             jsonFeature.put("enabled", false);
@@ -243,7 +246,7 @@ public class CmdConfig {
 
     @Command(name = "reload", description = "Reload configuration from file")
     public void reloadConfig() {
-        Config.setPath(Config.getPath());
+        FactorioManager.reloadConfig();
         System.out.println("Configuration reloaded from file: " + Config.getPath());
     }
 
@@ -302,7 +305,7 @@ public class CmdConfig {
             }
         }
 
-        Config.setPath(Config.getPath()); // Ensure we have the latest config
+        FactorioManager.reloadConfig();
         JSONObject jsonFactorio = Config.get().getJSONObject("factorio");
         jsonFactorio.put("install", installPath);
 
@@ -319,11 +322,11 @@ public class CmdConfig {
         File file = new File(Config.getPath());
         try (FileWriter fw = new FileWriter(file)) {
             fw.write(jsonConfig.toString(2));
-            Config.setPath(Config.getPath());//Reset cached config
-            return true;
         } catch (IOException e) {
             e.printStackTrace();
             return false;
         }
+        FactorioManager.reloadConfig();
+        return true;
     }
 }

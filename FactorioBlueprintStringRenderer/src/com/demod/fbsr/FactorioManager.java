@@ -62,6 +62,12 @@ public class FactorioManager {
 
 
 	static {
+		reloadConfig();
+	}
+
+	public static void reloadConfig() {
+		Config.setPath(Config.getPath()); // Ensure we have the latest config
+		
 		JSONObject json = Config.get().getJSONObject("factorio");
 		
 		if (json.has("install")) {
