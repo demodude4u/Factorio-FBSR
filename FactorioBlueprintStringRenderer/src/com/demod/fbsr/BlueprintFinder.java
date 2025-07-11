@@ -26,6 +26,7 @@ import org.slf4j.LoggerFactory;
 import com.demod.factorio.Utils;
 import com.demod.fbsr.bs.BSBlueprintString;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Range;
 import com.google.common.util.concurrent.Uninterruptibles;
 
 public final class BlueprintFinder {
@@ -36,22 +37,60 @@ public final class BlueprintFinder {
 		public final Optional<String> encodedData;
 		public final Optional<JSONObject> decodedData;
 		public final Optional<Exception> failureCause;
+		public final boolean linked;
+		public final String linkLabel;
+		public final String linkUrl;
 
-		public FindBlueprintRawResult(Optional<String> encodedData, Optional<JSONObject> decodedData,
-				Optional<Exception> failureCause) {
-			this.encodedData = encodedData;
-			this.decodedData = decodedData;
-			this.failureCause = failureCause;
+		public FindBlueprintRawResult(String encodedData, boolean linked, String linkLabel, String linkUrl) {
+			this.encodedData = Optional.of(encodedData);
+			this.decodedData = Optional.empty();
+			this.failureCause = Optional.empty();
+			this.linked = linked;
+			this.linkLabel = linkLabel;
+			this.linkUrl = linkUrl;
 		}
+
+		public FindBlueprintRawResult(JSONObject decodedData, boolean linked, String linkLabel, String linkUrl) {
+			this.encodedData = Optional.empty();
+			this.decodedData = Optional.of(decodedData);
+			this.failureCause = Optional.empty();
+			this.linked = linked;
+			this.linkLabel = linkLabel;
+			this.linkUrl = linkUrl;
+		}
+
+		public FindBlueprintRawResult(Exception failureCause) {
+			this.encodedData = Optional.empty();
+			this.decodedData = Optional.empty();
+			this.failureCause = Optional.of(failureCause);
+			this.linked = false;
+			this.linkLabel = null;
+			this.linkUrl = null;
+		}
+
 	}
 
 	public static class FindBlueprintResult {
 		public final Optional<BSBlueprintString> blueprintString;
 		public Optional<Exception> failureCause;
+		public final boolean linked;
+		public final String linkLabel;
+		public final String linkUrl;
 
-		public FindBlueprintResult(Optional<BSBlueprintString> blueprintString, Optional<Exception> failureCause) {
-			this.blueprintString = blueprintString;
-			this.failureCause = failureCause;
+		public FindBlueprintResult(BSBlueprintString blueprintString, boolean linked, String linkLabel, String linkUrl) {
+			this.blueprintString = Optional.of(blueprintString);
+			this.failureCause = Optional.empty();
+			this.linked = linked;
+			this.linkLabel = linkLabel;
+			this.linkUrl = linkUrl;
+		}
+
+		public FindBlueprintResult(Exception failureCause) {
+			this.blueprintString = Optional.empty();
+			this.failureCause = Optional.of(failureCause);
+			this.linked = false;
+			this.linkLabel = null;
+			this.linkUrl = null;
 		}
 	}
 
@@ -86,20 +125,31 @@ public final class BlueprintFinder {
 			void matched(Matcher matcher, Listener listener) throws Exception;
 		}
 
+		public boolean isMapping();
+
 		public Mapper getMapper();
 
 		public Pattern getPattern();
+
+		public boolean isLinkable();
+
+		public String getLinkLabel();
 	}
 
 	private enum Providers implements Provider {
-		PASTEBIN("pastebin\\.com/(?<id>[A-Za-z0-9]{4,})", m -> "https://pastebin.com/raw/" + m.group("id")), //
+		PASTEBIN("https?://pastebin\\.com/(?<id>[A-Za-z0-9]{4,})", 
+				m -> "https://pastebin.com/raw/" + m.group("id"),
+				"View on Pastebin"), //
 
-		HASTEBIN("hastebin\\.com/(?<id>[A-Za-z0-9]{4,})", m -> "https://hastebin.com/raw/" + m.group("id")), //
+		HASTEBIN("https?://hastebin\\.com/(?<id>[A-Za-z0-9]{4,})",
+				m -> "https://hastebin.com/raw/" + m.group("id"),
+				"View on Hastebin"), //
 
-		GITLAB("gitlab\\.com/snippets/(?<id>[A-Za-z0-9]+)",
-				m -> "https://gitlab.com/snippets/" + m.group("id") + "/raw"), //
+		GITLAB("https?://gitlab\\.com/snippets/(?<id>[A-Za-z0-9]+)",
+				m -> "https://gitlab.com/snippets/" + m.group("id") + "/raw",
+				"View GitLab Snippet"), //
 
-		GIST("gist\\.github\\.com/[-a-zA-Z0-9]+/(?<id>[a-z0-9]+)", (m, l) -> {
+		GIST("https?://gist\\.github\\.com/[-a-zA-Z0-9]+/(?<id>[a-z0-9]+)", (m, l) -> {
 			JSONObject response = WebUtils.readJsonFromURL("https://api.github.com/gists/" + m.group("id"));
 			JSONObject filesJson = response.getJSONObject("files");
 			Utils.<JSONObject>forEach(filesJson, (k, v) -> {
@@ -107,19 +157,29 @@ public final class BlueprintFinder {
 					l.handleURL(v.getString("raw_url"));
 				}
 			});
-		}), //
+		},"View GitHub Gist"), //
 
-		DROPBOX("\\b(?<url>https://www\\.dropbox\\.com/s/[^\\s?]+)", m -> m.group("url") + "?raw=1"), //
+		DROPBOX("\\b(?<url>https?://www\\.dropbox\\.com/s/[^\\s?]+)",
+				m -> m.group("url") + "?raw=1",
+				"Download from Dropbox"), //
 
-		FACTORIOPRINTS("factorioprints\\.com/view/(?<id>[-_A-Za-z0-9]+)",
-				m -> "https://facorio-blueprints.firebaseio.com/blueprints/" + m.group("id") + ".json"), //
-		FACTORIOSCHOOL("factorio\\.school/view/(?<id>[-_A-Za-z0-9]+)",
-				m -> "https://facorio-blueprints.firebaseio.com/blueprints/" + m.group("id") + ".json"), //
+		FACTORIOPRINTS("https?://factorioprints\\.com/view/(?<id>[-_A-Za-z0-9]+)",
+				m -> "https://facorio-blueprints.firebaseio.com/blueprints/" + m.group("id") + ".json",
+				"View on Factorio Prints"), //
+		FACTORIOSCHOOL("https?://factorio\\.school/view/(?<id>[-_A-Za-z0-9]+)",
+				m -> "https://facorio-blueprints.firebaseio.com/blueprints/" + m.group("id") + ".json",
+				"View on Factorio School"), //
 
-		GOOGLEDOCS("docs\\.google\\.com/document/d/(?<id>[-_A-Za-z0-9]+)",
-				m -> "https://docs.google.com/document/d/" + m.group("id") + "/export?format=txt"), //
-		GOOGLEDRIVE("drive\\.google\\.com/open\\?id=(?<id>[-_A-Za-z0-9]+)",
-				m -> "https://drive.google.com/uc?id=" + m.group("id") + "&export=download"), //
+		FACTORIOBIN("https?://factoriobin\\.com/post/(?<id>[-_A-Za-z0-9]+)",
+				m -> "https://factoriobin.com/post/" + m.group("id"),
+				"View on FactorioBin"), //
+
+		GOOGLEDOCS("https?://docs\\.google\\.com/document/d/(?<id>[-_A-Za-z0-9]+)",
+				m -> "https://docs.google.com/document/d/" + m.group("id") + "/export?format=txt",
+				"Open Google Doc"), //
+		GOOGLEDRIVE("https?://drive\\.google\\.com/open\\?id=(?<id>[-_A-Za-z0-9]+)",
+				m -> "https://drive.google.com/uc?id=" + m.group("id") + "&export=download",
+				"Download from Google Drive"), //
 
 		TEXT_URLS("\\b(?<url>(?:https?|ftp)://[-a-zA-Z0-9+&@#/%?=~_|!:,.;]*[-a-zA-Z0-9+&@#/%=~_|])", (m, l) -> {
 			URL url = new URL(m.group("url"));
@@ -133,15 +193,46 @@ public final class BlueprintFinder {
 		;
 
 		private final Pattern pattern;
+		private final boolean mapping;
 		private final Mapper mapper;
+		private final boolean linkable;
+		private final String linkLabel;
 
 		private Providers(String regex, Function<Matcher, String> simpleMapper) {
 			this(regex, (m, l) -> l.handleURL(simpleMapper.apply(m)));
 		}
 
+		private Providers(String regex, Function<Matcher, String> simpleMapper, String linkLabel) {
+			this(regex, (m, l) -> l.handleURL(simpleMapper.apply(m)), linkLabel);
+		}
+
 		private Providers(String regex, Mapper mapper) {
+			this.mapping = true;
 			this.mapper = mapper;
-			pattern = Pattern.compile(regex);
+			this.pattern = Pattern.compile(regex);
+			this.linkable = false;
+			this.linkLabel = null;
+		}
+
+		private Providers(String regex, Mapper mapper, String linkLabel) {
+			this.mapping = true;
+			this.mapper = mapper;
+			this.pattern = Pattern.compile(regex);
+			this.linkable = true;
+			this.linkLabel = linkLabel;
+		}
+
+		private Providers(String regex, String linkLabel) {
+			this.mapping = false;
+			this.mapper = null;
+			this.pattern = Pattern.compile(regex);
+			this.linkable = true;
+			this.linkLabel = linkLabel;
+		}
+
+		@Override
+		public boolean isMapping() {
+			return mapping;
 		}
 
 		@Override
@@ -152,6 +243,16 @@ public final class BlueprintFinder {
 		@Override
 		public Pattern getPattern() {
 			return pattern;
+		}
+
+		@Override
+		public boolean isLinkable() {
+			return linkable;
+		}
+
+		@Override
+		public String getLinkLabel() {
+			return linkLabel;
 		}
 	}
 
@@ -165,12 +266,12 @@ public final class BlueprintFinder {
 
 	private static final Pattern blueprintPattern = Pattern.compile("([0-9][A-Za-z0-9+\\/=\\r\\n]{90,})");
 
-	private static void findBlueprints(InputStream in, List<FindBlueprintRawResult> results) {
+	private static void findBlueprints(InputStream in, boolean linked, String linkLabel, String linkURL, List<FindBlueprintRawResult> results) {
 		String content;
 		try {
 			content = new String(in.readNBytes(20000000));
 		} catch (IOException e) {
-			results.add(new FindBlueprintRawResult(Optional.empty(), Optional.empty(), Optional.of(e)));
+			results.add(new FindBlueprintRawResult(e));
 			return;
 		}
 		boolean hasEncoded = false;
@@ -178,7 +279,7 @@ public final class BlueprintFinder {
 			String blueprintString;
 			while ((blueprintString = scanner.findWithinHorizon(blueprintPattern, 0)) != null) {
 				results.add(
-						new FindBlueprintRawResult(Optional.of(blueprintString), Optional.empty(), Optional.empty()));
+						new FindBlueprintRawResult(blueprintString, linked, linkLabel, linkURL));
 				hasEncoded = true;
 			}
 		}
@@ -192,35 +293,50 @@ public final class BlueprintFinder {
 							|| json.has("blueprint_book") //
 							|| json.has("upgrade_planner") //
 							|| json.has("deconstruction_planner")) {
-						results.add(new FindBlueprintRawResult(Optional.empty(), Optional.of(json), Optional.empty()));
+						results.add(new FindBlueprintRawResult(json, linked, linkLabel, linkURL));
 					}
 				}
 			} catch (JSONException e) {
-				results.add(new FindBlueprintRawResult(Optional.empty(), Optional.empty(), Optional.of(e)));
+				results.add(new FindBlueprintRawResult(e));
 			}
 		}
 	}
 
 	private static void findProviders(String content, List<FindBlueprintRawResult> results) {
-		HashSet<String> uniqueCheck = new HashSet<>();
+		List<Range<Integer>> matchRanges = new ArrayList<>();
+
 		for (Provider provider : providers) {
 			Matcher matcher = provider.getPattern().matcher(content);
 			while (matcher.find()) {
 				try {
 					String matchString = content.substring(matcher.start(), matcher.end());
+					Range<Integer> matchRange = Range.closed(matcher.start(), matcher.end() - 1);
 
 					LOGGER.info("\t[{}] {}", provider, matchString);
 
-					if (!uniqueCheck.add(matchString)) {
-						LOGGER.info("\t\tDuplicate match!");
+					if (matchRanges.stream().anyMatch(r -> r.isConnected(matchRange))) {
 						continue;
 					}
+					matchRanges.add(matchRange);
+					
+					boolean linked;
+					String linkLabel;
+					String linkUrl;
+					if (provider.isLinkable()) {
+						linked = true;
+						linkLabel = provider.getLinkLabel();
+						linkUrl = matchString;
+					} else {
+						linked = false;
+						linkLabel = null;
+						linkUrl = null;
+					}
 
-					provider.getMapper().matched(matcher, in -> {
+					Provider.Listener listener = in -> {
 						List<Exception> tryExceptions = new ArrayList<>();
 						for (int tries = 6; tries >= 0; tries--) {
 							try {
-								findBlueprints(in.get(), results);
+								findBlueprints(in.get(), linked, linkLabel, linkUrl, results);
 								break;
 							} catch (FileNotFoundException e) {
 								LOGGER.info("\t\tFile not Found!");
@@ -230,13 +346,19 @@ public final class BlueprintFinder {
 							if (tries > 1) {
 								Uninterruptibles.sleepUninterruptibly(10, TimeUnit.SECONDS);
 							} else {
-								tryExceptions.forEach(e -> results.add(new FindBlueprintRawResult(Optional.empty(),
-										Optional.empty(), Optional.of(e))));
+								tryExceptions.forEach(e -> results.add(new FindBlueprintRawResult(e)));
 							}
 						}
-					});
+					};
+
+					if (provider.isMapping()) {
+						provider.getMapper().matched(matcher, listener);
+					} else {
+						listener.handleURL(matchString);
+					}
+					
 				} catch (Exception e) {
-					results.add(new FindBlueprintRawResult(Optional.empty(), Optional.empty(), Optional.of(e)));
+					results.add(new FindBlueprintRawResult(e));
 				}
 			}
 		}
@@ -257,12 +379,12 @@ public final class BlueprintFinder {
 					blueprintString = new BSBlueprintString(result.decodedData.get(),
 							result.decodedData.get().toString(2));
 				} else if (result.failureCause.isPresent()) {
-					results.add(new FindBlueprintResult(Optional.empty(), Optional.of(result.failureCause.get())));
+					results.add(new FindBlueprintResult(result.failureCause.get()));
 					continue;
 				}
-				results.add(new FindBlueprintResult(Optional.of(blueprintString), Optional.empty()));
+				results.add(new FindBlueprintResult(blueprintString, result.linked, result.linkLabel, result.linkUrl));
 			} catch (IllegalArgumentException | IOException e) {
-				results.add(new FindBlueprintResult(Optional.empty(), Optional.of(e)));
+				results.add(new FindBlueprintResult(e));
 			}
 		}
 		return results;
@@ -270,7 +392,7 @@ public final class BlueprintFinder {
 
 	public static List<FindBlueprintRawResult> searchRaw(String content) {
 		List<FindBlueprintRawResult> results = new ArrayList<>();
-		findBlueprints(new ByteArrayInputStream(content.getBytes()), results);
+		findBlueprints(new ByteArrayInputStream(content.getBytes()), false, null, null, results);
 		findProviders(content, results);
 		return results;
 	}
