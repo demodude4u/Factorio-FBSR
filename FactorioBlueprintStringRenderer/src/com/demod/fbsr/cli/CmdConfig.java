@@ -258,7 +258,8 @@ public class CmdConfig {
             "C:\\Program Files\\Steam\\steamapps\\common\\Factorio",
             "/usr/games/factorio",
             "/usr/local/games/factorio",
-            "/Applications/Factorio.app/Contents/Resources/app"
+            "/Applications/Factorio.app/Contents/Resources/app",
+            System.getProperty("user.home") + "/Library/Application Support/Steam/steamapps/common/Factorio"
         ));
         for (File dir : new File(".").listFiles()) {
             if (dir.isDirectory() && !searchDirs.contains(dir.getAbsolutePath())) {
