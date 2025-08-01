@@ -42,9 +42,5 @@
 		"ice-platform", "landfill", "overgrowth-jellynut-soil", "overgrowth-yumako-soil",
 		"refined-concrete", "refined-hazard-concrete-left", "refined-hazard-concrete-right",
 		"space-platform-foundation", "stone-path"
-	],
-	"rendering": {
-		"ContainerRendering": "BasicContainerRendering",
-		"LoaderRendering": "Loader1x2Rendering"
-	}
+	]
 }

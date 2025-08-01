@@ -35,6 +35,7 @@ import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.zip.ZipOutputStream;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -43,6 +44,7 @@ import org.slf4j.LoggerFactory;
 
 import com.demod.dcba.CommandReporting;
 import com.demod.factorio.DataTable;
+import com.demod.factorio.FactorioData;
 import com.demod.factorio.ItemToPlace;
 import com.demod.factorio.ModInfo;
 import com.demod.factorio.TotalRawCalculator;
@@ -656,7 +658,7 @@ public class FBSR {
 			return false;
 		}
 
-		guiStyle.initialize(factorioManager.getProfileVanilla());
+		guiStyle.initialize(factorioManager.getProfileVanilla(), true);
 
 		if (!factorioManager.initializeFactories()) {
 			System.out.println("Failed to initialize factories.");
@@ -664,13 +666,6 @@ public class FBSR {
 		}
 
 		iconManager.initialize();
-
-		for (Profile profile : factorioManager.getProfiles()) {
-			if (!profile.getAtlasPackage().initialize()) {
-				System.out.println("Failed to initialize atlas package for profile: " + profile.getName());
-				return false;
-			}
-		}
 
 		LOGGER.info("FBSR loaded -- Factorio {}", FactorioManager.getFactorioVersion());
 
@@ -697,7 +692,7 @@ public class FBSR {
 		return true;
 	}
 
-	public static boolean buildData(Profile profile) {
+	public static boolean populateAssets(Profile profile, ZipOutputStream zos) {
 
 		profile.resetLoadedData();
 
@@ -734,10 +729,11 @@ public class FBSR {
 			p.setFactorioManager(factorioManager);
 			p.setGuiStyle(guiStyle);
 			p.setIconManager(iconManager);
+			p.setFactorioData(new FactorioData(p.getFileDumpDataJson(), p.getDumpFactorioVersion()));
 		}
 
 		if (profile.isVanilla()) {
-			if (!GUIStyle.copyFontsToProfile(profile)) {
+			if (!GUIStyle.populateZipWithFonts(zos)) {
                 System.out.println("Failed to copy fonts to vanilla profile.");
                 return false;
             }
@@ -747,17 +743,21 @@ public class FBSR {
 			if (!factorioManager.initializePrototypes()) {
 				return false;
 			}
-			guiStyle.initialize(profileVanilla);
+			guiStyle.initialize(profileVanilla, false);
 			if (!factorioManager.initializeFactories()) {
 				return false;
 			}
 			iconManager.initialize();
 
-			profile.getAtlasPackage().generateZip();
+			profile.getAtlasPackage().populateZip(zos);
 
 		} catch (JSONException | IOException e) {
 			e.printStackTrace();
 			return false;
+		}
+
+		for (Profile p : profiles) {
+			p.resetLoadedData();
 		}
 
 		return true;

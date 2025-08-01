@@ -23,6 +23,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import com.demod.dcba.CommandReporting;
 import com.demod.fbsr.FBSR;
@@ -428,17 +429,15 @@ public class GUILayoutBook {
 			g.scale(uiScale, uiScale);
 
 			pc = g.getComposite();
-			Set<String> groups = new LinkedHashSet<>();
+			Set<String> mods = new LinkedHashSet<>();
 			for (BSBlueprint blueprint : book.getAllBlueprints()) {
 				blueprint.entities.stream().map(e -> resolver.resolveFactoryEntityName(e.name))
-						.map(e -> e.isUnknown() ? "Modded" : e.getGroupName()).forEach(groups::add);
-				blueprint.tiles.stream().map(t -> resolver.resolveFactoryTileName(t.name)).filter(t -> !t.isUnknown())
-						.map(t -> t.getGroupName()).forEach(groups::add);
+						.flatMap(e -> e.isUnknown() ? Stream.of("Modded") : e.getMods().stream()).forEach(mods::add);
+				blueprint.tiles.stream().map(t -> resolver.resolveFactoryTileName(t.name))
+						.flatMap(t -> t.isUnknown() ? Stream.of("Modded") : t.getMods().stream()).forEach(mods::add);
 			}
-
-			spaceAge = groups.contains("Space Age");
-			groups.removeAll(Arrays.asList("Base", "Space Age"));
-			mods = groups.stream().sorted().collect(Collectors.toList());
+			spaceAge = mods.remove("Space Age");
+			this.mods = mods.stream().sorted().collect(Collectors.toList());
 
 			if (!mods.isEmpty()) {
 				tint = new TintComposite(450, 300, 80, 255);

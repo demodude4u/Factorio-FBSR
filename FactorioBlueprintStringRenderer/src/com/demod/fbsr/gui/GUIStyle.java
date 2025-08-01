@@ -8,6 +8,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
+import java.util.zip.ZipOutputStream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,53 +52,55 @@ public final class GUIStyle {
 
 	public ImageDef DEF_CLOCK;
 
-	private static boolean copyFont(Profile profile, String filename) {
-		if (!FactorioManager.hasFactorioInstall()) {
-			LOGGER.error("Factorio installation not found, cannot copy font: {}", filename);
-			return false;
-		}
-
+	private static boolean copyFont(ZipOutputStream zos, String filename) {
 		File fileInstallFont = new File(FactorioManager.getFactorioInstall(), "data/core/fonts/" + filename);
-		File fileProfileFont = new File(profile.getFolderProfile(), filename);
-		if (fileProfileFont.exists()) {
-			LOGGER.info("Font already exists in profile: {}", fileProfileFont.getAbsolutePath());
-			return true;
-		}
-
+		ZipEntry entry = new ZipEntry(filename);
 		try {
-			Files.copy(fileInstallFont.toPath(), fileProfileFont.toPath(), StandardCopyOption.REPLACE_EXISTING);
-			LOGGER.info("Copied font: {}", fileProfileFont.getAbsolutePath());
+			zos.putNextEntry(entry);
+			Files.copy(fileInstallFont.toPath(), zos);
+			zos.closeEntry();
 		} catch (IOException e) {
-			LOGGER.error("FAILED TO COPY FONT: {}", fileProfileFont.getAbsolutePath(), e);
+			LOGGER.error("FAILED TO COPY FONT: {}", fileInstallFont.getAbsolutePath(), e);
 			return false;
 		}
-
 		return true;
 	}
 
-	private static Font createFont(Profile profile, String filename) {
-		File fileFont = new File(profile.getFolderProfile(), filename);
-		try {
-			return Font.createFont(Font.TRUETYPE_FONT, fileFont);
+	private static Font createFont(ZipFile zip, String filename) {
+		try (InputStream is = zip.getInputStream(zip.getEntry(filename))) {
+			return Font.createFont(Font.TRUETYPE_FONT, is);
 		} catch (FontFormatException | IOException e) {
-			LOGGER.error("FAILED TO LOAD FONT: {}", fileFont.getAbsolutePath(), e);
+			LOGGER.error("FAILED TO LOAD FONT: {}", filename, e);
 			throw new RuntimeException(e);
 		}
 	}
 
-	public static boolean copyFontsToProfile(Profile profile) {
-		boolean ret = true;
-		ret &= copyFont(profile, "Lilittium-Regular.ttf");
-		ret &= copyFont(profile, "Lilittium-Bold.ttf");
-		return ret;
-	}
+	public static boolean populateZipWithFonts(ZipOutputStream zos) {
+		if (!FactorioManager.hasFactorioInstall()) {
+			LOGGER.error("Factorio installation not found, cannot copy fonts");
+			return false;
+		}
 
-	public void initialize(Profile profile) {
+        boolean ret = true;
+		ret &= copyFont(zos, "Lilittium-Regular.ttf");
+		ret &= copyFont(zos, "Lilittium-Bold.ttf");
+		return ret;
+    }
+
+	public void initialize(Profile profile, boolean loadFonts) {
 		String filename = "__core__/graphics/gui-new.png";
 
-		FONT_BP_REGULAR = createFont(profile, "Lilittium-Regular.ttf");
-		FONT_BP_BOLD = createFont(profile, "Lilittium-Bold.ttf");
-		FONT_BP_COLOR = new Color(0xffe6c0);
+		if (loadFonts) {
+			try (ZipFile zip = new ZipFile(profile.getFileAssets())) {
+				FONT_BP_REGULAR = createFont(zip, "Lilittium-Regular.ttf");
+				FONT_BP_BOLD = createFont(zip, "Lilittium-Bold.ttf");
+			} catch (IOException e) {
+				LOGGER.error("Failed to load GUI fonts from profile: {}", profile.getName(), e);
+				throw new RuntimeException(e);
+			}
+			FONT_BP_COLOR = new Color(0xffe6c0);
+		}
+
 
 		FRAME_INNER = GUISliceFeature.inner(profile, filename, new GUIBox(0, 0, 17, 17), new GUISpacing(8, 8, 8, 8));
 		FRAME_OUTER = GUISliceFeature.outer(profile, filename, new GUIBox(17, 0, 17, 17), new GUISpacing(8, 8, 8, 8));

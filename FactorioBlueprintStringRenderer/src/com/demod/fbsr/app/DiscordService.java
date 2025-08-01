@@ -27,6 +27,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.imageio.ImageIO;
 
@@ -62,6 +63,7 @@ import com.demod.fbsr.Profile;
 import com.demod.fbsr.RenderRequest;
 import com.demod.fbsr.RenderResult;
 import com.demod.fbsr.RenderUtils;
+import com.demod.fbsr.RenderingRegistry;
 import com.demod.fbsr.WebUtils;
 import com.demod.fbsr.bs.BSBlueprint;
 import com.demod.fbsr.bs.BSBlueprintBook;
@@ -77,10 +79,13 @@ import com.demod.fbsr.map.MapSprite;
 import com.demod.fbsr.map.MapTintOverrideSprite;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Multiset;
 import com.google.common.util.concurrent.AbstractIdleService;
 
@@ -376,7 +381,7 @@ public class DiscordService extends AbstractIdleService {
 				blueprintString.getRaw().get());
 
 		boolean spaceAge = false;
-		Set<String> mods = new HashSet<>();
+		Set<String> allMods = new HashSet<>();
 
 		if (blueprintString.blueprint.isPresent()) {
 			BSBlueprint blueprint = blueprintString.blueprint.get();
@@ -393,14 +398,13 @@ public class DiscordService extends AbstractIdleService {
 			unknownNames.addAll(layout.getResult().unknownTiles);
 			renderTimes.add(layout.getResult().renderTime);
 
-			Set<String> groups = new LinkedHashSet<>();
+			Set<String> mods = new LinkedHashSet<>();
 			blueprint.entities.stream().map(e -> resolver.resolveFactoryEntityName(e.name))
-					.map(e -> e.isUnknown() ? "Modded" : e.getGroupName()).forEach(groups::add);
+					.flatMap(e -> e.isUnknown() ? Stream.of("Modded") : e.getMods().stream()).forEach(mods::add);
 			blueprint.tiles.stream().map(t -> resolver.resolveFactoryTileName(t.name))
-					.filter(t -> !t.isUnknown()).map(t -> t.getGroupName()).forEach(groups::add);
-			spaceAge = groups.contains("Space Age");
-			groups.removeAll(Arrays.asList("Base", "Space Age"));
-			mods.addAll(groups.stream().sorted().collect(Collectors.toList()));
+					.flatMap(t -> t.isUnknown() ? Stream.of("Modded") : t.getMods().stream()).forEach(mods::add);
+			spaceAge = mods.remove("Space Age");
+			allMods.addAll(mods.stream().sorted().collect(Collectors.toList()));
 
 			if (layout.getResult().renderScale < 0.501) {
 				actionButtonRow.add(Button.secondary("reply-zoom|" + futBlueprintStringUpload.get().getId(), "Zoom In")
@@ -433,18 +437,17 @@ public class DiscordService extends AbstractIdleService {
 					.map(b -> ModdingResolver.byBlueprintBiases(factorioManager, b))
 					.collect(Collectors.toList());
 
-			Set<String> groups = new LinkedHashSet<>();
+			Set<String> mods = new LinkedHashSet<>();
 			for (int i = 0; i < blueprints.size(); i++) {
-				BSBlueprint b = blueprints.get(i);
+				BSBlueprint blueprint = blueprints.get(i);
 				ModdingResolver resolver = resolvers.get(i);
-				b.entities.stream().map(e -> resolver.resolveFactoryEntityName(e.name))
-						.map(e -> e.isUnknown() ? "Modded" : e.getGroupName()).forEach(groups::add);
-				b.tiles.stream().map(t -> resolver.resolveFactoryTileName(t.name)).filter(t -> !t.isUnknown())
-						.map(t -> t.getGroupName()).forEach(groups::add);
+				blueprint.entities.stream().map(e -> resolver.resolveFactoryEntityName(e.name))
+					.flatMap(e -> e.isUnknown() ? Stream.of("Modded") : e.getMods().stream()).forEach(mods::add);
+				blueprint.tiles.stream().map(t -> resolver.resolveFactoryTileName(t.name))
+					.flatMap(t -> t.isUnknown() ? Stream.of("Modded") : t.getMods().stream()).forEach(mods::add);
 			}
-			spaceAge = groups.contains("Space Age");
-			groups.removeAll(Arrays.asList("Base", "Space Age"));
-			mods.addAll(groups.stream().sorted().collect(Collectors.toList()));
+			spaceAge = mods.remove("Space Age");
+			allMods.addAll(mods.stream().sorted().collect(Collectors.toList()));
 
 			StringSelectMenu.Builder menuBuilder = StringSelectMenu.create("reply-book-blueprint");
 			boolean emptyMenu = true;
@@ -497,13 +500,13 @@ public class DiscordService extends AbstractIdleService {
 
 		Emoji emoji = EMOJI_BLUEPRINT;
 		if (blueprintString.blueprint.isPresent()) {
-			if (!mods.isEmpty()) {
+			if (!allMods.isEmpty()) {
 				emoji = EMOJI_BLUEPRINT_MODDED;
 			} else if (spaceAge) {
 				emoji = EMOJI_BLUEPRINT_SPACEAGE;
 			}
 		} else if (blueprintString.blueprintBook.isPresent()) {
-			if (!mods.isEmpty()) {
+			if (!allMods.isEmpty()) {
 				emoji = EMOJI_BLUEPRINTBOOK_MODDED;
 			} else if (spaceAge) {
 				emoji = EMOJI_BLUEPRINTBOOK_SPACEAGE;
@@ -994,7 +997,7 @@ public class DiscordService extends AbstractIdleService {
 	private void handleShowEntityCommand(SlashCommandEvent event) {
 		String entityName = event.getParamString("entity");
 		boolean debug = event.optParamBoolean("debug").orElse(false);
-		Optional<String> modGroup = event.optParamString("mod");
+		Optional<String> modFilter = event.optParamString("mod");
 
 		String jsonRaw;
 		JSONObject jsonEntity;
@@ -1018,12 +1021,33 @@ public class DiscordService extends AbstractIdleService {
 		FactorioManager factorioManager = FBSR.getFactorioManager();
 
 		ModdingResolver resolver;
-		if (modGroup.isPresent()) {
+		if (modFilter.isPresent()) {
 
-			List<Profile> profiles = new ArrayList<>(factorioManager.lookupProfileByGroupName(modGroup.get()));
-			
+			Multimap<String, Profile> possibleMatches = LinkedHashMultimap.create();
+			for (Profile profile : factorioManager.getProfiles()) {
+				RenderingRegistry registry = profile.getRenderingRegistry();
+				for (EntityRendererFactory factory : registry.getEntityFactories()) {
+					if (factory.getName().equals(entityName)) {
+						for (String mod : factory.getMods()) {
+							possibleMatches.put(mod, profile);
+						}
+					}
+				}
+			}
+
+			List<Profile> profiles = new ArrayList<>(possibleMatches.get(modFilter.get()));
+
+			if (profiles.isEmpty() && possibleMatches.isEmpty()) {
+				event.reply("I could not find a way to display `" + entityName + "`");
+				return;
+			} else if (profiles.isEmpty() && !possibleMatches.isEmpty()) {
+				List<String> possibleMods = possibleMatches.keySet().stream().map(s->"`"+s+"`").sorted().collect(Collectors.toList());
+				event.reply("I could not find a way to display `" + entityName + "` for the mod `" + modFilter.get() + "`.\n"
+						+ "Did you mean " + String.join(", ", possibleMods)+"?");
+			}
+
 			if (profiles.isEmpty()) {
-				event.reply("No profile found for mod: " + modGroup.get());
+				event.reply("No profile found for mod: " + modFilter.get());
 				return;
 			}
 
@@ -1511,9 +1535,12 @@ public class DiscordService extends AbstractIdleService {
 		FactorioManager factorioManager = FBSR.getFactorioManager();
 		String version = factorioManager.getProfileVanilla().getFactorioData().getVersion();
 
-		Set<String> groups = new HashSet<>();
-		factorioManager.getEntityFactoryByNameMap().values().forEach(e -> groups.add(e.getGroupName()));
-		factorioManager.getTileFactoryByNameMap().values().forEach(t -> groups.add(t.getGroupName()));
+		Set<String> mods = new HashSet<>();
+		factorioManager.getProfiles().forEach(p -> {
+			RenderingRegistry registry = p.getRenderingRegistry();
+			registry.getEntityFactories().forEach(e -> mods.addAll(e.getMods()));
+			registry.getTileFactories().forEach(t -> mods.addAll(t.getMods()));
+		});
 
 		bot = DCBA.builder()//
 				.setInfo("Blueprint Bot")//
@@ -1533,7 +1560,7 @@ public class DiscordService extends AbstractIdleService {
 				.withCredits("Special Thanks", "Members of Team Steelaxe")//
 				.withVersion("Multiverse " + version)
 				.withCustomField("Mods Loaded",
-						groups.stream().sorted(Comparator.comparing(s -> s.toLowerCase()))
+						mods.stream().sorted(Comparator.comparing(s -> s.toLowerCase()))
 								.collect(Collectors.joining(", ")))
 				//
 				.async(true)//

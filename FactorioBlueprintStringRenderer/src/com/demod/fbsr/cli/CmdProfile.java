@@ -95,12 +95,6 @@ public class CmdProfile {
             System.out.println("Failed to dump factorio data for profile: " + profile.getName());
             return;
         }
-
-        if (profile.generateDefaultRenderingConfiguration()) {
-            System.out.println("Default renderings generated successfully. You can finish building the profile by running the command 'profile build-data " + profile.getName() + "'");
-        } else {
-            System.out.println("Failed to generate default renderings. Ensure the profile is at BUILD_DATA or READY status.");
-        }
     }
 
     @Command(name = "default-vanilla", description = "Generate default vanilla profile")
@@ -136,28 +130,28 @@ public class CmdProfile {
             System.out.println("Manifest:        " + (profile.hasManifest() ? "Yes" : "No"));
             System.out.println("Mods Downloaded: " + (profile.hasDownloaded() ? "Yes" : "No"));
             System.out.println("Factorio Dump:   " + (profile.hasDump() ? "Yes" : "No"));
-            System.out.println("Data Generated:  " + (profile.hasData() ? "Yes" : "No"));
+            System.out.println("Assets Generated:  " + (profile.hasAssets() ? "Yes" : "No"));
         }
 
         System.out.println();
         switch (profile.getStatus()) {
             case BUILD_MANIFEST:
-                System.out.println("Profile is in BUILD_MANIFEST status. Next step is to run command 'profile build-manifest' or 'profile build'");
+                System.out.println("Profile is in BUILD_MANIFEST status. Next step is to run command 'profile build-manifest " + name + "' or 'profile build " + name + "'");
                 break;
             case BUILD_DOWNLOAD:
-                System.out.println("Profile is in BUILD_DOWNLOAD status. Next step is to run command 'profile build-download' or 'profile build'");
+                System.out.println("Profile is in BUILD_DOWNLOAD status. Next step is to run command 'profile build-download " + name + "' or 'profile build " + name + "'");
                 break;
             case BUILD_DUMP:
-                System.out.println("Profile is in BUILD_DUMP status. Next step is to run command 'profile build-dump' or 'profile build'");
+                System.out.println("Profile is in BUILD_DUMP status. Next step is to run command 'profile build-dump " + name + "' or 'profile build " + name + "'");
                 break;
-            case BUILD_DATA:
-                System.out.println("Profile is in BUILD_DATA status. Next step is to run command 'profile build-data' or 'profile build'");
+            case BUILD_ASSETS:
+                System.out.println("Profile is in BUILD_ASSETS status. Next step is to run command 'profile build-assets " + name + "' or 'profile build " + name + "'");
                 break;
             case READY:
                 System.out.println("Profile is in READY status. To run the bot, use command 'bot run'");
                 break;
             case DISABLED:
-                System.out.println("Profile is in DISABLED status. It will be ignored when running the bot. To enable this profile, use command 'profile enable'");
+                System.out.println("Profile is in DISABLED status. It will be ignored when running the bot. To enable this profile, use command 'profile enable " + name + "'");
                 break;
             case INVALID:
                 System.out.println("Profile is in INVALID status. It cannot be used until fixed. The profile needs to have a profile.json configured. You can generate a new profile using the command 'profile new <name> <mod1> <mod2> <mod3> ...'");
@@ -455,10 +449,10 @@ public class CmdProfile {
         }
     }
 
-    @Command(name = "build-data", description = "Generate data")
-    public void buildGenerateData(
+    @Command(name = "build-assets", description = "Generate assets")
+    public void buildGenerateAssets(
             @ArgGroup(exclusive = true, multiplicity = "1") ProfileOrAll profileOrAll,
-            @Option(names = "-force", description = "Force regeneration of the manifest, even if it already exists") boolean force
+            @Option(names = "-force", description = "Force regeneration of the assets, even if they already exist") boolean force
     ) {
         if (profileOrAll.all) {
             List<Profile> profiles = new ArrayList<>(Profile.listProfiles());
@@ -473,7 +467,7 @@ public class CmdProfile {
             profiles.add(0, vanillaProfile);
 
             for (Profile profile : profiles) {
-                buildGenerateData(ProfileOrAll.of(profile.getName()), force);
+                buildGenerateAssets(ProfileOrAll.of(profile.getName()), force);
             }
             return;
         }
@@ -484,10 +478,10 @@ public class CmdProfile {
             return;
         }
 
-        if (profile.buildData(force)) {
-            System.out.println("Data generated successfully for profile: " + profile.getName());
+        if (profile.buildAssets(force)) {
+            System.out.println("Assets generated successfully for profile: " + profile.getName());
         } else {
-            System.out.println("Failed to generate data for profile: " + profile.getName());
+            System.out.println("Failed to generate assets for profile: " + profile.getName());
         }
     }
 
@@ -497,7 +491,7 @@ public class CmdProfile {
             @Option(names = "-force", description = "Force regeneration of all steps, even if they already exist") boolean force,
             @Option(names = "-force-download", description = "Force redownload of mods, even if they are already downloaded") boolean forceDownload,
             @Option(names = "-force-dump", description = "Force regeneration of factorio dump") boolean forceDump,
-            @Option(names = "-force-data", description = "Force regeneration of data") boolean forceData
+            @Option(names = "-force-assets", description = "Force regeneration of assets") boolean forceAssets
     ) {
         Profile profileVanilla = Profile.vanilla();
 
@@ -524,9 +518,9 @@ public class CmdProfile {
             profiles = ImmutableList.of(profile);
         }
 
-        if (forceData) {
+        if (forceAssets) {
             for (Profile profile : profiles) {
-                profile.cleanData();
+                profile.cleanAssets();
             }
         }
 
@@ -555,8 +549,8 @@ public class CmdProfile {
         }
 
         for (Profile profile : profiles) {
-            if (force || profile.getStatus() == ProfileStatus.BUILD_DATA) {
-                buildGenerateData(ProfileOrAll.of(profile.getName()), force);
+            if (force || profile.getStatus() == ProfileStatus.BUILD_ASSETS) {
+                buildGenerateAssets(ProfileOrAll.of(profile.getName()), force);
             }
         }
 
@@ -676,8 +670,8 @@ public class CmdProfile {
             return;
         }
 
-        if (profile.cleanData()) {
-            System.out.println("Generated data cleaned successfully for profile: " + profile.getName());
+        if (profile.cleanAssets()) {
+            System.out.println("Generated assets cleaned successfully for profile: " + profile.getName());
         }
     }
 

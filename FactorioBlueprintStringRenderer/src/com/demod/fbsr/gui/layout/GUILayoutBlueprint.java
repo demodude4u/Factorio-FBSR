@@ -20,6 +20,7 @@ import java.util.OptionalDouble;
 import java.util.OptionalInt;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import com.demod.dcba.CommandReporting;
 import com.demod.factorio.DataTable;
@@ -396,15 +397,13 @@ public class GUILayoutBlueprint {
 		totalItems = FBSR.generateTotalItems(blueprint);
 		totalRawItems = baseDataOnly ? FBSR.generateTotalRawItems(totalItems) : ImmutableMap.of();
 
-		Set<String> groups = new LinkedHashSet<>();
+		Set<String> mods = new LinkedHashSet<>();
 		blueprint.entities.stream().map(e -> resolver.resolveFactoryEntityName(e.name))
-				.map(e -> e.isUnknown() ? "Modded" : e.getGroupName()).forEach(groups::add);
-		blueprint.tiles.stream().map(t -> resolver.resolveFactoryTileName(t.name)).filter(t -> !t.isUnknown())
-				.map(t -> t.getGroupName()).forEach(groups::add);
-
-		spaceAge = groups.contains("Space Age");
-		groups.removeAll(Arrays.asList("Base", "Space Age"));
-		mods = groups.stream().sorted().collect(Collectors.toList());
+				.flatMap(e -> e.isUnknown() ? Stream.of("Modded") : e.getMods().stream()).forEach(mods::add);
+		blueprint.tiles.stream().map(t -> resolver.resolveFactoryTileName(t.name))
+				.flatMap(t -> t.isUnknown() ? Stream.of("Modded") : t.getMods().stream()).forEach(mods::add);
+		spaceAge = mods.remove("Space Age");
+		this.mods = mods.stream().sorted().collect(Collectors.toList());
 
 		int itemCount = totalItems.size() + totalRawItems.size();
 		int itemRowMax;

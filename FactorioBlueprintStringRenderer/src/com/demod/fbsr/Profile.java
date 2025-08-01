@@ -4,6 +4,7 @@ import java.awt.Desktop;
 import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -18,6 +19,7 @@ import java.nio.file.StandardCopyOption;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -59,6 +61,7 @@ import com.demod.factorio.Config;
 import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
 import com.demod.factorio.ModLoader;
+import com.demod.factorio.ModLoader.Mod;
 import com.demod.factorio.Utils;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.factorio.prototype.TilePrototype;
@@ -79,10 +82,14 @@ import com.google.common.collect.ImmutableSet;
 public class Profile {
 	private static final Logger LOGGER = LoggerFactory.getLogger(Profile.class);
 
+    public static final String ASSETS_ZIP_VERSION_TXT = "version.txt";
+    public static final String ASSETS_ZIP_PROFILE_JSON = "profile.json";
+    public static final String ASSETS_ZIP_DUMP_JSON = "dump.json";
+    public static final String ASSETS_ZIP_RENDERING_JSON = "rendering.json";
+
     public static final Set<String> BUILTIN_MODS;
 	public static final Set<String> BASE_ENTITIES;
 	public static final Set<String> BASE_TILES;
-	public static final Map<String, String> RENDERING_MAP;
 
 	static {
 		JSONObject json;
@@ -97,8 +104,6 @@ public class Profile {
 				.map(Object::toString).collect(Collectors.toSet());
 		BASE_TILES = json.getJSONArray("tiles").toList().stream()
 				.map(Object::toString).collect(Collectors.toSet());
-		RENDERING_MAP = json.getJSONObject("rendering").toMap().entrySet().stream()
-				.collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().toString()));
 	}
 
     //The BUILD statuses are named after the next step in the build process
@@ -110,27 +115,33 @@ public class Profile {
         BUILD_MANIFEST, // Config Updates
         BUILD_DOWNLOAD, // Mod Updates
         BUILD_DUMP, // Factorio Updates
-        BUILD_DATA, // Rendering Updates
+        BUILD_ASSETS, // Rendering Updates
         
         NEED_FACTORIO_INSTALL, // Factorio is not configured
         NEED_MOD_PORTAL_CREDENTIALS, // Mod Portal API is not configured
     }
 
+    public static enum ProfileWarning {
+        VERSION_MISMATCH,
+        PROFILE_MISMATCH
+    }
+
     private final String name;
     
     private final File folderProfile;
-    private final File fileProfile;
-    private final File fileFactorioData;
-    private final File fileAtlasData;
-    
     private final File folderBuild;
+    private final File fileAssets;
+
+    private final File fileProfile;
+    
     private final File fileManifest;
 
     private final File folderBuildMods;
     private final File fileModList;
 
     private final File folderBuildData;
-    private final File fileScriptOutputDump;
+    private final File fileScriptOutputDumpJson;
+    private final File fileScriptOutputVersion;
 
     private final File folderProfileTests;
     private final File folderBuildTests;
@@ -149,8 +160,12 @@ public class Profile {
         JSONObject json = Config.get().getJSONObject("factorio");
         File folderProfileRoot = new File(json.optString("profiles", "profiles"));
         File folderBuildRoot = new File(json.optString("build", "build"));
+        File folderAssets = new File(json.optString("assets", "assets"));
 
-        return new Profile(new File(folderProfileRoot, name), new File(folderBuildRoot, name));
+        return new Profile(
+                new File(folderProfileRoot, name), 
+                new File(folderBuildRoot, name), 
+                new File(folderAssets, name + ".zip"));
     }
 
     public static Profile vanilla() {
@@ -161,16 +176,15 @@ public class Profile {
         return folderProfile.getName().equals("vanilla");
     }
 
-    public Profile(File folderProfile, File folderBuild) {
+    public Profile(File folderProfile, File folderBuild, File fileAssets) {
         name = folderProfile.getName();
 
         this.folderProfile = folderProfile;
         this.folderBuild = folderBuild;
+        this.fileAssets = fileAssets;
 
         fileProfile = new File(folderProfile, "profile.json");
-        fileFactorioData = new File(folderProfile, "factorio-data.zip");
-        fileAtlasData = new File(folderProfile, "atlas-data.zip");
-        
+
         fileManifest = new File(folderBuild, "manifest.json");
 
         folderBuildMods = new File(folderBuild, "mods");
@@ -178,7 +192,8 @@ public class Profile {
 
         folderBuildData = new File(folderBuild, "data");
         File folderScriptOutput = new File(folderBuildData, "script-output");
-        fileScriptOutputDump = new File(folderScriptOutput, "data-raw-dump.zip");
+        fileScriptOutputDumpJson = new File(folderScriptOutput, "data-raw-dump.json");
+        fileScriptOutputVersion = new File(folderScriptOutput, "version.txt");
 
         folderProfileTests = new File(folderProfile, "tests");
         folderBuildTests = new File(folderBuild, "tests");
@@ -188,9 +203,9 @@ public class Profile {
     }
 
     public void resetLoadedData() {
-        factorioData = new FactorioData(fileFactorioData);
-        renderingRegistry = new RenderingRegistry();
-        atlasPackage = new AtlasPackage(fileAtlasData);
+        factorioData = new FactorioData(fileAssets);
+        renderingRegistry = new RenderingRegistry(this);
+        atlasPackage = new AtlasPackage();
 
         if (FactorioManager.hasFactorioInstall()) {
             modLoader = new ModLoader(FactorioManager.getFactorioInstall(), folderBuildMods);
@@ -212,7 +227,12 @@ public class Profile {
             return false;
         }
         Profile other = (Profile) obj;
-        return folderProfile.equals(other.folderProfile);
+        try {
+            return Files.isSameFile(folderProfile.toPath(), other.folderProfile.toPath());
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false;
+        }
     }
 
     @Override
@@ -236,16 +256,12 @@ public class Profile {
         return fileProfile;
     }
 
-    public File getFileAtlasData() {
-        return fileAtlasData;
+    public File getFileAssets() {
+        return fileAssets;
     }
 
-    public File getFileFactorioData() {
-        return fileFactorioData;
-    }
-
-    public File getFileDumpData() {
-        return fileScriptOutputDump;
+    public File getFileDumpDataJson() {
+        return fileScriptOutputDumpJson;
     }
 
     public FactorioData getFactorioData() {
@@ -288,23 +304,55 @@ public class Profile {
         this.iconManager = iconManager;
     }
 
+    public void setFactorioData(FactorioData factorioData) {
+        this.factorioData = factorioData;
+    }
+
     public static List<Profile> listProfiles() {
         JSONObject jsonFactorioManager = Config.get().getJSONObject("factorio");
         File folderProfileRoot = new File(jsonFactorioManager.optString("profiles", "profiles"));
         File folderBuildRoot = new File(jsonFactorioManager.optString("build", "build"));
+        File folderAssets = new File(jsonFactorioManager.optString("assets", "assets"));
 
         if (!folderProfileRoot.exists()) {
             return ImmutableList.of();
         }
 
         List<Profile> profiles = new ArrayList<>();
+
         for (File folderProfile : folderProfileRoot.listFiles()) {
-            if (folderProfile.getName().equals(".git") || !folderProfile.isDirectory()) {
+            String name = folderProfile.getName();
+            
+            if (name.equals(".git") || !folderProfile.isDirectory()) {
                 continue;
             }
-            Profile profile = new Profile(folderProfile, new File(folderBuildRoot, folderProfile.getName()));
+            
+            Profile profile = new Profile(
+                    folderProfile, 
+                    new File(folderBuildRoot, name), 
+                    new File(folderAssets, name + ".zip"));
             profiles.add(profile);
         }
+
+        if (folderAssets.exists()) {
+            for (File fileAssets : folderAssets.listFiles()) {
+                if (!fileAssets.getName().endsWith(".zip")) {
+                    continue;
+                }
+                String name = fileAssets.getName().substring(0, fileAssets.getName().length() - 4);
+                
+                if (profiles.stream().anyMatch(p -> p.getName().equals(name))) {
+                    continue;
+                }
+                
+                Profile profile = new Profile(
+                        new File(folderProfileRoot, name),
+                        new File(folderBuildRoot, name),
+                        fileAssets);
+                profiles.add(profile);
+            }
+        }
+
         return profiles;
     }
 
@@ -350,45 +398,64 @@ public class Profile {
     }
 
     public boolean hasDump() {
-        return fileScriptOutputDump.exists();
+        return fileScriptOutputDumpJson.exists() && fileScriptOutputVersion.exists();
     }
 
-    public boolean hasData() {
-        return fileFactorioData.exists() && fileAtlasData.exists();
+    public boolean hasAssets() {
+        return fileAssets.exists();
     }
 
     public String getStateCode() {
         if (!isValid()) {
-            return "[X]";
+            return "[XXXX]";
         }
-        return "["
+
+        boolean hasWarnings = !getWarnings().isEmpty();
+        String prefix = hasWarnings ? "!" : "[";
+        String postfix = hasWarnings ? "!" : "]";
+
+        return prefix
             + (hasManifest() ? "M" : "-")
             + (hasDownloaded() ? "D" : "-")
             + (hasDump() ? "U" : "-")
-            + (hasData() ? "A" : "-")
-            + "]";
+            + (hasAssets() ? "A" : "-")
+            + postfix;
+    }
+
+    public List<ProfileWarning> getWarnings() {
+        List<ProfileWarning> warnings = new ArrayList<>();
+
+        if (hasVersionMismatch()) {
+            warnings.add(ProfileWarning.VERSION_MISMATCH);
+        }
+
+        if (hasProfileMismatch()) {
+            warnings.add(ProfileWarning.PROFILE_MISMATCH);
+        }
+
+        return warnings;
     }
 
     public ProfileStatus getStatus() {
 
-        boolean versionMismatch = hasVersionMismatch();
+        if (hasAssets()) {
+            return ProfileStatus.READY;
+        }
 
         if (!isValid()) {
             return ProfileStatus.INVALID;
+
         } else if (!isEnabled()) {
             return ProfileStatus.DISABLED;
 
-        } else if (hasData() && !versionMismatch) {
-            return ProfileStatus.READY;
-
-        } else if (hasDump() && hasDownloaded() && !versionMismatch) {
+        } else if (hasDump() && hasDownloaded()) {
             if (FactorioManager.hasFactorioInstall()) {
-                return ProfileStatus.BUILD_DATA;
+                return ProfileStatus.BUILD_ASSETS;
             } else {
                 return ProfileStatus.NEED_FACTORIO_INSTALL;
             }
 
-        } else if ((hasManifest() && hasDownloaded()) || (hasManifest() && versionMismatch)) {
+        } else if ((hasManifest() && hasDownloaded())) {
             if (FactorioManager.hasFactorioInstall()) {
                 return ProfileStatus.BUILD_DUMP;
             } else {
@@ -409,40 +476,30 @@ public class Profile {
         return null;
     }
 
-    private String getDumpVersion() {
+    public String getDumpFactorioVersion() {
         if (!hasDump()) {
             return null;
         }
         
-        try (ZipFile zipFile = new ZipFile(fileScriptOutputDump)) {
-            
-            ZipEntry entryVersion = zipFile.getEntry("version.txt");
-            if (entryVersion == null) {
-                System.out.println("version.txt not found in factorio-data.zip for profile: " + folderProfile.getName());
-                return null;
-            }
-
-            try (InputStream is = zipFile.getInputStream(entryVersion)) {
-                return new String(is.readAllBytes()).trim();
-            }
-
+        try {
+            return Files.readString(fileScriptOutputVersion.toPath()).trim();
         } catch (IOException e) {
-            System.out.println("Failed to read version.txt from factorio-data.zip for profile: " + folderProfile.getName());
+            System.out.println("Failed to read version.txt for profile: " + folderProfile.getName());
             e.printStackTrace();
             return null;
         }
     }
 
-    public String getDataVersion() {
-        if (!hasData()) {
+    public String getAssetsFactorioVersion() {
+        if (!hasAssets()) {
             return null;
         }
-        
-        try (ZipFile zipFile = new ZipFile(fileFactorioData)) {
+
+        try (ZipFile zipFile = new ZipFile(fileAssets)) {
             
-            ZipEntry entryVersion = zipFile.getEntry("version.txt");
+            ZipEntry entryVersion = zipFile.getEntry(ASSETS_ZIP_VERSION_TXT);
             if (entryVersion == null) {
-                System.out.println("version.txt not found in factorio-data.zip for profile: " + folderProfile.getName());
+                System.out.println(ASSETS_ZIP_VERSION_TXT + " not found in " + fileAssets.getName() + " for profile: " + folderProfile.getName());
                 return null;
             }
 
@@ -451,22 +508,79 @@ public class Profile {
             }
 
         } catch (IOException e) {
-            System.out.println("Failed to read version.txt from factorio-data.zip for profile: " + folderProfile.getName());
+            System.out.println("Failed to read " + ASSETS_ZIP_VERSION_TXT + " from " + fileAssets.getName() + " for profile: " + folderProfile.getName());
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public JSONObject getAssetsRenderingConfiguration() {
+        if (!hasAssets()) {
+            return null;
+        }
+
+        try (ZipFile zipFile = new ZipFile(fileAssets)) {
+
+            ZipEntry entryVersion = zipFile.getEntry(ASSETS_ZIP_RENDERING_JSON);
+            if (entryVersion == null) {
+                System.out.println(ASSETS_ZIP_RENDERING_JSON + " not found in " + fileAssets.getName() + " for profile: " + folderProfile.getName());
+                return null;
+            }
+
+            try (InputStream is = zipFile.getInputStream(entryVersion)) {
+                try {
+                    return new JSONObject(new JSONTokener(is));
+                } catch (JSONException e) {
+                    System.out.println("Failed to parse " + ASSETS_ZIP_RENDERING_JSON + " from " + fileAssets.getName() + " for profile: " + folderProfile.getName());
+                    return null;
+                }
+            }
+
+        } catch (IOException e) {
+            System.out.println("Failed to read " + ASSETS_ZIP_RENDERING_JSON + " from " + fileAssets.getName() + " for profile: " + folderProfile.getName());
             e.printStackTrace();
             return null;
         }
     }
 
     public boolean hasVersionMismatch() {
-        boolean mismatch;
-        if (hasData() && FactorioManager.hasFactorioInstall()) {
-            mismatch = !getDataVersion().equals(FactorioManager.getFactorioVersion());
-        } else if (hasDump() && FactorioManager.hasFactorioInstall()) {
-            mismatch = !getDumpVersion().equals(FactorioManager.getFactorioVersion());
-        } else {
-            mismatch = false;
+        List<String> versions = new ArrayList<>();
+        if (hasAssets()) {
+            versions.add(getAssetsFactorioVersion());
         }
-        return mismatch;
+        if (hasDump()) {
+            versions.add(getDumpFactorioVersion());
+        }
+        if (FactorioManager.hasFactorioInstall()) {
+            versions.add(FactorioManager.getFactorioVersion());
+        }
+        if (versions.isEmpty()) {
+            return false;
+        }
+        String firstVersion = versions.get(0);
+        return versions.stream().anyMatch(version -> !version.equals(firstVersion));
+    }
+
+    public boolean hasProfileMismatch() {
+        if (!isValid() || !hasAssets()) {
+            return false;
+        }
+        JSONObject jsonProfile = readJsonFile(fileProfile);
+        try (ZipFile zipFile = new ZipFile(fileAssets)) {
+            ZipEntry entryProfile = zipFile.getEntry(ASSETS_ZIP_PROFILE_JSON);
+            if (entryProfile == null) {
+                System.out.println(ASSETS_ZIP_PROFILE_JSON + " not found in assets.zip for profile: " + folderProfile.getName());
+                return true;
+            }
+            try (InputStream is = zipFile.getInputStream(entryProfile)) {
+                JSONObject jsonAssetsProfile = new JSONObject(new JSONTokener(is));
+                return !jsonProfile.equals(jsonAssetsProfile);
+            }
+        } catch (IOException | JSONException e) {
+            System.out.println("Failed to read " + ASSETS_ZIP_PROFILE_JSON + " from assets.zip for profile: " + folderProfile.getName());
+            e.printStackTrace();
+            return true;
+        }
     }
 
     public boolean setEnabled(boolean enabled) {
@@ -535,126 +649,278 @@ public class Profile {
         return true;
     }
 
-    public boolean generateDefaultRenderingConfiguration() {
-        if (!isValid() || !hasDump()) {
-            return false;
-        }
+    private Optional<JSONObject> generateRenderingConfiguration(Profile profileVanilla) {
+        resetLoadedData();
+        try {
 
-        JSONObject jsonProfile = readJsonFile(fileProfile);
-        
-        FactorioData factorioData = new FactorioData(fileFactorioData);
-        if (!factorioData.initialize(false)) {
-            System.out.println("Failed to initialize Factorio data for profile: " + folderProfile.getName());
-            return false;
-        }
-        
-        DataTable table = factorioData.getTable();
-
-        //Lazy answer to finality problems with lambda expressions
-        AtomicBoolean changed = new AtomicBoolean(false);
-
-        String modGroup = folderProfile.getName();
-
-        JSONObject jsonEntities;
-        if (jsonProfile.has("entities")) {
-            jsonEntities = jsonProfile.getJSONObject("entities");
-        } else {
-            jsonEntities = new JSONObject();
-            jsonProfile.put("entities", jsonEntities);
-            changed.set(true);
-        }
-        JSONObject jsonEntitiesModGroup;
-        if (jsonEntities.has(modGroup)) {
-            jsonEntitiesModGroup = jsonEntities.getJSONObject(modGroup);
-        } else {
-            jsonEntitiesModGroup = new JSONObject();
-            jsonEntities.put(modGroup, jsonEntitiesModGroup);
-            changed.set(true);
-        }
-        table.getEntities().values().stream().filter(e -> isBlueprintable(e))
-				.sorted(Comparator.comparing(e -> e.getName())).forEach(e -> {
-					if (!BASE_ENTITIES.contains(e.getName())) {
-						String type = e.getType();
-						StringBuilder sb = new StringBuilder();
-						for (String part : type.split("-")) {
-							sb.append(part.substring(0, 1).toUpperCase() + part.substring(1));
-						}
-						sb.append("Rendering");
-						String rendering = sb.toString();
-						if (RENDERING_MAP.containsKey(rendering)) {
-							rendering = RENDERING_MAP.get(rendering);
-						}
-                        if (!jsonEntitiesModGroup.has(e.getName())) {
-                            System.out.println("MOD ENTITY ADDED - " + e.getName() + ": " + rendering);
-                            jsonEntitiesModGroup.put(e.getName(), rendering);
-                            changed.set(true);
-                        }
-					}
-				});
-
-        JSONObject jsonTiles;
-        if (jsonProfile.has("tiles")) {
-            jsonTiles = jsonProfile.getJSONObject("tiles");
-        } else {
-            jsonTiles = new JSONObject();
-            jsonProfile.put("tiles", jsonTiles);
-            changed.set(true);
-        }
-        JSONArray jsonTilesModGroup;
-        if (jsonTiles.has(modGroup)) {
-            jsonTilesModGroup = jsonTiles.getJSONArray(modGroup);
-        } else {
-            jsonTilesModGroup = new JSONArray();
-            jsonTiles.put(modGroup, jsonTilesModGroup);
-            changed.set(true);
-        }
-        table.getTiles().values().stream().filter(t -> isBlueprintable(t))
-				.sorted(Comparator.comparing(t -> t.getName())).forEach(t -> {
-					if (!BASE_TILES.contains(t.getName())) {
-                        if (!jsonTilesModGroup.toList().contains(t.getName())) {
-                            System.out.println("MOD TILE ADDED - " + t.getName());
-                            jsonTilesModGroup.put(t.getName());
-                            changed.set(true);
-                        }
-					}
-				});
-
-        if (changed.get()) {
-
-            if (!writeProfileSortedJsonFile(fileProfile, jsonProfile)) {
-                System.out.println("Failed to write profile.json for profile: " + folderProfile.getName());
-                return false;
+            if (!isValid()) {
+                System.out.println("Profile is not valid: " + folderProfile.getName());
+                return Optional.empty();
             }
 
-            System.out.println("Profile Saved: " + fileProfile.getAbsolutePath());
+            if (!hasDump()) {
+                System.out.println("Profile does not have a dump file: " + folderProfile.getName());
+                return Optional.empty();
+            }
+
+            if (!FactorioManager.hasFactorioInstall()) {
+                System.out.println("Factorio needs to be installed and configured!");
+                return Optional.empty();
+            }
+
+            if (!hasDownloaded()) {
+                System.out.println("Profile has not downloaded mods yet: " + folderProfile.getName());
+                return Optional.empty();
+            }
+            
+            List<Profile> profiles = new ArrayList<>();
+            profiles.add(this);
+            Set<String> ignoredEntities = new HashSet<>();
+            Set<String> ignoredTiles = new HashSet<>();
+            if (!profileVanilla.equals(this)) {
+                if (!profileVanilla.hasAssets()) {
+                    System.out.println("Vanilla profile does not have generated assets.");
+                    return Optional.empty();
+                }
+
+                JSONObject jsonRenderingVanilla = profileVanilla.getAssetsRenderingConfiguration();
+                if (jsonRenderingVanilla == null) {
+                    return Optional.empty();
+                }
+
+                profiles.add(profileVanilla);
+                ignoredEntities.addAll(jsonRenderingVanilla.getJSONObject("entities").keySet());
+                ignoredTiles.addAll(jsonRenderingVanilla.getJSONObject("tiles").keySet());
+            }
+
+            JSONObject jsonProfile = readJsonFile(fileProfile);
+            JSONObject jsonProfileModOverrides = jsonProfile.optJSONObject("mod-overrides", new JSONObject());
+            JSONObject jsonProfileEntityOverrides = jsonProfile.optJSONObject("entity-overrides", new JSONObject());
+            JSONObject jsonProfileTileOverrides = jsonProfile.optJSONObject("tile-overrides", new JSONObject());
+            
+            FactorioData factorioData = new FactorioData(fileScriptOutputDumpJson, getDumpFactorioVersion());
+            if (!factorioData.initialize(false)) {
+                System.out.println("Failed to initialize Factorio data for profile: " + folderProfile.getName());
+                return Optional.empty();
+            }
+            
+            ModLoader modLoader = new ModLoader(FactorioManager.getFactorioInstall(), folderBuildMods);
+            
+            DataTable table = factorioData.getTable();
+            JSONObject jsonRendering = new JSONObject();
+            Utils.terribleHackToHaveOrderedJSONObject(jsonRendering);
+            AtomicBoolean failure = new AtomicBoolean(false);
+
+            Function<List<String>, List<String>> convertNames = modNames -> {
+                List<String> mods = new ArrayList<>();
+                for (String modName : modNames) {
+                    if (modName.equals("base") || modName.equals("core")) {
+                        continue;
+                    }
+                    if (jsonProfileModOverrides.has(modName)) {
+                        JSONObject jsonMod = jsonProfileModOverrides.getJSONObject(modName);
+                        if (jsonMod.has("title")) {
+                            String title = jsonMod.getString("title");
+                            if (!mods.contains(title)) {
+                                mods.add(title);
+                                continue;
+                            }
+                        }
+                    }
+                    Optional<Mod> optMod = modLoader.getMod(modName);
+                    if (!optMod.isPresent()) {
+                        System.out.println("Mod not found: " + modName);
+                        failure.set(true);
+                        continue;
+                    }
+                    String modTitle = optMod.get().getInfo().getTitle();
+                    if (!mods.contains(modTitle)) {
+                        mods.add(modTitle);
+                    }
+                }
+                return mods;
+            };
+
+            JSONObject jsonRenderingEntities = new JSONObject();
+            Utils.terribleHackToHaveOrderedJSONObject(jsonRenderingEntities);
+            jsonRendering.put("entities", jsonRenderingEntities);
+            table.getEntities().values().stream()
+                    .filter(Profile::isBlueprintable)
+                    .sorted(Comparator.comparing(e -> e.getName())).forEach(e -> {
+                        if (ignoredEntities.contains(e.getName())) {
+                            return;
+                        }
+
+                        String renderingClassName;
+                        Optional<Collection<String>> overrideMods;
+                        if (jsonProfileEntityOverrides.has(e.getName())) {
+                            if (jsonProfileEntityOverrides.isNull(e.getName())) {
+                                return;
+                            }
+
+                            JSONObject jsonOverride = jsonProfileEntityOverrides.getJSONObject(e.getName());
+                            if (!jsonOverride.has("rendering")) {
+                                System.out.println("No rendering class specified for entity override: " + e.getName());
+                                failure.set(true);
+                                return;
+                            }
+                            renderingClassName = jsonOverride.getString("rendering");
+
+                            if (jsonOverride.has("mods")) {
+                                JSONArray jsonMods = jsonOverride.getJSONArray("mods");
+                                overrideMods = Optional.of(jsonMods.toList().stream()
+                                        .map(Object::toString).collect(Collectors.toList()));
+                            } else {
+                                overrideMods = Optional.empty();
+                            }
+                            
+                        } else {
+                            String type = e.getType();
+                            StringBuilder sb = new StringBuilder();
+                            for (String part : type.split("-")) {
+                                sb.append(part.substring(0, 1).toUpperCase() + part.substring(1));
+                            }
+                            sb.append("Rendering");
+                            renderingClassName = sb.toString();
+                            overrideMods = Optional.empty();
+                        }
+
+                        Optional<Class<? extends EntityRendererFactory>> factoryClass = EntityRendererFactory.findFactoryClass(renderingClassName);
+                        if (!factoryClass.isPresent()) {
+                            System.out.println("Entity rendering class for " + e.getName() + " not found: " + renderingClassName);
+                            failure.set(true);
+                            return;
+                        }
+
+                        List<String> modNames = new ArrayList<>();
+                        if (overrideMods.isPresent()) {
+                            for (String modName : overrideMods.get()) {
+                                if (!modNames.contains(modName)) {
+                                    modNames.add(modName);
+                                }
+                            }
+
+                        } else {
+                            try {
+                                EntityRendererFactory factory = factoryClass.get().getConstructor().newInstance();
+                                factory.setProfile(this);
+                                factory.setPrototype(e);
+                                factory.initFromPrototype();
+                                factory.initAtlas(def -> {
+                                    String modName = def.getModName();
+                                    if (!modNames.contains(modName)) {
+                                        modNames.add(modName);
+                                    }
+                                });
+                            } catch (Exception ex) {
+                                System.out.println("Failed to initialize entity renderer factory for " + e.getName() + ": " + renderingClassName);
+                                ex.printStackTrace();
+                                failure.set(true);
+                                return;
+                            }
+                        }
+
+                        List<String> mods = convertNames.apply(modNames);
+                        
+                        JSONObject jsonRenderingEntity = new JSONObject();
+                        Utils.terribleHackToHaveOrderedJSONObject(jsonRenderingEntities);
+                        jsonRenderingEntity.put("rendering", renderingClassName);
+                        jsonRenderingEntity.put("mods", new JSONArray(mods));
+                        jsonRenderingEntities.put(e.getName(), jsonRenderingEntity);
+
+                        System.out.println(modNames.stream().collect(Collectors.joining(", ", "[", "]")) + " Entity " + e.getName() + " (" + renderingClassName + ")");
+                    });
+
+            JSONObject jsonRenderingTiles = new JSONObject();
+            Utils.terribleHackToHaveOrderedJSONObject(jsonRenderingTiles);
+            jsonRendering.put("tiles", jsonRenderingTiles);
+            table.getTiles().values().stream()
+                    .filter(t -> {
+                        if (!t.lua().get("can_be_part_of_blueprint").optboolean(true)) {
+                            return false;
+                        }
+                        if (t.getPlacedBy().isEmpty()) {
+                            return false;
+                        }
+                        return true;
+                    })
+                    .sorted(Comparator.comparing(t -> t.getName())).forEach(t -> {
+                        if (ignoredTiles.contains(t.getName())) {
+                            return;
+                        }
+
+                        Optional<Collection<String>> overrideMods;
+                        if (jsonProfileEntityOverrides.has(t.getName())) {
+                            if (jsonProfileEntityOverrides.isNull(t.getName())) {
+                                return;
+                            }
+
+                            JSONObject jsonOverride = jsonProfileEntityOverrides.getJSONObject(t.getName());
+                            if (jsonOverride.has("mods")) {
+                                JSONArray jsonMods = jsonOverride.getJSONArray("mods");
+                                overrideMods = Optional.of(jsonMods.toList().stream()
+                                        .map(Object::toString).collect(Collectors.toList()));
+                            } else {
+                                overrideMods = Optional.empty();
+                            }
+                            
+                        } else {
+                            overrideMods = Optional.empty();
+                        }
+
+                        Set<String> modNames;
+                        if (overrideMods.isPresent()) {
+                            modNames = new HashSet<>(overrideMods.get());
+                        
+                        } else {
+                            try {
+                                TileRendererFactory factory = new TileRendererFactory();
+                                factory.setProfile(this);
+                                factory.setPrototype(t);
+                                factory.initFromPrototype(table);
+                                modNames = new HashSet<>();
+                                factory.initAtlas(def -> {
+                                    modNames.add(def.getModName());
+                                });
+                            } catch (Exception ex) {
+                                System.out.println("Failed to initialize tile renderer factory for " + t.getName() + ": " + t.getType());
+                                ex.printStackTrace();
+                                failure.set(true);
+                                return;
+                            }
+                        }
+
+                        JSONObject jsonRenderingTile = new JSONObject();
+                        Utils.terribleHackToHaveOrderedJSONObject(jsonRenderingTiles);
+                        jsonRenderingTile.put("mods", new JSONArray(modNames));
+                        jsonRenderingTiles.put(t.getName(), jsonRenderingTile);
+
+                        System.out.println(modNames.stream().collect(Collectors.joining(", ", "[", "]")) + " Tile " + t.getName());
+                    });
+
+            if (failure.get()) {
+                System.out.println("Failed to generate rendering configuration for profile: " + folderProfile.getName());
+                return Optional.empty();
+            }
+            return Optional.of(jsonRendering);
+        } finally {
+            resetLoadedData();
+        }
+    }
+
+    private static boolean isBlueprintable(EntityPrototype e) {
+        // based on cannot_ghost() by _codegreen
+        if (e.getFlags().contains("not-blueprintable")) {
+            return false;
+        }
+        if (!e.getFlags().contains("player-creation")) {
+            return false;
+        }
+        if (e.getPlacedBy().isEmpty()) {
+            return false;
         }
         return true;
     }
-
-    // based on cannot_ghost() by _codegreen
-	private static boolean isBlueprintable(EntityPrototype entity) {
-		boolean cantGhost = false;
-		if (entity.getFlags().contains("not-blueprintable")) {
-			cantGhost = true;
-		}
-		if (!entity.getFlags().contains("player-creation")) {
-			cantGhost = true;
-		}
-		if (entity.getPlacedBy().isEmpty()) {
-			cantGhost = true;
-		}
-		return !cantGhost;
-	}
-
-	private static boolean isBlueprintable(TilePrototype tile) {
-		if (!tile.lua().get("can_be_part_of_blueprint").optboolean(true)) {
-			return false;
-		}
-		if (tile.getPlacedBy().isEmpty()) {
-			return false;
-		}
-		return true;
-	}
 
     public boolean cleanManifest() {
         return fileManifest.delete();
@@ -721,11 +987,11 @@ public class Profile {
     }
 
     public boolean cleanDump() {
-        return fileScriptOutputDump.delete();
+        return fileScriptOutputDumpJson.delete() && fileScriptOutputVersion.delete();
     }
 
-    public boolean cleanData() {
-        return fileFactorioData.delete() && fileAtlasData.delete();
+    public boolean cleanAssets() {
+        return fileAssets.delete();
     }
 
     public boolean delete() {
@@ -902,7 +1168,7 @@ public class Profile {
 
         cleanInvalidDownloads();
         cleanDump();
-        cleanData();
+        cleanAssets();
 
         return true;
     }
@@ -1005,7 +1271,7 @@ public class Profile {
 
         cleanInvalidDownloads();
         cleanDump();
-        cleanData();
+        cleanAssets();
 
         if (modLoader != null) {
             modLoader.reload();
@@ -1038,9 +1304,9 @@ public class Profile {
 
         folderBuildData.mkdirs();
 
-        if (force && fileScriptOutputDump.exists()) {
-            if (!fileScriptOutputDump.delete()) {
-                System.out.println("Failed to delete old dump file: " + fileScriptOutputDump.getAbsolutePath());
+        if (force && fileScriptOutputDumpJson.exists()) {
+            if (!fileScriptOutputDumpJson.delete()) {
+                System.out.println("Failed to delete old dump file: " + fileScriptOutputDumpJson.getAbsolutePath());
                 return false;
             }
         }
@@ -1048,7 +1314,7 @@ public class Profile {
         File factorioInstall = FactorioManager.getFactorioInstall();
         Optional<File> factorioExecutableOverride = FactorioManager.getFactorioExecutableOverride();
 
-        if (!FactorioData.buildDataZip(fileScriptOutputDump, folderBuildData, folderBuildMods, factorioInstall, factorioExecutableOverride, force)) {
+        if (!FactorioData.generateDumpAndVersion(folderBuildData, folderBuildMods, factorioInstall, factorioExecutableOverride)) {
             System.out.println("Failed to build dump file for profile: " + folderProfile.getName());
             return false;
         }
@@ -1058,7 +1324,7 @@ public class Profile {
             return false;
         }
 
-        cleanData();
+        cleanAssets();
 
         return true;
     }
@@ -1112,8 +1378,8 @@ public class Profile {
         return true;
     }
 
-    public boolean buildData(boolean force) {
-        
+    public boolean buildAssets(boolean force) {
+
         if (!hasDump()) {
             System.out.println("Profile " + folderProfile.getName() + " does not have a dump file.");
             return false;
@@ -1125,28 +1391,84 @@ public class Profile {
         }
 
         if (!FactorioManager.hasFactorioInstall()) {
-            System.out.println("Factorio is not configured. Cannot build data files.");
+            System.out.println("Factorio is not configured. Cannot build asset files.");
             return false;
         }
 
-        if (!force && hasData()) {
-            System.out.println("Profile " + folderProfile.getName() + " already has data files.");
+        if (!force && hasAssets()) {
+            System.out.println("Profile " + folderProfile.getName() + " already has asset files.");
             return false;
         }
 
-        try {
-            Files.copy(fileScriptOutputDump.toPath(), fileFactorioData.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        fileAssets.getParentFile().mkdirs();
+
+        boolean delete = false;
+        try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(fileAssets))) {
+            if (!copyIntoZip(zos, fileProfile, ASSETS_ZIP_PROFILE_JSON)) {
+                delete = true;
+                return false;
+            }
+            if (!copyIntoZip(zos, fileScriptOutputDumpJson, ASSETS_ZIP_DUMP_JSON)) {
+                delete = true;
+                return false;
+            }
+            if (!copyIntoZip(zos, fileScriptOutputVersion, ASSETS_ZIP_VERSION_TXT)) {
+                delete = true;
+                return false;
+            }
+            
+            {
+                Optional<JSONObject> jsonRendering = generateRenderingConfiguration(Profile.vanilla());
+                if (!jsonRendering.isPresent()) {
+                    System.out.println("Failed to generate rendering configuration for profile: " + folderProfile.getName());
+                    delete = true;
+                    return false;
+                }
+                ZipEntry entryRendering = new ZipEntry(ASSETS_ZIP_RENDERING_JSON);
+                zos.putNextEntry(entryRendering);
+                zos.write(jsonRendering.get().toString(2).getBytes(StandardCharsets.UTF_8));
+                zos.closeEntry();
+            }
+    
+            if (!FBSR.populateAssets(this, zos)) {
+                System.out.println("Failed to populate assets for profile: " + folderProfile.getName());
+                delete = true;
+                return false;
+            }
         } catch (IOException e) {
-            System.out.println("Failed to copy dump file to factorio-data.zip for profile: " + folderProfile.getName());
+            System.out.println("Failed to create assets zip for profile: " + folderProfile.getName());
+            e.printStackTrace();
+            delete = true;
+            return false;
+        } finally {
+            if (delete) {
+                fileAssets.delete();
+            }
+        }
+
+
+        return true;
+    }
+
+    private static boolean copyIntoZip(ZipOutputStream zos, File file, String zipEntryName) {
+        if (!file.exists()) {
+            System.out.println("File " + file.getAbsolutePath() + " does not exist. Cannot copy into zip.");
+            return false;
+        }
+        try (FileInputStream fis = new FileInputStream(file)) {
+            ZipEntry entry = new ZipEntry(zipEntryName);
+            zos.putNextEntry(entry);
+            byte[] buffer = new byte[8192];
+            int bytesRead;
+            while ((bytesRead = fis.read(buffer)) != -1) {
+                zos.write(buffer, 0, bytesRead);
+            }
+            zos.closeEntry();
+        } catch (IOException e) {
+            System.out.println("Failed to copy " + file.getAbsolutePath() + " into zip as " + zipEntryName);
             e.printStackTrace();
             return false;
         }
-
-        if (!FBSR.buildData(this)) {
-            System.out.println("Failed to build data for profile: " + folderProfile.getName());
-            return false;
-        }
-
         return true;
     }
 
@@ -1261,76 +1583,6 @@ public class Profile {
         return mods;
     }
 
-    public static class ProfileModGroupRenderings {
-        private final String modGroup;
-        private final Map<String, String> entityMappings;
-        private final List<String> tiles;
-
-        public ProfileModGroupRenderings(String modGroup) {
-            this(modGroup, new HashMap<>(), new ArrayList<>());
-        }
-
-        public ProfileModGroupRenderings(String modGroup, Map<String, String> entityMappings, List<String> tiles) {
-            this.modGroup = modGroup;
-            this.entityMappings = entityMappings;
-            this.tiles = tiles;
-        }
-
-        public String getModGroup() {
-            return modGroup;
-        }
-
-        public Map<String, String> getEntityMappings() {
-            return entityMappings;
-        }
-
-        public List<String> getTiles() {
-            return tiles;
-        }
-    }
-
-    public List<ProfileModGroupRenderings> listRenderings() {
-        if (!isValid()) {
-            System.out.println("Profile " + folderProfile.getName() + " is not valid.");
-            return ImmutableList.of();
-        }
-
-        Map<String, ProfileModGroupRenderings> renderingsByModGroup = new HashMap<>();
-        JSONObject jsonProfile = readJsonFile(fileProfile);
-        JSONObject jsonEntities = jsonProfile.optJSONObject("entities");
-        JSONObject jsonTiles = jsonProfile.optJSONObject("tiles");
-
-        for (String modGroup : jsonEntities.keySet()) {
-            ProfileModGroupRenderings renderings = renderingsByModGroup.get(modGroup);
-            if (renderings == null) {
-                renderings = new ProfileModGroupRenderings(modGroup);
-                renderingsByModGroup.put(modGroup, renderings);
-            }
-            
-            JSONObject jsonModGroupEntities = jsonEntities.getJSONObject(modGroup);
-            for (String entityName : jsonModGroupEntities.keySet()) {
-                String rendering = jsonModGroupEntities.getString(entityName);
-                renderings.getEntityMappings().put(entityName, rendering);
-            }
-        }
-
-        for (String modGroup : jsonTiles.keySet()) {
-            ProfileModGroupRenderings renderings = renderingsByModGroup.get(modGroup);
-            if (renderings == null) {
-                renderings = new ProfileModGroupRenderings(modGroup);
-                renderingsByModGroup.put(modGroup, renderings);
-            }
-            
-            JSONArray jsonModGroupTiles = jsonTiles.getJSONArray(modGroup);
-            for (int i = 0; i < jsonModGroupTiles.length(); i++) {
-                String tileName = jsonModGroupTiles.getString(i);
-                renderings.getTiles().add(tileName);
-            }
-        }
-
-        return new ArrayList<>(renderingsByModGroup.values());
-    }
-
     private static JSONObject readJsonFile(File file) {
         try {
             return new JSONObject(Files.readString(file.toPath()));
@@ -1434,8 +1686,8 @@ public class Profile {
 
     public boolean renderTests(boolean openFolder) {
 
-        if (!hasData()) {
-            System.out.println("Profile " + getName() + " does not have data files.");
+        if (!hasAssets()) {
+            System.out.println("Profile " + getName() + " does not have asset files.");
             return false;
         }
 
@@ -1619,13 +1871,13 @@ public class Profile {
             for (Entry<String, EntityRendererFactory> entry : entitiesRemaining.entrySet()) {
                 String entityName = entry.getKey();
                 EntityRendererFactory factory = entry.getValue();
-                report.accept("Entity not rendered: " + factory.profile.name + " / " + factory.groupName + " / " + entityName);
+                report.accept("Entity not rendered: " + factory.profile.name + " / " + factory.mods.stream().collect(Collectors.joining(",", "[","]")) + " / " + entityName);
                 renderProblem = true;
             }
             for (Entry<String, TileRendererFactory> entry : tilesRemaining.entrySet()) {
                 String tileName = entry.getKey();
                 TileRendererFactory factory = entry.getValue();
-                report.accept("Tile not rendered: " + factory.profile.name + " / " + factory.groupName + " / " + tileName);
+                report.accept("Tile not rendered: " + factory.profile.name + " / " + factory.mods.stream().collect(Collectors.joining(",", "[","]")) + " / " + tileName);
                 renderProblem = true;
             }
 
@@ -1733,8 +1985,8 @@ public class Profile {
 
     public boolean renderTestEntity(String entity, Optional<Dir16> direction, OptionalDouble orientation, Optional<String> custom) {
         
-        if (!hasData()) {
-            System.out.println("Profile " + getName() + " does not have data files.");
+        if (!hasAssets()) {
+            System.out.println("Profile " + getName() + " does not have asset files.");
             return false;
         }
 

@@ -24,7 +24,6 @@ import com.demod.factorio.FactorioData;
 import com.demod.factorio.fakelua.LuaTable;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.factorio.prototype.RecipePrototype;
-import com.demod.fbsr.Profile.ProfileModGroupRenderings;
 import com.demod.fbsr.WirePoints.WirePoint;
 import com.demod.fbsr.WorldMap.BeaconSource;
 import com.demod.fbsr.bs.BSEntity;
@@ -39,6 +38,7 @@ import com.demod.fbsr.map.MapIcon;
 import com.demod.fbsr.map.MapPosition;
 import com.demod.fbsr.map.MapRect3D;
 import com.demod.fbsr.map.MapRenderable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.Multiset;
 
@@ -83,73 +83,20 @@ public abstract class EntityRendererFactory {
 		return MapRect3D.byUnit(x1, y1, x2, y2, drawingBoxVerticalExtension);
 	}
 
-	public static boolean initFactories(Consumer<EntityRendererFactory> register, Profile profile) {
-		DataTable table = profile.getFactorioData().getTable();
-		boolean hasEntityTypeMismatch = false;
-		boolean failed = false;
-		for (ProfileModGroupRenderings renderings : profile.listRenderings()) {
-			for (Entry<String, String> entry : renderings.getEntityMappings().entrySet()) {
-				String entityName = entry.getKey();
-				String factoryName = entry.getValue();
-
-				Optional<EntityPrototype> optProto = table.getEntity(entityName);
-				if (!optProto.isPresent()) {
-					System.out.println("Rendering entity not found in factorio data: " + entityName);
-					failed = true;
-					continue;
-				}
-
-				EntityPrototype proto = optProto.get();
-				String factoryClassName = "com.demod.fbsr.entity." + factoryName;
-				try {
-					EntityRendererFactory factory = (EntityRendererFactory) Class.forName(factoryClassName)
-							.getConstructor().newInstance();
-
-					if (!factory.isEntityTypeMatch(proto)) {
-						System.out.println("ENTITY MISMATCH " + entityName + " (" + factoryName + " ==> " + proto.getType() + ")");
-						hasEntityTypeMismatch = true;
-					}
-
-					factory.setName(entityName);
-					factory.setGroupName(renderings.getModGroup());
-					factory.setProfile(profile);
-					factory.setPrototype(proto);
-					factory.initFromPrototype();
-					factory.wirePointsById = new LinkedHashMap<>();
-					factory.defineWirePoints(factory.wirePointsById::put, proto.lua());
-					factory.drawBounds = factory.computeBounds();
-					factory.initAtlas(factory.getProfile().getAtlasPackage()::registerDef);
-					
-					register.accept(factory);
-
-				} catch (ClassNotFoundException e) {
-					System.out.println("Entity rendering class for " + entityName + " not found: " + factoryName);
-					failed = true;
-
-				} catch (Exception e) {
-					e.printStackTrace();
-					System.out.println("Problem registering rendering for entity: " + entityName);
-					return false;
-				}
-			}
+	@SuppressWarnings("unchecked")
+	public static Optional<Class<? extends EntityRendererFactory>> findFactoryClass(String name) {
+		String factoryClassName = "com.demod.fbsr.entity." + name;
+		try {
+			return Optional.of((Class<? extends EntityRendererFactory>) Class.forName(factoryClassName));
+		} catch (ClassNotFoundException e) {
+			return Optional.empty();
 		}
-
-		if (failed) {
-			System.out.println("Entity rendering registration failed!");
-			return false;
-		}
-
-		if (hasEntityTypeMismatch) {
-			System.out.println("Entity rendering type mismatch detected!");
-			return false;
-		}
-
-		return true;
 	}
 
 	protected String name = null;
-	protected String groupName = null;
 	protected Profile profile = null;
+	protected List<String> mods = null;
+
 	protected EntityPrototype prototype = null;
 
 	protected boolean protoBeaconed;
@@ -268,12 +215,12 @@ public abstract class EntityRendererFactory {
 		return entity.getDirection().rotate(drawBounds).shift(entity.getPosition());
 	}
 
-	public String getGroupName() {
-		return groupName;
-	}
-
 	public String getName() {
 		return name;
+	}
+
+	public List<String> getMods() {
+		return mods;
 	}
 
 	public EntityPrototype getPrototype() {
@@ -329,8 +276,8 @@ public abstract class EntityRendererFactory {
 		this.profile = profile;
 	}
 
-	public void setGroupName(String groupName) {
-		this.groupName = groupName;
+	public void setMods(List<String> mods) {
+		this.mods = mods;
 	}
 
 	protected void setLogisticAcceptFilter(WorldMap map, MapPosition gridPos, Direction cellDir,

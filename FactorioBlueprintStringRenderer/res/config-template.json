@@ -10,6 +10,7 @@
     },
 	"factorio": {
 		"profiles": "profiles",
-        "build": "build"
+        "build": "build",
+        "assets": "assets"
 	}
 }

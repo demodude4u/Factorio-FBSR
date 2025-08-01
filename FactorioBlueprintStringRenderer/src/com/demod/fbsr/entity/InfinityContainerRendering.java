@@ -22,7 +22,7 @@ import com.demod.fbsr.map.MapRenderable;
 import net.dv8tion.jda.api.entities.Icon;
 
 @EntityType("infinity-container")
-public class InfinityContainerRendering extends ContainerRendering {
+public class InfinityContainerRendering extends BaseContainerRendering {
 	@Override
 	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
 		super.createRenderers(register, map, entity);

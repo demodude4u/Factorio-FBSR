@@ -65,20 +65,14 @@ public class AtlasPackage {
 	public static int ATLAS_SIZE = 4096;
 	public static int ATLAS_ICONS_SIZE = 2048;
 
-	private final File atlasDataZip;
-
 	private List<ImageDef> defs = new ArrayList<>();
 	private List<Atlas> atlases = new ArrayList<>();
-
-    public AtlasPackage(File atlasDataZip) {
-		this.atlasDataZip = atlasDataZip;
-    }
 
     private static final int MAX_PARALLEL_LOADS = Runtime.getRuntime().availableProcessors() * 2;
 	private final Semaphore loadingSemaphore = new Semaphore(MAX_PARALLEL_LOADS);
 	private static final int CLEANUP_INTERVAL = 1000;
 
-	public void generateZip() throws IOException {
+	public void populateZip(ZipOutputStream zos) throws IOException {
 		for (ImageDef def : defs) {
 			def.getAtlasRef().reset();
 		}
@@ -270,97 +264,86 @@ public class AtlasPackage {
 		imageSheets.invalidateAll();
 		imageSheets.cleanUp();
 
-		try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(atlasDataZip))) {
 
-			JSONArray jsonManifest = new JSONArray();
-			for (ImageDef def : defs) {
-				Rectangle source = def.getSource();
-				AtlasRef atlasRef = def.getAtlasRef();
-				JSONArray jsonEntry = new JSONArray();
-				Atlas atlas = atlasRef.getAtlas();
-				Rectangle rect = atlasRef.getRect();
-				Point trim = atlasRef.getTrim();
+		JSONArray jsonManifest = new JSONArray();
+		for (ImageDef def : defs) {
+			Rectangle source = def.getSource();
+			AtlasRef atlasRef = def.getAtlasRef();
+			JSONArray jsonEntry = new JSONArray();
+			Atlas atlas = atlasRef.getAtlas();
+			Rectangle rect = atlasRef.getRect();
+			Point trim = atlasRef.getTrim();
 
-				if (atlas.getAtlasPackage() != this) {
-					LOGGER.error("Image does not belong to this atlas package: {}", def.getPath());
-					System.exit(-1);
-				}
-
-				jsonEntry.put(def.getPath());
-				jsonEntry.put(source.x);
-				jsonEntry.put(source.y);
-				jsonEntry.put(source.width);
-				jsonEntry.put(source.height);
-				jsonEntry.put(atlas.getId());
-				jsonEntry.put(rect.x);
-				jsonEntry.put(rect.y);
-				jsonEntry.put(rect.width);
-				jsonEntry.put(rect.height);
-				jsonEntry.put(trim.x);
-				jsonEntry.put(trim.y);
-				jsonManifest.put(jsonEntry);
+			if (atlas.getAtlasPackage() != this) {
+				LOGGER.error("Image does not belong to this atlas package: {}", def.getPath());
+				System.exit(-1);
 			}
-			zos.putNextEntry(new ZipEntry("atlas-manifest.json"));
-			zos.write(jsonManifest.toString(2).getBytes(StandardCharsets.UTF_8));
-			zos.closeEntry();
 
-			for (Atlas atlas : atlases) {
-				String filename = "atlas" + atlas.getId() + ".webp";
-				zos.putNextEntry(new ZipEntry(filename));
-
-				ImageWriter writer = ImageIO.getImageWritersByMIMEType("image/webp").next();
-				try {
-					try (ImageOutputStream ios = ImageIO.createImageOutputStream(zos)) {
-						writer.setOutput(ios);
-						WebPWriteParam param = new WebPWriteParam(writer.getLocale());
-						param.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
-						param.setCompressionType(param.getCompressionTypes()[WebPWriteParam.LOSSY_COMPRESSION]);
-						param.setCompressionQuality(0.9f);
-						writer.write(null, new IIOImage(atlas.getImage(), null, null), param);
-					} catch (IOException e) {
-						e.printStackTrace();
-					}
-				} finally {
-					writer.dispose();
-				}
-
-				zos.closeEntry();
-				LOGGER.info("Write Atlas: {}", filename);
-			}
+			jsonEntry.put(def.getPath());
+			jsonEntry.put(source.x);
+			jsonEntry.put(source.y);
+			jsonEntry.put(source.width);
+			jsonEntry.put(source.height);
+			jsonEntry.put(atlas.getId());
+			jsonEntry.put(rect.x);
+			jsonEntry.put(rect.y);
+			jsonEntry.put(rect.width);
+			jsonEntry.put(rect.height);
+			jsonEntry.put(trim.x);
+			jsonEntry.put(trim.y);
+			jsonManifest.put(jsonEntry);
 		}
+		zos.putNextEntry(new ZipEntry("atlas-manifest.json"));
+		zos.write(jsonManifest.toString(2).getBytes(StandardCharsets.UTF_8));
+		zos.closeEntry();
 
-		LOGGER.info("Write Atlas Data Zip: {}.", atlasDataZip.getAbsolutePath());
+		for (Atlas atlas : atlases) {
+			String filename = "atlas" + atlas.getId() + ".webp";
+			zos.putNextEntry(new ZipEntry(filename));
+
+			ImageWriter writer = ImageIO.getImageWritersByMIMEType("image/webp").next();
+			try {
+				try (ImageOutputStream ios = ImageIO.createImageOutputStream(zos)) {
+					writer.setOutput(ios);
+					WebPWriteParam param = new WebPWriteParam(writer.getLocale());
+					param.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
+					param.setCompressionType(param.getCompressionTypes()[WebPWriteParam.LOSSY_COMPRESSION]);
+					param.setCompressionQuality(0.9f);
+					writer.write(null, new IIOImage(atlas.getImage(), null, null), param);
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			} finally {
+				writer.dispose();
+			}
+
+			zos.closeEntry();
+			LOGGER.info("Write Atlas: {}", filename);
+		}
 	}
 
-    public boolean initialize() {
-		LOGGER.info("Read Atlas Data Zip: {}.", atlasDataZip.getAbsolutePath());
-		try (ZipFile zipFile = new ZipFile(atlasDataZip)) {
+    public boolean readFromZip(ZipFile zipFile) {
 			
-			JSONArray jsonManifest;
-			ZipEntry entry = zipFile.getEntry("atlas-manifest.json");
-			if (entry == null) {
-				System.out.println("Missing atlas-manifest.json in zip file: " + atlasDataZip.getAbsolutePath());
-				return false;
-			}
-			try (var reader = new InputStreamReader(zipFile.getInputStream(entry), StandardCharsets.UTF_8)) {
-				jsonManifest = new JSONArray(new JSONTokener(reader));
-			} catch (IOException e) {
-				System.out.println("Failed to read atlas-manifest.json: " + e.getMessage());
-				return false;
-			}
-
-			if (!checkValidManifest(jsonManifest)) {
-				System.out.println("Atlas manifest is invalid or does not match current definitions. Data needs to be regenerated.");
-				return false;
-			}
-			
-			if (!loadAtlases(zipFile, jsonManifest)) {
-				System.out.println("Failed to load atlases from zip file: " + atlasDataZip.getAbsolutePath());
-				return false;
-			}
-		
+		JSONArray jsonManifest;
+		ZipEntry entry = zipFile.getEntry("atlas-manifest.json");
+		if (entry == null) {
+			System.out.println("Missing atlas-manifest.json in zip file: " + zipFile.getName());
+			return false;
+		}
+		try (var reader = new InputStreamReader(zipFile.getInputStream(entry), StandardCharsets.UTF_8)) {
+			jsonManifest = new JSONArray(new JSONTokener(reader));
 		} catch (IOException e) {
-			LOGGER.error("Failed to read atlas data zip: {}", atlasDataZip.getAbsolutePath(), e);
+			System.out.println("Failed to read atlas-manifest.json: " + e.getMessage());
+			return false;
+		}
+
+		if (!checkValidManifest(jsonManifest)) {
+			System.out.println("Atlas manifest is invalid or does not match current definitions. Data needs to be regenerated.");
+			return false;
+		}
+		
+		if (!loadAtlases(zipFile, jsonManifest)) {
+			System.out.println("Failed to load atlases from zip file: " + zipFile.getName());
 			return false;
 		}
 

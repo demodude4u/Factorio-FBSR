@@ -208,8 +208,9 @@ public class CmdConfig {
             } else {
                 System.out.println("Factorio Install Path: \t<NOT SET>");
             }
-            System.out.println("Profiles Directory: \t" + jsonFactorio.getString("profiles"));
-            System.out.println("Build Directory: \t" + jsonFactorio.getString("build"));
+            System.out.println("Profiles Directory: \t" + jsonFactorio.optString("profiles", "profiles"));
+            System.out.println("Build Directory: \t" + jsonFactorio.optString("build", "build"));
+            System.out.println("Assets Directory: \t" + jsonFactorio.optString("assets", "assets"));
             if (jsonFactorio.has("portal")) {
                 JSONObject portal = jsonFactorio.getJSONObject("portal");
                 System.out.println("Mod Portal Username: \t" + portal.getString("username"));

@@ -48,7 +48,7 @@ public class ImageDef {
 	public ImageDef(Profile profile, String path, Rectangle source, boolean shadow) {
 		this.profile = profile;
 		this.path = path;
-		this.loader = profile.getFactorioManager()::lookupModImage;
+		this.loader = profile.getFactorioManager() == null ? null : profile.getFactorioManager()::lookupModImage;
 		this.shadow = shadow;
 		this.source = new Rectangle(source);
 		atlasRef = new AtlasRef();
@@ -117,4 +117,9 @@ public class ImageDef {
 	public Profile getProfile() {
 		return profile;
 	}
+
+    public String getModName() {
+        String firstSegment = path.split("\\/")[0];
+		return firstSegment.substring(2, firstSegment.length() - 2);
+    }
 }

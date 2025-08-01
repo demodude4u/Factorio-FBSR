@@ -7,6 +7,7 @@ import java.util.OptionalDouble;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+import com.demod.factorio.DataTable;
 import com.demod.factorio.fakelua.LuaTable;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.Direction;
@@ -25,6 +26,7 @@ import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.def.SpriteDef;
 import com.demod.fbsr.fp.FPSprite;
 import com.demod.fbsr.fp.FPSprite4Way;
+import com.demod.fbsr.fp.FPUtilitySprites;
 import com.demod.fbsr.fp.FPVector;
 import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapIcon;
@@ -190,11 +192,18 @@ public class InserterRendering extends EntityWithOwnerRendering {
 		protoInsertPosition = new FPVector(prototype.lua().get("insert_position"));
 
 		FactorioManager factorioManager = profile.getFactorioManager();
+		FPUtilitySprites utilitySprites;
+		if (factorioManager != null) {
+			utilitySprites = factorioManager.getUtilitySprites();
+		} else {
+			DataTable baseTable = prototype.getTable();
+			utilitySprites = new FPUtilitySprites(profile, baseTable.getRaw("utility-sprites", "default").get());
+		}
 
-		protoIndicationLine = factorioManager.getUtilitySprites().indicationLine;
-		protoIndicationArrow = factorioManager.getUtilitySprites().indicationArrow;
+		protoIndicationLine = utilitySprites.indicationLine;
+		protoIndicationArrow = utilitySprites.indicationArrow;
 
-		protoBlacklist = factorioManager.getUtilitySprites().filterBlacklist;
+		protoBlacklist = utilitySprites.filterBlacklist;
 	}
 
 	@Override

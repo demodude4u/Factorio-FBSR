@@ -87,19 +87,18 @@ public class CmdFactorio {
             return;
         }
 
-        File dataFile;
-        if (profile.hasData()) {
-            dataFile = profile.getFileFactorioData();
+        FactorioData factorioData;
+        if (profile.hasAssets()) {
+            factorioData = new FactorioData(profile.getFileAssets());
         } else if (profile.hasDump()) {
-            dataFile = profile.getFileDumpData();
+            factorioData = new FactorioData(profile.getFileDumpDataJson(), profile.getDumpFactorioVersion());
         } else {
-            System.out.println("Profile does not have factorio data or dump. Please run 'profile build-dump' first.");
+            System.out.println("Profile does not have assets or factorio dump. Please run 'profile build-dump' first.");
             return;
         }
 
-        FactorioData factorioData = new FactorioData(dataFile);
         if (!factorioData.initialize(false)) {
-            System.out.println("Failed to initialize factorio data from file: " + dataFile.getAbsolutePath());
+            System.out.println("Failed to initialize factorio data for profile: " + profileName);
             return;
         }
 

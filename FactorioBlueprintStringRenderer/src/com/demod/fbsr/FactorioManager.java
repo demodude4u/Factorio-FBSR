@@ -109,7 +109,6 @@ public class FactorioManager {
 	private Profile profileVanilla = null;
 
 	private final Map<FactorioData, Profile> profileByData = new HashMap<>();
-	private final ListMultimap<String, Profile> profileByGroupName = ArrayListMultimap.create();
 	private final ListMultimap<String, Profile> profileByModName = ArrayListMultimap.create();
 	private final ListMultimap<String, Profile> profileByEntityName = ArrayListMultimap.create();
 	private final ListMultimap<String, Profile> profileByTileName = ArrayListMultimap.create();
@@ -285,25 +284,28 @@ public class FactorioManager {
 		}
 		initializedFactories = true;
 
+		Optional<Profile> optVanillaProfile = profiles.stream().filter(p -> p.isVanilla()).findAny();
+		if (optVanillaProfile.isEmpty()) {
+			LOGGER.error("Vanilla profile is missing!");
+			return false;
+		}
+		Profile profileVanilla = optVanillaProfile.get();
+
 		for (Profile profile : profiles) {
 			RenderingRegistry registry = profile.getRenderingRegistry();
 
-			if (!EntityRendererFactory.initFactories(f -> {
-				registry.addEntity(f);
-				entityFactoryByName.put(f.getName(), f);
-				profileByGroupName.put(f.getGroupName(), profile);
-				profileByEntityName.put(f.getName(), profile);
-			}, profile)) {
+			if (!registry.initializeFactories()) {
 				return false;
 			}
 
-			if (!TileRendererFactory.initFactories(f -> {
-				registry.addTile(f);
-				tileFactoryByName.put(f.getName(), f);
-				profileByGroupName.put(f.getGroupName(), profile);
-				profileByTileName.put(f.getName(), profile);
-			}, profile)) {
-				return false;
+			for (EntityRendererFactory factory : registry.getEntityFactories()) {
+				entityFactoryByName.put(factory.getName(), factory);
+				profileByEntityName.put(factory.getName(), profile);
+			}
+
+			for (TileRendererFactory factory : registry.getTileFactories()) {
+				tileFactoryByName.put(factory.getName(), factory);
+				profileByTileName.put(factory.getName(), profile);
 			}
 		}
 
@@ -314,10 +316,6 @@ public class FactorioManager {
 
 	public List<AchievementPrototype> lookupAchievementByName(String name) {
 		return achievementByName.get(name);
-	}
-
-	public List<Profile> lookupProfileByGroupName(String groupName) {
-		return profileByGroupName.get(groupName);
 	}
 
 	public List<Profile> lookupProfileByEntityName(String entityName) {

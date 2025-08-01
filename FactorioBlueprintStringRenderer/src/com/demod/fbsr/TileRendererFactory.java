@@ -19,6 +19,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import javax.xml.transform.TransformerFactory;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -27,7 +29,6 @@ import org.slf4j.LoggerFactory;
 import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
 import com.demod.factorio.prototype.TilePrototype;
-import com.demod.fbsr.Profile.ProfileModGroupRenderings;
 import com.demod.fbsr.bs.BSPosition;
 import com.demod.fbsr.bs.BSTile;
 import com.demod.fbsr.def.ImageDef;
@@ -493,44 +494,10 @@ public class TileRendererFactory {
 		renderProcess.initAtlas(register);
 	}
 
-	public static boolean initFactories(Consumer<TileRendererFactory> register, Profile profile) {
-		DataTable table = profile.getFactorioData().getTable();
-		for (ProfileModGroupRenderings renderings : profile.listRenderings()) {
-			for (String tileName : renderings.getTiles()) {
-				
-				try {
-					Optional<TilePrototype> optProto = table.getTile(tileName);
-					if (optProto.isEmpty()) {
-						System.out.println("Rendering tile not found in factorio data: " + tileName);
-						return false;
-					}
-
-					TilePrototype prototype = optProto.get();
-					TileRendererFactory factory = new TileRendererFactory();
-					factory.setName(tileName);
-					factory.setGroupName(renderings.getModGroup());
-					factory.setProfile(profile);
-					factory.setPrototype(prototype);
-					factory.initFromPrototype(profile.getFactorioData().getTable());
-					factory.initAtlas(profile.getAtlasPackage()::registerDef);
-					
-					register.accept(factory);
-
-				} catch (Exception e) {
-					e.printStackTrace();
-					System.out.println("Problem registering rendering for tile: " + tileName);
-					return false;
-				}
-			}
-		}
-		
-		return true;
-	}
-
 	protected String name;
-	protected String groupName;
 	protected Profile profile;
 	protected TilePrototype prototype;
+	protected List<String> mods;
 
 	private FPTileTransitionsVariants protoVariants;
 	private Optional<FPTileMainPictures> protoVariantsMainSize1;
@@ -548,16 +515,16 @@ public class TileRendererFactory {
 		return profile;
 	}
 
-	public String getGroupName() {
-		return groupName;
-	}
-
 	public String getName() {
 		return name;
 	}
 
 	public TilePrototype getPrototype() {
 		return prototype;
+	}
+
+	public List<String> getMods() {
+		return mods;
 	}
 
 	public void initFromPrototype(DataTable table) {
@@ -579,6 +546,10 @@ public class TileRendererFactory {
 	}
 
 	private TileRendererFactory resolveMergeTileID(String name) {
+		if (profile.getFactorioManager() == null) {
+			return new UnknownTileRendering(name);
+		}
+
 		List<Profile> profileOrder;
 		if (profile.isVanilla()) {
 			profileOrder = ImmutableList.of(profile);
@@ -607,12 +578,12 @@ public class TileRendererFactory {
 		this.profile = profile;
 	}
 
-	public void setGroupName(String groupName) {
-		this.groupName = groupName;
-	}
-
 	public void setName(String name) {
 		this.name = name;
+	}
+
+	public void setMods(List<String> mods) {
+		this.mods = mods;
 	}
 
 	public void setPrototype(TilePrototype prototype) {

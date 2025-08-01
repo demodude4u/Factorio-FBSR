@@ -20,7 +20,7 @@ import com.demod.fbsr.map.MapPosition;
 import com.demod.fbsr.map.MapRenderable;
 
 @EntityType("logistic-container")
-public class LogisticContainerRendering extends ContainerRendering {
+public class LogisticContainerRendering extends BaseContainerRendering {
 
 	@Override
 	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
