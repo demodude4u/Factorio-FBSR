@@ -22,6 +22,7 @@ import com.demod.fbsr.Dir16;
 import com.demod.fbsr.FactorioManager;
 import com.demod.fbsr.Profile;
 import com.demod.fbsr.Profile.ProfileStatus;
+import com.demod.fbsr.Profile.ProfileWarning;
 import com.demod.fbsr.RenderRequest.Debug;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
@@ -93,9 +94,12 @@ public class CmdProfile {
             return;
         }
 
+        List<ProfileWarning> warnings = profile.getWarnings();
         System.out.println();
-        System.out.println(profile.getStateCode()+ " " + profile.getName() + " (" + profile.getStatus() + ")");
-        
+        System.out.println(profile.getStateCode()+ " " + profile.getName() 
+                + " (" + profile.getStatus() + ")"
+                + (warnings.isEmpty() ? "" : warnings.stream().map(ProfileWarning::name).collect(Collectors.joining(",", " <<", ">>"))));
+
         if (detailed) {
             System.out.println();
             System.out.println("Folder: " + profile.getFolderProfile().getAbsolutePath());
@@ -156,7 +160,10 @@ public class CmdProfile {
             if (filter != null && !profile.getName().contains(filter)) {
                 continue;
             }
-            System.out.println(profile.getStateCode()+ " " + profile.getName() + " (" + profile.getStatus() + ")" + (profile.hasVersionMismatch() ? " [VERSION MISMATCH]" : ""));
+            List<ProfileWarning> warnings = profile.getWarnings();
+            System.out.println(profile.getStateCode()+ " " + profile.getName() 
+                    + " (" + profile.getStatus() + ")"
+                    + (warnings.isEmpty() ? "" : warnings.stream().map(ProfileWarning::name).collect(Collectors.joining(",", " <<", ">>"))));
             if (detailed) {
                 List<String> mods = profile.listMods();
                 for (String mod : mods) {

@@ -692,7 +692,7 @@ public class FBSR {
 		return true;
 	}
 
-	public static boolean populateAssets(Profile profile, ZipOutputStream zos) {
+	public static boolean populateAssets(Profile profile, JSONObject jsonRendering, ZipOutputStream zos) {
 
 		profile.resetLoadedData();
 
@@ -730,6 +730,11 @@ public class FBSR {
 			p.setGuiStyle(guiStyle);
 			p.setIconManager(iconManager);
 			p.setFactorioData(new FactorioData(p.getFileDumpDataJson(), p.getDumpFactorioVersion()));
+			if (p == profile) {
+				p.getRenderingRegistry().loadConfig(jsonRendering);
+			} else {
+				p.getRenderingRegistry().loadConfig(p.getAssetsRenderingConfiguration());
+			}
 		}
 
 		if (profile.isVanilla()) {

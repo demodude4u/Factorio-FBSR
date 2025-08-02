@@ -574,7 +574,7 @@ public class Profile {
             }
             try (InputStream is = zipFile.getInputStream(entryProfile)) {
                 JSONObject jsonAssetsProfile = new JSONObject(new JSONTokener(is));
-                return !jsonProfile.equals(jsonAssetsProfile);
+                return !jsonProfile.similar(jsonAssetsProfile);
             }
         } catch (IOException | JSONException e) {
             System.out.println("Failed to read " + ASSETS_ZIP_PROFILE_JSON + " from assets.zip for profile: " + folderProfile.getName());
@@ -821,6 +821,11 @@ public class Profile {
                         }
 
                         List<String> mods = convertNames.apply(modNames);
+                        if (mods.isEmpty() && !isVanilla()) {
+                            System.out.println("Entity " + e.getName() + " (" + renderingClassName + ") has no mods associated with it in a non-vanilla profile!");
+                            failure.set(true);
+                            return;
+                        }
                         
                         JSONObject jsonRenderingEntity = new JSONObject();
                         Utils.terribleHackToHaveOrderedJSONObject(jsonRenderingEntity);
@@ -897,6 +902,11 @@ public class Profile {
                         }
 
                         List<String> mods = convertNames.apply(modNames);
+                        if (mods.isEmpty() && !isVanilla()) {
+                            System.out.println("Tile " + t.getName() + " has no mods associated with it in a non-vanilla profile!");
+                            failure.set(true);
+                            return;
+                        }
 
                         JSONObject jsonRenderingTile = new JSONObject();
                         Utils.terribleHackToHaveOrderedJSONObject(jsonRenderingTile);
@@ -907,7 +917,6 @@ public class Profile {
                     });
 
             if (failure.get()) {
-                System.out.println("Failed to generate rendering configuration for profile: " + folderProfile.getName());
                 return Optional.empty();
             }
             return Optional.of(jsonRendering);
@@ -1440,20 +1449,23 @@ public class Profile {
                 return false;
             }
             
+            JSONObject jsonRendering;
             {
-                Optional<JSONObject> jsonRendering = generateRenderingConfiguration(Profile.vanilla());
-                if (!jsonRendering.isPresent()) {
+                Profile profileVanilla = Profile.vanilla();
+                Optional<JSONObject> optJsonRendering = generateRenderingConfiguration(profileVanilla);
+                if (!optJsonRendering.isPresent()) {
                     System.out.println("Failed to generate rendering configuration for profile: " + folderProfile.getName());
                     delete = true;
                     return false;
                 }
+                jsonRendering = optJsonRendering.get();
                 ZipEntry entryRendering = new ZipEntry(ASSETS_ZIP_RENDERING_JSON);
                 zos.putNextEntry(entryRendering);
-                zos.write(jsonRendering.get().toString(2).getBytes(StandardCharsets.UTF_8));
+                zos.write(jsonRendering.toString(2).getBytes(StandardCharsets.UTF_8));
                 zos.closeEntry();
             }
-    
-            if (!FBSR.populateAssets(this, zos)) {
+
+            if (!FBSR.populateAssets(this, jsonRendering, zos)) {
                 System.out.println("Failed to populate assets for profile: " + folderProfile.getName());
                 delete = true;
                 return false;

@@ -294,10 +294,6 @@ public class FactorioManager {
 		for (Profile profile : profiles) {
 			RenderingRegistry registry = profile.getRenderingRegistry();
 
-			if (!registry.initializeFactories()) {
-				return false;
-			}
-
 			for (EntityRendererFactory factory : registry.getEntityFactories()) {
 				entityFactoryByName.put(factory.getName(), factory);
 				profileByEntityName.put(factory.getName(), profile);
@@ -309,7 +305,13 @@ public class FactorioManager {
 			}
 		}
 
-		DataTable baseTable = profileVanilla.getFactorioData().getTable();
+		for (Profile profile : profiles) {
+			RenderingRegistry registry = profile.getRenderingRegistry();
+
+			if (!registry.initializeFactories()) {
+				return false;
+			}
+		}
 
 		return true;
 	}

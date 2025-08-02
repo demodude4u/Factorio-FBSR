@@ -71,8 +71,6 @@ public class RenderingRegistry {
 	public boolean loadConfig(JSONObject jsonRendering) {
 		clear();
 
-		
-
 		boolean failed = false;
 
 		// Entities
@@ -171,11 +169,6 @@ public class RenderingRegistry {
 			}
 
 			factory.setPrototype(proto);
-			factory.initFromPrototype();
-			factory.wirePointsById = new LinkedHashMap<>();
-			factory.defineWirePoints(factory.wirePointsById::put, proto.lua());
-			factory.drawBounds = factory.computeBounds();
-			factory.initAtlas(profile.getAtlasPackage()::registerDef);
 		}
 
 		for (TileRendererFactory factory : tileFactories) {
@@ -190,6 +183,17 @@ public class RenderingRegistry {
 			TilePrototype proto = optProto.get();
 
 			factory.setPrototype(proto);
+		}
+
+		for (EntityRendererFactory factory : entityFactories) {
+			factory.initFromPrototype();
+			factory.wirePointsById = new LinkedHashMap<>();
+			factory.defineWirePoints(factory.wirePointsById::put, factory.prototype.lua());
+			factory.drawBounds = factory.computeBounds();
+			factory.initAtlas(profile.getAtlasPackage()::registerDef);
+		}
+
+		for (TileRendererFactory factory : tileFactories) {
 			factory.initFromPrototype(profile.getFactorioData().getTable());
 			factory.initAtlas(profile.getAtlasPackage()::registerDef);
 		}
