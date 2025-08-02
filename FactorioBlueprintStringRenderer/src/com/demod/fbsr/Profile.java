@@ -823,12 +823,12 @@ public class Profile {
                         List<String> mods = convertNames.apply(modNames);
                         
                         JSONObject jsonRenderingEntity = new JSONObject();
-                        Utils.terribleHackToHaveOrderedJSONObject(jsonRenderingEntities);
+                        Utils.terribleHackToHaveOrderedJSONObject(jsonRenderingEntity);
                         jsonRenderingEntity.put("rendering", renderingClassName);
                         jsonRenderingEntity.put("mods", new JSONArray(mods));
                         jsonRenderingEntities.put(e.getName(), jsonRenderingEntity);
 
-                        System.out.println(modNames.stream().collect(Collectors.joining(", ", "[", "]")) + " Entity " + e.getName() + " (" + renderingClassName + ")");
+                        System.out.println(mods.stream().collect(Collectors.joining(", ", "[", "]")) + " Entity " + e.getName() + " (" + renderingClassName + ")");
                     });
 
             JSONObject jsonRenderingTiles = new JSONObject();
@@ -868,19 +868,25 @@ public class Profile {
                             overrideMods = Optional.empty();
                         }
 
-                        Set<String> modNames;
+                        List<String> modNames = new ArrayList<>();
                         if (overrideMods.isPresent()) {
-                            modNames = new HashSet<>(overrideMods.get());
-                        
+                            for (String modName : overrideMods.get()) {
+                                if (!modNames.contains(modName)) {
+                                    modNames.add(modName);
+                                }
+                            }
+
                         } else {
                             try {
                                 TileRendererFactory factory = new TileRendererFactory();
                                 factory.setProfile(this);
                                 factory.setPrototype(t);
                                 factory.initFromPrototype(table);
-                                modNames = new HashSet<>();
                                 factory.initAtlas(def -> {
-                                    modNames.add(def.getModName());
+                                    String modName = def.getModName();
+                                    if (!modNames.contains(modName)) {
+                                        modNames.add(modName);
+                                    }
                                 });
                             } catch (Exception ex) {
                                 System.out.println("Failed to initialize tile renderer factory for " + t.getName() + ": " + t.getType());
@@ -890,12 +896,14 @@ public class Profile {
                             }
                         }
 
+                        List<String> mods = convertNames.apply(modNames);
+
                         JSONObject jsonRenderingTile = new JSONObject();
-                        Utils.terribleHackToHaveOrderedJSONObject(jsonRenderingTiles);
-                        jsonRenderingTile.put("mods", new JSONArray(modNames));
+                        Utils.terribleHackToHaveOrderedJSONObject(jsonRenderingTile);
+                        jsonRenderingTile.put("mods", new JSONArray(mods));
                         jsonRenderingTiles.put(t.getName(), jsonRenderingTile);
 
-                        System.out.println(modNames.stream().collect(Collectors.joining(", ", "[", "]")) + " Tile " + t.getName());
+                        System.out.println(mods.stream().collect(Collectors.joining(", ", "[", "]")) + " Tile " + t.getName());
                     });
 
             if (failure.get()) {
@@ -941,7 +949,10 @@ public class Profile {
         }
 
         if (fileModList.exists()) {
-            fileModList.delete();
+            if (!fileModList.delete()) {
+                System.out.println("Failed to delete mod list file: " + fileModList.getAbsolutePath());
+                return false;
+            }
         }
 
         if (modLoader != null) {
@@ -987,11 +998,23 @@ public class Profile {
     }
 
     public boolean cleanDump() {
-        return fileScriptOutputDumpJson.delete() && fileScriptOutputVersion.delete();
+        if (!fileScriptOutputDumpJson.delete()) {
+            System.out.println("Failed to delete dump file: " + fileScriptOutputDumpJson.getAbsolutePath());
+            return false;
+        }
+        if (!fileScriptOutputVersion.delete()) {
+            System.out.println("Failed to delete version file: " + fileScriptOutputVersion.getAbsolutePath());
+            return false;
+        }
+        return true;
     }
 
     public boolean cleanAssets() {
-        return fileAssets.delete();
+        if (!fileAssets.delete()) {
+            System.out.println("Failed to delete assets file: " + fileAssets.getAbsolutePath());
+            return false;
+        }
+        return true;
     }
 
     public boolean delete() {
@@ -1442,7 +1465,9 @@ public class Profile {
             return false;
         } finally {
             if (delete) {
-                fileAssets.delete();
+                if (!fileAssets.delete()) {
+                    System.out.println("Failed to delete assets file: " + fileAssets.getAbsolutePath());
+                }
             }
         }
 
