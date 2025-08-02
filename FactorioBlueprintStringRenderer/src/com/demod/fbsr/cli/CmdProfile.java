@@ -640,13 +640,13 @@ public class CmdProfile {
         }
     }
 
-    @Command(name = "clean-data", description = "Clean generated data")
-    public static void cleanGenerateData(
+    @Command(name = "clean-assets", description = "Clean generated assets")
+    public static void cleanAssets(
             @ArgGroup(exclusive = true, multiplicity = "1") ProfileOrAll profileOrAll
     ) {
         if (profileOrAll.all) {
             for (Profile profile : Profile.listProfiles()) {
-                cleanGenerateData(ProfileOrAll.of(profile.getName()));
+                cleanAssets(ProfileOrAll.of(profile.getName()));
             }
             return;
         }
@@ -658,7 +658,7 @@ public class CmdProfile {
         }
 
         if (profile.cleanAssets()) {
-            System.out.println("Generated assets cleaned successfully for profile: " + profile.getName());
+            System.out.println("Assets cleaned successfully for profile: " + profile.getName());
         }
     }
 
@@ -668,7 +668,7 @@ public class CmdProfile {
             @Option(names = "-delete-build", description = "Delete build folder (including downloaded mods) when cleaning all data") boolean deleteBuild
     ) {
 
-        cleanGenerateData(profileOrAll);
+        cleanAssets(profileOrAll);
         cleanDumpDataRaw(profileOrAll);
         if (deleteBuild) {
             cleanDownload(profileOrAll);
