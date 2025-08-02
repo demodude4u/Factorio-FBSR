@@ -27,6 +27,7 @@ import com.google.common.util.concurrent.Uninterruptibles;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.ITypeConverter;
+import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.ScopeType;
 import picocli.CommandLine.TypeConversionException;
@@ -37,20 +38,21 @@ import picocli.CommandLine.Model.OptionSpec;
 import picocli.CommandLine.Model.PositionalParamSpec;
 import picocli.CommandLine.Model.ArgSpec;
 
-@Command(name = "", mixinStandardHelpOptions = true, subcommands = {
+@Command(name = " ", subcommands = {
     CommandLine.HelpCommand.class,
-    CmdConfig.class,
-    CmdProfile.class,
-    CmdFactorio.class,
-    CmdBot.class,
     FBSRCommands.DumpHelpCommand.class
-})
+}, usageHelpWidth = 200, description = "Factorio Blueprint String Renderer CLI commands")
 public class FBSRCommands {
 
     // @Option(names = "-config", description = "Path to the configuration file (optional)", defaultValue = "config.json", scope = ScopeType.INHERIT)
     // public void setConfigPath(File configPath) {
     //     Config.setPath(configPath.getAbsolutePath());
     // }
+
+    @Mixin private CmdBot cmdBot;
+    @Mixin private CmdConfig cmdConfig;
+    @Mixin private CmdProfile cmdProfile;
+    @Mixin private CmdDump cmdDump;
 
     public static void interactiveShell() {
         System.out.println(" _____ _____ _____ _____ ");
@@ -60,22 +62,20 @@ public class FBSRCommands {
         Uninterruptibles.sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
 
         System.out.println();
-        System.out.println("Type 'help profile' for a list of commands to create, manage, build, clear, or delete profiles.");
-        System.out.println("Type 'help bot' for a list of commands to run the bot or start/stop bot service.");
-        System.out.println("Type 'help render' for a list of commands to render images via CLI.");
-        System.out.println("Type 'help lua' for a list of commands to access factorio data via CLI.");
+        System.out.println("Type 'dump-help' for a document containing all of the available commands.");
         Uninterruptibles.sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
         
         System.out.println();
-        System.out.println("If profiles are new or not built, run command 'profile build -all'");
-        System.out.println("If a profile.json configuration was changed, run command 'profile build <PROFILE> -force'");
-        System.out.println("If a mod was updated, run command 'profile build <PROFILE> -force'");
-        System.out.println("If factorio was updated, run command 'profile build -all -force-dump'");
-        System.out.println("If FBSR was updated, run command 'profile build -all -force-data'");
+        System.out.println("If profiles are new or not built, run command 'build -all'");
+        System.out.println("If a profile.json configuration was changed, run command 'build <PROFILE> -force'");
+        System.out.println("If a mod was updated, run command 'build <PROFILE> -force'");
+        System.out.println("If factorio was updated, run command 'build -all -force-dump'");
+        System.out.println("If FBSR was updated, run command 'build -all -force-data'");
         Uninterruptibles.sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
 
         System.out.println();
         System.out.println("Starting interactive shell...");
+        Uninterruptibles.sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
 
         CommandLine cmd = createCommandLine();
 
@@ -94,8 +94,8 @@ public class FBSRCommands {
 
             // Run initial setup commands
             cmd.execute("dump-help");
-            cmd.execute("config","find-factorio");
-            cmd.execute("profile","default-vanilla");
+            cmd.execute("cfg-find-factorio");
+            cmd.execute("profile-default-vanilla");
         }
 
         if (FactorioManager.hasFactorioInstall()) {
@@ -103,21 +103,21 @@ public class FBSRCommands {
             System.out.println("Factorio installed: Version " + FactorioManager.getFactorioVersion());
         } else {
             System.out.println();
-            System.out.println("Factorio is not installed. Type `help config factorio` to learn how to configure it, or type `config find-factorio` to find the installation.");
+            System.out.println("Factorio is not installed. Type `help cfg-factorio` to learn how to configure it, or type `cfg-find-factorio` to find the installation.");
         }
 
         if (!Profile.vanilla().isValid()) {
             System.out.println();
-            System.out.println("WARNING: The vanilla profile is missing or not valid! Type command 'profile default-vanilla' to get started.");
+            System.out.println("WARNING: The vanilla profile is missing or not valid! Type command 'profile-default-vanilla' to get started.");
         
         } else if (!Profile.listProfiles().stream().allMatch(p -> !p.isEnabled() || p.isReady())) {
             System.out.println();
-            System.out.println("WARNING: Not all profiles are ready! Type 'profile build -all' to build all profiles.");
-            new CmdProfile().listProfiles(null, false);
+            System.out.println("WARNING: Not all profiles are ready! Type 'build -all' to build all profiles.");
+            cmd.execute("profile-list");
 
         } else {
             System.out.println();
-            System.out.println("All profiles are ready! Type command 'bot run' to start the bot or 'render preview <STRING>' to render an image.");
+            System.out.println("All profiles are ready! Type command 'bot-run' to start the bot or 'bot-render preview <STRING>' to render an image.");
         }
 
         System.out.println();
@@ -225,7 +225,7 @@ public class FBSRCommands {
             sb.append("\n\n");
 
             // Usage
-            sb.append("```shell\n");
+            sb.append("```\n");
             sb.append(cmd.getUsageMessage(CommandLine.Help.Ansi.OFF));
             sb.append("\n```\n");
 

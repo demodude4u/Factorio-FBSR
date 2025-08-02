@@ -21,66 +21,66 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
-@Command(name = "factorio", description = "Factorio Dump related commands")
-public class CmdFactorio {
+@Command(name = " ", description = "Factorio Dump related commands")
+public class CmdDump {
 
-    @Command(name = "entity", description = "Dump an entity prototype from factorio data")
-    public void dumpEntity(
-            @Option(names = "-profile", description = "Load from profile (default vanilla)", defaultValue = "vanilla") String profileName,
+    @Command(name = "dump-entity", description = "Dump an entity prototype from factorio data")
+    public static void dumpEntity(
+            @Option(names = "-profile", description = "Load from profile (default vanilla)", defaultValue = "vanilla", paramLabel = "<PROFILE>") String profileName,
             @Parameters(arity = "1", description = "Prototype name", paramLabel="PROTOTYPE") String protoName
     ) {
         dumpProto(profileName, protoName, "entity", DataTable::getEntity);
     }
 
-    @Command(name = "item", description = "Dump an item prototype from factorio data")
-    public void dumpItem(
-            @Option(names = "-profile", description = "Load from profile (default vanilla)", defaultValue = "vanilla") String profileName,
+    @Command(name = "dump-item", description = "Dump an item prototype from factorio data")
+    public static void dumpItem(
+            @Option(names = "-profile", description = "Load from profile (default vanilla)", defaultValue = "vanilla", paramLabel = "<PROFILE>") String profileName,
             @Parameters(arity = "1", description = "Prototype name", paramLabel="PROTOTYPE") String protoName
     ) {
         dumpProto(profileName, protoName, "item", DataTable::getItem);
     }
 
-    @Command(name = "recipe", description = "Dump a recipe prototype from factorio data")
-    public void dumpRecipe(
-            @Option(names = "-profile", description = "Load from profile (default vanilla)", defaultValue = "vanilla") String profileName,
+    @Command(name = "dump-recipe", description = "Dump a recipe prototype from factorio data")
+    public static void dumpRecipe(
+            @Option(names = "-profile", description = "Load from profile (default vanilla)", defaultValue = "vanilla", paramLabel = "<PROFILE>") String profileName,
             @Parameters(arity = "1", description = "Prototype name", paramLabel="PROTOTYPE") String protoName
     ) {
         dumpProto(profileName, protoName, "recipe", DataTable::getRecipe);
     }
 
-    @Command(name = "fluid", description = "Dump a fluid prototype from factorio data")
-    public void dumpFluid(
-            @Option(names = "-profile", description = "Load from profile (default vanilla)", defaultValue = "vanilla") String profileName,
+    @Command(name = "dump-fluid", description = "Dump a fluid prototype from factorio data")
+    public static void dumpFluid(
+            @Option(names = "-profile", description = "Load from profile (default vanilla)", defaultValue = "vanilla", paramLabel = "<PROFILE>") String profileName,
             @Parameters(arity = "1", description = "Prototype name", paramLabel="PROTOTYPE") String protoName
     ) {
         dumpProto(profileName, protoName, "fluid", DataTable::getFluid);
     }
 
-    @Command(name = "technology", description = "Dump a technology prototype from factorio data")
-    public void dumpTechnology(
-            @Option(names = "-profile", description = "Load from profile (default vanilla)", defaultValue = "vanilla") String profileName,
+    @Command(name = "dump-technology", description = "Dump a technology prototype from factorio data")
+    public static void dumpTechnology(
+            @Option(names = "-profile", description = "Load from profile (default vanilla)", defaultValue = "vanilla", paramLabel = "<PROFILE>") String profileName,
             @Parameters(arity = "1", description = "Prototype name", paramLabel="PROTOTYPE") String protoName
     ) {
         dumpProto(profileName, protoName, "technology", DataTable::getTechnology);
     }
 
-    @Command(name = "equipment", description = "Dump an equipment prototype from factorio data")
-    public void dumpEquipment(
-            @Option(names = "-profile", description = "Load from profile (default vanilla)", defaultValue = "vanilla") String profileName,
+    @Command(name = "dump-equipment", description = "Dump an equipment prototype from factorio data")
+    public static void dumpEquipment(
+            @Option(names = "-profile", description = "Load from profile (default vanilla)", defaultValue = "vanilla", paramLabel = "<PROFILE>") String profileName,
             @Parameters(arity = "1", description = "Prototype name", paramLabel="PROTOTYPE") String protoName
     ) {
         dumpProto(profileName, protoName, "equipment", DataTable::getEquipment);
     }
 
-    @Command(name = "tile", description = "Dump a tile prototype from factorio data")
-    public void dumpTile(
-            @Option(names = "-profile", description = "Load from profile (default vanilla)", defaultValue = "vanilla") String profileName,
+    @Command(name = "dump-tile", description = "Dump a tile prototype from factorio data")
+    public static void dumpTile(
+            @Option(names = "-profile", description = "Load from profile (default vanilla)", defaultValue = "vanilla", paramLabel = "<PROFILE>") String profileName,
             @Parameters(arity = "1", description = "Prototype name", paramLabel="PROTOTYPE") String protoName
     ) {
         dumpProto(profileName, protoName, "tile", DataTable::getTile);
     }
 
-    private void dumpProto(String profileName, String protoName, String type, BiFunction<DataTable, String, Optional<? extends DataPrototype>> prototypeGetter) {
+    private static void dumpProto(String profileName, String protoName, String type, BiFunction<DataTable, String, Optional<? extends DataPrototype>> prototypeGetter) {
         Profile profile = Profile.byName(profileName);
         if (!profile.isValid()) {
             System.out.println("Profile not found or invalid: " + profileName);
@@ -93,7 +93,7 @@ public class CmdFactorio {
         } else if (profile.hasDump()) {
             factorioData = new FactorioData(profile.getFileDumpDataJson(), profile.getDumpFactorioVersion());
         } else {
-            System.out.println("Profile does not have assets or factorio dump. Please run 'profile build-dump' first.");
+            System.out.println("Profile does not have assets or factorio dump. Please run 'build-dump " + profile.getName() + "' first.");
             return;
         }
 
@@ -126,11 +126,12 @@ public class CmdFactorio {
         }
     }
 
-    @Command(name = "raw", description = "Query data.raw")
-    public void lookupRaw(
-            @Parameters(description = "Lua path") String path
+    @Command(name = "dump-raw", description = "Query data.raw")
+    public static void lookupRaw(
+            @Parameters(description = "Lua path", paramLabel = "<PATH>") String path
     ) {
         //TODO
+        System.out.println("This command is not implemented yet.");
     }
 
 }

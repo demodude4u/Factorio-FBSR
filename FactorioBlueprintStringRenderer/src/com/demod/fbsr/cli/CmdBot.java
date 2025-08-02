@@ -4,6 +4,7 @@ import java.awt.Color;
 import java.awt.Desktop;
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -31,12 +32,12 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
-@Command(name = "bot", description = "Blueprint Bot commands")
+@Command(name = " ", description = "Blueprint Bot commands")
 public class CmdBot {
 	private static final Logger LOGGER = LoggerFactory.getLogger(CmdBot.class);
 
-    @Command(name = "run", description = "Run Blueprint Bot")
-    public void runBot(
+    @Command(name = "bot-run", description = "Run Blueprint Bot")
+    public static void runBot(
         @Option(names = "-ignore-not-ready", description = "Ignore profiles that are not ready", defaultValue = "false") boolean ignoreNotReady,
         @Option(names = "-require-all-enabled", description = "Require all profiles to be enabled and ready before starting the bot", defaultValue = "false") boolean requireAllEnabled
     ) {
@@ -54,8 +55,8 @@ public class CmdBot {
         }
     }
 
-    @Command(name = "kill", description = "Stop Blueprint Bot service")
-    public void killBot() {
+    @Command(name = "bot-kill", description = "Stop Blueprint Bot service")
+    public static void killBot() {
         if (RPCService.sendCommand("kill").isPresent()) {
             LOGGER.info("Blueprint Bot service is stopping...");
             boolean killed = false;
@@ -76,13 +77,13 @@ public class CmdBot {
         }
     }
 
-    @Command(name = "status", description = "Get the status of Blueprint Bot service (idle, starting, healthy, failed, stopped, dead)")
-    public void status() {
+    @Command(name = "bot-status", description = "Get the status of Blueprint Bot service (idle, starting, healthy, failed, stopped, dead)")
+    public static void status() {
         String status = RPCService.<String>sendCommand("status").orElse("dead");
         LOGGER.info("Blueprint Bot service status: {}", status);
     }
 
-    private boolean checkProfilesReady(boolean requireAllEnabled) {
+    private static boolean checkProfilesReady(boolean requireAllEnabled) {
         if (requireAllEnabled && !Profile.listProfiles().stream().allMatch(p -> p.isEnabled())) {
             System.out.println("Some profiles are not enabled. Please ensure all profiles are valid and have been built.");
             for (Profile profile : Profile.listProfiles()) {
@@ -94,7 +95,7 @@ public class CmdBot {
         List<Profile> enabledProfiles = Profile.listProfiles().stream().filter(Profile::isEnabled).collect(Collectors.toList());
 
         if (!enabledProfiles.stream().allMatch(p->p.getStatus() == ProfileStatus.READY)) {
-            System.out.println("Some profiles are not ready. Please ensure all profiles are valid and have been built. Add `-ignore-not-ready` to ignore this check, or type `profile disable <PROFILE>` to disable a profile.");
+            System.out.println("Some profiles are not ready. Please ensure all profiles are valid and have been built. Add `-ignore-not-ready` to ignore this check, or type `profile-disable <PROFILE>` to disable a profile.");
             for (Profile profile : Profile.listProfiles()) {
                 System.out.println("Profile: " + profile.getName() + " (" + profile.getStatus() + ")");
             }
@@ -105,20 +106,20 @@ public class CmdBot {
     }
 
     private static class RenderInput {
-        @Parameters(arity = "1", description = "Blueprint string", paramLabel = "STRING") Optional<String> blueprintString;
-        @Option(names = "-input-file", description = "Blueprint file") Optional<String> blueprintFile;
-        @Option(names = "-url", description = "Blueprint URL") Optional<String> blueprintUrl;
+        @Parameters(arity = "1", description = "Blueprint string", paramLabel = "<STRING>") Optional<String> blueprintString;
+        @Option(names = "-input-file", description = "Blueprint file", paramLabel = "<PATH>") Optional<File> blueprintFile;
+        @Option(names = "-url", description = "Blueprint URL", paramLabel = "<URL>") Optional<URL> blueprintUrl;
 
         public Optional<String> read() {
             if (blueprintString.isPresent()) {
                 return blueprintString;
             
             } else if (blueprintUrl.isPresent()) {
-                return blueprintUrl;
+                return blueprintUrl.map(URL::toString);
             
             } else if (blueprintFile.isPresent()) {
                 try {
-                    return Optional.of(Files.readString(new File(blueprintFile.get()).toPath()));
+                    return Optional.of(Files.readString(blueprintFile.get().toPath()));
                 } catch (IOException e) {
                     return Optional.empty();
                 }
@@ -139,7 +140,7 @@ public class CmdBot {
         @Option(names = "-output-file", description = {"Save to file with reply in JSON format:",
                                                 "{\"success\": true}",
                                                 "    OR    ",
-                                                "{\"success\": false, \"message\": \"error message\"}"}) Optional<File> file;
+                                                "{\"success\": false, \"message\": \"error message\"}"}, paramLabel = "<PATH>") Optional<File> file;
     
         public boolean write(JSONObject jsonResponse) {
             if (!jsonResponse.has("success")) {
@@ -219,8 +220,8 @@ public class CmdBot {
         png, jpg, webp
     }
 
-    @Command(name = "render", description = "Render a blueprint using the bot RPC service")
-    public void renderBlueprint(
+    @Command(name = "bot-render", description = "Render a blueprint using the bot RPC service")
+    public static void renderBlueprint(
         @ArgGroup(exclusive = true, multiplicity = "1") RenderInput input,
         @ArgGroup(exclusive = true, multiplicity = "1") RenderOutput output,
         @ArgGroup(exclusive = true, multiplicity = "1") RenderMode mode
@@ -252,24 +253,24 @@ public class CmdBot {
         output.write(jsonResponse.get());
     }
 
-    @Command(name = "render-custom", description = "Render a custom blueprint using the bot RPC service")
-    public void renderCustomBlueprint(
+    @Command(name = "bot-render-custom", description = "Render a custom blueprint using the bot RPC service")
+    public static void renderCustomBlueprint(
         @ArgGroup(exclusive = true, multiplicity = "1") RenderInput input,
         @ArgGroup(exclusive = true, multiplicity = "1") RenderOutput output,
-        @Option(names = "-format", description = "Render image format (${COMPLETION-CANDIDATES})") RenderFormat format,
-        @Option(names = "-min-width", description = "Minimum width in pixels") Optional<Integer> minWidth,
-        @Option(names = "-min-height", description = "Minimum height in pixels") Optional<Integer> minHeight,
-        @Option(names = "-max-width", description = "Maximum width in pixels") Optional<Integer> maxWidth,
-        @Option(names = "-max-height", description = "Maximum height in pixels") Optional<Integer> maxHeight,
-        @Option(names = "-max-scale", description = "Maximum scale of the blueprint entities") Optional<Double> maxScale,
+        @Option(names = "-format", description = "Render image format (${COMPLETION-CANDIDATES})", paramLabel = "<FORMAT>") RenderFormat format,
+        @Option(names = "-min-width", description = "Minimum width in pixels", paramLabel = "<PIXELS>") Optional<Integer> minWidth,
+        @Option(names = "-min-height", description = "Minimum height in pixels", paramLabel = "<PIXELS>") Optional<Integer> minHeight,
+        @Option(names = "-max-width", description = "Maximum width in pixels", paramLabel = "<PIXELS>") Optional<Integer> maxWidth,
+        @Option(names = "-max-height", description = "Maximum height in pixels", paramLabel = "<PIXELS>") Optional<Integer> maxHeight,
+        @Option(names = "-max-scale", description = "Maximum scale of the blueprint entities", paramLabel = "<SCALE>") Optional<Double> maxScale,
         @Option(names = "-clip-sprites", description = "Clip sprites that are outside the blueprint area") boolean clipSprites,
         @Option(names = "-dont-clip-sprites", description = "Do not clip sprites that are outside the blueprint area") boolean dontClipSprites,
         @Option(names = "-show-background", description = "Show background behind blueprint") boolean showBackground,
         @Option(names = "-hide-background", description = "Transparent background behind blueprint") boolean hideBackground,
-        @Option(names = "-background-color", description = "Background color in hex format (e.g. #RRGGBB or #AARRGGBB)") Optional<Color> background,
+        @Option(names = "-background-color", description = "Background color in hex format (e.g. #RRGGBB or #AARRGGBB)", paramLabel = "<COLOR>") Optional<Color> background,
         @Option(names = "-show-gridlines", description = "Show grid lines in the blueprint") boolean showGridLines,
         @Option(names = "-hide-gridlines", description = "Do not grid lines in the blueprint") boolean hideGridLines,
-        @Option(names = "-gridlines-color", description = "Grid lines color in hex format (e.g. #RRGGBB or #AARRGGBB)") Optional<Color> gridLinesColor,
+        @Option(names = "-gridlines-color", description = "Grid lines color in hex format (e.g. #RRGGBB or #AARRGGBB)", paramLabel = "<COLOR>") Optional<Color> gridLinesColor,
         @Option(names = "-show-alt-mode", description = "Show alt mode icons and symbols") boolean showAltMode,
         @Option(names = "-hide-alt-mode", description = "Hide alt mode icons and symbols") boolean hideAltMode,
         @Option(names = "-show-grid-numbers", description = "Show grid numbers in the blueprint") boolean showGridNumbers,

@@ -31,11 +31,11 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
-@Command(name = "profile", description = "Configure profiles for mods")
+@Command(name = " ", description = "Configure profiles for mods")
 public class CmdProfile {
 
     private static class ProfileOrAll {
-        @Parameters(arity = "0..1", description = "Name of the profile", paramLabel = "PROFILE") Optional<String> name;
+        @Parameters(arity = "0..1", description = "Name of the profile", paramLabel = "<PROFILE>") Optional<String> name;
         @Option(names = "-all", description = "Apply to all profiles") boolean all;
         
         public static ProfileOrAll of(String name) {
@@ -53,15 +53,15 @@ public class CmdProfile {
         }
     }
 
-    @Command(name = "new", description = "Create a new profile")
-    public void createNew(
-            @Parameters(arity = "1", description = "Name of the profile to select", paramLabel = "PROFILE") String name,
-            @Parameters(description = "List of mods to include in the profile", paramLabel = "MODS") String[] mods
+    @Command(name = "profile-new", description = "Create a new profile")
+    public static void createNew(
+            @Parameters(arity = "1", description = "Name of the profile to select", paramLabel = "<PROFILE>") String name,
+            @Parameters(description = "List of mods to include in the profile", paramLabel = "<MODS>") String[] mods
     ) {
         Profile profile = Profile.byName(name);
         if (profile.generateProfile(mods)) {
             System.out.println("Profile created successfully:" + profile.getName() + " (" + profile.getFolderProfile().getAbsolutePath() + ")");
-            System.out.println("To generate a new rendering table, run the command 'profile default-renderings " + profile.getName() + "'");
+            System.out.println("To generate a new rendering table, run the command 'profile-default-renderings " + profile.getName() + "'");
 
             if (!profile.updateMods()) {
                 System.out.println("Failed to update mods for profile: " + profile.getName());
@@ -71,46 +71,20 @@ public class CmdProfile {
         }
     }
 
-    @Command(name = "default-renderings", description = "Generate default renderings for the specified profile (profile status must be at BUILD_DATA or READY)")
-    public void generateDefaultRenderings(
-            @Parameters(arity = "1", description = "Name of the profile", paramLabel = "PROFILE") String name    
-    ) {
-        Profile profile = Profile.byName(name);
-        if (!profile.isValid()) {
-            System.out.println("Profile not found or invalid: " + name);
-            return;
-        }
-
-        if (!profile.buildManifest(true)) {
-            System.out.println("Failed to build manifest for profile: " + profile.getName());
-            return;
-        }
-
-        if (!profile.buildDownload(true)) {
-            System.out.println("Failed to download mods for profile: " + profile.getName());
-            return;
-        }
-
-        if (!profile.buildDump(true)) {
-            System.out.println("Failed to dump factorio data for profile: " + profile.getName());
-            return;
-        }
-    }
-
-    @Command(name = "default-vanilla", description = "Generate default vanilla profile")
-    public void generateDefaultVanillaProfile(
+    @Command(name = "profile-default-vanilla", description = "Generate default vanilla profile")
+    public static void generateDefaultVanillaProfile(
             @Option(names = "-force", description = "Force regeneration of the default vanilla profile, even if it already exists") boolean force
     ) {
         if (Profile.generateDefaultVanillaProfile(force)) {
-            System.out.println("Default vanilla profile created successfully. You can build the profile by running the command 'profile build vanilla'");
+            System.out.println("Default vanilla profile created successfully. You can build the profile by running the command 'build vanilla'");
         } else {
             System.out.println("Failed to create default vanilla profile.");
         }
     }
 
-    @Command(name = "status", description = "Get the status of a profile")
-    public void getProfileStatus(
-            @Parameters(arity = "1", description = "Name of the profile", paramLabel = "PROFILE") String name,
+    @Command(name = "profile-status", description = "Get the status of a profile")
+    public static void getProfileStatus(
+            @Parameters(arity = "1", description = "Name of the profile", paramLabel = "<PROFILE>") String name,
             @Option(names = "-detailed", description = "Include detailed information about the profile") boolean detailed
     ) {
         Profile profile = Profile.byName(name);
@@ -126,6 +100,7 @@ public class CmdProfile {
             System.out.println();
             System.out.println("Folder: " + profile.getFolderProfile().getAbsolutePath());
             System.out.println("Build Folder: " + profile.getFolderBuild().getAbsolutePath());
+            System.out.println("Assets File: " + profile.getFileAssets().getAbsolutePath());
             System.out.println();
             System.out.println("Manifest:        " + (profile.hasManifest() ? "Yes" : "No"));
             System.out.println("Mods Downloaded: " + (profile.hasDownloaded() ? "Yes" : "No"));
@@ -136,38 +111,38 @@ public class CmdProfile {
         System.out.println();
         switch (profile.getStatus()) {
             case BUILD_MANIFEST:
-                System.out.println("Profile is in BUILD_MANIFEST status. Next step is to run command 'profile build-manifest " + name + "' or 'profile build " + name + "'");
+                System.out.println("Profile is in BUILD_MANIFEST status. Next step is to run command 'build-manifest " + name + "' or 'build " + name + "'");
                 break;
             case BUILD_DOWNLOAD:
-                System.out.println("Profile is in BUILD_DOWNLOAD status. Next step is to run command 'profile build-download " + name + "' or 'profile build " + name + "'");
+                System.out.println("Profile is in BUILD_DOWNLOAD status. Next step is to run command 'build-download " + name + "' or 'build " + name + "'");
                 break;
             case BUILD_DUMP:
-                System.out.println("Profile is in BUILD_DUMP status. Next step is to run command 'profile build-dump " + name + "' or 'profile build " + name + "'");
+                System.out.println("Profile is in BUILD_DUMP status. Next step is to run command 'build-dump " + name + "' or 'build " + name + "'");
                 break;
             case BUILD_ASSETS:
-                System.out.println("Profile is in BUILD_ASSETS status. Next step is to run command 'profile build-assets " + name + "' or 'profile build " + name + "'");
+                System.out.println("Profile is in BUILD_ASSETS status. Next step is to run command 'build-assets " + name + "' or 'build " + name + "'");
                 break;
             case READY:
-                System.out.println("Profile is in READY status. To run the bot, use command 'bot run'");
+                System.out.println("Profile is in READY status. To run the bot, use command 'bot-run'");
                 break;
             case DISABLED:
-                System.out.println("Profile is in DISABLED status. It will be ignored when running the bot. To enable this profile, use command 'profile enable " + name + "'");
+                System.out.println("Profile is in DISABLED status. It will be ignored when running the bot. To enable this profile, use command 'profile-enable " + name + "'");
                 break;
             case INVALID:
-                System.out.println("Profile is in INVALID status. It cannot be used until fixed. The profile needs to have a profile.json configured. You can generate a new profile using the command 'profile new <name> <mod1> <mod2> <mod3> ...'");
+                System.out.println("Profile is in INVALID status. It cannot be used until fixed. The profile needs to have a profile.json configured. You can generate a new profile using the command 'profile-new <name> <mod1> <mod2> <mod3> ...'");
                 break;
             case NEED_FACTORIO_INSTALL:
-                System.out.println("Profile is in NEED_FACTORIO_INSTALL status. It requires a Factorio installation configured in config.json to be set up in order to dump factorio data.");
+                System.out.println("Profile is in NEED_FACTORIO_INSTALL status. Run command `help cfg-factorio` to see details on how to set up Factorio.");
                 break;
             case NEED_MOD_PORTAL_CREDENTIALS:
-                System.out.println("Profile is in NEED_MOD_PORTAL_CREDENTIALS status. It requires the Factorio Mod Portal API information to be configured in config.json in order to download mods.");
+                System.out.println("Profile is in NEED_MOD_PORTAL_CREDENTIALS status. Run command `help cfg-factorio` to see details on how to set up Mod Portal credentials.");
                 break;
         }
     }
 
-    @Command(name = "list", description = "List all profiles or mods")
-    public void listProfiles(
-            @Option(names = "-filter", description = "Filter profiles by name (partial)") String filter,
+    @Command(name = "profile-list", description = "List all profiles or mods")
+    public static void listProfiles(
+            @Option(names = "-filter", description = "Filter profiles by name (partial match)", paramLabel = "<PROFILE>") String filter,
             @Option(names = "-detailed", description = "Include mods in the profile listing") boolean detailed
     ) {
         List<Profile> profiles = Profile.listProfiles();
@@ -192,12 +167,12 @@ public class CmdProfile {
 
         if (!profiles.stream().anyMatch(Profile::isVanilla)) {
             System.out.println();
-            System.out.println("WARNING: No vanilla profile found. You need to create one using command 'profile default-vanilla'.");
+            System.out.println("WARNING: No vanilla profile found. You need to create one using command 'profile-default-vanilla'.");
         }
     }
 
-    @Command(name = "disable", description = "Disable a profile")
-    public void disableProfile(
+    @Command(name = "profile-disable", description = "Disable a profile")
+    public static void disableProfile(
             @ArgGroup(exclusive = true, multiplicity = "1") ProfileOrAll profileOrAll
     ) {
         if (profileOrAll.all) {
@@ -228,8 +203,8 @@ public class CmdProfile {
         }
     }
 
-    @Command(name = "enable", description = "Enable a profile")
-    public void enableProfile(
+    @Command(name = "profile-enable", description = "Enable a profile")
+    public static void enableProfile(
             @ArgGroup(exclusive = true, multiplicity = "1") ProfileOrAll profileOrAll
     ) {
         if (profileOrAll.all) {
@@ -260,9 +235,9 @@ public class CmdProfile {
         }
     }
 
-    @Command(name = "delete", description = "Delete a profile")
-    public void deleteProfile(
-            @Parameters(arity = "1", description = "Name of the profile", paramLabel = "PROFILE") String name,
+    @Command(name = "profile-delete", description = "Delete a profile")
+    public static void deleteProfile(
+            @Parameters(arity = "1", description = "Name of the profile", paramLabel = "<PROFILE>") String name,
             @Option(names = "-confirm", description = "Skip confirmation prompt") boolean confirm
     ) {
         Profile profile = Profile.byName(name);
@@ -288,9 +263,9 @@ public class CmdProfile {
         }
     }
 
-    @Command(name = "factorio", description = "Run Factorio with the specified profile")
-    public void runFactorio(
-            @Parameters(arity = "1", description = "Name of the profile", paramLabel = "PROFILE") String name
+    @Command(name = "profile-factorio", description = "Run Factorio with the specified profile")
+    public static void runFactorio(
+            @Parameters(arity = "1", description = "Name of the profile", paramLabel = "<PROFILE>") String name
     ) {
         Profile profile = Profile.byName(name);
         if (!profile.isValid()) {
@@ -303,24 +278,36 @@ public class CmdProfile {
         }
     }
 
-    @Command(name = "explore", description = "Open file manager for the specified profile")
-    public void explore(
-            @Parameters(arity = "1", description = "Name of the profile", paramLabel = "PROFILE") String name,
-            @Option(names = "-build", description = "Open the build folder instead of the profile folder") boolean build
+    private static class ExploreAlternatives {
+        @Option(names = "-build", description = "Open the build folder instead of the profile folder") boolean build;
+        @Option(names = "-assets", description = "Open the assets folder instead of the profile folder") boolean assets;
+    }
+
+    @Command(name = "profile-explore", description = "Open file manager for the specified profile")
+    public static void explore(
+            @Parameters(arity = "1", description = "Name of the profile", paramLabel = "<PROFILE>") String name,
+            @ArgGroup(exclusive = true) ExploreAlternatives exploreAlternatives
     ) {
         Profile profile = Profile.byName(name);
-        if (!build && !profile.getFolderProfile().exists()) {
+        if (!exploreAlternatives.build && !profile.getFolderProfile().exists()) {
             System.out.println("Profile not found: " + name);
             return;
         }
-        if (build && !profile.getFolderBuild().exists()) {
+        if (exploreAlternatives.build && !profile.getFolderBuild().exists()) {
             System.out.println("Profile build not found: " + name);
+            return;
+        }
+        if (exploreAlternatives.assets && !profile.getFileAssets().exists()) {
+            System.out.println("Profile assets not found: " + name);
             return;
         }
 
         if (Desktop.isDesktopSupported()) {
             try {
-                Desktop.getDesktop().open(build ? profile.getFolderBuild() : profile.getFolderProfile());
+                Desktop.getDesktop().open(
+                        exploreAlternatives.build ? profile.getFolderBuild() : 
+                        exploreAlternatives.assets ? profile.getFileAssets() : 
+                        profile.getFolderProfile());
             } catch (IOException e) {
                 System.out.println("Failed to open profile in file manager: " + e.getMessage());
             }
@@ -329,9 +316,9 @@ public class CmdProfile {
         }
     }
 
-    @Command(name = "edit", description = "Open the profile configuration file in the default editor")
-    public void editProfile(
-            @Parameters(arity = "1", description = "Name of the profile", paramLabel = "PROFILE") String name
+    @Command(name = "profile-edit", description = "Open the profile configuration file in the default editor")
+    public static void editProfile(
+            @Parameters(arity = "1", description = "Name of the profile", paramLabel = "<PROFILE>") String name
     ) {
         Profile profile = Profile.byName(name);
         if (!profile.isValid()) {
@@ -350,8 +337,8 @@ public class CmdProfile {
         }
     }
 
-    @Command(name = "update-mods", description = "Update mod versions")
-    public void updateMods(
+    @Command(name = "profile-update-mods", description = "Update mod versions")
+    public static void updateMods(
             @ArgGroup(exclusive = true, multiplicity = "1") ProfileOrAll profileOrAll
     ) {
         if (profileOrAll.all) {
@@ -375,7 +362,7 @@ public class CmdProfile {
     }
 
     @Command(name = "build-manifest", description = "Build the manifest")
-    public void buildManifest(
+    public static void buildManifest(
             @ArgGroup(exclusive = true, multiplicity = "1") ProfileOrAll profileOrAll,
             @Option(names = "-force", description = "Force regeneration of the manifest, even if it already exists") boolean force
     ) {
@@ -400,7 +387,7 @@ public class CmdProfile {
     }
 
     @Command(name = "build-download", description = "Download mods")
-    public void buildDownloadMods(
+    public static void buildDownloadMods(
             @ArgGroup(exclusive = true, multiplicity = "1") ProfileOrAll profileOrAll,
             @Option(names = "-force-download", description = "Force redownload of mods, even if they are already downloaded") boolean forceDownload
     ) {
@@ -425,7 +412,7 @@ public class CmdProfile {
     }
 
     @Command(name = "build-dump", description = "Dump factorio data")
-    public void buildDumpDataRaw(
+    public static void buildDumpDataRaw(
             @ArgGroup(exclusive = true, multiplicity = "1") ProfileOrAll profileOrAll,
             @Option(names = "-force", description = "Force regeneration of the manifest, even if it already exists") boolean force
     ) {
@@ -450,7 +437,7 @@ public class CmdProfile {
     }
 
     @Command(name = "build-assets", description = "Generate assets")
-    public void buildGenerateAssets(
+    public static void buildGenerateAssets(
             @ArgGroup(exclusive = true, multiplicity = "1") ProfileOrAll profileOrAll,
             @Option(names = "-force", description = "Force regeneration of the assets, even if they already exist") boolean force
     ) {
@@ -460,7 +447,7 @@ public class CmdProfile {
             //Vanilla profile must be built first
             Profile vanillaProfile = Profile.vanilla();
             if (!vanillaProfile.isValid()) {
-                System.out.println("No vanilla profile found, it must be created first using command 'profile default-vanilla'");
+                System.out.println("No vanilla profile found, it must be created first using command 'profile-default-vanilla'");
                 return;
             }
             profiles.remove(vanillaProfile);
@@ -486,7 +473,7 @@ public class CmdProfile {
     }
 
     @Command(name = "build", description = "Build all steps")
-    public void buildAllSteps(
+    public static void buildAllSteps(
             @ArgGroup(exclusive = true, multiplicity = "1") ProfileOrAll profileOrAll,
             @Option(names = "-force", description = "Force regeneration of all steps, even if they already exist") boolean force,
             @Option(names = "-force-download", description = "Force redownload of mods, even if they are already downloaded") boolean forceDownload,
@@ -496,7 +483,7 @@ public class CmdProfile {
         Profile profileVanilla = Profile.vanilla();
 
         if (!profileVanilla.isValid()) {
-            System.out.println("No vanilla profile found, it must be created first using command 'profile default-vanilla'");
+            System.out.println("No vanilla profile found, it must be created first using command 'profile-default-vanilla'");
             return;
         }
 
@@ -556,7 +543,7 @@ public class CmdProfile {
 
         if (Profile.listProfiles().stream().allMatch(Profile::isReady)) {
             System.out.println();
-            System.out.println("All profiles are ready! You can now run the bot using command 'bot run'");
+            System.out.println("All profiles are ready! You can now run the bot using command 'bot-run'");
         
         } else {
             System.out.println();
@@ -566,7 +553,7 @@ public class CmdProfile {
     }
 
     @Command(name = "clean-manifest", description = "Clean the manifest")
-    public void cleanManifest(
+    public static void cleanManifest(
             @ArgGroup(exclusive = true, multiplicity = "1") ProfileOrAll profileOrAll
     ) {
         if (profileOrAll.all) {
@@ -588,7 +575,7 @@ public class CmdProfile {
     }
 
     @Command(name = "clean-download", description = "Clean all downloaded mods")
-    public void cleanDownload(
+    public static void cleanDownload(
             @ArgGroup(exclusive = true, multiplicity = "1") ProfileOrAll profileOrAll
     ) {
         if (profileOrAll.all) {
@@ -610,7 +597,7 @@ public class CmdProfile {
     }
 
     @Command(name = "clean-download-invalid", description = "Clean invalid downloaded mods")
-    public void cleanDownloadInvalid(
+    public static void cleanDownloadInvalid(
             @ArgGroup(exclusive = true, multiplicity = "1") ProfileOrAll profileOrAll
     ) {
         if (profileOrAll.all) {
@@ -632,7 +619,7 @@ public class CmdProfile {
     }
 
     @Command(name = "clean-dump", description = "Clean dumped factorio data")
-    public void cleanDumpDataRaw(
+    public static void cleanDumpDataRaw(
             @ArgGroup(exclusive = true, multiplicity = "1") ProfileOrAll profileOrAll
     ) {
         if (profileOrAll.all) {
@@ -654,7 +641,7 @@ public class CmdProfile {
     }
 
     @Command(name = "clean-data", description = "Clean generated data")
-    public void cleanGenerateData(
+    public static void cleanGenerateData(
             @ArgGroup(exclusive = true, multiplicity = "1") ProfileOrAll profileOrAll
     ) {
         if (profileOrAll.all) {
@@ -676,7 +663,7 @@ public class CmdProfile {
     }
 
     @Command(name = "clean", description = "Clean all build and generated data")
-    public void cleanAllSteps(
+    public static void cleanAllSteps(
             @ArgGroup(exclusive = true, multiplicity = "1") ProfileOrAll profileOrAll,
             @Option(names = "-delete-build", description = "Delete build folder (including downloaded mods) when cleaning all data") boolean deleteBuild
     ) {
@@ -712,7 +699,7 @@ public class CmdProfile {
     }
 
     @Command(name = "clean-build", description = "Clean the build folder")
-    public void cleanBuildFolder(
+    public static void cleanBuildFolder(
             @ArgGroup(exclusive = true, multiplicity = "1") ProfileOrAll profileOrAll
     ) {
         if (profileOrAll.all) {
@@ -733,8 +720,8 @@ public class CmdProfile {
         }
     }
 
-    @Command(name = "test", description = "Render test blueprints")
-    public void testRender(
+    @Command(name = "profile-test", description = "Render test blueprints")
+    public static void testRender(
             @ArgGroup(exclusive = true, multiplicity = "1") ProfileOrAll profileOrAll,
             @Option(names = "-ignore-disabled", description = "Ignore testing disabled profile(s)") boolean ignoreDisabled,
             @Option(names = "-ignore-not-ready", description = "Ignore testing not ready profile(s)") boolean ignoreNotReady
@@ -798,13 +785,13 @@ public class CmdProfile {
         }
     }
 
-    @Command(name = "test-entity", description = "Render test image of an entity")
-    public void testEntityRender(
+    @Command(name = "profile-test-entity", description = "Render test image of an entity")
+    public static void testEntityRender(
             @Parameters(arity = "1", description = "Name of the profile", paramLabel = "PROFILE") String name,
             @Parameters(arity = "1", description = "Name of the entity", paramLabel = "ENTITY") String entity,
-            @Option(names = {"-d", "-dir",  "-direction"}, description = "Direction of the entity (N, NE, NNE, ...)") Optional<Dir16> direction,
-            @Option(names = {"-o", "-orientation"}, description = "Orientation of the entity (0-3, default 0)") Optional<Double> orientation,
-            @Option(names = {"-c", "-custom"}, description = "JSON object containing entity fields and values") Optional<String> custom
+            @Option(names = {"-d", "-dir",  "-direction"}, description = "Direction of the entity (N, NE, NNE, ...)", paramLabel = "<DIR>") Optional<Dir16> direction,
+            @Option(names = {"-o", "-orientation"}, description = "Orientation of the entity (0-3, default 0)", paramLabel = "<ORIENTATION>") Optional<Double> orientation,
+            @Option(names = {"-c", "-custom"}, description = "JSON object containing entity fields and values", paramLabel = "<JSON>") Optional<String> custom
     ) {
         Profile profile = Profile.byName(name);
         if (!profile.isValid()) {

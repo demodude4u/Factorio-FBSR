@@ -22,7 +22,7 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
-@Command(name = "config", description = "Configuration commands for FBSR")
+@Command(name = " ", description = "Configuration commands for FBSR")
 public class CmdConfig {
 
     private static class PortalParams {
@@ -30,11 +30,12 @@ public class CmdConfig {
         @Option(names = "-portal-pass", description = "Password for Factorio Mod Portal API", required = true) String password;
     }
 
-    @Command(name = "factorio", description = "Setup Factorio configuration")
-    public void setupFactorio(
-            @Option(names = "-install", description = "Path to Factorio installation", required = true) File folderInstall,
-            @Option(names = "-profiles", description = "Path to profiles directory", defaultValue = "profiles") File folderProfiles,
-            @Option(names = "-build", description = "Path to build directory", defaultValue = "build") File folderBuild,
+    @Command(name = "cfg-factorio", description = "Setup Factorio configuration")
+    public static void setupFactorio(
+            @Option(names = "-install", description = "Path to Factorio installation", required = true, paramLabel = "<PATH>") File folderInstall,
+            @Option(names = "-profiles", description = "Path to profiles directory", defaultValue = "profiles", paramLabel = "<PATH>") File folderProfiles,
+            @Option(names = "-build", description = "Path to build directory", defaultValue = "build", paramLabel = "<PATH>") File folderBuild,
+            @Option(names = "-assets", description = "Path to assets directory", defaultValue = "assets", paramLabel = "<PATH>") File folderAssets,
             @ArgGroup(exclusive = false, multiplicity = "0..1") PortalParams portalParams
     ) {
         JSONObject jsonFactorio = new JSONObject();
@@ -42,6 +43,7 @@ public class CmdConfig {
         jsonFactorio.put("install", folderInstall.getAbsolutePath());
         jsonFactorio.put("profiles", folderProfiles.getAbsolutePath());
         jsonFactorio.put("build", folderBuild.getAbsolutePath());
+        jsonFactorio.put("assets", folderAssets.getAbsolutePath());
 
         if (portalParams != null) {
             jsonFactorio.put("portal", new JSONObject()
@@ -56,13 +58,13 @@ public class CmdConfig {
         }
     }
 
-    @Command(name = "discord", description = "Setup Discord configuration")
-    public void setupDiscord(
+    @Command(name = "cfg-discord", description = "Setup Discord configuration")
+    public static void setupDiscord(
             @Option(names = "-enabled", description = "Enable Discord Bot", defaultValue = "true", negatable = true) boolean enabled,
-            @Option(names = "-token", description = "Discord Bot Token", required = true) String token,
-            @Option(names = "-hosting", description = "Channel ID for hosting images and blueprints", required = true) String hostingChannelId,
-            @Option(names = "-reporting-user", description = "User ID for reporting commands") Optional<String> reportingUserId,
-            @Option(names = "-reporting-channel", description = "Channel ID for reporting commands") Optional<String> reportingChannelId
+            @Option(names = "-token", description = "Discord Bot Token", required = true, paramLabel = "<TOKEN>") String token,
+            @Option(names = "-hosting", description = "Channel ID for hosting images and blueprints", required = true, paramLabel = "<ID>") String hostingChannelId,
+            @Option(names = "-reporting-user", description = "User ID for reporting commands", paramLabel = "<ID>") Optional<String> reportingUserId,
+            @Option(names = "-reporting-channel", description = "Channel ID for reporting commands", paramLabel = "<ID>") Optional<String> reportingChannelId
     ) {
         JSONObject jsonDiscord = new JSONObject();
         Utils.terribleHackToHaveOrderedJSONObject(jsonDiscord);
@@ -79,19 +81,19 @@ public class CmdConfig {
         }
     }
 
-    @Command(name = "webapi", description = "Setup Web API configuration")
-    public void setupWebAPI(
+    @Command(name = "cfg-webapi", description = "Setup Web API configuration")
+    public static void setupWebAPI(
             @Option(names = "-enabled", description = "Enable Web API", defaultValue = "true", negatable = true) boolean enabled,
-            @Option(names = "-bind", description = "IP address to bind the Web API", defaultValue = "0.0.0.0") String bind,
-            @Option(names = "-port", description = "Port for the Web API", defaultValue = "8080") int port,
-            @Option(names = "-local-storage", description = "Path to local storage directory (optional)") Optional<String> localStorage
+            @Option(names = "-bind", description = "IP address to bind the Web API", defaultValue = "0.0.0.0", paramLabel = "<ADDRESS>") String bind,
+            @Option(names = "-port", description = "Port for the Web API", defaultValue = "8080", paramLabel = "<PORT>") int port,
+            @Option(names = "-local-storage", description = "Path to local storage directory (optional)", paramLabel = "<PATH>") Optional<File> localStorage
     ) {
         JSONObject jsonWebAPI = new JSONObject();
         Utils.terribleHackToHaveOrderedJSONObject(jsonWebAPI);
         jsonWebAPI.put("enabled", enabled);
         jsonWebAPI.put("bind", bind);
         jsonWebAPI.put("port", port);
-        localStorage.ifPresent(path -> jsonWebAPI.put("local_storage", path));
+        localStorage.ifPresent(path -> jsonWebAPI.put("local_storage", path.getAbsolutePath()));
 
         if (writeConfigFeature("webapi", jsonWebAPI)) {
             System.out.println("Web API configuration updated successfully.");
@@ -100,9 +102,9 @@ public class CmdConfig {
         }
     }
 
-    @Command(name = "logging", description = "Setup Logging configuration (needs restart to take effect)")
-    public void setupLogging(
-            @Option(names = "-file", description = "Path to the log file", defaultValue = "log.txt") File file
+    @Command(name = "cfg-logging", description = "Setup Logging configuration (needs restart to take effect)")
+    public static void setupLogging(
+            @Option(names = "-file", description = "Path to the log file", defaultValue = "log.txt", paramLabel = "<PATH>") File file
     ) {
         JSONObject jsonLogging = new JSONObject();
         Utils.terribleHackToHaveOrderedJSONObject(jsonLogging);
@@ -120,9 +122,9 @@ public class CmdConfig {
         webapi
     }
 
-    @Command(name = "enable", description = "Enable features")
-    public void enableFeature(
-            @Parameters(arity = "1..*", description = "Features to enable (${COMPLETION-CANDIDATES})", paramLabel = "FEATURE") List<EnableFeatureSelect> features
+    @Command(name = "cfg-enable", description = "Enable features")
+    public static void enableFeature(
+            @Parameters(arity = "1..*", description = "Features to enable (${COMPLETION-CANDIDATES})", paramLabel = "<FEATURE>") List<EnableFeatureSelect> features
     ) {
         for (EnableFeatureSelect feature : features) {
             FactorioManager.reloadConfig();
@@ -138,9 +140,9 @@ public class CmdConfig {
         }
     }
 
-    @Command(name = "disable", description = "Disable features")
-    public void disableFeature(
-            @Parameters(arity = "1..*", description = "Features to disable (${COMPLETION-CANDIDATES})", paramLabel = "FEATURE") List<EnableFeatureSelect> features
+    @Command(name = "cfg-disable", description = "Disable features")
+    public static void disableFeature(
+            @Parameters(arity = "1..*", description = "Features to disable (${COMPLETION-CANDIDATES})", paramLabel = "<FEATURE>") List<EnableFeatureSelect> features
     ) {
         for (EnableFeatureSelect feature : features) {
             FactorioManager.reloadConfig();
@@ -156,8 +158,8 @@ public class CmdConfig {
         }
     }
 
-    @Command(name = "show", description = "Show current configuration")
-    public void showConfig(
+    @Command(name = "cfg-show", description = "Show current configuration")
+    public static void showConfig(
         @Option(names = "-reveal-sensitive", description = "Reveal sensitive information in the configuration", defaultValue = "false") boolean revealSensitive
     ) {
         JSONObject jsonConfig = Config.get();
@@ -227,8 +229,8 @@ public class CmdConfig {
         }
     }
 
-    @Command(name = "edit", description = "Edit configuration file directly")
-    public void editConfig() {
+    @Command(name = "cfg-edit", description = "Edit configuration file directly")
+    public static void editConfig() {
         File configFile = new File(Config.getPath());
         if (!configFile.exists()) {
             System.out.println("Configuration file does not exist: " + Config.getPath());
@@ -245,14 +247,14 @@ public class CmdConfig {
         }
     }
 
-    @Command(name = "reload", description = "Reload configuration from file")
-    public void reloadConfig() {
+    @Command(name = "cfg-reload", description = "Reload configuration from file")
+    public static void reloadConfig() {
         FactorioManager.reloadConfig();
         System.out.println("Configuration reloaded from file: " + Config.getPath());
     }
 
-    @Command(name = "find-factorio", description = "Attempt to automatically find and set the default Factorio installation")
-    public void findDefaultFactorio() {
+    @Command(name = "cfg-find-factorio", description = "Attempt to automatically find and set the default Factorio installation")
+    public static void findDefaultFactorio() {
         
         List<String> searchDirs = new ArrayList<>(List.of(
             "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Factorio",
@@ -318,7 +320,7 @@ public class CmdConfig {
         }
     }
 
-    private boolean writeConfigFeature(String feature, JSONObject jsonFeature) {
+    private static boolean writeConfigFeature(String feature, JSONObject jsonFeature) {
         JSONObject jsonConfig = Config.get();
         jsonConfig.put(feature, jsonFeature);
         File file = new File(Config.getPath());
