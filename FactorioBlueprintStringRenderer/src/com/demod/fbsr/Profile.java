@@ -639,7 +639,7 @@ public class Profile {
         
         File folderProfile = editor.getFolderProfile();
         folderProfile.mkdirs();
-        try (InputStream is = Profile.class.getClassLoader().getResourceAsStream("profile.json")) {
+        try (InputStream is = Profile.class.getClassLoader().getResourceAsStream("profile-vanilla.json")) {
             Files.copy(is, new File(folderProfile, "profile.json").toPath(), StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
             e.printStackTrace();
@@ -745,44 +745,43 @@ public class Profile {
             Utils.terribleHackToHaveOrderedJSONObject(jsonRenderingEntities);
             jsonRendering.put("entities", jsonRenderingEntities);
             table.getEntities().values().stream()
-                    .filter(Profile::isBlueprintable)
+                    .filter(e -> {
+                        if (jsonProfileEntityOverrides.has(e.getName())) {
+                            if (jsonProfileEntityOverrides.isNull(e.getName())) {
+                                return false;
+                            }
+                            return true;
+                        }
+                        return isBlueprintable(e);
+                    })
                     .sorted(Comparator.comparing(e -> e.getName())).forEach(e -> {
                         if (ignoredEntities.contains(e.getName())) {
                             return;
                         }
 
-                        String renderingClassName;
-                        Optional<Collection<String>> overrideMods;
+                        String type = e.getType();
+                        StringBuilder sb = new StringBuilder();
+                        for (String part : type.split("-")) {
+                            sb.append(part.substring(0, 1).toUpperCase() + part.substring(1));
+                        }
+                        sb.append("Rendering");
+                        String renderingClassName = sb.toString();
+                        
+                        Optional<Collection<String>> overrideMods = Optional.empty();
                         if (jsonProfileEntityOverrides.has(e.getName())) {
                             if (jsonProfileEntityOverrides.isNull(e.getName())) {
                                 return;
                             }
 
                             JSONObject jsonOverride = jsonProfileEntityOverrides.getJSONObject(e.getName());
-                            if (!jsonOverride.has("rendering")) {
-                                System.out.println("No rendering class specified for entity override: " + e.getName());
-                                failure.set(true);
-                                return;
+                            if (jsonOverride.has("rendering")) {
+                                renderingClassName = jsonOverride.getString("rendering");
                             }
-                            renderingClassName = jsonOverride.getString("rendering");
-
                             if (jsonOverride.has("mods")) {
                                 JSONArray jsonMods = jsonOverride.getJSONArray("mods");
                                 overrideMods = Optional.of(jsonMods.toList().stream()
                                         .map(Object::toString).collect(Collectors.toList()));
-                            } else {
-                                overrideMods = Optional.empty();
-                            }
-                            
-                        } else {
-                            String type = e.getType();
-                            StringBuilder sb = new StringBuilder();
-                            for (String part : type.split("-")) {
-                                sb.append(part.substring(0, 1).toUpperCase() + part.substring(1));
-                            }
-                            sb.append("Rendering");
-                            renderingClassName = sb.toString();
-                            overrideMods = Optional.empty();
+                            } 
                         }
 
                         Optional<Class<? extends EntityRendererFactory>> factoryClass = EntityRendererFactory.findFactoryClass(renderingClassName);
@@ -841,13 +840,13 @@ public class Profile {
             jsonRendering.put("tiles", jsonRenderingTiles);
             table.getTiles().values().stream()
                     .filter(t -> {
-                        if (!t.lua().get("can_be_part_of_blueprint").optboolean(true)) {
-                            return false;
+                        if (jsonProfileTileOverrides.has(t.getName())) {
+                            if (jsonProfileTileOverrides.isNull(t.getName())) {
+                                return false;
+                            }
+                            return true;
                         }
-                        if (t.getPlacedBy().isEmpty()) {
-                            return false;
-                        }
-                        return true;
+                        return isBlueprintable(t);
                     })
                     .sorted(Comparator.comparing(t -> t.getName())).forEach(t -> {
                         if (ignoredTiles.contains(t.getName())) {
@@ -934,6 +933,16 @@ public class Profile {
             return false;
         }
         if (e.getPlacedBy().isEmpty()) {
+            return false;
+        }
+        return true;
+    }
+
+    private static boolean isBlueprintable(TilePrototype t) {
+        if (!t.lua().get("can_be_part_of_blueprint").optboolean(true)) {
+            return false;
+        }
+        if (t.getPlacedBy().isEmpty()) {
             return false;
         }
         return true;
@@ -1641,7 +1650,7 @@ public class Profile {
 
     private static boolean writeProfileSortedJsonFile(File file, JSONObject json) {
         try (FileWriter fw = new FileWriter(file)) {
-            List<String> preferredOrder = Arrays.asList("enabled", "mods", "entities", "tiles");
+            List<String> preferredOrder = Arrays.asList("enabled", "mods", "mod-overrides", "entity-overrides", "tile-overrides");
 
             JSONObject sorted = new JSONObject();
             Utils.terribleHackToHaveOrderedJSONObject(sorted);

@@ -1,0 +1,31 @@
+{
+    "enabled": true,
+    "mods": [
+        "base",
+		"space-age",
+		"quality",
+		"elevated-rails"
+    ],
+	"mod-overrides": {},
+	"entity-overrides": {
+		"fluid-wagon": {
+			"mods": []
+		},
+		"infinity-cargo-wagon": {
+			"mods": []
+		},
+		"locomotive": {
+			"mods": []
+		},
+		"rail-chain-signal": {
+			"mods": []
+		},
+		"rail-signal": {
+			"mods": []
+		},
+		"tank": {
+			"rendering": "CarRendering"
+		}
+	},
+	"tile-overrides": {}
+}
