@@ -712,6 +712,19 @@ public class Profile {
             Utils.terribleHackToHaveOrderedJSONObject(jsonRendering);
             AtomicBoolean failure = new AtomicBoolean(false);
 
+            for (String name : jsonProfileEntityOverrides.keySet()) {
+                if (!table.getEntity(name).isPresent()) {
+                    System.out.println("Entity override for unknown entity: " + name);
+                    failure.set(true);
+                }
+            }
+            for (String name : jsonProfileTileOverrides.keySet()) {
+                if (!table.getTile(name).isPresent()) {
+                    System.out.println("Tile override for unknown tile: " + name);
+                    failure.set(true);
+                }
+            }
+
             Function<List<String>, List<String>> convertNames = modNames -> {
                 List<String> mods = new ArrayList<>();
                 for (String modName : modNames) {
