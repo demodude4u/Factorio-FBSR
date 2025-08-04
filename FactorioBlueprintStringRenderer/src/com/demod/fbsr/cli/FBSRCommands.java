@@ -115,6 +115,11 @@ public class FBSRCommands {
             System.out.println("WARNING: Not all profiles are ready! Type 'build -all' to build all profiles.");
             cmd.execute("profile-list");
 
+        } else if (Profile.listProfiles().stream().anyMatch(p -> !p.getWarnings().isEmpty())) {
+            System.out.println();
+            System.out.println("WARNING: Some profiles have warnings!");
+            cmd.execute("profile-list");
+
         } else {
             System.out.println();
             System.out.println("All profiles are ready! Type command 'bot-run' to start the bot or 'bot-render preview <STRING>' to render an image.");

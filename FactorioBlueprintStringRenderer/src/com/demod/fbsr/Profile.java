@@ -40,6 +40,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
+import java.util.zip.Deflater;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
@@ -1445,6 +1446,8 @@ public class Profile {
 
         boolean delete = false;
         try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(fileAssets))) {
+            zos.setLevel(Deflater.BEST_COMPRESSION);
+            
             if (!copyIntoZip(zos, fileProfile, ASSETS_ZIP_PROFILE_JSON)) {
                 delete = true;
                 return false;

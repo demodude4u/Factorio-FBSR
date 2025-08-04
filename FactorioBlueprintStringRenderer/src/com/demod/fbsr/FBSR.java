@@ -627,6 +627,7 @@ public class FBSR {
 		if (profiles.size() != allProfiles.size()) {
 			LOGGER.warn("NOT READY PROFILES: {}", 
 				allProfiles.stream().filter(p -> p.getStatus() != ProfileStatus.READY).map(Profile::getName).collect(Collectors.joining(", ")));
+			LOGGER.warn("Profiles that are not ready will be ignored.");
 		}
 
 		if (profiles.isEmpty()) {
@@ -660,6 +661,11 @@ public class FBSR {
 
 		guiStyle.initialize(factorioManager.getProfileVanilla(), true);
 
+		for (Profile profile : profiles) {
+			RenderingRegistry registry = profile.getRenderingRegistry();
+			registry.loadConfig(profile.getAssetsRenderingConfiguration());
+		}
+
 		if (!factorioManager.initializeFactories()) {
 			System.out.println("Failed to initialize factories.");
 			return false;
@@ -667,7 +673,14 @@ public class FBSR {
 
 		iconManager.initialize();
 
-		LOGGER.info("FBSR loaded -- Factorio {}", FactorioManager.getFactorioVersion());
+		for (Profile profile : profiles) {
+			profile.getAtlasPackage().readFromZip(profile.getFileAssets());
+		}
+
+		LOGGER.info("FBSR loaded -- Factorio {} -- {} Entities, {} Tiles", 
+				FactorioManager.getFactorioVersion(),
+				factorioManager.getEntityFactoryByNameMap().size(),
+				factorioManager.getTileFactoryByNameMap().size());
 
 		return true;
 	}
@@ -708,7 +721,7 @@ public class FBSR {
 		if (!profile.isVanilla()) {
 			profileVanilla = Profile.vanilla();
 
-			if (!profileVanilla.hasDump()) {
+			if (!profileVanilla.hasAssets()) {
 				System.out.println("Vanilla profile must be built first, cannot build data for profile: " + profile.getName());
 				return false;
 			}
@@ -729,10 +742,13 @@ public class FBSR {
 			p.setFactorioManager(factorioManager);
 			p.setGuiStyle(guiStyle);
 			p.setIconManager(iconManager);
-			p.setFactorioData(new FactorioData(p.getFileDumpDataJson(), p.getDumpFactorioVersion()));
+
 			if (p == profile) {
+				p.setFactorioData(new FactorioData(p.getFileDumpDataJson(), p.getDumpFactorioVersion()));
 				p.getRenderingRegistry().loadConfig(jsonRendering);
+			
 			} else {
+				p.setFactorioData(new FactorioData(p.getFileAssets()));
 				p.getRenderingRegistry().loadConfig(p.getAssetsRenderingConfiguration());
 			}
 		}
@@ -748,10 +764,13 @@ public class FBSR {
 			if (!factorioManager.initializePrototypes()) {
 				return false;
 			}
-			guiStyle.initialize(profileVanilla, false);
+
+			guiStyle.initialize(factorioManager.getProfileVanilla(), false);
+
 			if (!factorioManager.initializeFactories()) {
 				return false;
 			}
+
 			iconManager.initialize();
 
 			profile.getAtlasPackage().populateZip(zos);

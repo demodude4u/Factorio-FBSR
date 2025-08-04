@@ -32,6 +32,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.zip.ZipEntry;
+import java.util.zip.ZipException;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
 
@@ -322,32 +323,39 @@ public class AtlasPackage {
 		}
 	}
 
-    public boolean readFromZip(ZipFile zipFile) {
-			
-		JSONArray jsonManifest;
-		ZipEntry entry = zipFile.getEntry("atlas-manifest.json");
-		if (entry == null) {
-			System.out.println("Missing atlas-manifest.json in zip file: " + zipFile.getName());
-			return false;
-		}
-		try (var reader = new InputStreamReader(zipFile.getInputStream(entry), StandardCharsets.UTF_8)) {
-			jsonManifest = new JSONArray(new JSONTokener(reader));
-		} catch (IOException e) {
-			System.out.println("Failed to read atlas-manifest.json: " + e.getMessage());
-			return false;
-		}
-
-		if (!checkValidManifest(jsonManifest)) {
-			System.out.println("Atlas manifest is invalid or does not match current definitions. Data needs to be regenerated.");
-			return false;
-		}
+    public boolean readFromZip(File fileAssetsZip) {
 		
-		if (!loadAtlases(zipFile, jsonManifest)) {
-			System.out.println("Failed to load atlases from zip file: " + zipFile.getName());
+		try (ZipFile zipFile = new ZipFile(fileAssetsZip)) {
+			
+			JSONArray jsonManifest;
+			ZipEntry entry = zipFile.getEntry("atlas-manifest.json");
+			if (entry == null) {
+				System.out.println("Missing atlas-manifest.json in zip file: " + zipFile.getName());
+				return false;
+			}
+			try (var reader = new InputStreamReader(zipFile.getInputStream(entry), StandardCharsets.UTF_8)) {
+				jsonManifest = new JSONArray(new JSONTokener(reader));
+			} catch (IOException e) {
+				System.out.println("Failed to read atlas-manifest.json: " + e.getMessage());
+				return false;
+			}
+	
+			if (!checkValidManifest(jsonManifest)) {
+				System.out.println("Atlas manifest is invalid or does not match current definitions. Data needs to be regenerated.");
+				return false;
+			}
+			
+			if (!loadAtlases(zipFile, jsonManifest)) {
+				System.out.println("Failed to load atlases from zip file: " + zipFile.getName());
+				return false;
+			}
+	
+			return true;
+
+		} catch (IOException e1) {
+			System.out.println("Invalid zip file " + fileAssetsZip.getAbsolutePath() + " (" + e1.getMessage() + ")");
 			return false;
 		}
-
-		return true;
 	}
 
 	private boolean checkValidManifest(JSONArray jsonManifest) {

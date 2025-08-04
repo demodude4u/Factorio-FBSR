@@ -34,6 +34,7 @@ import com.demod.fbsr.RenderResult;
 import com.demod.fbsr.RichText;
 import com.demod.fbsr.RichText.TagToken;
 import com.demod.fbsr.bs.BSBlueprint;
+import com.demod.fbsr.bs.BSBlueprint.BlueprintModInfo;
 import com.demod.fbsr.bs.BSBlueprintBook;
 import com.demod.fbsr.bs.BSIcon;
 import com.demod.fbsr.composite.TintComposite;
@@ -198,8 +199,7 @@ public class GUILayoutBook {
 	private Composite pc;
 	private Composite tint;
 
-	private boolean spaceAge;
-
+	private List<String> spaceAgeMods;
 	private List<String> mods;
 
 	private void drawFrame(Graphics2D g, GUIBox bounds) {
@@ -306,15 +306,17 @@ public class GUILayoutBook {
 
 		Font fontMod = guiStyle.FONT_BP_BOLD.deriveFont(15f);
 
-		if (spaceAge) {
-			guiStyle.CIRCLE_WHITE.render(g, boundsCell);
-			GUILabel label = new GUILabel(boundsCell, "Space Age", fontMod, Color.black, GUIAlign.CENTER);
+		FontMetrics fm = g.getFontMetrics(fontMod);
+		for (String mod : spaceAgeMods) {
+			int minWidth = fm.stringWidth(mod) + 16;
+			GUIBox boundsLabel = (minWidth > boundsCell.width) ? boundsCell.expandLeft(minWidth - boundsCell.width)
+					: boundsCell;
+			guiStyle.CIRCLE_WHITE.render(g, boundsLabel);
+			GUILabel label = new GUILabel(boundsLabel, mod, fontMod, Color.black, GUIAlign.CENTER);
 			label.render(g);
 			boundsCell = boundsCell.indexed(1, 0);
 		}
-
 		for (String mod : mods) {
-			FontMetrics fm = g.getFontMetrics(fontMod);
 			int minWidth = fm.stringWidth(mod) + 16;
 			GUIBox boundsLabel = (minWidth > boundsCell.width) ? boundsCell.expandLeft(minWidth - boundsCell.width)
 					: boundsCell;
@@ -323,7 +325,6 @@ public class GUILayoutBook {
 			label.render(g);
 			boundsCell = boundsCell.indexed(1, 0);
 		}
-
 	}
 
 	private void drawTitleBar(Graphics2D g, GUIBox bounds) {
@@ -430,18 +431,18 @@ public class GUILayoutBook {
 
 			pc = g.getComposite();
 			Set<String> mods = new LinkedHashSet<>();
+			Set<String> spaceAgeMods = new LinkedHashSet<>();
 			for (BSBlueprint blueprint : book.getAllBlueprints()) {
-				blueprint.entities.stream().map(e -> resolver.resolveFactoryEntityName(e.name))
-						.flatMap(e -> e.isUnknown() ? Stream.of("Modded") : e.getMods().stream()).forEach(mods::add);
-				blueprint.tiles.stream().map(t -> resolver.resolveFactoryTileName(t.name))
-						.flatMap(t -> t.isUnknown() ? Stream.of("Modded") : t.getMods().stream()).forEach(mods::add);
+				BlueprintModInfo modInfo = blueprint.loadModInfo(resolver);
+				mods.addAll(modInfo.mods);
+				spaceAgeMods.addAll(modInfo.spaceAgeMods);
 			}
-			spaceAge = mods.remove("Space Age");
+			this.spaceAgeMods = spaceAgeMods.stream().sorted().collect(Collectors.toList());
 			this.mods = mods.stream().sorted().collect(Collectors.toList());
 
 			if (!mods.isEmpty()) {
 				tint = new TintComposite(450, 300, 80, 255);
-			} else if (spaceAge) {
+			} else if (!spaceAgeMods.isEmpty()) {
 				tint = new TintComposite(350, 350, 400, 255);
 			} else {
 				tint = pc;

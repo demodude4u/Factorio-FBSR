@@ -66,6 +66,7 @@ import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.RenderingRegistry;
 import com.demod.fbsr.WebUtils;
 import com.demod.fbsr.bs.BSBlueprint;
+import com.demod.fbsr.bs.BSBlueprint.BlueprintModInfo;
 import com.demod.fbsr.bs.BSBlueprintBook;
 import com.demod.fbsr.bs.BSBlueprintString;
 import com.demod.fbsr.bs.BSDeconstructionPlanner;
@@ -381,7 +382,7 @@ public class DiscordService extends AbstractIdleService {
 				blueprintString.getRaw().get());
 
 		boolean spaceAge = false;
-		Set<String> allMods = new HashSet<>();
+		boolean modded = false;
 
 		if (blueprintString.blueprint.isPresent()) {
 			BSBlueprint blueprint = blueprintString.blueprint.get();
@@ -398,13 +399,9 @@ public class DiscordService extends AbstractIdleService {
 			unknownNames.addAll(layout.getResult().unknownTiles);
 			renderTimes.add(layout.getResult().renderTime);
 
-			Set<String> mods = new LinkedHashSet<>();
-			blueprint.entities.stream().map(e -> resolver.resolveFactoryEntityName(e.name))
-					.flatMap(e -> e.isUnknown() ? Stream.of("Modded") : e.getMods().stream()).forEach(mods::add);
-			blueprint.tiles.stream().map(t -> resolver.resolveFactoryTileName(t.name))
-					.flatMap(t -> t.isUnknown() ? Stream.of("Modded") : t.getMods().stream()).forEach(mods::add);
-			spaceAge = mods.remove("Space Age");
-			allMods.addAll(mods.stream().sorted().collect(Collectors.toList()));
+			BlueprintModInfo modInfo = blueprint.loadModInfo(resolver);
+			spaceAge = !modInfo.spaceAgeMods.isEmpty();
+			modded = !modInfo.mods.isEmpty();
 
 			if (layout.getResult().renderScale < 0.501) {
 				actionButtonRow.add(Button.secondary("reply-zoom|" + futBlueprintStringUpload.get().getId(), "Zoom In")
@@ -437,17 +434,11 @@ public class DiscordService extends AbstractIdleService {
 					.map(b -> ModdingResolver.byBlueprintBiases(factorioManager, b))
 					.collect(Collectors.toList());
 
-			Set<String> mods = new LinkedHashSet<>();
 			for (int i = 0; i < blueprints.size(); i++) {
-				BSBlueprint blueprint = blueprints.get(i);
-				ModdingResolver resolver = resolvers.get(i);
-				blueprint.entities.stream().map(e -> resolver.resolveFactoryEntityName(e.name))
-					.flatMap(e -> e.isUnknown() ? Stream.of("Modded") : e.getMods().stream()).forEach(mods::add);
-				blueprint.tiles.stream().map(t -> resolver.resolveFactoryTileName(t.name))
-					.flatMap(t -> t.isUnknown() ? Stream.of("Modded") : t.getMods().stream()).forEach(mods::add);
+				BlueprintModInfo modInfo = blueprints.get(i).loadModInfo(resolvers.get(i));
+				spaceAge = spaceAge || !modInfo.spaceAgeMods.isEmpty();
+				modded = modded || !modInfo.mods.isEmpty();
 			}
-			spaceAge = mods.remove("Space Age");
-			allMods.addAll(mods.stream().sorted().collect(Collectors.toList()));
 
 			StringSelectMenu.Builder menuBuilder = StringSelectMenu.create("reply-book-blueprint");
 			boolean emptyMenu = true;
@@ -500,13 +491,13 @@ public class DiscordService extends AbstractIdleService {
 
 		Emoji emoji = EMOJI_BLUEPRINT;
 		if (blueprintString.blueprint.isPresent()) {
-			if (!allMods.isEmpty()) {
+			if (modded) {
 				emoji = EMOJI_BLUEPRINT_MODDED;
 			} else if (spaceAge) {
 				emoji = EMOJI_BLUEPRINT_SPACEAGE;
 			}
 		} else if (blueprintString.blueprintBook.isPresent()) {
-			if (!allMods.isEmpty()) {
+			if (modded) {
 				emoji = EMOJI_BLUEPRINTBOOK_MODDED;
 			} else if (spaceAge) {
 				emoji = EMOJI_BLUEPRINTBOOK_SPACEAGE;
