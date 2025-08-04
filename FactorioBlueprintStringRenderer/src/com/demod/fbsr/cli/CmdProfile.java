@@ -237,6 +237,11 @@ public class CmdProfile {
 
         if (profile.setEnabled(true)) {
             System.out.println("Profile enabled successfully: " + profile.getName());
+
+            List<ProfileWarning> warnings = profile.getWarnings();
+            System.out.println(profile.getStateCode()+ " " + profile.getName() 
+                + " (" + profile.getStatus() + ")"
+                + (warnings.isEmpty() ? "" : warnings.stream().map(ProfileWarning::name).collect(Collectors.joining(",", " <<", ">>"))));
         } else {
             System.out.println("Failed to enable profile: " + profile.getName());
         }
