@@ -780,12 +780,6 @@ public class Profile {
                             return;
                         }
 
-                        // String type = e.getType();
-                        // StringBuilder sb = new StringBuilder();
-                        // for (String part : type.split("-")) {
-                        //     sb.append(part.substring(0, 1).toUpperCase() + part.substring(1));
-                        // }
-                        // sb.append("Rendering");
                         Optional<Class<? extends EntityRendererFactory>> factoryClass = EntityRendererFactory.findFactoryClassByType(e.getType());
 
                         Optional<Collection<String>> overrideMods = Optional.empty();
@@ -838,11 +832,24 @@ public class Profile {
                                     }
                                 });
 
+                                if (e.getName().equals("car-vehicle-machine-gun")) {
+                                    System.out.println("DEBUG");
+                                }
+
                                 IconLayer.fromPrototype(factory.prototype.lua()).forEach(layer -> {
                                     String modName = layer.getModName();
                                     if (!modNames.contains(modName)) {
                                         modNames.add(modName);
                                     }
+                                });
+
+                                factory.prototype.getTable().getItem(e.getName()).ifPresent(p -> {
+                                    IconLayer.fromPrototype(p.lua()).forEach(layer -> {
+                                        String modName = layer.getModName();
+                                        if (!modNames.contains(modName)) {
+                                            modNames.add(modName);
+                                        }
+                                    });
                                 });
 
                             } catch (Exception ex) {
@@ -926,6 +933,23 @@ public class Profile {
                                         modNames.add(modName);
                                     }
                                 });
+
+                                IconLayer.fromPrototype(factory.prototype.lua()).forEach(layer -> {
+                                    String modName = layer.getModName();
+                                    if (!modNames.contains(modName)) {
+                                        modNames.add(modName);
+                                    }
+                                });
+
+                                factory.prototype.getTable().getItem(t.getName()).ifPresent(p -> {
+                                    IconLayer.fromPrototype(p.lua()).forEach(layer -> {
+                                        String modName = layer.getModName();
+                                        if (!modNames.contains(modName)) {
+                                            modNames.add(modName);
+                                        }
+                                    });
+                                });
+
                             } catch (Exception ex) {
                                 System.out.println("Failed to initialize tile renderer factory for " + t.getName() + ": " + t.getType());
                                 ex.printStackTrace();
