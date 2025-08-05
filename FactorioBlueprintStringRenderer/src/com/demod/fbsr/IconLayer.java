@@ -73,21 +73,8 @@ public class IconLayer {
 		int iconSize = lua.get("icon_size").optint(64);
 
 		double defaultScale = (expectedIconSize / 2) / (double) iconSize;
-
-		LuaValue iconLua = lua.get("icon");
-		if (!iconLua.isnil()) {
-
-			String path = iconLua.tojstring();
-			if (path == null) {
-				throw new RuntimeException("No Icon Path!");
-			}
-
-			Rectangle source = new Rectangle(0, 0, iconSize, iconSize);
-			Rectangle2D.Double bounds = new Rectangle2D.Double(0, 0, 1, 1);
-			return ImmutableList.of(new IconLayer(path, source, bounds, Color.white, true));
-		}
+		
 		LuaValue iconsLua = lua.get("icons");
-
 		if (!iconsLua.isnil()) {
 			List<IconLayer> layers = new ArrayList<>();
 			for (int i = 1; i <= iconsLua.length(); i++) {
@@ -118,6 +105,19 @@ public class IconLayer {
 				throw new RuntimeException("No Icon Layers!");
 			}
 			return layers;
+		}
+		
+		LuaValue iconLua = lua.get("icon");
+		if (!iconLua.isnil()) {
+
+			String path = iconLua.tojstring();
+			if (path == null) {
+				throw new RuntimeException("No Icon Path!");
+			}
+
+			Rectangle source = new Rectangle(0, 0, iconSize, iconSize);
+			Rectangle2D.Double bounds = new Rectangle2D.Double(0, 0, 1, 1);
+			return ImmutableList.of(new IconLayer(path, source, bounds, Color.white, true));
 		}
 
 //		LOGGER.error("{} ({}) has no icon.", name, type);
