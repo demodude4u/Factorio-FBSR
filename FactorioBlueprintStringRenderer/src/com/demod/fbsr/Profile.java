@@ -613,8 +613,9 @@ public class Profile {
             jsonMods.put(mod);
         }
         jsonProfile.put("mods", jsonMods);
-        jsonProfile.put("entities", new JSONObject());
-        jsonProfile.put("tiles", new JSONObject());
+        jsonProfile.put("mod-overrides", new JSONObject());
+        jsonProfile.put("entity-overrides", new JSONObject());
+        jsonProfile.put("tile-overrides", new JSONObject());
 
         if (!writeProfileSortedJsonFile(fileProfile, jsonProfile)) {
             System.out.println("Failed to write profile.json for profile: " + folderProfile.getName());
@@ -706,6 +707,10 @@ public class Profile {
             }
             
             ModLoader modLoader = new ModLoader(FactorioManager.getFactorioInstall(), folderBuildMods);
+
+            for (String modName : modLoader.getMods().keySet().stream().sorted().collect(Collectors.toList())) {
+                System.out.println("Mod " + modName + " (" + modLoader.getMod(modName).get().getInfo().getTitle() + ")");
+            }
             
             DataTable table = factorioData.getTable();
             JSONObject jsonRendering = new JSONObject();
@@ -740,11 +745,13 @@ public class Profile {
                                 continue;
                             }
                         }
+                        if (jsonMod.has("name")) {
+                            modName = jsonMod.getString("name");
+                        }
                     }
                     Optional<Mod> optMod = modLoader.getMod(modName);
                     if (!optMod.isPresent()) {
-                        System.out.println("Mod not found: " + modName);
-                        failure.set(true);
+                        mods.add(modName);
                         continue;
                     }
                     String modTitle = optMod.get().getInfo().getTitle();
@@ -773,14 +780,14 @@ public class Profile {
                             return;
                         }
 
-                        String type = e.getType();
-                        StringBuilder sb = new StringBuilder();
-                        for (String part : type.split("-")) {
-                            sb.append(part.substring(0, 1).toUpperCase() + part.substring(1));
-                        }
-                        sb.append("Rendering");
-                        String renderingClassName = sb.toString();
-                        
+                        // String type = e.getType();
+                        // StringBuilder sb = new StringBuilder();
+                        // for (String part : type.split("-")) {
+                        //     sb.append(part.substring(0, 1).toUpperCase() + part.substring(1));
+                        // }
+                        // sb.append("Rendering");
+                        Optional<Class<? extends EntityRendererFactory>> factoryClass = EntityRendererFactory.findFactoryClassByType(e.getType());
+
                         Optional<Collection<String>> overrideMods = Optional.empty();
                         if (jsonProfileEntityOverrides.has(e.getName())) {
                             if (jsonProfileEntityOverrides.isNull(e.getName())) {
@@ -789,7 +796,13 @@ public class Profile {
 
                             JSONObject jsonOverride = jsonProfileEntityOverrides.getJSONObject(e.getName());
                             if (jsonOverride.has("rendering")) {
-                                renderingClassName = jsonOverride.getString("rendering");
+                                String renderingClassName = jsonOverride.getString("rendering");
+                                factoryClass = EntityRendererFactory.findFactoryClassByName(renderingClassName);
+                                if (!factoryClass.isPresent()) {
+                                    System.out.println("Entity rendering class override for " + e.getName() + " not found: " + renderingClassName);
+                                    failure.set(true);
+                                    return;
+                                }
                             }
                             if (jsonOverride.has("mods")) {
                                 JSONArray jsonMods = jsonOverride.getJSONArray("mods");
@@ -798,9 +811,8 @@ public class Profile {
                             } 
                         }
 
-                        Optional<Class<? extends EntityRendererFactory>> factoryClass = EntityRendererFactory.findFactoryClass(renderingClassName);
                         if (!factoryClass.isPresent()) {
-                            System.out.println("Entity rendering class for " + e.getName() + " not found: " + renderingClassName);
+                            System.out.println("Entity rendering class for " + e.getName() + " not found: " + e.getType());
                             failure.set(true);
                             return;
                         }
@@ -825,8 +837,16 @@ public class Profile {
                                         modNames.add(modName);
                                     }
                                 });
+
+                                IconLayer.fromPrototype(factory.prototype.lua()).forEach(layer -> {
+                                    String modName = layer.getModName();
+                                    if (!modNames.contains(modName)) {
+                                        modNames.add(modName);
+                                    }
+                                });
+
                             } catch (Exception ex) {
-                                System.out.println("Failed to initialize entity renderer factory for " + e.getName() + ": " + renderingClassName);
+                                System.out.println("Failed to initialize entity renderer factory for " + e.getName() + ": " + factoryClass.get().getSimpleName());
                                 ex.printStackTrace();
                                 failure.set(true);
                                 return;
@@ -835,18 +855,18 @@ public class Profile {
 
                         List<String> mods = convertNames.apply(modNames);
                         if (mods.isEmpty() && !isVanilla()) {
-                            System.out.println("Entity " + e.getName() + " (" + renderingClassName + ") has no mods associated with it in a non-vanilla profile!");
+                            System.out.println("Entity " + e.getName() + " (" + factoryClass.get().getSimpleName() + ") has no mods associated with it in a non-vanilla profile!");
                             failure.set(true);
                             return;
                         }
                         
                         JSONObject jsonRenderingEntity = new JSONObject();
                         Utils.terribleHackToHaveOrderedJSONObject(jsonRenderingEntity);
-                        jsonRenderingEntity.put("rendering", renderingClassName);
+                        jsonRenderingEntity.put("rendering", factoryClass.get().getName());
                         jsonRenderingEntity.put("mods", new JSONArray(mods));
                         jsonRenderingEntities.put(e.getName(), jsonRenderingEntity);
 
-                        System.out.println(mods.stream().collect(Collectors.joining(", ", "[", "]")) + " Entity " + e.getName() + " (" + renderingClassName + ")");
+                        System.out.println(mods.stream().collect(Collectors.joining(", ", "[", "]")) + " Entity " + e.getName() + " (" + factoryClass.get().getSimpleName() + ")");
                     });
 
             JSONObject jsonRenderingTiles = new JSONObject();

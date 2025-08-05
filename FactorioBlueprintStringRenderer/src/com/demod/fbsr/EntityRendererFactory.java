@@ -3,6 +3,7 @@ package com.demod.fbsr;
 import java.awt.geom.Point2D;
 import java.lang.reflect.Constructor;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -16,6 +17,9 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import org.json.JSONObject;
+import org.reflections.Reflections;
+import org.reflections.scanners.Scanners;
+import org.reflections.util.ConfigurationBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -83,8 +87,41 @@ public abstract class EntityRendererFactory {
 		return MapRect3D.byUnit(x1, y1, x2, y2, drawingBoxVerticalExtension);
 	}
 
+	private static final Map<String, Class<? extends EntityRendererFactory>> STANDARD_FACTORIES;
+	static {
+		STANDARD_FACTORIES = new HashMap<>();
+
+		Reflections reflections = new Reflections(new ConfigurationBuilder()
+				.forPackage("com.demod.fbsr.entity")
+				.addScanners(Scanners.SubTypes, Scanners.TypesAnnotated));
+
+		Set<Class<? extends EntityRendererFactory>> subTypes =
+			reflections.getSubTypesOf(EntityRendererFactory.class);
+
+		for (Class<? extends EntityRendererFactory> clazz : subTypes) {
+			EntityType annotation = clazz.getAnnotation(EntityType.class);
+			if (annotation != null) {
+				if (annotation.modded()) {
+					continue;
+				}
+				for (String type : annotation.value()) {
+					if (STANDARD_FACTORIES.containsKey(type)) {
+						LOGGER.error("Duplicate EntityRendererFactory for type {}: {} and {}", type,
+								STANDARD_FACTORIES.get(type).getSimpleName(), clazz.getSimpleName());
+						System.exit(-1);
+					}
+					STANDARD_FACTORIES.put(type, clazz);
+				}
+			}
+		}
+	}
+
+	public static Optional<Class<? extends EntityRendererFactory>> findFactoryClassByType(String type) {
+		return Optional.ofNullable(STANDARD_FACTORIES.get(type));
+	}
+
 	@SuppressWarnings("unchecked")
-	public static Optional<Class<? extends EntityRendererFactory>> findFactoryClass(String name) {
+	public static Optional<Class<? extends EntityRendererFactory>> findFactoryClassByName(String name) {
 		String factoryClassName = "com.demod.fbsr.entity." + name;
 		try {
 			return Optional.of((Class<? extends EntityRendererFactory>) Class.forName(factoryClassName));

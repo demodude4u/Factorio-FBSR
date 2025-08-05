@@ -68,6 +68,7 @@ public class RenderingRegistry {
 		tileFactoryByName.clear();
 	}
 
+	@SuppressWarnings("unchecked")
 	public boolean loadConfig(JSONObject jsonRendering) {
 		clear();
 
@@ -84,8 +85,12 @@ public class RenderingRegistry {
 
 				String renderingClassName = jsonEntity.optString("rendering", "");
 				try {
-					Optional<Class<? extends EntityRendererFactory>> factoryClassOpt =
-						EntityRendererFactory.findFactoryClass(renderingClassName);
+					Optional<Class<? extends EntityRendererFactory>> factoryClassOpt;
+					try {
+						factoryClassOpt = Optional.of((Class<? extends EntityRendererFactory>) Class.forName(renderingClassName));
+					} catch (ClassNotFoundException e) {
+						factoryClassOpt = Optional.empty();
+					}
 					if (!factoryClassOpt.isPresent()) {
 						System.out.println("Entity rendering class not found: " + renderingClassName + " for " + entityName);
 						failed = true;

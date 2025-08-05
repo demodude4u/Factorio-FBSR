@@ -17,7 +17,7 @@ import com.demod.fbsr.legacy.LegacyBlueprintEntity;
 import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapRenderable;
 
-@EntityType("simple-entity-with-force")
+@EntityType(value = "simple-entity-with-force", modded = true)
 public class TextPlateRendering extends EntityRendererFactory {
 
 	public static class BSTextPlateEntity extends BSEntity {

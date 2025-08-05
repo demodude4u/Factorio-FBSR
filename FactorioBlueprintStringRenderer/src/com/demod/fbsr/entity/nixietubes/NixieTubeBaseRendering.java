@@ -81,7 +81,7 @@ public abstract class NixieTubeBaseRendering extends LampRendering {
 			chars = SYMBOLS_NUMERIC;
 		}
 		for (char c : chars) {
-			LuaValue lua = profile.getFactorioData().getTable().getRaw("sprite", "nixie-tube-sprite-" + c).get();
+			LuaValue lua = prototype.getTable().getRaw("sprite", "nixie-tube-sprite-" + c).get();
 			protoSymbols.add(new FPSprite(profile, lua));
 		}
 	}

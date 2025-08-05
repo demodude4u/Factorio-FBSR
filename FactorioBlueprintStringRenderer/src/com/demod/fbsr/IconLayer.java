@@ -157,4 +157,8 @@ public class IconLayer {
 		return icon;
 	}
 
+    public String getModName() {
+        String firstSegment = path.split("\\/")[0];
+		return firstSegment.substring(2, firstSegment.length() - 2);
+    }
 }

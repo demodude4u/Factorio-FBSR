@@ -5,7 +5,7 @@ import com.demod.fbsr.EntityType;
 import com.demod.fbsr.entity.ElectricEnergyInterfaceRendering;
 import com.demod.fbsr.entity.EntityRendering;
 
-@EntityType("electric-energy-interface")
+@EntityType(value = "electric-energy-interface", modded = true)
 public class TurbineRendering extends ElectricEnergyInterfaceRendering {
 
 	@Override
