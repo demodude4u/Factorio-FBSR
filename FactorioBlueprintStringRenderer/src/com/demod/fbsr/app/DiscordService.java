@@ -931,58 +931,50 @@ public class DiscordService extends AbstractIdleService {
 	private void handleBookDirectoryCommand_dirWalk(int level, boolean ending, StringWriter sw,
 			BSBlueprintString blueprintString) {
 		if (blueprintString.blueprint.isPresent()) {
-			sw.append('`');
-			for (int i = 0; i < level; i++) {
-				sw.append(' ');
-				if (i == level - 1) {
-					if (ending) {
-						sw.append('\u2514'); // single up and single right
-					} else {
-						sw.append('\u251C'); // single vertical and single right
-					}
-				} else {
-					sw.append('\u2502'); // single vertical
-				}
-			}
-			sw.append('\u2500'); // single horizontal
-			sw.append('\u2500'); // single horizontal
-			sw.append(' ');
-			sw.append(blueprintString.blueprint.get().label.orElse("Untitled Blueprint"));
-			sw.append('`');
-			sw.append('\n');
+			String label = blueprintString.blueprint.get().label.orElse("Untitled Blueprint");
+			appendTreeLine(sw, level, ending, label);
 
 		} else if (blueprintString.blueprintBook.isPresent()) {
 			BSBlueprintBook book = blueprintString.blueprintBook.get();
-			sw.append('`');
-			for (int i = 0; i < level; i++) {
-				sw.append(' ');
-				if (i == level - 1) {
-					if (ending && book.blueprints.isEmpty()) {
-						sw.append('\u2558'); // single up and double right
-					} else {
-						sw.append('\u255E'); // single vertical and double right
-					}
-				} else {
-					sw.append('\u2502'); // single vertical
-				}
-			}
-			if (book.blueprints.isEmpty()) {
-				sw.append('\u2550'); // double horizontal
-				sw.append('\u2550'); // double horizontal
-			} else {
-				sw.append('\u2550'); // double horizontal
-				sw.append('\u2564'); // double horizontal and single down
-			}
-			sw.append(' ');
-			sw.append(book.label.orElse("Untitled Book"));
-			sw.append('`');
-			sw.append('\n');
+			String label = book.label.orElse("Untitled Book");
+			appendTreeLine(sw, level, ending && book.blueprints.isEmpty(), label);
+
 			List<BSBlueprintString> blueprints = book.blueprints;
 			for (int i = 0; i < blueprints.size(); i++) {
 				BSBlueprintString child = blueprints.get(i);
 				handleBookDirectoryCommand_dirWalk(level + 1, i == blueprints.size() - 1, sw, child);
 			}
 		}
+	}
+
+	private void appendTreeLine(StringWriter sw, int level, boolean ending, String label) {
+		sw.append('`');
+		for (int i = 0; i < level; i++) {
+			sw.append(' ');
+			if (i == level - 1) {
+				sw.append(ending ? '\u2514' : '\u251C'); // single up and single right or single vertical and single right
+			} else {
+				sw.append('\u2502'); // single vertical
+			}
+		}
+		sw.append('\u2500').append('\u2500').append(' '); // single horizontal x2 and space
+
+		int maxLineLength = 65 - (level * 2 + 4); // Adjust for indentation and tree symbols
+		while (label.length() > maxLineLength) {
+			sw.append(label, 0, maxLineLength).append('`').append('\n');
+			sw.append('`');
+			for (int i = 0; i < level; i++) {
+				sw.append(' ');
+				if (i == level - 1) {
+					sw.append(ending ? ' ' : '\u2502'); // space or single vertical for continuation
+				} else {
+					sw.append('\u2502'); // single vertical
+				}
+			}
+			sw.append(' ').append(' ').append(' ').append(' '); // Indent for wrapped line
+			label = label.substring(maxLineLength);
+		}
+		sw.append(label).append('`').append('\n');
 	}
 
 	private void handleShowEntityCommand(SlashCommandEvent event) {
