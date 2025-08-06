@@ -334,7 +334,7 @@ public final class BlueprintFinder {
 
 					Provider.Listener listener = in -> {
 						List<Exception> tryExceptions = new ArrayList<>();
-						for (int tries = 6; tries >= 0; tries--) {
+						for (int tries = 2; tries >= 0; tries--) {
 							try {
 								findBlueprints(in.get(), linked, linkLabel, linkUrl, results);
 								break;
