@@ -239,9 +239,9 @@ public class CmdConfig {
 
         try {
             Desktop desktop = Desktop.getDesktop();
-            desktop.edit(configFile);
+            desktop.open(configFile);
             System.out.println("Opened configuration file in editor: " + Config.getPath());
-            System.out.println("When done editing, run the `config reload` command to apply changes.");
+            System.out.println("When done editing, run the `cfg-reload` command to apply changes.");
         } catch (IOException e) {
             System.out.println("Failed to open configuration file in editor: " + e.getMessage());
         }
