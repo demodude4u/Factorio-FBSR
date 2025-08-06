@@ -31,7 +31,7 @@ public class FBSRApps {
 		}
 	}
 
-	public static synchronized boolean start() {
+	public static synchronized boolean start(List<String> requestedProfiles) {
 		if (started) {
 			LOGGER.info("Services are already started.");
 			return true;
@@ -42,7 +42,7 @@ public class FBSRApps {
 		addServiceIfEnabled(services, "webapi", WebAPIService::new);
 		services.add(new LoggingService());
 		services.add(new RPCService());
-		services.add(new FactorioService());
+		services.add(new FactorioService(requestedProfiles));
 		
 		for (Service service : services) {
 			ServiceFinder.addService(service);

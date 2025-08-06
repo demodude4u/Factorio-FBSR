@@ -15,6 +15,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.json.JSONObject;
+import org.rapidoid.annotation.Param;
 import org.rapidoid.data.JSON;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,6 +39,7 @@ public class CmdBot {
 
     @Command(name = "bot-run", description = "Run Blueprint Bot")
     public static void runBot(
+        @Parameters(arity = "0..*", description = "Profiles to be loaded", paramLabel = "<PROFILE>") List<String> requestedProfiles,
         @Option(names = "-ignore-not-ready", description = "Ignore profiles that are not ready", defaultValue = "false") boolean ignoreNotReady,
         @Option(names = "-require-all-enabled", description = "Require all profiles to be enabled and ready before starting the bot", defaultValue = "false") boolean requireAllEnabled
     ) {
@@ -45,7 +47,7 @@ public class CmdBot {
             return;
         }
 
-        if (!FBSRApps.start()) {
+        if (!FBSRApps.start(requestedProfiles)) {
             LOGGER.error("Failed to start Blueprint Bot service. Please check the configuration and try again.");
             return;
         }
