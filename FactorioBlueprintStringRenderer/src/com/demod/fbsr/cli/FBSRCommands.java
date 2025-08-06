@@ -113,12 +113,12 @@ public class FBSRCommands {
         } else if (!Profile.listProfiles().stream().allMatch(p -> !p.isEnabled() || p.isReady())) {
             System.out.println();
             System.out.println("WARNING: Not all profiles are ready! Type 'build -all' to build all profiles.");
-            cmd.execute("profile-list");
+            cmd.execute("profile-status","-all");
 
         } else if (Profile.listProfiles().stream().anyMatch(p -> !p.getWarnings().isEmpty())) {
             System.out.println();
             System.out.println("WARNING: Some profiles have warnings!");
-            cmd.execute("profile-list");
+            cmd.execute("profile-status", "-all");
 
         } else {
             System.out.println();

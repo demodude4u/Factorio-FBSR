@@ -1014,7 +1014,7 @@ public class Profile {
     }
 
     public boolean cleanManifest() {
-        return fileManifest.delete();
+        return !fileManifest.exists() || fileManifest.delete();
     }
 
     public boolean cleanAllDownloads() {
@@ -1090,7 +1090,7 @@ public class Profile {
         return true;
     }
 
-    public boolean cleanAssets() {
+    public boolean deleteAssets() {
         if (fileAssets.exists() && !fileAssets.delete()) {
             System.out.println("Failed to delete assets file: " + fileAssets.getAbsolutePath());
             return false;
@@ -1272,7 +1272,7 @@ public class Profile {
 
         cleanInvalidDownloads();
         cleanDump();
-        cleanAssets();
+        deleteAssets();
 
         return true;
     }
@@ -1328,7 +1328,7 @@ public class Profile {
 		}
 	}
 
-    public boolean buildDownload(boolean force) {
+    public boolean buildDownload() {
 
         if (!hasManifest()) {
             System.out.println("Profile " + folderProfile.getName() + " does not have a manifest.");
@@ -1356,8 +1356,7 @@ public class Profile {
                 String sha1 = jsonZip.optString(1);
                 
                 File target = new File(folderBuildMods, key);
-                if (force || !target.exists()) {
-
+                if (!target.exists()) {
                     try {
                         if (authString == null) {
                             authString = FactorioModPortal.getAuthParams(username, password);
@@ -1375,7 +1374,7 @@ public class Profile {
 
         cleanInvalidDownloads();
         cleanDump();
-        cleanAssets();
+        deleteAssets();
 
         if (modLoader != null) {
             modLoader.reload();
@@ -1428,7 +1427,7 @@ public class Profile {
             return false;
         }
 
-        cleanAssets();
+        deleteAssets();
 
         return true;
     }
@@ -1506,20 +1505,32 @@ public class Profile {
 
         fileAssets.getParentFile().mkdirs();
 
-        boolean delete = false;
-        try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(fileAssets))) {
+        File fileAssetsTemp = new File(fileAssets.getAbsolutePath() + ".tmp");
+        if (fileAssetsTemp.exists()) {
+            if (!fileAssetsTemp.delete()) {
+                System.out.println("Failed to delete old assets temp file: " + fileAssetsTemp.getAbsolutePath());
+                return false;
+            }
+        }
+
+        if (fileAssets.exists()) {
+            if (!fileAssets.delete()) {
+                System.out.println("Failed to delete old assets file: " + fileAssets.getAbsolutePath());
+                return false;
+            }
+        }
+
+        boolean success = false;
+        try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(fileAssetsTemp))) {
             zos.setLevel(Deflater.BEST_COMPRESSION);
             
             if (!copyIntoZip(zos, fileProfile, ASSETS_ZIP_PROFILE_JSON)) {
-                delete = true;
                 return false;
             }
             if (!copyIntoZip(zos, fileScriptOutputDumpJson, ASSETS_ZIP_DUMP_JSON)) {
-                delete = true;
                 return false;
             }
             if (!copyIntoZip(zos, fileScriptOutputVersion, ASSETS_ZIP_VERSION_TXT)) {
-                delete = true;
                 return false;
             }
             
@@ -1529,7 +1540,6 @@ public class Profile {
                 Optional<JSONObject> optJsonRendering = generateRenderingConfiguration(profileVanilla);
                 if (!optJsonRendering.isPresent()) {
                     System.out.println("Failed to generate rendering configuration for profile: " + folderProfile.getName());
-                    delete = true;
                     return false;
                 }
                 jsonRendering = optJsonRendering.get();
@@ -1541,22 +1551,24 @@ public class Profile {
 
             if (!FBSR.populateAssets(this, jsonRendering, zos)) {
                 System.out.println("Failed to populate assets for profile: " + folderProfile.getName());
-                delete = true;
+                return false;
+            }
+
+            zos.close();
+
+            if (!fileAssetsTemp.renameTo(fileAssets)) {
+                System.out.println("Failed to rename temp assets file to final assets file: " + fileAssetsTemp.getAbsolutePath() + " ==> " + fileAssets.getAbsolutePath());
                 return false;
             }
         } catch (IOException e) {
             System.out.println("Failed to create assets zip for profile: " + folderProfile.getName());
             e.printStackTrace();
-            delete = true;
             return false;
         } finally {
-            if (delete) {
-                if (!fileAssets.delete()) {
-                    System.out.println("Failed to delete assets file: " + fileAssets.getAbsolutePath());
-                }
+            if (fileAssetsTemp.exists() && !fileAssetsTemp.delete()) {
+                System.out.println("Failed to delete temp assets file: " + fileAssetsTemp.getAbsolutePath());
             }
         }
-
 
         return true;
     }

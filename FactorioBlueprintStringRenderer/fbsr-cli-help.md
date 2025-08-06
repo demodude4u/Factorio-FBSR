@@ -30,13 +30,8 @@ Commands:
   build-dump               Dump factorio data
   build-assets             Generate assets
   build-manifest           Build the manifest
-  clean                    Clean all build and generated data
-  clean-build              Clean the build folder
-  clean-download           Clean all downloaded mods
-  clean-download-invalid   Clean invalid downloaded mods
-  clean-dump               Clean dumped factorio data
-  clean-data               Clean generated data
-  clean-manifest           Clean the manifest
+  clean-assets             Delete the generated assets
+  clean-build              Delete the build files (including downloaded mods)
   profile-new              Create a new profile
   profile-delete           Delete a profile
   profile-disable          Disable a profile
@@ -45,7 +40,6 @@ Commands:
   profile-explore          Open file manager for the specified profile
   profile-default-vanilla  Generate default vanilla profile
   profile-status           Get the status of a profile
-  profile-list             List all profiles or mods
   profile-factorio         Run Factorio with the specified profile
   profile-test-entity      Render test image of an entity
   profile-test             Render test blueprints
@@ -290,125 +284,74 @@ Show current configuration
 ## `build` — Build all steps
 
 ```
-Usage:   build [-force] [-force-assets] [-force-download] [-force-dump]
-               ([<PROFILE>] | -all)
+Usage:   build [-force] [-force-assets] [-force-dump] (<PROFILE>... | -all)
 Build all steps
-      [<PROFILE>]       Name of the profile
-      -all              Apply to all profiles
-      -force            Force regeneration of all steps, even if they already
-                          exist
-      -force-assets     Force regeneration of assets
-      -force-download   Force redownload of mods, even if they are already
-                          downloaded
-      -force-dump       Force regeneration of factorio dump
+      <PROFILE>...    Name of the profile
+      -all            Apply to all profiles
+      -force          Force regeneration of all steps, even if they already
+                        exist
+      -force-assets   Force regeneration of assets
+      -force-dump     Force regeneration of factorio dump
 
 ```
 ## `build-download` — Download mods
 
 ```
-Usage:   build-download [-force-download] ([<PROFILE>] | -all)
+Usage:   build-download (<PROFILE>... | -all)
 Download mods
-      [<PROFILE>]       Name of the profile
-      -all              Apply to all profiles
-      -force-download   Force redownload of mods, even if they are already
-                          downloaded
+      <PROFILE>...   Name of the profile
+      -all           Apply to all profiles
 
 ```
 ## `build-dump` — Dump factorio data
 
 ```
-Usage:   build-dump [-force] ([<PROFILE>] | -all)
+Usage:   build-dump [-force] (<PROFILE>... | -all)
 Dump factorio data
-      [<PROFILE>]   Name of the profile
-      -all          Apply to all profiles
-      -force        Force regeneration of the manifest, even if it already
-                      exists
+      <PROFILE>...   Name of the profile
+      -all           Apply to all profiles
+      -force         Force regeneration of the manifest, even if it already
+                       exists
 
 ```
 ## `build-assets` — Generate assets
 
 ```
-Usage:   build-assets [-force] ([<PROFILE>] | -all)
+Usage:   build-assets [-force] (<PROFILE>... | -all)
 Generate assets
-      [<PROFILE>]   Name of the profile
-      -all          Apply to all profiles
-      -force        Force regeneration of the assets, even if they already exist
+      <PROFILE>...   Name of the profile
+      -all           Apply to all profiles
+      -force         Force regeneration of the assets, even if they already
+                       exist
 
 ```
 ## `build-manifest` — Build the manifest
 
 ```
-Usage:   build-manifest [-force] ([<PROFILE>] | -all)
+Usage:   build-manifest [-force] (<PROFILE>... | -all)
 Build the manifest
-      [<PROFILE>]   Name of the profile
-      -all          Apply to all profiles
-      -force        Force regeneration of the manifest, even if it already
-                      exists
+      <PROFILE>...   Name of the profile
+      -all           Apply to all profiles
+      -force         Force regeneration of the manifest, even if it already
+                       exists
 
 ```
-## `clean` — Clean all build and generated data
+## `clean-assets` — Delete the generated assets
 
 ```
-Usage:   clean [-delete-build] ([<PROFILE>] | -all)
-Clean all build and generated data
-      [<PROFILE>]     Name of the profile
-      -all            Apply to all profiles
-      -delete-build   Delete build folder (including downloaded mods) when
-                        cleaning all data
+Usage:   clean-assets (<PROFILE>... | -all)
+Delete the generated assets
+      <PROFILE>...   Name of the profile
+      -all           Apply to all profiles
 
 ```
-## `clean-build` — Clean the build folder
+## `clean-build` — Delete the build files (including downloaded mods)
 
 ```
-Usage:   clean-build ([<PROFILE>] | -all)
-Clean the build folder
-      [<PROFILE>]   Name of the profile
-      -all          Apply to all profiles
-
-```
-## `clean-download` — Clean all downloaded mods
-
-```
-Usage:   clean-download ([<PROFILE>] | -all)
-Clean all downloaded mods
-      [<PROFILE>]   Name of the profile
-      -all          Apply to all profiles
-
-```
-## `clean-download-invalid` — Clean invalid downloaded mods
-
-```
-Usage:   clean-download-invalid ([<PROFILE>] | -all)
-Clean invalid downloaded mods
-      [<PROFILE>]   Name of the profile
-      -all          Apply to all profiles
-
-```
-## `clean-dump` — Clean dumped factorio data
-
-```
-Usage:   clean-dump ([<PROFILE>] | -all)
-Clean dumped factorio data
-      [<PROFILE>]   Name of the profile
-      -all          Apply to all profiles
-
-```
-## `clean-data` — Clean generated data
-
-```
-Usage:   clean-data ([<PROFILE>] | -all)
-Clean generated data
-      [<PROFILE>]   Name of the profile
-      -all          Apply to all profiles
-
-```
-## `clean-manifest` — Clean the manifest
-
-```
-Usage:   clean-manifest ([<PROFILE>] | -all)
-Clean the manifest
-      [<PROFILE>]   Name of the profile
-      -all          Apply to all profiles
+Usage:   clean-build (<PROFILE>... | -all)
+Delete the build files (including downloaded mods)
+      <PROFILE>...   Name of the profile
+      -all           Apply to all profiles
 
 ```
 ## `profile-new` — Create a new profile
@@ -432,10 +375,10 @@ Delete a profile
 ## `profile-disable` — Disable a profile
 
 ```
-Usage:   profile-disable ([<PROFILE>] | -all)
+Usage:   profile-disable (<PROFILE>... | -all)
 Disable a profile
-      [<PROFILE>]   Name of the profile
-      -all          Apply to all profiles
+      <PROFILE>...   Name of the profile
+      -all           Apply to all profiles
 
 ```
 ## `profile-edit` — Open the profile configuration file in the default editor
@@ -449,10 +392,10 @@ Open the profile configuration file in the default editor
 ## `profile-enable` — Enable a profile
 
 ```
-Usage:   profile-enable ([<PROFILE>] | -all)
+Usage:   profile-enable (<PROFILE>... | -all)
 Enable a profile
-      [<PROFILE>]   Name of the profile
-      -all          Apply to all profiles
+      <PROFILE>...   Name of the profile
+      -all           Apply to all profiles
 
 ```
 ## `profile-explore` — Open file manager for the specified profile
@@ -477,19 +420,12 @@ Generate default vanilla profile
 ## `profile-status` — Get the status of a profile
 
 ```
-Usage:   profile-status [-detailed] <PROFILE>
+Usage:   profile-status [-detailed] [-enabled] (<PROFILE>... | -all)
 Get the status of a profile
-      <PROFILE>   Name of the profile
-      -detailed   Include detailed information about the profile
-
-```
-## `profile-list` — List all profiles or mods
-
-```
-Usage:   profile-list [-detailed] [-filter=<PROFILE>]
-List all profiles or mods
-      -detailed           Include mods in the profile listing
-      -filter=<PROFILE>   Filter profiles by name (partial match)
+      <PROFILE>...   Name of the profile
+      -all           Apply to all profiles
+      -detailed      Include detailed information about the profile
+      -enabled       Include only enabled profiles
 
 ```
 ## `profile-factorio` — Run Factorio with the specified profile
@@ -518,22 +454,19 @@ Render test image of an entity
 ## `profile-test` — Render test blueprints
 
 ```
-Usage:   profile-test [-ignore-disabled] [-ignore-not-ready] ([<PROFILE>] |
-                      -all)
+Usage:   profile-test (<PROFILE>... | -all)
 Render test blueprints
-      [<PROFILE>]         Name of the profile
-      -all                Apply to all profiles
-      -ignore-disabled    Ignore testing disabled profile(s)
-      -ignore-not-ready   Ignore testing not ready profile(s)
+      <PROFILE>...   Name of the profile
+      -all           Apply to all profiles
 
 ```
 ## `profile-update-mods` — Update mod versions
 
 ```
-Usage:   profile-update-mods ([<PROFILE>] | -all)
+Usage:   profile-update-mods (<PROFILE>... | -all)
 Update mod versions
-      [<PROFILE>]   Name of the profile
-      -all          Apply to all profiles
+      <PROFILE>...   Name of the profile
+      -all           Apply to all profiles
 
 ```
 ## `dump-entity` — Dump an entity prototype from factorio data
