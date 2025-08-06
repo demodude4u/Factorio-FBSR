@@ -11,7 +11,7 @@ public class TurbineRendering extends ElectricEnergyInterfaceRendering {
 	@Override
 	public void defineEntity(EntityRendering.Bindings bind, LuaTable lua) {
 		String realEntity = lua.get("placeable_by").get("item").tojstring();
-		super.defineEntity(bind, profile.getFactorioData().getTable().getEntity(realEntity).get().lua());
+		super.defineEntity(bind, prototype.getTable().getEntity(realEntity).get().lua());
 	}
 
 }
