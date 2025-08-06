@@ -302,9 +302,15 @@ public class GUILayoutBook {
 		guiStyle.PIPE.renderDynamicGrid(g, pipeX, pipeY, cellWidth, cellHeight, packBounds, groupings);
 		g.setComposite(pc);
 
-		GUIBox boundsCell = bounds.cutTop(28).cutRight(100);
-
-		Font fontMod = guiStyle.FONT_BP_BOLD.deriveFont(15f);
+		GUIBox boundsCell;
+		Font fontMod;
+		if (spaceAgeMods.size() + mods.size() > 4) {
+			boundsCell = bounds.cutTop(20).cutRight(80);
+			fontMod = guiStyle.FONT_BP_BOLD.deriveFont(10f);
+		} else {
+			boundsCell = bounds.cutTop(28).cutRight(100);
+			fontMod = guiStyle.FONT_BP_BOLD.deriveFont(15f);
+		}
 
 		FontMetrics fm = g.getFontMetrics(fontMod);
 		for (String mod : spaceAgeMods) {
