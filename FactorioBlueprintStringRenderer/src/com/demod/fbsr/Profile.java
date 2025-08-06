@@ -895,12 +895,12 @@ public class Profile {
                         }
 
                         Optional<Collection<String>> overrideMods;
-                        if (jsonProfileEntityOverrides.has(t.getName())) {
-                            if (jsonProfileEntityOverrides.isNull(t.getName())) {
+                        if (jsonProfileTileOverrides.has(t.getName())) {
+                            if (jsonProfileTileOverrides.isNull(t.getName())) {
                                 return;
                             }
 
-                            JSONObject jsonOverride = jsonProfileEntityOverrides.getJSONObject(t.getName());
+                            JSONObject jsonOverride = jsonProfileTileOverrides.getJSONObject(t.getName());
                             if (jsonOverride.has("mods")) {
                                 JSONArray jsonMods = jsonOverride.getJSONArray("mods");
                                 overrideMods = Optional.of(jsonMods.toList().stream()
