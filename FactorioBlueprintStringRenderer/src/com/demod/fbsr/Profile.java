@@ -424,6 +424,14 @@ public class Profile {
     }
 
     public List<ProfileWarning> getWarnings() {
+        if (!isValid()) {
+            return ImmutableList.of();
+        }
+
+        if (!isEnabled()) {
+            return ImmutableList.of();
+        } 
+        
         List<ProfileWarning> warnings = new ArrayList<>();
 
         if (hasVersionMismatch()) {
@@ -439,15 +447,14 @@ public class Profile {
 
     public ProfileStatus getStatus() {
 
-        if (hasAssets()) {
-            return ProfileStatus.READY;
-        }
-
         if (!isValid()) {
             return ProfileStatus.INVALID;
 
         } else if (!isEnabled()) {
             return ProfileStatus.DISABLED;
+
+        } else if (hasAssets()) {
+            return ProfileStatus.READY;
 
         } else if (hasDump() && hasDownloaded()) {
             if (FactorioManager.hasFactorioInstall()) {
