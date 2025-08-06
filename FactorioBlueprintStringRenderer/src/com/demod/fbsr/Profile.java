@@ -1024,11 +1024,9 @@ public class Profile {
             }
         }
 
-        if (fileModList.exists()) {
-            if (!fileModList.delete()) {
-                System.out.println("Failed to delete mod list file: " + fileModList.getAbsolutePath());
-                return false;
-            }
+        if (fileModList.exists() && !fileModList.delete()) {
+            System.out.println("Failed to delete mod list file: " + fileModList.getAbsolutePath());
+            return false;
         }
 
         if (modLoader != null) {
@@ -1074,11 +1072,11 @@ public class Profile {
     }
 
     public boolean cleanDump() {
-        if (!fileScriptOutputDumpJson.delete()) {
+        if (fileScriptOutputDumpJson.exists() && !fileScriptOutputDumpJson.delete()) {
             System.out.println("Failed to delete dump file: " + fileScriptOutputDumpJson.getAbsolutePath());
             return false;
         }
-        if (!fileScriptOutputVersion.delete()) {
+        if (fileScriptOutputVersion.exists() && !fileScriptOutputVersion.delete()) {
             System.out.println("Failed to delete version file: " + fileScriptOutputVersion.getAbsolutePath());
             return false;
         }
@@ -1086,7 +1084,7 @@ public class Profile {
     }
 
     public boolean cleanAssets() {
-        if (!fileAssets.delete()) {
+        if (fileAssets.exists() && !fileAssets.delete()) {
             System.out.println("Failed to delete assets file: " + fileAssets.getAbsolutePath());
             return false;
         }
