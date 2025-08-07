@@ -1716,6 +1716,10 @@ public class Profile {
     }
 
     private static boolean writeJsonFile(File file, JSONObject json) {
+        if (file.getParentFile() != null && !file.getParentFile().exists()) {
+            file.getParentFile().mkdirs();
+        }
+
         try (FileWriter fw = new FileWriter(file)) {
             fw.write(json.toString(2));
             return true;
@@ -1726,6 +1730,10 @@ public class Profile {
     }
 
     private static boolean writeProfileSortedJsonFile(File file, JSONObject json) {
+        if (file.getParentFile() != null && !file.getParentFile().exists()) {
+            file.getParentFile().mkdirs();
+        }
+
         try (FileWriter fw = new FileWriter(file)) {
             List<String> preferredOrder = Arrays.asList("enabled", "mods", "mod-overrides", "entity-overrides", "tile-overrides");
 
