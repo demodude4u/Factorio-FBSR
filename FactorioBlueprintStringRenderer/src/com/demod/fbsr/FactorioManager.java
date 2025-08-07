@@ -68,12 +68,12 @@ public class FactorioManager {
 	public static void reloadConfig() {
 		Config.setPath(Config.getPath()); // Ensure we have the latest config
 		
-		JSONObject json = Config.get().getJSONObject("factorio");
+		JSONObject jsonFactorio = Config.get().getJSONObject("factorio");
 		
-		if (json.has("install")) {
+		if (jsonFactorio.has("install")) {
 			hasFactorioInstall = true;
-			factorioInstall = new File(json.getString("install"));
-			factorioExecutableOverride = Optional.ofNullable(json.optString("executable", null)).map(path ->new File(factorioInstall, path));
+			factorioInstall = new File(jsonFactorio.getString("install"));
+			factorioExecutableOverride = Optional.ofNullable(jsonFactorio.optString("executable", null)).map(path ->new File(factorioInstall, path));
 			factorioVersion = FactorioData.getVersionFromInstall(factorioInstall, factorioExecutableOverride).get();
 		} else {
 			hasFactorioInstall = false;
@@ -82,17 +82,12 @@ public class FactorioManager {
 			factorioVersion = null;
 		}
 
-		if (json.has("portal")) {
-			JSONObject jsonPortalAPI = json.getJSONObject("portal");
-			if (jsonPortalAPI.has("username") && jsonPortalAPI.has("password")) {
-				hasModPortalApi = true;
-				modPortalApiUsername = jsonPortalAPI.getString("username");
-				modPortalApiPassword = jsonPortalAPI.getString("password");
-			} else {
-				hasModPortalApi = false;
-				modPortalApiUsername = null;
-				modPortalApiPassword = null;
-			}
+		JSONObject jsonModPortal = Config.get().getJSONObject("modportal");
+
+		if (!jsonModPortal.isNull("username") && !jsonModPortal.isNull("password")) {
+			hasModPortalApi = true;
+			modPortalApiUsername = jsonModPortal.getString("username");
+			modPortalApiPassword = jsonModPortal.getString("password");
 		} else {
 			hasModPortalApi = false;
 			modPortalApiUsername = null;

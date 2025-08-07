@@ -131,7 +131,7 @@ public class CmdProfile {
     @Command(name = "profile-new", description = "Create a new profile")
     public static void createNew(
             @Parameters(arity = "1", description = "Name of the profile to select", paramLabel = "<PROFILE>") String name,
-            @Parameters(description = "List of mods to include in the profile", paramLabel = "<MODS>") String[] mods
+            @Parameters(arity = "1..*", description = "List of mods to include in the profile", paramLabel = "<MODS>") String[] mods
     ) {
         Profile profile = Profile.byName(name);
         if (profile.generateProfile(mods)) {
@@ -276,32 +276,65 @@ public class CmdProfile {
         printProfileStatus(profileSelect, false, false);
     }
 
-    @Command(name = "profile-delete", description = "Delete a profile")
+    private static class DeleteSelection {
+        @Option(names = "-profile", description = "Delete the profile folder") boolean profile;
+        @Option(names = "-build", description = "Delete the build folder") boolean build;
+        @Option(names = "-assets", description = "Delete the assets zip") boolean assets;
+    }
+    @Command(name = "profile-delete", description = "Delete profile, build, or assets data")
     public static void deleteProfile(
-            @Parameters(arity = "1", description = "Name of the profile", paramLabel = "<PROFILE>") String name,
+            @ArgGroup(exclusive = true, multiplicity = "1") ProfileSelect profileSelect,
+            @ArgGroup(exclusive = false, multiplicity = "1") DeleteSelection deleteSelection,
             @Option(names = "-confirm", description = "Skip confirmation prompt") boolean confirm
     ) {
-        Profile profile = Profile.byName(name);
-        if (!profile.getFolderProfile().exists()) {
-            System.out.println("Profile not found: " + name);
-            return;
-        }
-
+        profileSelect.forEach((profile, result) -> {
+            if (deleteSelection.profile && profile.getFolderProfile().exists()) {
+                result.println("Deleting profile folder: " + profile.getFolderProfile().getName());
+            }
+            if (deleteSelection.build && profile.getFolderBuild().exists()) {
+                result.println("Deleting build folder: " + profile.getFolderBuild().getName());
+            }
+            if (deleteSelection.assets && profile.getFileAssets().exists()) {
+                result.println("Deleting assets file: " + profile.getFileAssets().getName());
+            }
+        });
+        
+        List<Profile> profiles = profileSelect.get();
+        boolean justOneProfile = profiles.size() == 1;
         if (!confirm) {
-            System.out.print("Type the profile name (" + profile.getName() + ") to confirm deletion: ");
+            String confirmMatch = justOneProfile ? profiles.get(0).getName() : "confirm";
+            System.out.print("Type `" + confirmMatch + "` to confirm deletion: ");
             @SuppressWarnings("resource")
             String input = new java.util.Scanner(System.in).nextLine();
-            if (!input.equals(profile.getName())) {
-                System.out.println("Confirmation failed. Profile deletion aborted.");
+            if (!input.equals(confirmMatch)) {
+                System.out.println("Confirmation failed. Deletion aborted.");
                 return;
             }
         }
 
-        if (profile.delete()) {
-            System.out.println("Profile deleted successfully: " + profile.getName());
-        } else {
-            System.out.println("Failed to delete profile: " + profile.getName());
-        }
+        profileSelect.forEach((profile, result) -> {
+            if (deleteSelection.profile && profile.getFolderProfile().exists()) {
+                if (profile.deleteProfile()) {
+                    result.println("Profile folder deleted successfully: " + profile.getName());
+                } else {
+                    result.println("Failed to delete profile folder: " + profile.getName());
+                }
+            }
+            if (deleteSelection.build && profile.getFolderBuild().exists()) {
+                if (profile.deleteBuild()) {
+                    result.println("Build folder deleted successfully: " + profile.getName());
+                } else {
+                    result.println("Failed to delete build folder: " + profile.getName());
+                }
+            }
+            if (deleteSelection.assets && profile.getFileAssets().exists()) {
+                if (profile.deleteAssets()) {
+                    result.println("Assets file deleted successfully: " + profile.getName());
+                } else {
+                    result.println("Failed to delete assets file: " + profile.getName());
+                }
+            }
+        });
     }
 
     @Command(name = "profile-factorio", description = "Run Factorio with the specified profile")
@@ -321,7 +354,7 @@ public class CmdProfile {
 
     private static class ExploreAlternatives {
         @Option(names = "-build", description = "Open the build folder instead of the profile folder") boolean build;
-        @Option(names = "-assets", description = "Open the assets folder instead of the profile folder") boolean assets;
+        @Option(names = "-assets", description = "Open the assets zip instead of the profile folder") boolean assets;
     }
 
     @Command(name = "profile-explore", description = "Open file manager for the specified profile")

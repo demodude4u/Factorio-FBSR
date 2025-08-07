@@ -158,7 +158,7 @@ public class Profile {
     private IconManager iconManager;
 
     public static Profile byName(String name) {
-        JSONObject json = Config.get().getJSONObject("factorio");
+        JSONObject json = Config.get().getJSONObject("fbsr");
         File folderProfileRoot = new File(json.optString("profiles", "profiles"));
         File folderBuildRoot = new File(json.optString("build", "build"));
         File folderAssets = new File(json.optString("assets", "assets"));
@@ -634,19 +634,19 @@ public class Profile {
     }
 
     public static boolean generateDefaultVanillaProfile(boolean force) {
-        Profile editor = Profile.vanilla();
-        if (editor.isValid()) {
-            if (!force) {
-                System.out.println("Default vanilla profile already exists.");
-                return false;
-            }
-            if (!editor.delete()) {
-                System.out.println("Failed to delete old vanilla profile: " + editor.getFolderProfile().getAbsolutePath());
-                return false;
-            }
+        Profile profileVanilla = Profile.vanilla();
+        if (!profileVanilla.deleteProfile()) {
+            System.out.println("Failed to delete old vanilla profile folder: " + profileVanilla.getFolderProfile().getAbsolutePath());
+            return false;
+        }
+        if (!profileVanilla.deleteBuild()) {
+            System.out.println("Failed to delete old vanilla build folder: " + profileVanilla.getFolderBuild().getAbsolutePath());
+        }
+        if (!profileVanilla.deleteAssets()) {
+            System.out.println("Failed to delete old vanilla assets file: " + profileVanilla.getFileAssets().getAbsolutePath());
         }
         
-        File folderProfile = editor.getFolderProfile();
+        File folderProfile = profileVanilla.getFolderProfile();
         folderProfile.mkdirs();
         try (InputStream is = Profile.class.getClassLoader().getResourceAsStream("profile-vanilla.json")) {
             Files.copy(is, new File(folderProfile, "profile.json").toPath(), StandardCopyOption.REPLACE_EXISTING);
@@ -1090,35 +1090,8 @@ public class Profile {
         return true;
     }
 
-    public boolean deleteAssets() {
-        if (fileAssets.exists() && !fileAssets.delete()) {
-            System.out.println("Failed to delete assets file: " + fileAssets.getAbsolutePath());
-            return false;
-        }
-        return true;
-    }
-
-    public boolean delete() {
+    public boolean deleteProfile() {
         AtomicBoolean success = new AtomicBoolean(true);
-
-        // Delete all files and subdirectories in the build folder
-        if (folderBuild.exists()) {
-            try {
-                Files.walk(folderBuild.toPath())
-                    .map(Path::toFile)
-                    .sorted((f1, f2) -> f2.getAbsolutePath().length() - f1.getAbsolutePath().length()) // Delete children first
-                    .forEach(file -> {
-                        if (!file.delete()) {
-                            success.set(false);
-                            System.out.println("Failed to delete: " + file.getAbsolutePath());
-                        }
-                    });
-            } catch (IOException e) {
-                e.printStackTrace();
-                success.set(false);
-                System.out.println("Failed to delete: " + e.getMessage());
-            }
-        }
 
         // Delete all files and subdirectories in the profile folder
         if (folderProfile.exists()) {
@@ -1136,6 +1109,14 @@ public class Profile {
                 e.printStackTrace();
                 success.set(false);
                 System.out.println("Failed to delete: " + e.getMessage());
+            }
+        }
+
+        if (success.get() && folderProfile.getParentFile() != null && folderProfile.getParentFile().listFiles().length == 0) {
+            // If the parent directory is empty, delete it as well
+            if (!folderProfile.getParentFile().delete()) {
+                success.set(false);
+                System.out.println("Failed to delete empty parent directory: " + folderProfile.getParentFile().getAbsolutePath());
             }
         }
 
@@ -1164,7 +1145,32 @@ public class Profile {
             }
         }
 
+        if (success.get() && folderBuild.getParentFile() != null && folderBuild.getParentFile().listFiles().length == 0) {
+            // If the parent directory is empty, delete it as well
+            if (!folderBuild.getParentFile().delete()) {
+                success.set(false);
+                System.out.println("Failed to delete empty parent directory: " + folderBuild.getParentFile().getAbsolutePath());
+            }
+        }
+
         return success.get();
+    }
+
+    public boolean deleteAssets() {
+        if (fileAssets.exists() && !fileAssets.delete()) {
+            System.out.println("Failed to delete assets file: " + fileAssets.getAbsolutePath());
+            return false;
+        }
+
+        if (fileAssets.getParentFile() != null && fileAssets.getParentFile().listFiles().length == 0) {
+            // If the parent directory is empty, delete it as well
+            if (!fileAssets.getParentFile().delete()) {
+                System.out.println("Failed to delete empty parent directory: " + fileAssets.getParentFile().getAbsolutePath());
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public boolean buildManifest(boolean force) {

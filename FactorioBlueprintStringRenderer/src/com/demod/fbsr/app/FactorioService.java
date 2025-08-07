@@ -26,7 +26,7 @@ public class FactorioService extends AbstractIdleService {
     LOGGER.info("Waiting on RPC service to start...");
     ServiceFinder.findService(RPCService.class).get().awaitRunning();
 
-    if (requestedProfiles.isEmpty()) {
+    if (requestedProfiles == null || requestedProfiles.isEmpty()) {
       if (!FBSR.load()) {
         throw new RuntimeException("Failed to initialize FBSR.");
       }

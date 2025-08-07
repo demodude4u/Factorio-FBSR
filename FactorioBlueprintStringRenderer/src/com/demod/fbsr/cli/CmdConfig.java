@@ -11,6 +11,7 @@ import java.util.Optional;
 import javax.swing.FocusManager;
 
 import org.json.JSONObject;
+import org.rapidoid.data.JSON;
 
 import com.demod.factorio.Config;
 import com.demod.factorio.FactorioData;
@@ -25,136 +26,265 @@ import picocli.CommandLine.Parameters;
 @Command(name = " ", description = "Configuration commands for FBSR")
 public class CmdConfig {
 
-    private static class PortalParams {
-        @Option(names = "-portal-user", description = "Username for Factorio Mod Portal API", required = true) String username;
-        @Option(names = "-portal-pass", description = "Password for Factorio Mod Portal API", required = true) String password;
+    private static class SetupFactorioInstall {
+        @Option(names = "-install", description = "Path to Factorio installation", paramLabel = "<PATH>") Optional<File> folderInstall;
+        @Option(names = "-find-install", description = "Automatically find Factorio installation in common directories") boolean findInstall;
     }
-
-    @Command(name = "cfg-factorio", description = "Setup Factorio configuration")
+    private static class SetupFactorioExecutable {
+        @Option(names = "-executable", description = "Path to Factorio executable (optional)", paramLabel = "<PATH>") Optional<File> fileExecutable;
+        @Option(names = "-auto-find-exec", description = "Automatically find the Factorio executable in the installation folder", defaultValue = "false") boolean autoFindExec;
+    }
+    @Command(name = "cfg-factorio", description = "Modify Factorio configuration")
     public static void setupFactorio(
-            @Option(names = "-install", description = "Path to Factorio installation", required = true, paramLabel = "<PATH>") File folderInstall,
-            @Option(names = "-profiles", description = "Path to profiles directory", defaultValue = "profiles", paramLabel = "<PATH>") File folderProfiles,
-            @Option(names = "-build", description = "Path to build directory", defaultValue = "build", paramLabel = "<PATH>") File folderBuild,
-            @Option(names = "-assets", description = "Path to assets directory", defaultValue = "assets", paramLabel = "<PATH>") File folderAssets,
-            @ArgGroup(exclusive = false, multiplicity = "0..1") PortalParams portalParams
+            @ArgGroup Optional<SetupFactorioInstall> install,
+            @ArgGroup Optional<SetupFactorioExecutable> executable
     ) {
-        JSONObject jsonFactorio = new JSONObject();
-        Utils.terribleHackToHaveOrderedJSONObject(jsonFactorio);
-        jsonFactorio.put("install", folderInstall.getAbsolutePath());
-        jsonFactorio.put("profiles", folderProfiles.getAbsolutePath());
-        jsonFactorio.put("build", folderBuild.getAbsolutePath());
-        jsonFactorio.put("assets", folderAssets.getAbsolutePath());
-
-        if (portalParams != null) {
-            jsonFactorio.put("portal", new JSONObject()
-                    .put("username", portalParams.username)
-                    .put("password", portalParams.password));
+        JSONObject jsonOld = readConfigFeature("factorio");
+        JSONObject json = new JSONObject();
+        Utils.terribleHackToHaveOrderedJSONObject(json);
+        
+        if (install.isPresent()) {
+            if (install.get().findInstall) {
+                Optional<String> defaultFactorioInstall = findDefaultFactorioInstall();
+                if (defaultFactorioInstall.isPresent()) {
+                    json.put("install", defaultFactorioInstall.get());
+                    System.out.println("Factorio install path set to: " + defaultFactorioInstall.get());
+                } else {
+                    System.out.println("Failed to find Factorio installation.");
+                    json.put("install", jsonOld.opt("install"));
+                }
+            } else if (install.get().folderInstall.isPresent()) {
+                json.put("install", install.get().folderInstall.get().getAbsolutePath());
+                System.out.println("Factorio install path set to: " + install.get().folderInstall.get().getAbsolutePath());
+            }
+        } else {
+            json.put("install", jsonOld.opt("install"));
         }
 
-        if (writeConfigFeature("factorio", jsonFactorio)) {
+        if (executable.isPresent()) {
+            if (executable.get().fileExecutable.isPresent()) {
+                json.put("executable", executable.get().fileExecutable.get().getAbsolutePath());
+                System.out.println("Factorio executable set to: " + executable.get().fileExecutable.get().getAbsolutePath());
+            } else if (executable.get().autoFindExec) {
+                json.put("executable", JSONObject.NULL);
+                System.out.println("Factorio executable will be automatically found in the installation folder.");
+            }
+        } else {
+            json.put("executable", jsonOld.opt("executable"));
+        }
+
+        if (writeConfigFeature("factorio", json)) {
             System.out.println("Factorio configuration updated successfully.");
         } else {
             System.out.println("Failed to update Factorio configuration.");
         }
     }
 
-    @Command(name = "cfg-discord", description = "Setup Discord configuration")
-    public static void setupDiscord(
-            @Option(names = "-enabled", description = "Enable Discord Bot", defaultValue = "true", negatable = true) boolean enabled,
-            @Option(names = "-token", description = "Discord Bot Token", required = true, paramLabel = "<TOKEN>") String token,
-            @Option(names = "-hosting", description = "Channel ID for hosting images and blueprints", required = true, paramLabel = "<ID>") String hostingChannelId,
-            @Option(names = "-reporting-user", description = "User ID for reporting commands", paramLabel = "<ID>") Optional<String> reportingUserId,
-            @Option(names = "-reporting-channel", description = "Channel ID for reporting commands", paramLabel = "<ID>") Optional<String> reportingChannelId
+    @Command(name = "cfg-fbsr", description = "Modify FBSR configuration")
+    public static void setupFBSR(
+            @Option(names = "-profiles", description = "Path to profiles directory", paramLabel = "<PATH>") Optional<File> folderProfiles,
+            @Option(names = "-build", description = "Path to build directory", paramLabel = "<PATH>") Optional<File> folderBuild,
+            @Option(names = "-assets", description = "Path to assets directory", paramLabel = "<PATH>") Optional<File> folderAssets
     ) {
-        JSONObject jsonDiscord = new JSONObject();
-        Utils.terribleHackToHaveOrderedJSONObject(jsonDiscord);
-        jsonDiscord.put("enabled", enabled);
-        jsonDiscord.put("bot_token", token);
-        jsonDiscord.put("hosting_channel_id", hostingChannelId);
-        reportingUserId.ifPresent(id -> jsonDiscord.put("reporting_user_id", id));
-        reportingChannelId.ifPresent(id -> jsonDiscord.put("reporting_channel_id", id));
+        JSONObject jsonOld = readConfigFeature("fbsr");
+        JSONObject json = new JSONObject();
+        Utils.terribleHackToHaveOrderedJSONObject(json);
 
-        if (writeConfigFeature("discord", jsonDiscord)) {
+        if (folderProfiles.isPresent()) {
+            folderProfiles.ifPresent(file -> json.put("profiles", file.getAbsolutePath()));
+            System.out.println("FBSR profiles directory set to: " + folderProfiles.get().getAbsolutePath());
+        }
+        else {
+            json.put("profiles", jsonOld.opt("profiles"));
+        }
+
+        if (folderBuild.isPresent()) {
+            folderBuild.ifPresent(file -> json.put("build", file.getAbsolutePath()));
+            System.out.println("FBSR build directory set to: " + folderBuild.get().getAbsolutePath());
+        }
+        else {
+            json.put("build", jsonOld.opt("build"));
+        }
+
+        if (folderAssets.isPresent()) {
+            folderAssets.ifPresent(file -> json.put("assets", file.getAbsolutePath()));
+            System.out.println("FBSR assets directory set to: " + folderAssets.get().getAbsolutePath());
+        }
+        else {
+            json.put("assets", jsonOld.opt("assets"));
+        }
+
+        if (writeConfigFeature("fbsr", json)) {
+            System.out.println("FBSR configuration updated successfully.");
+        } else {
+            System.out.println("Failed to update FBSR configuration.");
+        }
+    }
+
+    @Command(name = "cfg-modportal", description = "Modify Mod Portal configuration")
+    public static void setupModPortal(
+            @Option(names = "-username", description = "Username for Factorio Mod Portal API", required = true, paramLabel = "<USERNAME>") String username,
+            @Option(names = "-password", description = "Password for Factorio Mod Portal API", interactive = true, paramLabel = "<PASSWORD>") String password
+    ) {
+        JSONObject json = new JSONObject();
+        Utils.terribleHackToHaveOrderedJSONObject(json);
+        json.put("username", username);
+        json.put("password", password);
+        System.out.println("Mod Portal username set to: " + username);
+        System.out.println("Mod Portal password set successfully.");
+
+        if (writeConfigFeature("modportal", json)) {
+            System.out.println("Mod Portal configuration updated successfully.");
+        } else {
+            System.out.println("Failed to update Mod Portal configuration.");
+        }
+    }
+
+    private static class SetupEnableDisable {
+        @Option(names = "-enable", description = "Enable the feature") boolean enable;
+        @Option(names = "-disable", description = "Disable the feature") boolean disable;
+    }
+
+    private static class SetupDiscordReportingUser {
+        @Option(names = "-reporting-user", description = "User ID for reporting commands", paramLabel = "<ID>") Optional<String> reportingUserId;
+        @Option(names = "-no-reporting-user", description = "Do not set a reporting user ID") boolean noReportingUserId;
+    }
+    private static class SetupDiscordReportingChannel {
+        @Option(names = "-reporting-channel", description = "Channel ID for reporting commands", paramLabel = "<ID>") Optional<String> reportingChannelId;
+        @Option(names = "-no-reporting-channel", description = "Do not set a reporting channel ID") boolean noReportingChannelId;
+    }
+    @Command(name = "cfg-discord", description = "Modify Discord configuration")
+    public static void setupDiscord(
+            @ArgGroup Optional<SetupEnableDisable> enableDisable,
+            @Option(names = "-token", description = "Discord Bot Token", paramLabel = "<TOKEN>") Optional<String> token,
+            @Option(names = "-hosting", description = "Channel ID for hosting images and blueprints", paramLabel = "<ID>") Optional<String> hostingChannelId,
+            @ArgGroup Optional<SetupDiscordReportingUser> reportingUser,
+            @ArgGroup Optional<SetupDiscordReportingChannel> reportingChannel
+    ) {
+        JSONObject jsonOld = readConfigFeature("discord");
+        JSONObject json = new JSONObject();
+        Utils.terribleHackToHaveOrderedJSONObject(json);
+        
+        if (enableDisable.isPresent()) {
+            if (enableDisable.get().enable) {
+                json.put("enabled", true);
+                System.out.println("Discord feature enabled.");
+            } else if (enableDisable.get().disable) {
+                json.put("enabled", false);
+                System.out.println("Discord feature disabled.");
+            } else {
+                System.out.println("No action specified for Discord feature.");
+                return;
+            }
+        } else {
+            json.put("enabled", jsonOld.opt("enabled"));
+        }
+
+        if (token.isPresent()) {
+            json.put("bot_token", token.get());
+            System.out.println("Discord bot token set successfully.");
+        } else {
+            json.put("bot_token", jsonOld.opt("bot_token"));
+        }
+
+        if (hostingChannelId.isPresent()) {
+            json.put("hosting_channel_id", hostingChannelId.get());
+            System.out.println("Hosting channel ID set to: " + hostingChannelId.get());
+        } else {
+            json.put("hosting_channel_id", jsonOld.opt("hosting_channel_id"));
+        }
+        
+        if (reportingUser.isPresent()) {
+            if (reportingUser.get().reportingUserId.isPresent()) {
+                json.put("reporting_user_id", reportingUser.get().reportingUserId.get());
+                System.out.println("Reporting user ID set to: " + reportingUser.get().reportingUserId.get());
+            } else if (reportingUser.get().noReportingUserId) {
+                json.remove("reporting_user_id");
+                System.out.println("Reporting user ID is cleared.");
+            }
+        } else {
+            json.put("reporting_user_id", jsonOld.opt("reporting_user_id"));
+        }
+
+        if (reportingChannel.isPresent()) {
+            if (reportingChannel.get().reportingChannelId.isPresent()) {
+                json.put("reporting_channel_id", reportingChannel.get().reportingChannelId.get());
+                System.out.println("Reporting channel ID set to: " + reportingChannel.get().reportingChannelId.get());
+            } else if (reportingChannel.get().noReportingChannelId) {
+                json.remove("reporting_channel_id");
+                System.out.println("Reporting channel ID is cleared.");
+            }
+        } else {
+            json.put("reporting_channel_id", jsonOld.opt("reporting_channel_id"));
+        }
+
+        if (writeConfigFeature("discord", json)) {
             System.out.println("Discord configuration updated successfully.");
         } else {
             System.out.println("Failed to update Discord configuration.");
         }
     }
 
-    @Command(name = "cfg-webapi", description = "Setup Web API configuration")
+    private static class SetupWebAPILocalStorage {
+        @Option(names = "-local-storage", description = "Path to local storage directory (optional)", paramLabel = "<PATH>") Optional<File> localStorage;
+        @Option(names = "-no-local-storage", description = "Do not use local storage") boolean noLocalStorage;
+    }
+    @Command(name = "cfg-webapi", description = "Modify Web API configuration")
     public static void setupWebAPI(
-            @Option(names = "-enabled", description = "Enable Web API", defaultValue = "true", negatable = true) boolean enabled,
-            @Option(names = "-bind", description = "IP address to bind the Web API", defaultValue = "0.0.0.0", paramLabel = "<ADDRESS>") String bind,
-            @Option(names = "-port", description = "Port for the Web API", defaultValue = "8080", paramLabel = "<PORT>") int port,
-            @Option(names = "-local-storage", description = "Path to local storage directory (optional)", paramLabel = "<PATH>") Optional<File> localStorage
+            @ArgGroup Optional<SetupEnableDisable> enableDisable,
+            @Option(names = "-bind", description = "IP address to bind the Web API", paramLabel = "<ADDRESS>") Optional<String> bind,
+            @Option(names = "-port", description = "Port for the Web API", paramLabel = "<PORT>") Optional<Integer> port,
+            @ArgGroup Optional<SetupWebAPILocalStorage> localStorage
     ) {
-        JSONObject jsonWebAPI = new JSONObject();
-        Utils.terribleHackToHaveOrderedJSONObject(jsonWebAPI);
-        jsonWebAPI.put("enabled", enabled);
-        jsonWebAPI.put("bind", bind);
-        jsonWebAPI.put("port", port);
-        localStorage.ifPresent(path -> jsonWebAPI.put("local_storage", path.getAbsolutePath()));
+        JSONObject jsonOld = readConfigFeature("webapi");
+        JSONObject json = new JSONObject();
+        Utils.terribleHackToHaveOrderedJSONObject(json);
+        
+        if (enableDisable.isPresent()) {
+            if (enableDisable.get().enable) {
+                json.put("enabled", true);
+                System.out.println("Web API feature enabled.");
+            } else if (enableDisable.get().disable) {
+                json.put("enabled", false);
+                System.out.println("Web API feature disabled.");
+            } else {
+                System.out.println("No action specified for Web API feature.");
+                return;
+            }
+        } else {
+            json.put("enabled", jsonOld.opt("enabled"));
+        }
+        
+        if (bind.isPresent()) {
+            json.put("bind", bind.get());
+            System.out.println("Web API bind address set to: " + bind.get());
+        } else {
+            json.put("bind", jsonOld.opt("bind"));
+        }
 
-        if (writeConfigFeature("webapi", jsonWebAPI)) {
+        if (port.isPresent()) {
+            json.put("port", port.get());
+            System.out.println("Web API port set to: " + port.get());
+        } else {
+            json.put("port", jsonOld.opt("port"));
+        }
+
+        if (localStorage.isPresent()) {
+            if (localStorage.get().localStorage.isPresent()) {
+                json.put("local_storage", localStorage.get().localStorage.get().getAbsolutePath());
+                System.out.println("Web API local storage path set to: " + localStorage.get().localStorage.get().getAbsolutePath());
+            } else if (localStorage.get().noLocalStorage) {
+                json.remove("local_storage");
+                System.out.println("Web API local storage is disabled.");
+            }
+        } else {
+            json.put("local_storage", jsonOld.opt("local_storage"));
+        }
+
+        if (writeConfigFeature("webapi", json)) {
             System.out.println("Web API configuration updated successfully.");
         } else {
             System.out.println("Failed to update Web API configuration.");
-        }
-    }
-
-    @Command(name = "cfg-logging", description = "Setup Logging configuration (needs restart to take effect)")
-    public static void setupLogging(
-            @Option(names = "-file", description = "Path to the log file", defaultValue = "log.txt", paramLabel = "<PATH>") File file
-    ) {
-        JSONObject jsonLogging = new JSONObject();
-        Utils.terribleHackToHaveOrderedJSONObject(jsonLogging);
-        jsonLogging.put("file", file.getAbsolutePath());
-
-        if (writeConfigFeature("logging", jsonLogging)) {
-            System.out.println("Logging configuration updated successfully.");
-        } else {
-            System.out.println("Failed to update Logging configuration.");
-        }
-    }
-
-    private enum EnableFeatureSelect {
-        discord,
-        webapi
-    }
-
-    @Command(name = "cfg-enable", description = "Enable features")
-    public static void enableFeature(
-            @Parameters(arity = "1..*", description = "Features to enable (${COMPLETION-CANDIDATES})", paramLabel = "<FEATURE>") List<EnableFeatureSelect> features
-    ) {
-        for (EnableFeatureSelect feature : features) {
-            FactorioManager.reloadConfig();
-            
-            JSONObject jsonFeature = Config.get().getJSONObject(feature.name());
-            jsonFeature.put("enabled", true);
-
-            if (writeConfigFeature(feature.name(), jsonFeature)) {
-                System.out.println(feature.name() + " feature enabled successfully.");
-            } else {
-                System.out.println("Failed to enable " + feature.name() + " feature.");
-            }
-        }
-    }
-
-    @Command(name = "cfg-disable", description = "Disable features")
-    public static void disableFeature(
-            @Parameters(arity = "1..*", description = "Features to disable (${COMPLETION-CANDIDATES})", paramLabel = "<FEATURE>") List<EnableFeatureSelect> features
-    ) {
-        for (EnableFeatureSelect feature : features) {
-            FactorioManager.reloadConfig();
-            
-            JSONObject jsonFeature = Config.get().getJSONObject(feature.name());
-            jsonFeature.put("enabled", false);
-
-            if (writeConfigFeature(feature.name(), jsonFeature)) {
-                System.out.println(feature.name() + " feature disabled successfully.");
-            } else {
-                System.out.println("Failed to disable " + feature.name() + " feature.");
-            }
         }
     }
 
@@ -229,7 +359,7 @@ public class CmdConfig {
         }
     }
 
-    @Command(name = "cfg-edit", description = "Edit configuration file directly")
+    @Command(name = "cfg-edit", description = "Edit configuration file in file editor")
     public static void editConfig() {
         File configFile = new File(Config.getPath());
         if (!configFile.exists()) {
@@ -253,9 +383,7 @@ public class CmdConfig {
         System.out.println("Configuration reloaded from file: " + Config.getPath());
     }
 
-    @Command(name = "cfg-find-factorio", description = "Attempt to automatically find and set the default Factorio installation")
-    public static void findDefaultFactorio() {
-        
+    private static Optional<String> findDefaultFactorioInstall() {
         List<String> searchDirs = new ArrayList<>(List.of(
             "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Factorio",
             "C:\\Program Files\\Steam\\steamapps\\common\\Factorio",
@@ -282,13 +410,12 @@ public class CmdConfig {
 
         if (foundPaths.isEmpty()) {
             System.out.println("No Factorio installations found.");
-            return;
+            return Optional.empty();
         }
 
         String installPath;
         if (foundPaths.size() == 1) {
             installPath = foundPaths.get(0);
-            System.out.println("Found Factorio installation: " + installPath);
         
         } else {
             System.out.println("Multiple Factorio installations found:");
@@ -300,23 +427,25 @@ public class CmdConfig {
                 int selection = Integer.parseInt(System.console().readLine());
                 if (selection < 1 || selection > foundPaths.size()) {
                     System.out.println("Invalid selection.");
-                    return;
+                    return Optional.empty();
                 }
                 installPath = foundPaths.get(selection - 1);
             } catch (Exception e) {
                 System.out.println("Invalid input.");
-                return;
+                return Optional.empty();
             }
         }
+        
+        return Optional.of(installPath);
+    }
 
-        FactorioManager.reloadConfig();
-        JSONObject jsonFactorio = Config.get().getJSONObject("factorio");
-        jsonFactorio.put("install", installPath);
-
-        if (writeConfigFeature("factorio", jsonFactorio)) {
-            System.out.println("Factorio install updated successfully.");
+    private static JSONObject readConfigFeature(String feature) {
+        JSONObject jsonConfig = Config.get();
+        if (jsonConfig.has(feature)) {
+            return jsonConfig.getJSONObject(feature);
         } else {
-            System.out.println("Failed to update Factorio install.");
+            System.out.println("Feature '" + feature + "' does not exist in the configuration.");
+            return null;
         }
     }
 
