@@ -135,12 +135,13 @@ public class CmdProfile {
     ) {
         Profile profile = Profile.byName(name);
         if (profile.generateProfile(mods)) {
-            System.out.println("Profile created successfully:" + profile.getName() + " (" + profile.getFolderProfile().getAbsolutePath() + ")");
-            System.out.println("To generate a new rendering table, run the command 'profile-default-renderings " + profile.getName() + "'");
-
+            System.out.println("Profile created successfully: " + profile.getName() + " (" + profile.getFolderProfile().getAbsolutePath() + ")");
+            
             if (!profile.updateMods()) {
                 System.out.println("Failed to update mods for profile: " + profile.getName());
             }
+
+            printProfileStatus(ProfileSelect.of(name), false, true);
         } else {
             System.out.println("Failed to create profile!");
         }
