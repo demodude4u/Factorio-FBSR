@@ -162,6 +162,7 @@ public class FactorioModPortal {
 	}
 
 	private static synchronized JSONObject get(String url) throws IOException {
+		url = url.replace(" ", "%20");
 		JSONObject json = cacheGet.getIfPresent(url);
 		if (json == null) {
 			HttpURLConnection conn = (HttpURLConnection) URI.create(url).toURL().openConnection();
