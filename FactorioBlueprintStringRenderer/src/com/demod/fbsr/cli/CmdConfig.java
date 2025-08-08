@@ -32,43 +32,39 @@ public class CmdConfig {
     }
     private static class SetupFactorioExecutable {
         @Option(names = "-executable", description = "Path to Factorio executable (optional)", paramLabel = "<PATH>") Optional<File> fileExecutable;
-        @Option(names = "-auto-find-exec", description = "Automatically find the Factorio executable in the installation folder", defaultValue = "false") boolean autoFindExec;
+        @Option(names = "-auto-find-exec", description = "Automatically find the Factorio executable in the installation folder") boolean autoFindExec;
     }
     @Command(name = "cfg-factorio", description = "Modify Factorio configuration")
     public static void setupFactorio(
-            @ArgGroup Optional<SetupFactorioInstall> install,
-            @ArgGroup Optional<SetupFactorioExecutable> executable
+            @ArgGroup SetupFactorioInstall install,
+            @ArgGroup SetupFactorioExecutable executable
     ) {
         JSONObject jsonOld = readConfigFeature("factorio");
         JSONObject json = new JSONObject();
         Utils.terribleHackToHaveOrderedJSONObject(json);
         
-        if (install.isPresent()) {
-            if (install.get().findInstall) {
-                Optional<String> defaultFactorioInstall = findDefaultFactorioInstall();
-                if (defaultFactorioInstall.isPresent()) {
-                    json.put("install", defaultFactorioInstall.get());
-                    System.out.println("Factorio install path set to: " + defaultFactorioInstall.get());
-                } else {
-                    System.out.println("Failed to find Factorio installation.");
-                    json.put("install", jsonOld.opt("install"));
-                }
-            } else if (install.get().folderInstall.isPresent()) {
-                json.put("install", install.get().folderInstall.get().getAbsolutePath());
-                System.out.println("Factorio install path set to: " + install.get().folderInstall.get().getAbsolutePath());
+        if (install.findInstall) {
+            Optional<String> defaultFactorioInstall = findDefaultFactorioInstall();
+            if (defaultFactorioInstall.isPresent()) {
+                json.put("install", defaultFactorioInstall.get());
+                System.out.println("Factorio install path set to: " + defaultFactorioInstall.get());
+            } else {
+                System.out.println("Failed to find Factorio installation.");
+                json.put("install", jsonOld.opt("install"));
             }
+        } else if (install.folderInstall.isPresent()) {
+            json.put("install", install.folderInstall.get().getAbsolutePath());
+            System.out.println("Factorio install path set to: " + install.folderInstall.get().getAbsolutePath());
         } else {
             json.put("install", jsonOld.opt("install"));
         }
 
-        if (executable.isPresent()) {
-            if (executable.get().fileExecutable.isPresent()) {
-                json.put("executable", executable.get().fileExecutable.get().getAbsolutePath());
-                System.out.println("Factorio executable set to: " + executable.get().fileExecutable.get().getAbsolutePath());
-            } else if (executable.get().autoFindExec) {
-                json.put("executable", JSONObject.NULL);
-                System.out.println("Factorio executable will be automatically found in the installation folder.");
-            }
+        if (executable.fileExecutable.isPresent()) {
+            json.put("executable", executable.fileExecutable.get().getAbsolutePath());
+            System.out.println("Factorio executable set to: " + executable.fileExecutable.get().getAbsolutePath());
+        } else if (executable.autoFindExec) {
+            json.put("executable", JSONObject.NULL);
+            System.out.println("Factorio executable will be automatically found in the installation folder.");
         } else {
             json.put("executable", jsonOld.opt("executable"));
         }
@@ -146,36 +142,31 @@ public class CmdConfig {
     }
 
     private static class SetupDiscordReportingUser {
-        @Option(names = "-reporting-user", description = "User ID for reporting commands", paramLabel = "<ID>") Optional<String> reportingUserId;
+        @Option(names = "-reporting-user", description = "User ID for reporting commands", paramLabel = "<ID>") Optional<String> id;
         @Option(names = "-no-reporting-user", description = "Do not set a reporting user ID") boolean noReportingUserId;
     }
     private static class SetupDiscordReportingChannel {
-        @Option(names = "-reporting-channel", description = "Channel ID for reporting commands", paramLabel = "<ID>") Optional<String> reportingChannelId;
+        @Option(names = "-reporting-channel", description = "Channel ID for reporting commands", paramLabel = "<ID>") Optional<String> id;
         @Option(names = "-no-reporting-channel", description = "Do not set a reporting channel ID") boolean noReportingChannelId;
     }
     @Command(name = "cfg-discord", description = "Modify Discord configuration")
     public static void setupDiscord(
-            @ArgGroup Optional<SetupEnableDisable> enableDisable,
+            @ArgGroup SetupEnableDisable enableDisable,
             @Option(names = "-token", description = "Discord Bot Token", paramLabel = "<TOKEN>") Optional<String> token,
             @Option(names = "-hosting", description = "Channel ID for hosting images and blueprints", paramLabel = "<ID>") Optional<String> hostingChannelId,
-            @ArgGroup Optional<SetupDiscordReportingUser> reportingUser,
-            @ArgGroup Optional<SetupDiscordReportingChannel> reportingChannel
+            @ArgGroup SetupDiscordReportingUser reportingUser,
+            @ArgGroup SetupDiscordReportingChannel reportingChannel
     ) {
         JSONObject jsonOld = readConfigFeature("discord");
         JSONObject json = new JSONObject();
         Utils.terribleHackToHaveOrderedJSONObject(json);
         
-        if (enableDisable.isPresent()) {
-            if (enableDisable.get().enable) {
-                json.put("enabled", true);
-                System.out.println("Discord feature enabled.");
-            } else if (enableDisable.get().disable) {
-                json.put("enabled", false);
-                System.out.println("Discord feature disabled.");
-            } else {
-                System.out.println("No action specified for Discord feature.");
-                return;
-            }
+        if (enableDisable.enable) {
+            json.put("enabled", true);
+            System.out.println("Discord feature enabled.");
+        } else if (enableDisable.disable) {
+            json.put("enabled", false);
+            System.out.println("Discord feature disabled.");
         } else {
             json.put("enabled", jsonOld.opt("enabled"));
         }
@@ -194,26 +185,22 @@ public class CmdConfig {
             json.put("hosting_channel_id", jsonOld.opt("hosting_channel_id"));
         }
         
-        if (reportingUser.isPresent()) {
-            if (reportingUser.get().reportingUserId.isPresent()) {
-                json.put("reporting_user_id", reportingUser.get().reportingUserId.get());
-                System.out.println("Reporting user ID set to: " + reportingUser.get().reportingUserId.get());
-            } else if (reportingUser.get().noReportingUserId) {
-                json.remove("reporting_user_id");
-                System.out.println("Reporting user ID is cleared.");
-            }
+        if (reportingUser.id.isPresent()) {
+            json.put("reporting_user_id", reportingUser.id.get());
+            System.out.println("Reporting user ID set to: " + reportingUser.id.get());
+        } else if (reportingUser.noReportingUserId) {
+            json.remove("reporting_user_id");
+            System.out.println("Reporting user ID is cleared.");
         } else {
             json.put("reporting_user_id", jsonOld.opt("reporting_user_id"));
         }
 
-        if (reportingChannel.isPresent()) {
-            if (reportingChannel.get().reportingChannelId.isPresent()) {
-                json.put("reporting_channel_id", reportingChannel.get().reportingChannelId.get());
-                System.out.println("Reporting channel ID set to: " + reportingChannel.get().reportingChannelId.get());
-            } else if (reportingChannel.get().noReportingChannelId) {
-                json.remove("reporting_channel_id");
-                System.out.println("Reporting channel ID is cleared.");
-            }
+        if (reportingChannel.id.isPresent()) {
+            json.put("reporting_channel_id", reportingChannel.id.get());
+            System.out.println("Reporting channel ID set to: " + reportingChannel.id.get());
+        } else if (reportingChannel.noReportingChannelId) {
+            json.remove("reporting_channel_id");
+            System.out.println("Reporting channel ID is cleared.");
         } else {
             json.put("reporting_channel_id", jsonOld.opt("reporting_channel_id"));
         }
@@ -226,31 +213,26 @@ public class CmdConfig {
     }
 
     private static class SetupWebAPILocalStorage {
-        @Option(names = "-local-storage", description = "Path to local storage directory (optional)", paramLabel = "<PATH>") Optional<File> localStorage;
+        @Option(names = "-local-storage", description = "Path to local storage directory (optional)", paramLabel = "<PATH>") Optional<File> path;
         @Option(names = "-no-local-storage", description = "Do not use local storage") boolean noLocalStorage;
     }
     @Command(name = "cfg-webapi", description = "Modify Web API configuration")
     public static void setupWebAPI(
-            @ArgGroup Optional<SetupEnableDisable> enableDisable,
+            @ArgGroup SetupEnableDisable enableDisable,
             @Option(names = "-bind", description = "IP address to bind the Web API", paramLabel = "<ADDRESS>") Optional<String> bind,
             @Option(names = "-port", description = "Port for the Web API", paramLabel = "<PORT>") Optional<Integer> port,
-            @ArgGroup Optional<SetupWebAPILocalStorage> localStorage
+            @ArgGroup SetupWebAPILocalStorage localStorage
     ) {
         JSONObject jsonOld = readConfigFeature("webapi");
         JSONObject json = new JSONObject();
         Utils.terribleHackToHaveOrderedJSONObject(json);
-        
-        if (enableDisable.isPresent()) {
-            if (enableDisable.get().enable) {
-                json.put("enabled", true);
-                System.out.println("Web API feature enabled.");
-            } else if (enableDisable.get().disable) {
-                json.put("enabled", false);
-                System.out.println("Web API feature disabled.");
-            } else {
-                System.out.println("No action specified for Web API feature.");
-                return;
-            }
+
+        if (enableDisable.enable) {
+            json.put("enabled", true);
+            System.out.println("Web API feature enabled.");
+        } else if (enableDisable.disable) {
+            json.put("enabled", false);
+            System.out.println("Web API feature disabled.");
         } else {
             json.put("enabled", jsonOld.opt("enabled"));
         }
@@ -269,14 +251,12 @@ public class CmdConfig {
             json.put("port", jsonOld.opt("port"));
         }
 
-        if (localStorage.isPresent()) {
-            if (localStorage.get().localStorage.isPresent()) {
-                json.put("local_storage", localStorage.get().localStorage.get().getAbsolutePath());
-                System.out.println("Web API local storage path set to: " + localStorage.get().localStorage.get().getAbsolutePath());
-            } else if (localStorage.get().noLocalStorage) {
-                json.remove("local_storage");
-                System.out.println("Web API local storage is disabled.");
-            }
+        if (localStorage.path.isPresent()) {
+            json.put("local_storage", localStorage.path.get().getAbsolutePath());
+            System.out.println("Web API local storage path set to: " + localStorage.path.get().getAbsolutePath());
+        } else if (localStorage.noLocalStorage) {
+            json.remove("local_storage");
+            System.out.println("Web API local storage is disabled.");
         } else {
             json.put("local_storage", jsonOld.opt("local_storage"));
         }
@@ -303,13 +283,13 @@ public class CmdConfig {
                 System.out.println("Discord Bot Token: \t" + (revealSensitive ? botToken : "******" + botToken.substring(botToken.length() - 4)));
                 String hostingChannelId = jsonDiscord.getString("hosting_channel_id");
                 System.out.println("Hosting Channel ID: \t" + (revealSensitive ? hostingChannelId : "******" + hostingChannelId.substring(hostingChannelId.length() - 4)));
-                if (jsonDiscord.has("reporting_user_id")) {
+                if (!jsonDiscord.isNull("reporting_user_id")) {
                     String reportingUserId = jsonDiscord.getString("reporting_user_id");
                     System.out.println("Reporting User ID: \t" + (revealSensitive ? reportingUserId : "******" + reportingUserId.substring(reportingUserId.length() - 4)));
                 } else {
                     System.out.println("Reporting User ID: <NOT SET>");
                 }
-                if (jsonDiscord.has("reporting_channel_id")) {
+                if (!jsonDiscord.isNull("reporting_channel_id")) {
                     String reportingChannelId = jsonDiscord.getString("reporting_channel_id");
                     System.out.println("Reporting Channel ID: \t" + (revealSensitive ? reportingChannelId : "******" + reportingChannelId.substring(reportingChannelId.length() - 4)));
                 } else {
@@ -325,7 +305,7 @@ public class CmdConfig {
                 System.out.println("Web API Enabled: \t" + enabled);
                 System.out.println("Web API Bind Address: \t" + jsonWebAPI.getString("bind"));
                 System.out.println("Web API Port: \t\t" + jsonWebAPI.getInt("port"));
-                if (jsonWebAPI.has("local_storage")) {
+                if (!jsonWebAPI.isNull("local_storage")) {
                     System.out.println("Local Storage Path: \t" + jsonWebAPI.getString("local_storage"));
                 } else {
                     System.out.println("Local Storage Path: \t<NOT SET>");
@@ -335,7 +315,7 @@ public class CmdConfig {
         {
             JSONObject jsonFactorio = jsonConfig.getJSONObject("factorio");
             System.out.println("\n[FACTORIO]");
-            if (jsonFactorio.has("install")) {
+            if (!jsonFactorio.isNull("install")) {
                 System.out.println("Factorio Install Path: \t" + jsonFactorio.getString("install"));
             } else {
                 System.out.println("Factorio Install Path: \t<NOT SET>");
