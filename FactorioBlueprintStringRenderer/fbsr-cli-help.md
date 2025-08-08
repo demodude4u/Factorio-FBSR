@@ -85,27 +85,27 @@ Stop Blueprint Bot service
 ## `bot-render` — Render a blueprint using the bot RPC service
 
 ```
-Usage:   bot-render (<STRING> | -input-file=<PATH> | -url=<URL>) (-test | -json
-                    | -output-file=<PATH>) (-full | -preview)
+Usage:   bot-render (<STRING> | -f=<PATH> | -u=<URL>) (-t | -j | -o=<PATH>)
+                    (-full | -preview)
 Render a blueprint using the bot RPC service
       <STRING>              Blueprint string
+  -f, -input-file=<PATH>    Blueprint file
       -full                 Render full resolution image (blueprints only, no
                               books)
-      -input-file=<PATH>    Blueprint file
-      -json                 Output as base64 string encapsulated in JSON format:
+  -j, -json                 Output as base64 string encapsulated in JSON format:
                             {"success": true
                               "label": "Blueprint Label",    (optional)
                               "filename": "blueprint.png",
                               "filedata": "base64string"}
                                 OR
                             {"success": false, "message": "error message"}
-      -output-file=<PATH>   Save to file with reply in JSON format:
+  -o, -output-file=<PATH>   Save to file with reply in JSON format:
                             {"success": true}
                                 OR
                             {"success": false, "message": "error message"}
       -preview              Render preview image
-      -test                 Save to test file and open it
-      -url=<URL>            Blueprint URL
+  -t, -test                 Save to test file and open it
+  -u, -url=<URL>            Blueprint URL
 
 ```
 ## `bot-render-custom` — Render a custom blueprint using the bot RPC service
@@ -120,8 +120,8 @@ Usage:   bot-render-custom [-clip-sprites] [-dont-clip-sprites]
                            [-gridlines-color=<COLOR>] [-max-height=<PIXELS>]
                            [-max-scale=<SCALE>] [-max-width=<PIXELS>]
                            [-min-height=<PIXELS>] [-min-width=<PIXELS>]
-                           (<STRING> | -input-file=<PATH> | -url=<URL>) (-test
-                           | -json | -output-file=<PATH>)
+                           (<STRING> | -f=<PATH> | -u=<URL>) (-t | -j |
+                           -o=<PATH>)
 Render a custom blueprint using the bot RPC service
       <STRING>               Blueprint string
       -background-color=<COLOR>
@@ -130,6 +130,7 @@ Render a custom blueprint using the bot RPC service
       -clip-sprites          Clip sprites that are outside the blueprint area
       -dont-clip-sprites     Do not clip sprites that are outside the blueprint
                                area
+  -f, -input-file=<PATH>     Blueprint file
       -format=<FORMAT>       Render image format (png, jpg, webp)
       -gridlines-color=<COLOR>
                              Grid lines color in hex format (e.g. #RRGGBB or
@@ -138,8 +139,7 @@ Render a custom blueprint using the bot RPC service
       -hide-background       Transparent background behind blueprint
       -hide-grid-numbers     Hide grid numbers in the blueprint
       -hide-gridlines        Do not grid lines in the blueprint
-      -input-file=<PATH>     Blueprint file
-      -json                  Output as base64 string encapsulated in JSON
+  -j, -json                  Output as base64 string encapsulated in JSON
                                format:
                              {"success": true
                                "label": "Blueprint Label",    (optional)
@@ -152,7 +152,7 @@ Render a custom blueprint using the bot RPC service
       -max-width=<PIXELS>    Maximum width in pixels
       -min-height=<PIXELS>   Minimum height in pixels
       -min-width=<PIXELS>    Minimum width in pixels
-      -output-file=<PATH>    Save to file with reply in JSON format:
+  -o, -output-file=<PATH>    Save to file with reply in JSON format:
                              {"success": true}
                                  OR
                              {"success": false, "message": "error message"}
@@ -160,19 +160,19 @@ Render a custom blueprint using the bot RPC service
       -show-background       Show background behind blueprint
       -show-grid-numbers     Show grid numbers in the blueprint
       -show-gridlines        Show grid lines in the blueprint
-      -test                  Save to test file and open it
-      -url=<URL>             Blueprint URL
+  -t, -test                  Save to test file and open it
+  -u, -url=<URL>             Blueprint URL
 
 ```
 ## `bot-run` — Run Blueprint Bot
 
 ```
-Usage:   bot-run [-ignore-not-ready] [-require-all-enabled] [<PROFILE>...]
+Usage:   bot-run [-er] [<PROFILE>...]
 Run Blueprint Bot
       [<PROFILE>...]         Profiles to be loaded
-      -ignore-not-ready      Ignore profiles that are not ready
-      -require-all-enabled   Require all profiles to be enabled and ready
+  -e, -require-all-enabled   Require all profiles to be enabled and ready
                                before starting the bot
+  -r, -ignore-not-ready      Ignore profiles that are not ready
 
 ```
 ## `bot-status` — Get the status of Blueprint Bot service
@@ -273,74 +273,74 @@ Show current configuration
 ## `build` — Build all steps
 
 ```
-Usage:   build [-force] [-force-assets] [-force-dump] (<PROFILE>... | -all)
+Usage:   build [-f] [-fa] [-fd] (<PROFILE>... | -a)
 Build all steps
-      <PROFILE>...    Name of the profile
-      -all            Apply to all profiles
-      -force          Force regeneration of all steps, even if they already
-                        exist
-      -force-assets   Force regeneration of assets
-      -force-dump     Force regeneration of factorio dump
+      <PROFILE>...         Name of the profile
+  -a, -all                 Apply to all profiles
+  -f, -force               Force regeneration of all steps, even if they
+                             already exist
+      -fa, -force-assets   Force regeneration of assets
+      -fd, -force-dump     Force regeneration of factorio dump
 
 ```
 ## `build-download` — Download mods
 
 ```
-Usage:   build-download (<PROFILE>... | -all)
+Usage:   build-download (<PROFILE>... | -a)
 Download mods
       <PROFILE>...   Name of the profile
-      -all           Apply to all profiles
+  -a, -all           Apply to all profiles
 
 ```
 ## `build-dump` — Dump factorio data
 
 ```
-Usage:   build-dump [-force] (<PROFILE>... | -all)
+Usage:   build-dump [-f] (<PROFILE>... | -a)
 Dump factorio data
       <PROFILE>...   Name of the profile
-      -all           Apply to all profiles
-      -force         Force regeneration of the manifest, even if it already
+  -a, -all           Apply to all profiles
+  -f, -force         Force regeneration of the manifest, even if it already
                        exists
 
 ```
 ## `build-assets` — Generate assets
 
 ```
-Usage:   build-assets [-force] (<PROFILE>... | -all)
+Usage:   build-assets [-f] (<PROFILE>... | -a)
 Generate assets
       <PROFILE>...   Name of the profile
-      -all           Apply to all profiles
-      -force         Force regeneration of the assets, even if they already
+  -a, -all           Apply to all profiles
+  -f, -force         Force regeneration of the assets, even if they already
                        exist
 
 ```
 ## `build-manifest` — Build the manifest
 
 ```
-Usage:   build-manifest [-force] (<PROFILE>... | -all)
+Usage:   build-manifest [-f] (<PROFILE>... | -a)
 Build the manifest
       <PROFILE>...   Name of the profile
-      -all           Apply to all profiles
-      -force         Force regeneration of the manifest, even if it already
+  -a, -all           Apply to all profiles
+  -f, -force         Force regeneration of the manifest, even if it already
                        exists
 
 ```
 ## `clean-assets` — Delete the generated assets
 
 ```
-Usage:   clean-assets (<PROFILE>... | -all)
+Usage:   clean-assets (<PROFILE>... | -a)
 Delete the generated assets
       <PROFILE>...   Name of the profile
-      -all           Apply to all profiles
+  -a, -all           Apply to all profiles
 
 ```
 ## `clean-build` — Delete the build files (including downloaded mods)
 
 ```
-Usage:   clean-build (<PROFILE>... | -all)
+Usage:   clean-build (<PROFILE>... | -a)
 Delete the build files (including downloaded mods)
       <PROFILE>...   Name of the profile
-      -all           Apply to all profiles
+  -a, -all           Apply to all profiles
 
 ```
 ## `profile-new` — Create a new profile
@@ -355,24 +355,23 @@ Create a new profile
 ## `profile-delete` — Delete profile, build, or assets data
 
 ```
-Usage:   profile-delete [-confirm] (<PROFILE>... | -all) ([-profile] [-build]
-                        [-assets])
+Usage:   profile-delete [-c] (<PROFILE>... | -a) ([-profile] [-build] [-assets])
 Delete profile, build, or assets data
       <PROFILE>...   Name of the profile
-      -all           Apply to all profiles
+  -a, -all           Apply to all profiles
       -assets        Delete the assets zip
       -build         Delete the build folder
-      -confirm       Skip confirmation prompt
+  -c, -confirm       Skip confirmation prompt
       -profile       Delete the profile folder
 
 ```
 ## `profile-disable` — Disable a profile
 
 ```
-Usage:   profile-disable (<PROFILE>... | -all)
+Usage:   profile-disable (<PROFILE>... | -a)
 Disable a profile
       <PROFILE>...   Name of the profile
-      -all           Apply to all profiles
+  -a, -all           Apply to all profiles
 
 ```
 ## `profile-edit` — Open the profile configuration file in the default editor
@@ -386,40 +385,40 @@ Open the profile configuration file in the default editor
 ## `profile-enable` — Enable a profile
 
 ```
-Usage:   profile-enable (<PROFILE>... | -all)
+Usage:   profile-enable (<PROFILE>... | -a)
 Enable a profile
       <PROFILE>...   Name of the profile
-      -all           Apply to all profiles
+  -a, -all           Apply to all profiles
 
 ```
 ## `profile-explore` — Open file manager for the specified profile
 
 ```
-Usage:   profile-explore [-build | -assets] <PROFILE>
+Usage:   profile-explore [-b | -a] <PROFILE>
 Open file manager for the specified profile
       <PROFILE>   Name of the profile
-      -assets     Open the assets zip instead of the profile folder
-      -build      Open the build folder instead of the profile folder
+  -a, -assets     Open the assets zip instead of the profile folder
+  -b, -build      Open the build folder instead of the profile folder
 
 ```
 ## `profile-default-vanilla` — Generate default vanilla profile
 
 ```
-Usage:   profile-default-vanilla [-force]
+Usage:   profile-default-vanilla [-f]
 Generate default vanilla profile
-      -force   Force regeneration of the default vanilla profile, even if it
+  -f, -force   Force regeneration of the default vanilla profile, even if it
                  already exists
 
 ```
 ## `profile-status` — Get the status of a profile
 
 ```
-Usage:   profile-status [-detailed] [-enabled] (<PROFILE>... | -all)
+Usage:   profile-status [-de] (<PROFILE>... | -a)
 Get the status of a profile
       <PROFILE>...   Name of the profile
-      -all           Apply to all profiles
-      -detailed      Include detailed information about the profile
-      -enabled       Include only enabled profiles
+  -a, -all           Apply to all profiles
+  -d, -detailed      Include detailed information about the profile
+  -e, -enabled       Include only enabled profiles
 
 ```
 ## `profile-factorio` — Run Factorio with the specified profile
@@ -442,95 +441,96 @@ Render test image of an entity
   -d, -dir, -direction=<DIR>
                        Direction of the entity (N, NE, NNE, ...)
   -o, -orientation=<ORIENTATION>
-                       Orientation of the entity (0-3, default 0)
+                       Orientation of the entity (0.0 - 1.0)
 
 ```
 ## `profile-test` — Render test blueprints
 
 ```
-Usage:   profile-test (<PROFILE>... | -all)
+Usage:   profile-test (<PROFILE>... | -a)
 Render test blueprints
       <PROFILE>...   Name of the profile
-      -all           Apply to all profiles
+  -a, -all           Apply to all profiles
 
 ```
 ## `profile-update-mods` — Update mod versions
 
 ```
-Usage:   profile-update-mods (<PROFILE>... | -all)
+Usage:   profile-update-mods (<PROFILE>... | -a)
 Update mod versions
       <PROFILE>...   Name of the profile
-      -all           Apply to all profiles
+  -a, -all           Apply to all profiles
 
 ```
 ## `dump-entity` — Dump an entity prototype from factorio data
 
 ```
-Usage:   dump-entity [-profile=<PROFILE>] PROTOTYPE
+Usage:   dump-entity [-p=<PROFILE>] PROTOTYPE
 Dump an entity prototype from factorio data
       PROTOTYPE            Prototype name
-      -profile=<PROFILE>   Load from profile (default vanilla)
+  -p, -profile=<PROFILE>   Load from profile (default vanilla)
 
 ```
 ## `dump-equipment` — Dump an equipment prototype from factorio data
 
 ```
-Usage:   dump-equipment [-profile=<PROFILE>] PROTOTYPE
+Usage:   dump-equipment [-p=<PROFILE>] PROTOTYPE
 Dump an equipment prototype from factorio data
       PROTOTYPE            Prototype name
-      -profile=<PROFILE>   Load from profile (default vanilla)
+  -p, -profile=<PROFILE>   Load from profile (default vanilla)
 
 ```
 ## `dump-fluid` — Dump a fluid prototype from factorio data
 
 ```
-Usage:   dump-fluid [-profile=<PROFILE>] PROTOTYPE
+Usage:   dump-fluid [-p=<PROFILE>] PROTOTYPE
 Dump a fluid prototype from factorio data
       PROTOTYPE            Prototype name
-      -profile=<PROFILE>   Load from profile (default vanilla)
+  -p, -profile=<PROFILE>   Load from profile (default vanilla)
 
 ```
 ## `dump-item` — Dump an item prototype from factorio data
 
 ```
-Usage:   dump-item [-profile=<PROFILE>] PROTOTYPE
+Usage:   dump-item [-p=<PROFILE>] PROTOTYPE
 Dump an item prototype from factorio data
       PROTOTYPE            Prototype name
-      -profile=<PROFILE>   Load from profile (default vanilla)
+  -p, -profile=<PROFILE>   Load from profile (default vanilla)
 
 ```
 ## `dump-recipe` — Dump a recipe prototype from factorio data
 
 ```
-Usage:   dump-recipe [-profile=<PROFILE>] PROTOTYPE
+Usage:   dump-recipe [-p=<PROFILE>] PROTOTYPE
 Dump a recipe prototype from factorio data
       PROTOTYPE            Prototype name
-      -profile=<PROFILE>   Load from profile (default vanilla)
+  -p, -profile=<PROFILE>   Load from profile (default vanilla)
 
 ```
 ## `dump-technology` — Dump a technology prototype from factorio data
 
 ```
-Usage:   dump-technology [-profile=<PROFILE>] PROTOTYPE
+Usage:   dump-technology [-p=<PROFILE>] PROTOTYPE
 Dump a technology prototype from factorio data
       PROTOTYPE            Prototype name
-      -profile=<PROFILE>   Load from profile (default vanilla)
+  -p, -profile=<PROFILE>   Load from profile (default vanilla)
 
 ```
 ## `dump-tile` — Dump a tile prototype from factorio data
 
 ```
-Usage:   dump-tile [-profile=<PROFILE>] PROTOTYPE
+Usage:   dump-tile [-p=<PROFILE>] PROTOTYPE
 Dump a tile prototype from factorio data
       PROTOTYPE            Prototype name
-      -profile=<PROFILE>   Load from profile (default vanilla)
+  -p, -profile=<PROFILE>   Load from profile (default vanilla)
 
 ```
 ## `dump-raw` — Query data.raw
 
 ```
-Usage:   dump-raw <PATH>
+Usage:   dump-raw [-p=<PROFILE>] <PATH>
 Query data.raw
-      <PATH>   Lua path
+      <PATH>               Lua path
+  -p, -profile=<PROFILE>   Load from profile (default vanilla)
 
 ```

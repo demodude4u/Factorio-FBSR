@@ -4,15 +4,18 @@ import java.awt.Desktop;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.Arrays;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
+import com.demod.factorio.fakelua.LuaValue;
 import com.demod.factorio.prototype.DataPrototype;
 import com.demod.fbsr.FactorioManager;
 import com.demod.fbsr.Profile;
@@ -26,7 +29,7 @@ public class CmdDump {
 
     @Command(name = "dump-entity", description = "Dump an entity prototype from factorio data")
     public static void dumpEntity(
-            @Option(names = "-profile", description = "Load from profile (default vanilla)", defaultValue = "vanilla", paramLabel = "<PROFILE>") String profileName,
+            @Option(names = {"-p", "-profile"}, description = "Load from profile (default vanilla)", defaultValue = "vanilla", paramLabel = "<PROFILE>") String profileName,
             @Parameters(arity = "1", description = "Prototype name", paramLabel="PROTOTYPE") String protoName
     ) {
         dumpProto(profileName, protoName, "entity", DataTable::getEntity);
@@ -34,7 +37,7 @@ public class CmdDump {
 
     @Command(name = "dump-item", description = "Dump an item prototype from factorio data")
     public static void dumpItem(
-            @Option(names = "-profile", description = "Load from profile (default vanilla)", defaultValue = "vanilla", paramLabel = "<PROFILE>") String profileName,
+            @Option(names = {"-p", "-profile"}, description = "Load from profile (default vanilla)", defaultValue = "vanilla", paramLabel = "<PROFILE>") String profileName,
             @Parameters(arity = "1", description = "Prototype name", paramLabel="PROTOTYPE") String protoName
     ) {
         dumpProto(profileName, protoName, "item", DataTable::getItem);
@@ -42,7 +45,7 @@ public class CmdDump {
 
     @Command(name = "dump-recipe", description = "Dump a recipe prototype from factorio data")
     public static void dumpRecipe(
-            @Option(names = "-profile", description = "Load from profile (default vanilla)", defaultValue = "vanilla", paramLabel = "<PROFILE>") String profileName,
+            @Option(names = {"-p", "-profile"}, description = "Load from profile (default vanilla)", defaultValue = "vanilla", paramLabel = "<PROFILE>") String profileName,
             @Parameters(arity = "1", description = "Prototype name", paramLabel="PROTOTYPE") String protoName
     ) {
         dumpProto(profileName, protoName, "recipe", DataTable::getRecipe);
@@ -50,7 +53,7 @@ public class CmdDump {
 
     @Command(name = "dump-fluid", description = "Dump a fluid prototype from factorio data")
     public static void dumpFluid(
-            @Option(names = "-profile", description = "Load from profile (default vanilla)", defaultValue = "vanilla", paramLabel = "<PROFILE>") String profileName,
+            @Option(names = {"-p", "-profile"}, description = "Load from profile (default vanilla)", defaultValue = "vanilla", paramLabel = "<PROFILE>") String profileName,
             @Parameters(arity = "1", description = "Prototype name", paramLabel="PROTOTYPE") String protoName
     ) {
         dumpProto(profileName, protoName, "fluid", DataTable::getFluid);
@@ -58,7 +61,7 @@ public class CmdDump {
 
     @Command(name = "dump-technology", description = "Dump a technology prototype from factorio data")
     public static void dumpTechnology(
-            @Option(names = "-profile", description = "Load from profile (default vanilla)", defaultValue = "vanilla", paramLabel = "<PROFILE>") String profileName,
+            @Option(names = {"-p", "-profile"}, description = "Load from profile (default vanilla)", defaultValue = "vanilla", paramLabel = "<PROFILE>") String profileName,
             @Parameters(arity = "1", description = "Prototype name", paramLabel="PROTOTYPE") String protoName
     ) {
         dumpProto(profileName, protoName, "technology", DataTable::getTechnology);
@@ -66,7 +69,7 @@ public class CmdDump {
 
     @Command(name = "dump-equipment", description = "Dump an equipment prototype from factorio data")
     public static void dumpEquipment(
-            @Option(names = "-profile", description = "Load from profile (default vanilla)", defaultValue = "vanilla", paramLabel = "<PROFILE>") String profileName,
+            @Option(names = {"-p", "-profile"}, description = "Load from profile (default vanilla)", defaultValue = "vanilla", paramLabel = "<PROFILE>") String profileName,
             @Parameters(arity = "1", description = "Prototype name", paramLabel="PROTOTYPE") String protoName
     ) {
         dumpProto(profileName, protoName, "equipment", DataTable::getEquipment);
@@ -74,7 +77,7 @@ public class CmdDump {
 
     @Command(name = "dump-tile", description = "Dump a tile prototype from factorio data")
     public static void dumpTile(
-            @Option(names = "-profile", description = "Load from profile (default vanilla)", defaultValue = "vanilla", paramLabel = "<PROFILE>") String profileName,
+            @Option(names = {"-p", "-profile"}, description = "Load from profile (default vanilla)", defaultValue = "vanilla", paramLabel = "<PROFILE>") String profileName,
             @Parameters(arity = "1", description = "Prototype name", paramLabel="PROTOTYPE") String protoName
     ) {
         dumpProto(profileName, protoName, "tile", DataTable::getTile);

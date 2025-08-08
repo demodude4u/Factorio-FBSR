@@ -44,7 +44,7 @@ public class CmdProfile {
     private static class ProfileSelect {
 
         @Parameters(arity = "1..*", description = "Name of the profile", paramLabel = "<PROFILE>") List<String> names;
-        @Option(names = "-all", description = "Apply to all profiles") boolean all;
+        @Option(names = {"-a", "-all"}, description = "Apply to all profiles") boolean all;
 
         private boolean requireValid = true;
         private boolean requireEnabled = true;
@@ -149,7 +149,7 @@ public class CmdProfile {
 
     @Command(name = "profile-default-vanilla", description = "Generate default vanilla profile")
     public static void generateDefaultVanillaProfile(
-            @Option(names = "-force", description = "Force regeneration of the default vanilla profile, even if it already exists") boolean force
+            @Option(names = {"-f", "-force"}, description = "Force regeneration of the default vanilla profile, even if it already exists") boolean force
     ) {
         if (Profile.generateDefaultVanillaProfile(force)) {
             System.out.println("Default vanilla profile created successfully. You can build the profile by running the command 'build vanilla'");
@@ -161,14 +161,18 @@ public class CmdProfile {
     @Command(name = "profile-status", description = "Get the status of a profile")
     public static void printProfileStatus(
             @ArgGroup(exclusive = true, multiplicity = "1") ProfileSelect profileSelect,
-            @Option(names = "-enabled", description = "Include only enabled profiles") boolean enabledOnly,
-            @Option(names = "-detailed", description = "Include detailed information about the profile") boolean detailed
+            @Option(names = {"-e", "-enabled"}, description = "Include only enabled profiles") boolean enabledOnly,
+            @Option(names = {"-d", "-detailed"}, description = "Include detailed information about the profile") boolean detailed
     ) {
         profileSelect.invalidAllowed();
         profileSelect.disabledAllowed();
         profileSelect.forEach((profile, result) -> {
             if (enabledOnly && (!profile.isValid() || !profile.isEnabled())) {
                 return;
+            }
+
+            if (!profile.isValid()) {
+                result.println("Profile not found or invalid: " + profile.getName());
             }
 
             if (detailed) {
@@ -277,15 +281,15 @@ public class CmdProfile {
     }
 
     private static class DeleteSelection {
-        @Option(names = "-profile", description = "Delete the profile folder") boolean profile;
-        @Option(names = "-build", description = "Delete the build folder") boolean build;
-        @Option(names = "-assets", description = "Delete the assets zip") boolean assets;
+        @Option(names = {"-profile"}, description = "Delete the profile folder") boolean profile;
+        @Option(names = {"-build"}, description = "Delete the build folder") boolean build;
+        @Option(names = {"-assets"}, description = "Delete the assets zip") boolean assets;
     }
     @Command(name = "profile-delete", description = "Delete profile, build, or assets data")
     public static void deleteProfile(
             @ArgGroup(exclusive = true, multiplicity = "1") ProfileSelect profileSelect,
             @ArgGroup(exclusive = false, multiplicity = "1") DeleteSelection deleteSelection,
-            @Option(names = "-confirm", description = "Skip confirmation prompt") boolean confirm
+            @Option(names = {"-c", "-confirm"}, description = "Skip confirmation prompt") boolean confirm
     ) {
         profileSelect.forEach((profile, result) -> {
             if (deleteSelection.profile && profile.getFolderProfile().exists()) {
@@ -353,8 +357,8 @@ public class CmdProfile {
     }
 
     private static class ExploreAlternatives {
-        @Option(names = "-build", description = "Open the build folder instead of the profile folder") boolean build;
-        @Option(names = "-assets", description = "Open the assets zip instead of the profile folder") boolean assets;
+        @Option(names = {"-b", "-build"}, description = "Open the build folder instead of the profile folder") boolean build;
+        @Option(names = {"-a", "-assets"}, description = "Open the assets zip instead of the profile folder") boolean assets;
     }
 
     @Command(name = "profile-explore", description = "Open file manager for the specified profile")
@@ -429,7 +433,7 @@ public class CmdProfile {
     @Command(name = "build-manifest", description = "Build the manifest")
     public static void buildManifest(
             @ArgGroup(exclusive = true, multiplicity = "1") ProfileSelect profileSelect,
-            @Option(names = "-force", description = "Force regeneration of the manifest, even if it already exists") boolean force
+            @Option(names = {"-f", "-force"}, description = "Force regeneration of the manifest, even if it already exists") boolean force
     ) {
         profileSelect.forEach((profile, result) -> {
             if (profile.buildManifest(force)) {
@@ -460,7 +464,7 @@ public class CmdProfile {
     @Command(name = "build-dump", description = "Dump factorio data")
     public static void buildDumpDataRaw(
             @ArgGroup(exclusive = true, multiplicity = "1") ProfileSelect profileSelect,
-            @Option(names = "-force", description = "Force regeneration of the manifest, even if it already exists") boolean force
+            @Option(names = {"-f", "-force"}, description = "Force regeneration of the manifest, even if it already exists") boolean force
     ) {
         profileSelect.forEach((profile, result) -> {
             if (profile.buildDump(force)) {
@@ -476,7 +480,7 @@ public class CmdProfile {
     @Command(name = "build-assets", description = "Generate assets")
     public static void buildGenerateAssets(
             @ArgGroup(exclusive = true, multiplicity = "1") ProfileSelect profileSelect,
-            @Option(names = "-force", description = "Force regeneration of the assets, even if they already exist") boolean force
+            @Option(names = {"-f", "-force"}, description = "Force regeneration of the assets, even if they already exist") boolean force
     ) {
         profileSelect.forEach((profile, result) -> {
             if (profile.buildAssets(force)) {
@@ -492,9 +496,9 @@ public class CmdProfile {
     @Command(name = "build", description = "Build all steps")
     public static void buildAllSteps(
             @ArgGroup(exclusive = true, multiplicity = "1") ProfileSelect profileSelect,
-            @Option(names = "-force", description = "Force regeneration of all steps, even if they already exist") boolean force,
-            @Option(names = "-force-dump", description = "Force regeneration of factorio dump") boolean forceDump,
-            @Option(names = "-force-assets", description = "Force regeneration of assets") boolean forceAssets
+            @Option(names = {"-f", "-force"}, description = "Force regeneration of all steps, even if they already exist") boolean force,
+            @Option(names = {"-fd", "-force-dump"}, description = "Force regeneration of factorio dump") boolean forceDump,
+            @Option(names = {"-fa", "-force-assets"}, description = "Force regeneration of assets") boolean forceAssets
     ) {
         Profile profileVanilla = Profile.vanilla();
 
@@ -618,7 +622,7 @@ public class CmdProfile {
             @Parameters(arity = "1", description = "Name of the profile", paramLabel = "PROFILE") String name,
             @Parameters(arity = "1", description = "Name of the entity", paramLabel = "ENTITY") String entity,
             @Option(names = {"-d", "-dir",  "-direction"}, description = "Direction of the entity (N, NE, NNE, ...)", paramLabel = "<DIR>") Optional<Dir16> direction,
-            @Option(names = {"-o", "-orientation"}, description = "Orientation of the entity (0-3, default 0)", paramLabel = "<ORIENTATION>") Optional<Double> orientation,
+            @Option(names = {"-o", "-orientation"}, description = "Orientation of the entity (0.0 - 1.0)", paramLabel = "<ORIENTATION>") Optional<Double> orientation,
             @Option(names = {"-c", "-custom"}, description = "JSON object containing entity fields and values", paramLabel = "<JSON>") Optional<String> custom
     ) {
         Profile profile = Profile.byName(name);

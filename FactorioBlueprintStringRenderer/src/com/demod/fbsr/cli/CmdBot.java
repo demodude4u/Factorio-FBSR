@@ -39,8 +39,8 @@ public class CmdBot {
     @Command(name = "bot-run", description = "Run Blueprint Bot")
     public static void runBot(
         @Parameters(arity = "0..*", description = "Profiles to be loaded", paramLabel = "<PROFILE>") List<String> requestedProfiles,
-        @Option(names = "-ignore-not-ready", description = "Ignore profiles that are not ready", defaultValue = "false") boolean ignoreNotReady,
-        @Option(names = "-require-all-enabled", description = "Require all profiles to be enabled and ready before starting the bot", defaultValue = "false") boolean requireAllEnabled
+        @Option(names = {"-r", "-ignore-not-ready"}, description = "Ignore profiles that are not ready", defaultValue = "false") boolean ignoreNotReady,
+        @Option(names = {"-e", "-require-all-enabled"}, description = "Require all profiles to be enabled and ready before starting the bot", defaultValue = "false") boolean requireAllEnabled
     ) {
         if (!ignoreNotReady && !checkProfilesReady(requireAllEnabled)) {
             return;
@@ -108,8 +108,8 @@ public class CmdBot {
 
     private static class RenderInput {
         @Parameters(arity = "1", description = "Blueprint string", paramLabel = "<STRING>") Optional<String> blueprintString;
-        @Option(names = "-input-file", description = "Blueprint file", paramLabel = "<PATH>") Optional<File> blueprintFile;
-        @Option(names = "-url", description = "Blueprint URL", paramLabel = "<URL>") Optional<URL> blueprintUrl;
+        @Option(names = {"-f", "-input-file"}, description = "Blueprint file", paramLabel = "<PATH>") Optional<File> blueprintFile;
+        @Option(names = {"-u", "-url"}, description = "Blueprint URL", paramLabel = "<URL>") Optional<URL> blueprintUrl;
 
         public Optional<String> read() {
             if (blueprintString.isPresent()) {
@@ -130,15 +130,15 @@ public class CmdBot {
     }
 
     private static class RenderOutput {
-        @Option(names = "-test", description = "Save to test file and open it") boolean test;
-        @Option(names = "-json", description = {"Output as base64 string encapsulated in JSON format:",
+        @Option(names = {"-t", "-test"}, description = "Save to test file and open it") boolean test;
+        @Option(names = {"-j", "-json"}, description = {"Output as base64 string encapsulated in JSON format:",
                                                 "{\"success\": true", 
                                                 "  \"label\": \"Blueprint Label\",    (optional)",
                                                 "  \"filename\": \"blueprint.png\",",
                                                 "  \"filedata\": \"base64string\"}",
                                                 "    OR    ",
                                                 "{\"success\": false, \"message\": \"error message\"}"}) boolean json;
-        @Option(names = "-output-file", description = {"Save to file with reply in JSON format:",
+        @Option(names = {"-o", "-output-file"}, description = {"Save to file with reply in JSON format:",
                                                 "{\"success\": true}",
                                                 "    OR    ",
                                                 "{\"success\": false, \"message\": \"error message\"}"}, paramLabel = "<PATH>") Optional<File> file;
