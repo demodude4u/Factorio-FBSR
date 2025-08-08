@@ -128,10 +128,67 @@ public class CmdDump {
 
     @Command(name = "dump-raw", description = "Query data.raw")
     public static void lookupRaw(
-            @Parameters(description = "Lua path", paramLabel = "<PATH>") String path
+            @Option(names = {"-p", "-profile"}, description = "Load from profile (default vanilla)", defaultValue = "vanilla", paramLabel = "<PROFILE>") String profileName,
+            @Parameters(arity = "1", description = "Lua path", paramLabel = "<PATH>") String path
     ) {
-        //TODO
-        System.out.println("This command is not implemented yet.");
+        Profile profile = Profile.byName(profileName);
+        if (!profile.isValid()) {
+            System.out.println("Profile not found or invalid: " + profileName);
+            return;
+        }
+
+        FactorioData factorioData;
+        if (profile.hasAssets()) {
+            factorioData = new FactorioData(profile.getFileAssets());
+        } else if (profile.hasDump()) {
+            factorioData = new FactorioData(profile.getFileDumpDataJson(), profile.getDumpFactorioVersion());
+        } else {
+            System.out.println("Profile does not have assets or factorio dump. Please run 'build-dump " + profile.getName() + "' first.");
+            return;
+        }
+
+        if (!factorioData.initialize(false)) {
+            System.out.println("Failed to initialize factorio data for profile: " + profileName);
+            return;
+        }
+
+        DataTable table = factorioData.getTable();
+        String[] pathParts = path.split("[./\\\\]+");
+        Optional<LuaValue> optLua = table.getRaw(pathParts);
+        if (optLua.isEmpty()) {
+            System.out.println("Lua value not found for data.raw path: " + Arrays.toString(pathParts));
+            return;
+        }
+        String jsonString;
+        Object value = optLua.get().getJson();
+        if (value instanceof JSONObject) {
+            jsonString = ((JSONObject) value).toString(2);
+        } else if (value instanceof JSONArray) {
+            jsonString = ((JSONArray) value).toString(2);
+        } else {
+            System.out.println();
+            System.out.println(path+ " = " + value);
+            return;
+        }
+
+        File folderBuildDebug = new File(profile.getFolderBuild(), "debug");
+        folderBuildDebug.mkdirs();
+
+        String pathEncoded = String.join("_", pathParts).replaceAll("[^a-zA-Z0-9_\\-]", "_");
+        int maxLength = 100;
+        if (pathEncoded.length() > maxLength) {
+            pathEncoded = pathEncoded.substring(0, maxLength);
+        }
+        File fileProto = new File(folderBuildDebug, profile.getName() + " raw " + pathEncoded + " " + factorioData.getVersion() + ".json");
+
+        try {
+            Files.writeString(fileProto.toPath(), jsonString);
+            Desktop.getDesktop().open(fileProto);
+        } catch (JSONException | IOException e) {
+            e.printStackTrace();
+            System.out.println("Failed to write prototype to file: " + fileProto.getAbsolutePath());
+            return;
+        }
     }
 
 }
