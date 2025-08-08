@@ -45,7 +45,6 @@ import com.demod.dcba.DiscordBot;
 import com.demod.dcba.EventReply;
 import com.demod.dcba.SlashCommandEvent;
 import com.demod.dcba.SlashCommandHandler;
-import com.demod.factorio.Config;
 import com.demod.factorio.FactorioData;
 import com.demod.factorio.Utils;
 import com.demod.factorio.fakelua.LuaValue;
@@ -54,6 +53,7 @@ import com.demod.fbsr.BlendMode;
 import com.demod.fbsr.BlueprintFinder;
 import com.demod.fbsr.BlueprintFinder.FindBlueprintRawResult;
 import com.demod.fbsr.BlueprintFinder.FindBlueprintResult;
+import com.demod.fbsr.Config;
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.FBSR;
 import com.demod.fbsr.FBSR.RenderDebugLayersResult;
@@ -231,8 +231,6 @@ public class DiscordService extends AbstractIdleService {
 	}
 
 	private DiscordBot bot;
-
-	private JSONObject configJson;
 
 	private String hostingChannelID;
 
@@ -1512,9 +1510,7 @@ public class DiscordService extends AbstractIdleService {
 	protected void startUp() throws JSONException, IOException {
 
 		ServiceFinder.findService(FactorioService.class).get().awaitRunning();
-
-		configJson = Config.get().getJSONObject("discord");
-
+		
 		FactorioManager factorioManager = FBSR.getFactorioManager();
 		String version = factorioManager.getProfileVanilla().getFactorioData().getVersion();
 
@@ -1705,7 +1701,7 @@ public class DiscordService extends AbstractIdleService {
 
 		LOGGER.info("Discord {} started successfully!", bot.getJDA().getSelfUser().getEffectiveName());
 
-		hostingChannelID = configJson.getString("hosting_channel_id");
+		hostingChannelID = Config.load().discord.hosting_channel_id;
 	}
 
 	public Future<Message> useDiscordForFileHosting(String filename, BufferedImage image) throws IOException {

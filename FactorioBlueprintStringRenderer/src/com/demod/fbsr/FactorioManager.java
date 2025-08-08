@@ -24,7 +24,6 @@ import org.rapidoid.data.JSON;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.demod.factorio.Config;
 import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
 import com.demod.factorio.prototype.AchievementPrototype;
@@ -66,14 +65,12 @@ public class FactorioManager {
 	}
 
 	public static void reloadConfig() {
-		Config.setPath(Config.getPath()); // Ensure we have the latest config
+		Config config = Config.load();
 		
-		JSONObject jsonFactorio = Config.get().getJSONObject("factorio");
-		
-		if (jsonFactorio.has("install")) {
+		if (config.factorio.install != null) {
 			hasFactorioInstall = true;
-			factorioInstall = new File(jsonFactorio.getString("install"));
-			factorioExecutableOverride = Optional.ofNullable(jsonFactorio.optString("executable", null)).map(path ->new File(factorioInstall, path));
+			factorioInstall = new File(config.factorio.install);
+			factorioExecutableOverride = Optional.ofNullable(config.factorio.executable).map(path -> new File(factorioInstall, path));
 			factorioVersion = FactorioData.getVersionFromInstall(factorioInstall, factorioExecutableOverride).get();
 		} else {
 			hasFactorioInstall = false;
@@ -82,12 +79,10 @@ public class FactorioManager {
 			factorioVersion = null;
 		}
 
-		JSONObject jsonModPortal = Config.get().getJSONObject("modportal");
-
-		if (!jsonModPortal.isNull("username") && !jsonModPortal.isNull("password")) {
+		if (config.modportal.username != null && config.modportal.password != null) {
 			hasModPortalApi = true;
-			modPortalApiUsername = jsonModPortal.getString("username");
-			modPortalApiPassword = jsonModPortal.getString("password");
+			modPortalApiUsername = config.modportal.username;
+			modPortalApiPassword = config.modportal.password;
 		} else {
 			hasModPortalApi = false;
 			modPortalApiUsername = null;

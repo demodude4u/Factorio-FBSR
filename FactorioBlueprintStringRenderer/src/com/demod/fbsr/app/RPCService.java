@@ -23,7 +23,6 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.demod.factorio.Config;
 import com.demod.fbsr.BSUtils;
 import com.demod.fbsr.cli.CmdRPC;
 import com.google.common.util.concurrent.AbstractIdleService;
@@ -36,21 +35,20 @@ public class RPCService extends AbstractIdleService {
 
     private final ExecutorService executor = Executors.newCachedThreadPool();
 
-    private int port;
+    public static final int PORT = 50832;
+
     private ServerSocket serverSocket;
 
     @Override
     protected void startUp() throws Exception {
-        port = getPort();
-
         if (sendCommand("kill").isPresent()) {// Ensure any previous instance is killed
             LOGGER.info("Previous RPC service instance found, sending kill command...");
             Uninterruptibles.sleepUninterruptibly(5, TimeUnit.SECONDS);
             while (true) {
                 try {
-                    serverSocket = new ServerSocket(port);
+                    serverSocket = new ServerSocket(PORT);
                 } catch (IOException e) {
-                    LOGGER.info("Port {} is still in use, waiting for it to be released...", port);
+                    LOGGER.info("Port {} is still in use, waiting for it to be released...", PORT);
                     Uninterruptibles.sleepUninterruptibly(1, TimeUnit.SECONDS);
                     continue;
                 }
@@ -58,7 +56,7 @@ public class RPCService extends AbstractIdleService {
             }
 
         } else {
-            serverSocket = new ServerSocket(port);
+            serverSocket = new ServerSocket(PORT);
         }
 
         executor.submit(() -> {
@@ -74,7 +72,7 @@ public class RPCService extends AbstractIdleService {
                 }
             }
         });
-        LOGGER.info("RPC service started on port {}", port);
+        LOGGER.info("RPC service started on port {}", PORT);
     }
 
     private void handleConnection(Socket socket) {
@@ -138,16 +136,9 @@ public class RPCService extends AbstractIdleService {
         executor.shutdownNow();
     }
 
-    public static int getPort() {
-        JSONObject config = Config.get().optJSONObject("rpc", new JSONObject());
-        return config.optInt("port", 50832);
-    }
-
     @SuppressWarnings("unchecked")
     public static <T> Optional<T> sendCommand(String... args) {
-        int port = getPort();
-
-        try (Socket socket = new Socket("localhost", port);
+        try (Socket socket = new Socket("localhost", PORT);
              BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
              BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
 

@@ -20,7 +20,6 @@ import org.rapidoid.data.JSON;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.demod.factorio.Config;
 import com.demod.fbsr.Profile;
 import com.demod.fbsr.Profile.ProfileStatus;
 import com.demod.fbsr.app.RPCService;

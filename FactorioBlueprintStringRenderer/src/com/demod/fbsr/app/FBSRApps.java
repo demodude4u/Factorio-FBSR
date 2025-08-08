@@ -7,7 +7,7 @@ import java.util.function.Supplier;
 
 import org.json.JSONObject;
 
-import com.demod.factorio.Config;
+import com.demod.fbsr.Config;
 import com.demod.fbsr.app.PluginFinder.Plugin;
 import com.google.common.util.concurrent.Service;
 import com.google.common.util.concurrent.ServiceManager;
@@ -23,23 +23,21 @@ public class FBSRApps {
 	private static volatile ServiceManager manager = null;
 	private static volatile boolean started = false;
 
-	private static void addServiceIfEnabled(List<Service> services, String configKey,
-			Supplier<? extends Service> factory) {
-		JSONObject configJson = Config.get();
-		if (configJson.has(configKey) && configJson.getJSONObject(configKey).optBoolean("enabled", true)) {
-			services.add(factory.get());
-		}
-	}
-
 	public static synchronized boolean start(List<String> requestedProfiles) {
 		if (started) {
 			LOGGER.info("Services are already started.");
 			return true;
 		}
 
+		Config config = Config.load();
+
 		List<Service> services = new ArrayList<>();
-		addServiceIfEnabled(services, "discord", DiscordService::new);
-		addServiceIfEnabled(services, "webapi", WebAPIService::new);
+		if (config.discord.enabled) {
+			services.add(new DiscordService());
+		}
+		if (config.webapi.enabled) {
+			services.add(new WebAPIService());
+		}
 		services.add(new RPCService());
 		services.add(new FactorioService(requestedProfiles));
 		

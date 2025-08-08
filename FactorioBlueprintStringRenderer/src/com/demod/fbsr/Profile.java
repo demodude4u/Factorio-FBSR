@@ -58,7 +58,6 @@ import org.slf4j.LoggerFactory;
 
 import com.demod.dcba.CommandReporting;
 import com.demod.dcba.CommandReporting.ExceptionWithBlame;
-import com.demod.factorio.Config;
 import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
 import com.demod.factorio.ModLoader;
@@ -158,10 +157,10 @@ public class Profile {
     private IconManager iconManager;
 
     public static Profile byName(String name) {
-        JSONObject json = Config.get().getJSONObject("fbsr");
-        File folderProfileRoot = new File(json.optString("profiles", "profiles"));
-        File folderBuildRoot = new File(json.optString("build", "build"));
-        File folderAssets = new File(json.optString("assets", "assets"));
+        Config config = Config.load();
+        File folderProfileRoot = new File(config.fbsr.profiles);
+        File folderBuildRoot = new File(config.fbsr.build);
+        File folderAssets = new File(config.fbsr.assets);
 
         return new Profile(
                 new File(folderProfileRoot, name), 
@@ -310,10 +309,10 @@ public class Profile {
     }
 
     public static List<Profile> listProfiles() {
-        JSONObject jsonFactorioManager = Config.get().getJSONObject("factorio");
-        File folderProfileRoot = new File(jsonFactorioManager.optString("profiles", "profiles"));
-        File folderBuildRoot = new File(jsonFactorioManager.optString("build", "build"));
-        File folderAssets = new File(jsonFactorioManager.optString("assets", "assets"));
+        Config config = Config.load();
+        File folderProfileRoot = new File(config.fbsr.profiles);
+        File folderBuildRoot = new File(config.fbsr.build);
+        File folderAssets = new File(config.fbsr.assets);
 
         if (!folderProfileRoot.exists()) {
             return ImmutableList.of();

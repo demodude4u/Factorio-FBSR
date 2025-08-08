@@ -24,10 +24,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.demod.dcba.CommandReporting;
-import com.demod.factorio.Config;
 import com.demod.factorio.Utils;
 import com.demod.fbsr.BlueprintFinder;
 import com.demod.fbsr.BlueprintFinder.FindBlueprintResult;
+import com.demod.fbsr.Config;
 import com.demod.fbsr.FBSR;
 import com.demod.fbsr.RenderRequest;
 import com.demod.fbsr.RenderResult;
@@ -40,8 +40,6 @@ import net.dv8tion.jda.api.entities.MessageEmbed.Field;
 public class WebAPIService extends AbstractIdleService {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(WebAPIService.class);
-
-	private JSONObject configJson;
 
 	private String saveToLocalStorage(File folder, BufferedImage image) throws IOException {
 		if (!folder.exists()) {
@@ -72,10 +70,10 @@ public class WebAPIService extends AbstractIdleService {
 
 		ServiceFinder.findService(FactorioService.class).get().awaitRunning();
 
-		configJson = Config.get().getJSONObject("webapi");
+		Config config = Config.load();
 
-		String address = configJson.optString("bind", "0.0.0.0");
-		int port = configJson.optInt("port", 80);
+		String address = config.webapi.bind;
+		int port = config.webapi.port;
 
 		On.address(address).port(port);
 
@@ -92,7 +90,7 @@ public class WebAPIService extends AbstractIdleService {
 				List<String> infos = new ArrayList<>();
 				List<Entry<Optional<String>, String>> imageLinks = new ArrayList<>();
 
-				boolean useLocalStorage = !configJson.isNull("local-storage");
+				boolean useLocalStorage = config.webapi.local_storage != null;
 
 				try {
 					if (req.body() == null) {
@@ -140,7 +138,7 @@ public class WebAPIService extends AbstractIdleService {
 							}
 
 							if (useLocalStorage) {
-								File localStorageFolder = new File(configJson.getString("local-storage"));
+								File localStorageFolder = new File(config.webapi.local_storage);
 								String imageLink = saveToLocalStorage(localStorageFolder, result.image);
 								imageLinks.add(new SimpleEntry<>(blueprint.label, imageLink));
 							} else {

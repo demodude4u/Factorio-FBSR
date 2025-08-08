@@ -19,7 +19,7 @@ import org.jline.reader.impl.DefaultParser;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 
-import com.demod.factorio.Config;
+import com.demod.fbsr.Config;
 import com.demod.fbsr.FactorioManager;
 import com.demod.fbsr.Profile;
 import com.google.common.util.concurrent.Uninterruptibles;
@@ -79,18 +79,17 @@ public class FBSRCommands {
 
         CommandLine cmd = createCommandLine();
 
-        File fileConfig = new File(Config.getPath());
-        if (!fileConfig.exists()) {
+        if (!Config.FILE.exists()) {
             System.out.println();
             System.out.println("The configuration file is missing! Creating a new config file.");
             InputStream template = FBSRCommands.class.getClassLoader().getResourceAsStream("config-template.json");
             try {
-                Files.copy(template, fileConfig.toPath());
+                Files.copy(template, Config.FILE.toPath());
             } catch (IOException e) {
                 e.printStackTrace();
                 System.exit(-1);
             }
-            System.out.println("File created: " + fileConfig.getAbsolutePath());
+            System.out.println("File created: " + Config.FILE.getAbsolutePath());
 
             // Run initial setup commands
             cmd.execute("dump-help");
@@ -172,9 +171,8 @@ public class FBSRCommands {
     }
 
     public static void execute(String[] args) throws IOException {
-        File fileConfig = new File(Config.getPath());
-        if (!fileConfig.exists()) {
-            System.err.println("Configuration file not found: " + fileConfig.getAbsolutePath());
+        if (!Config.FILE.exists()) {
+            System.err.println("Configuration file not found: " + Config.FILE.getAbsolutePath());
             System.err.println("Please run in interactive mode (no arguments) to create a new configuration file.");
             System.exit(1);
         }
