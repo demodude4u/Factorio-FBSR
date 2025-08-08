@@ -356,35 +356,36 @@ public class CmdProfile {
         }
     }
 
-    private static class ExploreAlternatives {
-        @Option(names = {"-b", "-build"}, description = "Open the build folder instead of the profile folder") boolean build;
-        @Option(names = {"-a", "-assets"}, description = "Open the assets zip instead of the profile folder") boolean assets;
+    private static class ExploreSelection {
+        @Option(names = {"-p", "-profile"}, description = "Open the profile folder") boolean profile;
+        @Option(names = {"-b", "-build"}, description = "Open the build folder") boolean build;
+        @Option(names = {"-a", "-assets"}, description = "Open the assets zip") boolean assets;
     }
 
     @Command(name = "profile-explore", description = "Open file manager for the specified profile")
     public static void explore(
             @Parameters(arity = "1", description = "Name of the profile", paramLabel = "<PROFILE>") String name,
-            @ArgGroup(exclusive = true) ExploreAlternatives exploreAlternatives
+            @ArgGroup(exclusive = true, multiplicity = "1") ExploreSelection exploreSelection
     ) {
         Profile profile = Profile.byName(name);
-        if (!exploreAlternatives.build && !profile.getFolderProfile().exists()) {
+        if (exploreSelection.profile && !profile.getFolderProfile().exists()) {
             System.out.println("Profile not found: " + name);
             return;
         }
-        if (exploreAlternatives.build && !profile.getFolderBuild().exists()) {
+        if (exploreSelection.build && !profile.getFolderBuild().exists()) {
             System.out.println("Profile build not found: " + name);
             return;
         }
-        if (exploreAlternatives.assets && !profile.getFileAssets().exists()) {
+        if (exploreSelection.assets && !profile.getFileAssets().exists()) {
             System.out.println("Profile assets not found: " + name);
             return;
         }
-
+        
         if (Desktop.isDesktopSupported()) {
             try {
                 Desktop.getDesktop().open(
-                        exploreAlternatives.build ? profile.getFolderBuild() : 
-                        exploreAlternatives.assets ? profile.getFileAssets() : 
+                        exploreSelection.build ? profile.getFolderBuild() :
+                        exploreSelection.assets ? profile.getFileAssets() :
                         profile.getFolderProfile());
             } catch (IOException e) {
                 System.out.println("Failed to open profile in file manager: " + e.getMessage());
