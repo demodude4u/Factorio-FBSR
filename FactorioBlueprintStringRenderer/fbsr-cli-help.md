@@ -14,16 +14,14 @@ Commands:
   bot-render               Render a blueprint using the bot RPC service
   bot-render-custom        Render a custom blueprint using the bot RPC service
   bot-run                  Run Blueprint Bot
-  bot-status               Get the status of Blueprint Bot service (idle, starting, healthy, failed, stopped, dead)
-  cfg-disable              Disable features
-  cfg-edit                 Edit configuration file directly
-  cfg-enable               Enable features
-  cfg-find-factorio        Attempt to automatically find and set the default Factorio installation
+  bot-status               Get the status of Blueprint Bot service
+  cfg-edit                 Edit configuration file in file editor
   cfg-reload               Reload configuration from file
-  cfg-discord              Setup Discord configuration
-  cfg-factorio             Setup Factorio configuration
-  cfg-logging              Setup Logging configuration (needs restart to take effect)
-  cfg-webapi               Setup Web API configuration
+  cfg-discord              Modify Discord configuration
+  cfg-fbsr                 Modify FBSR configuration
+  cfg-factorio             Modify Factorio configuration
+  cfg-modportal            Modify Mod Portal configuration
+  cfg-webapi               Modify Web API configuration
   cfg-show                 Show current configuration
   build                    Build all steps
   build-download           Download mods
@@ -33,7 +31,7 @@ Commands:
   clean-assets             Delete the generated assets
   clean-build              Delete the build files (including downloaded mods)
   profile-new              Create a new profile
-  profile-delete           Delete a profile
+  profile-delete           Delete profile, build, or assets data
   profile-disable          Disable a profile
   profile-edit             Open the profile configuration file in the default editor
   profile-enable           Enable a profile
@@ -169,49 +167,26 @@ Render a custom blueprint using the bot RPC service
 ## `bot-run` — Run Blueprint Bot
 
 ```
-Usage:   bot-run [-ignore-not-ready] [-require-all-enabled]
+Usage:   bot-run [-ignore-not-ready] [-require-all-enabled] [<PROFILE>...]
 Run Blueprint Bot
+      [<PROFILE>...]         Profiles to be loaded
       -ignore-not-ready      Ignore profiles that are not ready
       -require-all-enabled   Require all profiles to be enabled and ready
                                before starting the bot
 
 ```
-## `bot-status` — Get the status of Blueprint Bot service (idle, starting, healthy, failed, stopped, dead)
+## `bot-status` — Get the status of Blueprint Bot service
 
 ```
 Usage:   bot-status
-Get the status of Blueprint Bot service (idle, starting, healthy, failed,
-stopped, dead)
+Get the status of Blueprint Bot service
 
 ```
-## `cfg-disable` — Disable features
-
-```
-Usage:   cfg-disable <FEATURE>...
-Disable features
-      <FEATURE>...   Features to disable (discord, webapi)
-
-```
-## `cfg-edit` — Edit configuration file directly
+## `cfg-edit` — Edit configuration file in file editor
 
 ```
 Usage:   cfg-edit
-Edit configuration file directly
-
-```
-## `cfg-enable` — Enable features
-
-```
-Usage:   cfg-enable <FEATURE>...
-Enable features
-      <FEATURE>...   Features to enable (discord, webapi)
-
-```
-## `cfg-find-factorio` — Attempt to automatically find and set the default Factorio installation
-
-```
-Usage:   cfg-find-factorio
-Attempt to automatically find and set the default Factorio installation
+Edit configuration file in file editor
 
 ```
 ## `cfg-reload` — Reload configuration from file
@@ -221,56 +196,70 @@ Usage:   cfg-reload
 Reload configuration from file
 
 ```
-## `cfg-discord` — Setup Discord configuration
+## `cfg-discord` — Modify Discord configuration
 
 ```
-Usage:   cfg-discord [-enabled] -hosting=<ID> [-reporting-channel=<ID>]
-                     [-reporting-user=<ID>] -token=<TOKEN>
-Setup Discord configuration
-      -enabled               Enable Discord Bot
+Usage:   cfg-discord [-hosting=<ID>] [-token=<TOKEN>] [-enable | -disable]
+                     [-reporting-user=<ID> | -no-reporting-user]
+                     [-reporting-channel=<ID> | -no-reporting-channel]
+Modify Discord configuration
+      -disable               Disable the feature
+      -enable                Enable the feature
       -hosting=<ID>          Channel ID for hosting images and blueprints
+      -no-reporting-channel  Do not set a reporting channel ID
+      -no-reporting-user     Do not set a reporting user ID
       -reporting-channel=<ID>
                              Channel ID for reporting commands
       -reporting-user=<ID>   User ID for reporting commands
       -token=<TOKEN>         Discord Bot Token
 
 ```
-## `cfg-factorio` — Setup Factorio configuration
+## `cfg-fbsr` — Modify FBSR configuration
 
 ```
-Usage:   cfg-factorio [-assets=<PATH>] [-build=<PATH>] -install=<PATH>
-                      [-profiles=<PATH>] [-portal-user=<username>
-                      -portal-pass=<password>]
-Setup Factorio configuration
+Usage:   cfg-fbsr [-assets=<PATH>] [-build=<PATH>] [-profiles=<PATH>]
+Modify FBSR configuration
       -assets=<PATH>     Path to assets directory
       -build=<PATH>      Path to build directory
-      -install=<PATH>    Path to Factorio installation
-      -portal-pass=<password>
-                         Password for Factorio Mod Portal API
-      -portal-user=<username>
-                         Username for Factorio Mod Portal API
       -profiles=<PATH>   Path to profiles directory
 
 ```
-## `cfg-logging` — Setup Logging configuration (needs restart to take effect)
+## `cfg-factorio` — Modify Factorio configuration
 
 ```
-Usage:   cfg-logging [-file=<PATH>]
-Setup Logging configuration (needs restart to take effect)
-      -file=<PATH>   Path to the log file
+Usage:   cfg-factorio [-install=<PATH> | -find-install] [-executable=<PATH> |
+                      -auto-find-exec]
+Modify Factorio configuration
+      -auto-find-exec      Automatically find the Factorio executable in the
+                             installation folder
+      -executable=<PATH>   Path to Factorio executable (optional)
+      -find-install        Automatically find Factorio installation in common
+                             directories
+      -install=<PATH>      Path to Factorio installation
 
 ```
-## `cfg-webapi` — Setup Web API configuration
+## `cfg-modportal` — Modify Mod Portal configuration
 
 ```
-Usage:   cfg-webapi [-enabled] [-bind=<ADDRESS>] [-local-storage=<PATH>]
-                    [-port=<PORT>]
-Setup Web API configuration
-      -bind=<ADDRESS>   IP address to bind the Web API
-      -enabled          Enable Web API
+Usage:   cfg-modportal [-password] -username=<USERNAME>
+Modify Mod Portal configuration
+      -password              Password for Factorio Mod Portal API
+      -username=<USERNAME>   Username for Factorio Mod Portal API
+
+```
+## `cfg-webapi` — Modify Web API configuration
+
+```
+Usage:   cfg-webapi [-bind=<ADDRESS>] [-port=<PORT>] [-enable | -disable]
+                    [-local-storage=<PATH> | -no-local-storage]
+Modify Web API configuration
+      -bind=<ADDRESS>     IP address to bind the Web API
+      -disable            Disable the feature
+      -enable             Enable the feature
       -local-storage=<PATH>
-                        Path to local storage directory (optional)
-      -port=<PORT>      Port for the Web API
+                          Path to local storage directory (optional)
+      -no-local-storage   Do not use local storage
+      -port=<PORT>        Port for the Web API
 
 ```
 ## `cfg-show` — Show current configuration
@@ -357,19 +346,24 @@ Delete the build files (including downloaded mods)
 ## `profile-new` — Create a new profile
 
 ```
-Usage:   profile-new <PROFILE> [<MODS>...]
+Usage:   profile-new <PROFILE> <MODS>...
 Create a new profile
-      <PROFILE>     Name of the profile to select
-      [<MODS>...]   List of mods to include in the profile
+      <PROFILE>   Name of the profile to select
+      <MODS>...   List of mods to include in the profile
 
 ```
-## `profile-delete` — Delete a profile
+## `profile-delete` — Delete profile, build, or assets data
 
 ```
-Usage:   profile-delete [-confirm] <PROFILE>
-Delete a profile
-      <PROFILE>   Name of the profile
-      -confirm    Skip confirmation prompt
+Usage:   profile-delete [-confirm] (<PROFILE>... | -all) ([-profile] [-build]
+                        [-assets])
+Delete profile, build, or assets data
+      <PROFILE>...   Name of the profile
+      -all           Apply to all profiles
+      -assets        Delete the assets zip
+      -build         Delete the build folder
+      -confirm       Skip confirmation prompt
+      -profile       Delete the profile folder
 
 ```
 ## `profile-disable` — Disable a profile
@@ -404,7 +398,7 @@ Enable a profile
 Usage:   profile-explore [-build | -assets] <PROFILE>
 Open file manager for the specified profile
       <PROFILE>   Name of the profile
-      -assets     Open the assets folder instead of the profile folder
+      -assets     Open the assets zip instead of the profile folder
       -build      Open the build folder instead of the profile folder
 
 ```
