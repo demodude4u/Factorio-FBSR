@@ -9,6 +9,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLEncoder;
@@ -86,7 +87,7 @@ public final class WebUtils {
 	}
 
 	public static JSONObject readJsonFromURL(String url) throws JSONException, MalformedURLException, IOException {
-		return Utils.readJsonFromStream(new URL(url).openStream());
+		return Utils.readJsonFromStream(URI.create(url).toURL().openStream());
 	}
 
 	private WebUtils() {

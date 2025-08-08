@@ -8,6 +8,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
+import java.net.URI;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -66,7 +67,7 @@ public class FactorioModPortal {
 	}
 
 	public static synchronized void downloadModDirect(File target, String downloadUrl, String sha1, String authParams) throws IOException {
-		URL url = new URL(API_URL + downloadUrl + authParams);
+		URL url = URI.create(API_URL + downloadUrl + authParams).toURL();
 		HttpURLConnection conn = (HttpURLConnection) url.openConnection();
 
 		try (InputStream in = conn.getInputStream(); FileOutputStream out = new FileOutputStream(target)) {
@@ -163,7 +164,7 @@ public class FactorioModPortal {
 	private static synchronized JSONObject get(String url) throws IOException {
 		JSONObject json = cacheGet.getIfPresent(url);
 		if (json == null) {
-			HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
+			HttpURLConnection conn = (HttpURLConnection) URI.create(url).toURL().openConnection();
 
 			try (BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()))) {
 				StringBuilder responseBuilder = new StringBuilder();
@@ -179,8 +180,7 @@ public class FactorioModPortal {
 	}
 
 	public static synchronized String getAuthParams(String username, String password) throws IOException {
-		URL url = new URL("https://auth.factorio.com/api-login");
-		HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+		HttpURLConnection conn = (HttpURLConnection) URI.create("https://auth.factorio.com/api-login").toURL().openConnection();
 		conn.setRequestMethod("POST");
 		conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
 		conn.setDoOutput(true);

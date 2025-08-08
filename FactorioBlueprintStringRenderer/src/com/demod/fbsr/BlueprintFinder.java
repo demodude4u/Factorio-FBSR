@@ -4,6 +4,7 @@ import java.io.ByteArrayInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.ArrayList;
@@ -115,7 +116,7 @@ public final class BlueprintFinder {
 			void handleInputStreamFactory(InputStreamFactory factory);
 
 			default void handleURL(String url) throws Exception {
-				handleConnection(WebUtils.openConnectionWithFakeUserAgent(new URL(url)));
+				handleConnection(WebUtils.openConnectionWithFakeUserAgent(URI.create(url).toURL()));
 			}
 
 		}
@@ -182,8 +183,8 @@ public final class BlueprintFinder {
 				"Download from Google Drive"), //
 
 		TEXT_URLS("\\b(?<url>(?:https?|ftp)://[-a-zA-Z0-9+&@#/%?=~_|!:,.;]*[-a-zA-Z0-9+&@#/%=~_|])", (m, l) -> {
-			URL url = new URL(m.group("url"));
-			URLConnection connection = WebUtils.openConnectionWithFakeUserAgent(url);
+			URI uri = URI.create(m.group("url"));
+			URLConnection connection = WebUtils.openConnectionWithFakeUserAgent(uri.toURL());
 			Optional<String> contentType = Optional.ofNullable(connection.getContentType());
 			if (contentType.isPresent() && CONTENT_TYPES.stream().anyMatch(s -> contentType.get().startsWith(s))) {
 				l.handleConnection(connection);
