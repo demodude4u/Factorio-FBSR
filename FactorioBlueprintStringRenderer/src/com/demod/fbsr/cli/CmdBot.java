@@ -79,7 +79,7 @@ public class CmdBot {
         }
     }
 
-    @Command(name = "bot-status", description = "Get the status of Blueprint Bot service (idle, starting, healthy, failed, stopped, dead)")
+    @Command(name = "bot-status", description = "Get the status of Blueprint Bot service")
     public static void status() {
         String status = RPCService.<String>sendCommand("status").orElse("dead");
         LOGGER.info("Blueprint Bot service status: {}", status);
