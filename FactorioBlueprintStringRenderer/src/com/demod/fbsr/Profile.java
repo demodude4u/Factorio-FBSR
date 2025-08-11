@@ -212,12 +212,7 @@ public class Profile {
             return false;
         }
         Profile other = (Profile) obj;
-        try {
-            return Files.isSameFile(folderProfile.toPath(), other.folderProfile.toPath());
-        } catch (IOException e) {
-            e.printStackTrace();
-            return false;
-        }
+        return name.equals(other.name);
     }
 
     @Override
