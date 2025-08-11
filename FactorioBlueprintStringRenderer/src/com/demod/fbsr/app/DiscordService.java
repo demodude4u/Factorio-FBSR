@@ -3,6 +3,7 @@ package com.demod.fbsr.app;
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.Image;
+import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.EOFException;
@@ -65,6 +66,7 @@ import com.demod.fbsr.RenderResult;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.RenderingRegistry;
 import com.demod.fbsr.WebUtils;
+import com.demod.fbsr.Atlas.AtlasRef;
 import com.demod.fbsr.bs.BSBlueprint;
 import com.demod.fbsr.bs.BSBlueprint.BlueprintModInfo;
 import com.demod.fbsr.bs.BSBlueprintBook;
@@ -72,6 +74,7 @@ import com.demod.fbsr.bs.BSBlueprintString;
 import com.demod.fbsr.bs.BSDeconstructionPlanner;
 import com.demod.fbsr.bs.BSItemWithQualityID;
 import com.demod.fbsr.bs.BSUpgradePlanner;
+import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.def.SpriteDef;
 import com.demod.fbsr.gui.layout.GUILayoutBlueprint;
 import com.demod.fbsr.gui.layout.GUILayoutBook;
@@ -103,6 +106,7 @@ import net.dv8tion.jda.api.events.interaction.command.MessageContextInteractionE
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionEvent;
 import net.dv8tion.jda.api.exceptions.ErrorResponseException;
+import net.dv8tion.jda.api.interactions.AutoCompleteQuery;
 import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
@@ -1118,30 +1122,57 @@ public class DiscordService extends AbstractIdleService {
 	}
 
 	private void handleShowEntityAutoComplete(AutoCompleteEvent event) {
-		String search = event.getParamString("entity").trim().toLowerCase();
+		AutoCompleteQuery focusedOption = event.getFocusedOption();
+		String param = focusedOption.getName();
+		// String search = event.getParamString("entity").trim().toLowerCase();
+		String search = focusedOption.getValue().trim().toLowerCase();
 
 		if (search.isEmpty()) {
 			event.reply(ImmutableList.of());
 			return;
 		}
 
-		List<String> nameStartsWith = new ArrayList<>();
-		List<String> nameContains = new ArrayList<>();
-		for (Collection<EntityRendererFactory> factories : FBSR.getFactorioManager().getEntityFactoryByNameMap().asMap().values()) {
-			String name = factories.iterator().next().getName();
-			String lowerCase = name.toLowerCase();
-			if (lowerCase.startsWith(search)) {
-				nameStartsWith.add(name);
-			} else if (lowerCase.contains(search)) {
-				nameContains.add(name);
-			}
-			if (nameStartsWith.size() + nameContains.size() >= OptionData.MAX_CHOICES) {
+		List<String> names = new ArrayList<>();
+		List<String> matches = new ArrayList<>();
+		
+		if (param.equals("entity")) {
+			FBSR.getFactorioManager().getEntityFactoryByNameMap().keySet().stream().forEach(names::add);
+		
+		} else if (param.equals("mod")) {
+			FBSR.getFactorioManager().getProfileByModNameMap().keySet().stream().forEach(names::add);
+		}
+
+		names.sort(Comparator.comparingInt(String::length).thenComparing(String::compareToIgnoreCase));
+
+		for (String name : names) {
+			if (matches.size() >= OptionData.MAX_CHOICES) {
 				break;
+			}
+			String lowerCase = name.toLowerCase();
+			if (lowerCase.equals(search)) {
+				matches.add(name);
+			}
+		}
+		for (String name : names) {
+			if (matches.size() >= OptionData.MAX_CHOICES) {
+				break;
+			}
+			String lowerCase = name.toLowerCase();
+			if (lowerCase.startsWith(search) && !matches.contains(name)) {
+				matches.add(name);
+			}
+		}
+		for (String name : names) {
+			if (matches.size() >= OptionData.MAX_CHOICES) {
+				break;
+			}
+			String lowerCase = name.toLowerCase();
+			if (lowerCase.contains(search) && !matches.contains(name)) {
+				matches.add(name);
 			}
 		}
 
-		List<String> choices = ImmutableList.<String>builder().addAll(nameStartsWith).addAll(nameContains).build()
-				.stream().limit(OptionData.MAX_CHOICES).collect(Collectors.toList());
+		List<String> choices = matches.stream().limit(OptionData.MAX_CHOICES).collect(Collectors.toList());
 		event.reply(choices);
 	}
 
@@ -1514,13 +1545,24 @@ public class DiscordService extends AbstractIdleService {
 		FactorioManager factorioManager = FBSR.getFactorioManager();
 		String version = factorioManager.getProfileVanilla().getFactorioData().getVersion();
 
-		Set<String> mods = new HashSet<>();
-		factorioManager.getProfiles().forEach(p -> {
-			RenderingRegistry registry = p.getRenderingRegistry();
-			registry.getEntityFactories().forEach(e -> mods.addAll(e.getMods()));
-			registry.getTileFactories().forEach(t -> mods.addAll(t.getMods()));
-		});
-
+		int iconCount = 0;
+		int spriteCount = 0;
+		Set<String> dupeCheck = new HashSet<>();
+		for (Profile profile : factorioManager.getProfiles()) {
+			for (ImageDef def : profile.getAtlasPackage().getDefs()) {
+				AtlasRef ref = def.getAtlasRef();
+				Rectangle r = ref.getRect();
+				String checkKey = ref.getAtlas().getId() + ":" + r.x + ":" + r.y + ":" + r.width + ":" + r.height;
+				if (dupeCheck.add(checkKey)) {
+					if (def.getPath().startsWith("TAG[")) {
+						iconCount++;
+					} else {
+						spriteCount++;
+					}
+				}
+			}
+		}
+		
 		bot = DCBA.builder()//
 				.setInfo("Blueprint Bot")//
 				.withSupport(
@@ -1538,9 +1580,13 @@ public class DiscordService extends AbstractIdleService {
 				.withCredits("Special Thanks", "AntiElitz")//
 				.withCredits("Special Thanks", "Members of Team Steelaxe")//
 				.withVersion("Multiverse " + version)
-				.withCustomField("Mods Loaded",
-						mods.stream().sorted(Comparator.comparing(s -> s.toLowerCase()))
-								.collect(Collectors.joining(", ")))
+				.withCustomField("Load Counts",
+						factorioManager.getProfileByModNameMap().keySet().size() + " Mods\n" +
+						factorioManager.getEntityFactoryByNameMap().keySet().size() + " Entities\n" +
+						factorioManager.getTileFactoryByNameMap().keySet().size() + " Tiles\n" +
+						iconCount + " Icons\n" +
+						spriteCount + " Sprites\n" +
+						factorioManager.getProfiles().size() + " Profiles")
 				//
 				.async(true)//
 				//
@@ -1659,7 +1705,7 @@ public class DiscordService extends AbstractIdleService {
 				.addSlashCommand("show/entity", "Display an example of the specified entity.",
 						this::handleShowEntityCommand, this::handleShowEntityAutoComplete)//
 				.withAutoParam(OptionType.STRING, "entity", "Entity name to be shown.")
-				.withOptionalParam(OptionType.STRING, "mod", "Mod group name, as shown in blueprint renders.")
+				.withOptionalAutoParam(OptionType.STRING, "mod", "Mod group name, as shown in blueprint renders.")
 				.withOptionalParam(OptionType.STRING, "json", "JSON properties to add to the entity.")
 				.withOptionalParam(OptionType.BOOLEAN, "debug", "Show debug markers.")
 				.withOptionalParam(OptionType.BOOLEAN, "debug-layers",

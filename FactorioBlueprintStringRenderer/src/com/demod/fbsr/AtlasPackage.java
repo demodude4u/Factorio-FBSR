@@ -486,6 +486,14 @@ public class AtlasPackage {
 		defs.add(def);
 	}
 
+	public List<ImageDef> getDefs() {
+		return defs;
+	}
+
+	public List<Atlas> getAtlases() {
+		return atlases;
+	}
+
     private static void copyToAtlas(BufferedImage imageSheet, ImageDef def, Atlas atlas, Rectangle rect) {
 		// XXX Inefficient to make a context for every image
 		Graphics2D g = atlas.getImage().createGraphics();

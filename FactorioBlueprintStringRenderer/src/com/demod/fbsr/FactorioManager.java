@@ -191,6 +191,10 @@ public class FactorioManager {
 		return utilitySprites;
 	}
 
+	public ListMultimap<String, Profile> getProfileByModNameMap() {
+		return profileByModName;
+	}
+
 	public static boolean hasFactorioInstall() {
 		return hasFactorioInstall;
 	}
@@ -324,6 +328,10 @@ public class FactorioManager {
 
 	public Profile lookupProfileByData(FactorioData data) {
 		return profileByData.get(data);
+	}
+
+	public List<Profile> lookupProfileByModName(String modName) {
+		return profileByModName.get(modName);
 	}
 
 	public List<EntityPrototype> lookupEntityByName(String name) {
