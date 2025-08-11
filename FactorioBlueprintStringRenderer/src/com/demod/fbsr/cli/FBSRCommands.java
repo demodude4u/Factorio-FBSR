@@ -232,22 +232,6 @@ public class FBSRCommands {
             sb.append(cmd.getUsageMessage(CommandLine.Help.Ansi.OFF));
             sb.append("\n```\n");
 
-            // List subcommands
-            // if (!spec.subcommands().isEmpty()) {
-            //     sb.append("**Subcommands:**\n\n");
-            //     for (Map.Entry<String, CommandLine> entry : spec.subcommands().entrySet()) {
-            //         CommandSpec subSpec = entry.getValue().getCommandSpec();
-            //         if (!subSpec.usageMessage().hidden()) {
-            //             sb.append("- `").append(entry.getKey()).append("`");
-            //             if (subSpec.usageMessage().description().length > 0) {
-            //                 sb.append(": ").append(String.join(" ", subSpec.usageMessage().description()));
-            //             }
-            //             sb.append("\n");
-            //         }
-            //     }
-            //     sb.append("\n");
-            // }
-
             for (Map.Entry<String, CommandLine> entry : spec.subcommands().entrySet()) {
                 CommandSpec subSpec = entry.getValue().getCommandSpec();
                 if (!subSpec.usageMessage().hidden()) {
