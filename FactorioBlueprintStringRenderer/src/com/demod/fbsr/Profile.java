@@ -86,25 +86,10 @@ public class Profile {
     public static final String ASSETS_ZIP_PROFILE_JSON = "profile.json";
     public static final String ASSETS_ZIP_DUMP_JSON = "dump.json";
     public static final String ASSETS_ZIP_RENDERING_JSON = "rendering.json";
+    public static final String ASSETS_ZIP_MANIFEST_JSON = "manifest.json";
 
-    public static final Set<String> BUILTIN_MODS;
-	public static final Set<String> BASE_ENTITIES;
-	public static final Set<String> BASE_TILES;
-
-	static {
-		JSONObject json;
-		try (InputStream is = Profile.class.getClassLoader().getResourceAsStream("base-data.json")) {
-			json = new JSONObject(new JSONTokener(is));
-		} catch (IOException e) {
-			throw new RuntimeException("Failed to load base-data.json", e);
-		}
-        BUILTIN_MODS = json.getJSONArray("mods").toList().stream()
-                .map(Object::toString).collect(Collectors.toSet());
-		BASE_ENTITIES = json.getJSONArray("entities").toList().stream()
-				.map(Object::toString).collect(Collectors.toSet());
-		BASE_TILES = json.getJSONArray("tiles").toList().stream()
-				.map(Object::toString).collect(Collectors.toSet());
-	}
+    public static final Set<String> BUILTIN_MODS = Set.of(
+            "base", "space-age", "quality", "elevated-rails");
 
     //The BUILD statuses are named after the next step in the build process
     public static enum ProfileStatus {
@@ -132,7 +117,7 @@ public class Profile {
     private final File folderBuild;
     private final File fileAssets;
 
-    private final File fileProfile;
+    private final File fileProfileConfig;
     
     private final File fileManifest;
 
@@ -183,7 +168,7 @@ public class Profile {
         this.folderBuild = folderBuild;
         this.fileAssets = fileAssets;
 
-        fileProfile = new File(folderProfile, "profile.json");
+        fileProfileConfig = new File(folderProfile, "profile.json");
 
         fileManifest = new File(folderBuild, "manifest.json");
 
@@ -252,8 +237,8 @@ public class Profile {
         return folderBuild;
     }
 
-    public File getFileProfile() {
-        return fileProfile;
+    public File getFileProfileConfig() {
+        return fileProfileConfig;
     }
 
     public File getFileAssets() {
@@ -314,24 +299,26 @@ public class Profile {
         File folderBuildRoot = new File(config.fbsr.build);
         File folderAssets = new File(config.fbsr.assets);
 
-        if (!folderProfileRoot.exists()) {
+        if (!folderProfileRoot.exists() && !folderAssets.exists()) {
             return ImmutableList.of();
         }
 
         List<Profile> profiles = new ArrayList<>();
 
-        for (File folderProfile : folderProfileRoot.listFiles()) {
-            String name = folderProfile.getName();
-            
-            if (name.equals(".git") || !folderProfile.isDirectory()) {
-                continue;
+        if (folderProfileRoot.exists()) {
+            for (File folderProfile : folderProfileRoot.listFiles()) {
+                String name = folderProfile.getName();
+                
+                if (name.equals(".git") || !folderProfile.isDirectory()) {
+                    continue;
+                }
+                
+                Profile profile = new Profile(
+                        folderProfile, 
+                        new File(folderBuildRoot, name), 
+                        new File(folderAssets, name + ".zip"));
+                profiles.add(profile);
             }
-            
-            Profile profile = new Profile(
-                    folderProfile, 
-                    new File(folderBuildRoot, name), 
-                    new File(folderAssets, name + ".zip"));
-            profiles.add(profile);
         }
 
         if (folderAssets.exists()) {
@@ -356,8 +343,12 @@ public class Profile {
         return profiles;
     }
 
+    public boolean hasProfileConfig() {
+        return fileProfileConfig.exists();
+    }
+
     public boolean isValid() {
-        return fileProfile.exists();
+        return hasProfileConfig() || hasAssets();
     }
 
     public boolean isReady() {
@@ -365,11 +356,15 @@ public class Profile {
     }
 
     public boolean isEnabled() {
-        if (!isValid()) {
+        if (hasAssetsNoConfig()) {
+            return true;
+        }
+
+        if (!hasProfileConfig()) {
             return false;
         }
 
-        JSONObject jsonProfile = readJsonFile(fileProfile);
+        JSONObject jsonProfile = readJsonFile(fileProfileConfig);
         return jsonProfile.optBoolean("enabled", true);
     }
 
@@ -405,14 +400,23 @@ public class Profile {
         return fileAssets.exists();
     }
 
-    public String getStateCode() {
-        if (!isValid()) {
-            return "[XXXX]";
-        }
+    public boolean hasAssetsNoConfig() {
+        return hasAssets() && !hasProfileConfig();
+    }
 
-        boolean hasWarnings = !getWarnings().isEmpty();
-        String prefix = hasWarnings ? "!" : "[";
-        String postfix = hasWarnings ? "!" : "]";
+    public String getStateCode() {
+        String prefix;
+        String postfix;
+        if (!getWarnings().isEmpty()) {
+            prefix = "!";
+            postfix = "!";
+        } else if (hasAssetsNoConfig()) {
+            prefix = "<";
+            postfix = ">";
+        } else {
+            prefix = "[";
+            postfix = "]";
+        }
 
         return prefix
             + (hasManifest() ? "M" : "-")
@@ -423,10 +427,6 @@ public class Profile {
     }
 
     public List<ProfileWarning> getWarnings() {
-        if (!isValid()) {
-            return ImmutableList.of();
-        }
-
         if (!isEnabled()) {
             return ImmutableList.of();
         } 
@@ -448,7 +448,7 @@ public class Profile {
 
         if (!isValid()) {
             return ProfileStatus.INVALID;
-
+            
         } else if (!isEnabled()) {
             return ProfileStatus.DISABLED;
 
@@ -476,11 +476,9 @@ public class Profile {
                 return ProfileStatus.NEED_MOD_PORTAL_CREDENTIALS;
             }
 
-        } else if (isValid()) {
+        } else {
             return ProfileStatus.BUILD_MANIFEST;
-
         }
-        return null;
     }
 
     public String getDumpFactorioVersion() {
@@ -502,23 +500,7 @@ public class Profile {
             return null;
         }
 
-        try (ZipFile zipFile = new ZipFile(fileAssets)) {
-            
-            ZipEntry entryVersion = zipFile.getEntry(ASSETS_ZIP_VERSION_TXT);
-            if (entryVersion == null) {
-                System.out.println(ASSETS_ZIP_VERSION_TXT + " not found in " + fileAssets.getName() + " for profile: " + folderProfile.getName());
-                return null;
-            }
-
-            try (InputStream is = zipFile.getInputStream(entryVersion)) {
-                return new String(is.readAllBytes()).trim();
-            }
-
-        } catch (IOException e) {
-            System.out.println("Failed to read " + ASSETS_ZIP_VERSION_TXT + " from " + fileAssets.getName() + " for profile: " + folderProfile.getName());
-            e.printStackTrace();
-            return null;
-        }
+        return readAssetFile(ASSETS_ZIP_VERSION_TXT);
     }
 
     public JSONObject getAssetsRenderingConfiguration() {
@@ -526,28 +508,7 @@ public class Profile {
             return null;
         }
 
-        try (ZipFile zipFile = new ZipFile(fileAssets)) {
-
-            ZipEntry entryVersion = zipFile.getEntry(ASSETS_ZIP_RENDERING_JSON);
-            if (entryVersion == null) {
-                System.out.println(ASSETS_ZIP_RENDERING_JSON + " not found in " + fileAssets.getName() + " for profile: " + folderProfile.getName());
-                return null;
-            }
-
-            try (InputStream is = zipFile.getInputStream(entryVersion)) {
-                try {
-                    return new JSONObject(new JSONTokener(is));
-                } catch (JSONException e) {
-                    System.out.println("Failed to parse " + ASSETS_ZIP_RENDERING_JSON + " from " + fileAssets.getName() + " for profile: " + folderProfile.getName());
-                    return null;
-                }
-            }
-
-        } catch (IOException e) {
-            System.out.println("Failed to read " + ASSETS_ZIP_RENDERING_JSON + " from " + fileAssets.getName() + " for profile: " + folderProfile.getName());
-            e.printStackTrace();
-            return null;
-        }
+        return readJsonAssetFile(ASSETS_ZIP_RENDERING_JSON);
     }
 
     public boolean hasVersionMismatch() {
@@ -569,36 +530,28 @@ public class Profile {
     }
 
     public boolean hasProfileMismatch() {
-        if (!isValid() || !hasAssets()) {
+        if (!hasProfileConfig() || !hasAssets()) {
             return false;
         }
-        JSONObject jsonProfile = readJsonFile(fileProfile);
-        try (ZipFile zipFile = new ZipFile(fileAssets)) {
-            ZipEntry entryProfile = zipFile.getEntry(ASSETS_ZIP_PROFILE_JSON);
-            if (entryProfile == null) {
-                System.out.println(ASSETS_ZIP_PROFILE_JSON + " not found in assets.zip for profile: " + folderProfile.getName());
-                return true;
-            }
-            try (InputStream is = zipFile.getInputStream(entryProfile)) {
-                JSONObject jsonAssetsProfile = new JSONObject(new JSONTokener(is));
-                return !jsonProfile.similar(jsonAssetsProfile);
-            }
-        } catch (IOException | JSONException e) {
-            System.out.println("Failed to read " + ASSETS_ZIP_PROFILE_JSON + " from assets.zip for profile: " + folderProfile.getName());
-            e.printStackTrace();
-            return true;
-        }
+        JSONObject jsonProfile = readJsonFile(fileProfileConfig);
+        JSONObject jsonAssetsProfile = readJsonAssetFile(ASSETS_ZIP_PROFILE_JSON);
+        return !jsonProfile.similar(jsonAssetsProfile);
     }
 
     public boolean setEnabled(boolean enabled) {
-        if (!isValid()) {
+        if (hasAssetsNoConfig()) {
+            System.out.println("Profile has assets but no config, cannot set enabled state.");
             return false;
         }
 
-        JSONObject jsonProfile = readJsonFile(fileProfile);
+        if (!hasProfileConfig()) {
+            return false;
+        }
+
+        JSONObject jsonProfile = readJsonFile(fileProfileConfig);
         jsonProfile.put("enabled", enabled);
 
-        if (!writeProfileSortedJsonFile(fileProfile, jsonProfile)) {
+        if (!writeProfileSortedJsonFile(fileProfileConfig, jsonProfile)) {
             System.out.println("Failed to write profile.json for profile: " + folderProfile.getName());
             return false;
         }
@@ -607,7 +560,7 @@ public class Profile {
     }
 
     public boolean generateProfile(String... mods) {
-        if (isValid()) {
+        if (hasProfileConfig()) {
             System.out.println("Profile " + folderProfile.getName() + " already exists.");
             return false;
         }
@@ -623,17 +576,27 @@ public class Profile {
         jsonProfile.put("entity-overrides", new JSONObject());
         jsonProfile.put("tile-overrides", new JSONObject());
 
-        if (!writeProfileSortedJsonFile(fileProfile, jsonProfile)) {
+        if (!writeProfileSortedJsonFile(fileProfileConfig, jsonProfile)) {
             System.out.println("Failed to write profile.json for profile: " + folderProfile.getName());
             return false;
         }
 
+        if (!deleteBuild()) {
+            System.out.println("Failed to delete old profile build folder: " + folderProfile.getAbsolutePath());
+            return false;
+        }
+        if (!deleteAssets()) {
+            System.out.println("Failed to delete old profile assets folder: " + folderProfile.getAbsolutePath());
+            return false;
+        }
+        
         System.out.println("Profile created: " + folderProfile.getAbsolutePath());
         return true;
     }
 
-    public static boolean generateDefaultVanillaProfile(boolean force) {
+    public static boolean generateDefaultVanillaProfile() {
         Profile profileVanilla = Profile.vanilla();
+
         if (!profileVanilla.deleteProfile()) {
             System.out.println("Failed to delete old vanilla profile folder: " + profileVanilla.getFolderProfile().getAbsolutePath());
             return false;
@@ -661,8 +624,8 @@ public class Profile {
         resetLoadedData();
         try {
 
-            if (!isValid()) {
-                System.out.println("Profile is not valid: " + folderProfile.getName());
+            if (!hasProfileConfig()) {
+                System.out.println("Profile has no config: " + folderProfile.getName());
                 return Optional.empty();
             }
 
@@ -701,7 +664,7 @@ public class Profile {
                 ignoredTiles.addAll(jsonRenderingVanilla.getJSONObject("tiles").keySet());
             }
 
-            JSONObject jsonProfile = readJsonFile(fileProfile);
+            JSONObject jsonProfile = readJsonFile(fileProfileConfig);
             JSONObject jsonProfileModOverrides = jsonProfile.optJSONObject("mod-overrides", new JSONObject());
             JSONObject jsonProfileEntityOverrides = jsonProfile.optJSONObject("entity-overrides", new JSONObject());
             JSONObject jsonProfileTileOverrides = jsonProfile.optJSONObject("tile-overrides", new JSONObject());
@@ -1111,11 +1074,12 @@ public class Profile {
             }
         }
 
-        if (success.get() && folderProfile.getParentFile() != null && folderProfile.getParentFile().listFiles().length == 0) {
-            // If the parent directory is empty, delete it as well
-            if (!folderProfile.getParentFile().delete()) {
+        // If the parent directory is empty, delete it as well
+        File folderProfileRoot = folderProfile.getParentFile();
+        if (folderProfileRoot != null && folderProfileRoot.exists() && folderProfileRoot.listFiles().length == 0) {
+            if (!folderProfileRoot.delete()) {
                 success.set(false);
-                System.out.println("Failed to delete empty parent directory: " + folderProfile.getParentFile().getAbsolutePath());
+                System.out.println("Failed to delete empty parent directory: " + folderProfileRoot.getAbsolutePath());
             }
         }
 
@@ -1144,11 +1108,12 @@ public class Profile {
             }
         }
 
-        if (success.get() && folderBuild.getParentFile() != null && folderBuild.getParentFile().listFiles().length == 0) {
-            // If the parent directory is empty, delete it as well
-            if (!folderBuild.getParentFile().delete()) {
+        // If the parent directory is empty, delete it as well
+        File folderBuildRoot = folderBuild.getParentFile();
+        if (folderBuildRoot != null && folderBuildRoot.exists() && folderBuildRoot.listFiles().length == 0) {
+            if (!folderBuildRoot.delete()) {
                 success.set(false);
-                System.out.println("Failed to delete empty parent directory: " + folderBuild.getParentFile().getAbsolutePath());
+                System.out.println("Failed to delete empty parent directory: " + folderBuildRoot.getAbsolutePath());
             }
         }
 
@@ -1161,10 +1126,11 @@ public class Profile {
             return false;
         }
 
-        if (fileAssets.getParentFile() != null && fileAssets.getParentFile().listFiles().length == 0) {
-            // If the parent directory is empty, delete it as well
-            if (!fileAssets.getParentFile().delete()) {
-                System.out.println("Failed to delete empty parent directory: " + fileAssets.getParentFile().getAbsolutePath());
+        // If the parent directory is empty, delete it as well
+        File folderAssetsRoot = fileAssets.getParentFile();
+        if (folderAssetsRoot != null && folderAssetsRoot.exists() && folderAssetsRoot.listFiles().length == 0) {
+            if (!folderAssetsRoot.delete()) {
+                System.out.println("Failed to delete empty parent directory: " + folderAssetsRoot.getAbsolutePath());
                 return false;
             }
         }
@@ -1173,8 +1139,8 @@ public class Profile {
     }
 
     public boolean buildManifest(boolean force) {
-        if (!isValid()) {
-            System.out.println("Profile " + folderProfile.getName() + " is not valid.");
+        if (!hasProfileConfig()) {
+            System.out.println("Profile " + folderProfile.getName() + " has no config.");
             return false;
         }
 
@@ -1185,7 +1151,7 @@ public class Profile {
         
         //TODO load specific versions of mods and calculate dependencies with version compatibility
 
-        JSONObject jsonProfile = readJsonFile(fileProfile);
+        JSONObject jsonProfile = readJsonFile(fileProfileConfig);
         JSONArray jsonProfileMods = jsonProfile.optJSONArray("mods");
 
         List<String> mods = new ArrayList<>();
@@ -1245,6 +1211,7 @@ public class Profile {
             String filename = jsonRelease.getString("file_name");
             String downloadUrl = jsonRelease.getString("download_url");
             String sha1 = jsonRelease.getString("sha1");
+            
 
             JSONArray jsonZip = new JSONArray();
             jsonZip.put(downloadUrl);
@@ -1259,12 +1226,18 @@ public class Profile {
             }
         }
 
-        JSONArray jsonModList = new JSONArray();
-        jsonManifest.put("mod_list", jsonModList);
-        for (String modName : modInfo.keySet()) {
-            jsonModList.put(modName);
+        JSONArray jsonMods = new JSONArray();
+        jsonManifest.put("mods", jsonMods);
+        for (Entry<String, JSONObject> entry : modInfo.entrySet()) {
+            String modName = entry.getKey();
+            JSONObject jsonRelease = entry.getValue();
+            JSONObject jsonMod = new JSONObject();
+            jsonMod.put("name", modName);
+            if (jsonRelease.has("version")) {
+                jsonMod.put("version", jsonRelease.getString("version"));
+            }
+            jsonMods.put(jsonMod);
         }
-
 
         if (!folderBuild.exists()) {
             folderBuild.mkdirs();
@@ -1440,12 +1413,7 @@ public class Profile {
     private boolean updateModList() {
         
         JSONObject jsonManifest = readJsonFile(fileManifest);
-        JSONArray jsonManifestModList = jsonManifest.optJSONArray("mod_list");
-        
-        if (jsonManifestModList == null) {
-            System.out.println("Manifest does not contain mod list for profile: " + folderProfile.getName());
-            return false;
-        }
+        JSONArray jsonManifestMods = jsonManifest.getJSONArray("mods");
 
         if (!folderBuildMods.exists()) {
             folderBuildMods.mkdirs();
@@ -1455,8 +1423,9 @@ public class Profile {
         JSONArray jsonModListMods = new JSONArray();
         jsonModList.put("mods", jsonModListMods);
         Set<String> modCheck = new HashSet<>();
-        for (int i = 0; i < jsonManifestModList.length(); i++) {
-            String modName = jsonManifestModList.getString(i).trim();
+        for (int i = 0; i < jsonManifestMods.length(); i++) {
+            JSONObject jsonManifestMod = jsonManifestMods.getJSONObject(i);
+            String modName = jsonManifestMod.getString("name").trim();
             JSONObject jsonMod = new JSONObject();
             jsonMod.put("name", modName);
             jsonMod.put("enabled", true);
@@ -1529,7 +1498,7 @@ public class Profile {
         try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(fileAssetsTemp))) {
             zos.setLevel(Deflater.BEST_COMPRESSION);
             
-            if (!copyIntoZip(zos, fileProfile, ASSETS_ZIP_PROFILE_JSON)) {
+            if (!copyIntoZip(zos, fileProfileConfig, ASSETS_ZIP_PROFILE_JSON)) {
                 return false;
             }
             if (!copyIntoZip(zos, fileScriptOutputDumpJson, ASSETS_ZIP_DUMP_JSON)) {
@@ -1538,7 +1507,10 @@ public class Profile {
             if (!copyIntoZip(zos, fileScriptOutputVersion, ASSETS_ZIP_VERSION_TXT)) {
                 return false;
             }
-            
+            if (!copyIntoZip(zos, fileManifest, ASSETS_ZIP_MANIFEST_JSON)) {
+                return false;
+            }
+
             JSONObject jsonRendering;
             {
                 Profile profileVanilla = Profile.vanilla();
@@ -1677,38 +1649,71 @@ public class Profile {
 		}
 	}
 
-    public List<String> listMods() {
+    public static class ModNameAndVersion {
+        public final String name;
+        public final Optional<String> version;
 
-        if (!isValid()) {
-            System.out.println("Profile " + folderProfile.getName() + " is not valid.");
+        public ModNameAndVersion(String name, Optional<String> version) {
+            this.name = name;
+            this.version = version;
+        }
+    }
+
+    public List<ModNameAndVersion> listMods() {
+
+        if (!hasManifest() && !hasAssets()) {
+            System.out.println("Profile " + folderProfile.getName() + " has no manifest or assets to list mods.");
             return ImmutableList.of();
         }
 
-        List<String> mods = new ArrayList<>();
+        List<ModNameAndVersion> mods = new ArrayList<>();
 
-        if (hasManifest()) {
-            JSONObject jsonManifest = readJsonFile(fileManifest);
-            JSONArray jsonModList = jsonManifest.getJSONArray("mod_list");
-            for (int i = 0; i < jsonModList.length(); i++) {
-                String mod = jsonModList.getString(i);
-                mods.add(mod);
-            }
-
+        JSONObject jsonManifest;
+        if (hasAssets()) {
+            jsonManifest = readJsonAssetFile(ASSETS_ZIP_MANIFEST_JSON);
         } else {
-            JSONObject jsonProfile = readJsonFile(fileProfile);
-            JSONArray jsonProfileMods = jsonProfile.optJSONArray("mods");
-            if (jsonProfileMods != null) {
-                for (int i = 0; i < jsonProfileMods.length(); i++) {
-                    String modName = jsonProfileMods.getString(i).trim();
-                    mods.add(modName);
-                }
-            } else {
-                System.out.println("No mods found in profile: " + folderProfile.getName());
-            }
+            jsonManifest = readJsonFile(fileManifest);
         }
         
-        Collections.sort(mods);
+        JSONArray jsonMods = jsonManifest.getJSONArray("mods");
+        for (int i = 0; i < jsonMods.length(); i++) {
+            JSONObject jsonMod = jsonMods.getJSONObject(i);
+            String mod = jsonMod.getString("name");
+            Optional<String> version = jsonMod.has("version") ? Optional.of(jsonMod.getString("version")) : Optional.empty();
+            mods.add(new ModNameAndVersion(mod, version));
+        }
+
+        Collections.sort(mods, Comparator.comparing(mod -> mod.name));
         return mods;
+    }
+
+    private String readAssetFile(String assetName) {
+        try (ZipFile zipFile = new ZipFile(fileAssets)) {
+            
+            ZipEntry entryVersion = zipFile.getEntry(assetName);
+            if (entryVersion == null) {
+                System.out.println(assetName + " not found in " + fileAssets.getName() + " for profile: " + folderProfile.getName());
+                return null;
+            }
+
+            try (InputStream is = zipFile.getInputStream(entryVersion)) {
+                return new String(is.readAllBytes()).trim();
+            }
+
+        } catch (IOException e) {
+            System.out.println("Failed to read " + assetName + " from " + fileAssets.getName() + " for profile: " + folderProfile.getName());
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    private JSONObject readJsonAssetFile(String assetName) {
+        try {
+            return new JSONObject(readAssetFile(assetName));
+        } catch (JSONException e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
     private static JSONObject readJsonFile(File file) {
@@ -2068,12 +2073,12 @@ public class Profile {
     }
 
     public boolean updateMods() {
-        if (!isValid()) {
-            System.out.println("Profile " + folderProfile.getName() + " is not valid.");
+        if (!hasProfileConfig()) {
+            System.out.println("Profile " + folderProfile.getName() + " has no config.");
             return false;
         }
 
-        JSONObject jsonProfile = readJsonFile(fileProfile);
+        JSONObject jsonProfile = readJsonFile(fileProfileConfig);
         JSONArray jsonMods = jsonProfile.getJSONArray("mods");
         boolean changed = false;
         for (int i = 0; i < jsonMods.length(); i++) {
@@ -2111,7 +2116,7 @@ public class Profile {
         }
 
         if (changed) {
-            writeProfileSortedJsonFile(fileProfile, jsonProfile);
+            writeProfileSortedJsonFile(fileProfileConfig, jsonProfile);
 
             cleanManifest();
         }

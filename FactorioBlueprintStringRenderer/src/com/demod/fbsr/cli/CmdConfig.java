@@ -30,6 +30,7 @@ public class CmdConfig {
     private static class SetupFactorioInstall {
         @Option(names = "-install", description = "Path to Factorio installation", paramLabel = "<PATH>") Optional<String> folderInstall;
         @Option(names = "-find-install", description = "Automatically find Factorio installation in common directories") boolean findInstall;
+        @Option(names = "-no-install", description = "Clear the Factorio installation path") boolean noInstall;
     }
     private static class SetupFactorioExecutable {
         @Option(names = "-executable", description = "Path to Factorio executable (optional)", paramLabel = "<PATH>") Optional<String> fileExecutable;
@@ -42,25 +43,33 @@ public class CmdConfig {
     ) {
         Config config = Config.load();
         
-        if (install.findInstall) {
-            Optional<String> defaultFactorioInstall = findDefaultFactorioInstall();
-            if (defaultFactorioInstall.isPresent()) {
-                config.factorio.install = defaultFactorioInstall.get();
-                System.out.println("Factorio install path set to: " + defaultFactorioInstall.get());
-            } else {
-                System.out.println("Failed to find Factorio installation.");
+        if (install != null) {
+            if (install.findInstall) {
+                Optional<String> defaultFactorioInstall = findDefaultFactorioInstall();
+                if (defaultFactorioInstall.isPresent()) {
+                    config.factorio.install = defaultFactorioInstall.get();
+                    System.out.println("Factorio install path set to: " + defaultFactorioInstall.get());
+                } else {
+                    config.factorio.install = null;
+                    System.out.println("Failed to find Factorio installation.");
+                }
+            } else if (install.folderInstall.isPresent()) {
+                config.factorio.install = install.folderInstall.get();
+                System.out.println("Factorio install path set to: " + install.folderInstall.get());
+            } else if (install.noInstall) {
+                config.factorio.install = null;
+                System.out.println("Factorio install path cleared.");
             }
-        } else if (install.folderInstall.isPresent()) {
-            config.factorio.install = install.folderInstall.get();
-            System.out.println("Factorio install path set to: " + install.folderInstall.get());
         }
 
-        if (executable.fileExecutable.isPresent()) {
-            config.factorio.executable = executable.fileExecutable.get();
-            System.out.println("Factorio executable set to: " + executable.fileExecutable.get());
-        } else if (executable.autoFindExec) {
-            config.factorio.executable = null;
-            System.out.println("Factorio executable will be automatically found in the installation folder.");
+        if (executable != null) {
+            if (executable.fileExecutable.isPresent()) {
+                config.factorio.executable = executable.fileExecutable.get();
+                System.out.println("Factorio executable set to: " + executable.fileExecutable.get());
+            } else if (executable.autoFindExec) {
+                config.factorio.executable = null;
+                System.out.println("Factorio executable will be automatically found in the installation folder.");
+            }
         }
 
         if (Config.save(config)) {
@@ -160,20 +169,24 @@ public class CmdConfig {
             System.out.println("Hosting channel ID set to: " + hostingChannelId.get());
         }
         
-        if (reportingUser.id.isPresent()) {
-            config.discord.reporting_user_id = reportingUser.id.get();
-            System.out.println("Reporting user ID set to: " + reportingUser.id.get());
-        } else if (reportingUser.noReportingUserId) {
-            config.discord.reporting_user_id = null;
-            System.out.println("Reporting user ID is cleared.");
+        if (reportingUser != null) {
+            if (reportingUser.id.isPresent()) {
+                config.discord.reporting_user_id = reportingUser.id.get();
+                System.out.println("Reporting user ID set to: " + reportingUser.id.get());
+            } else if (reportingUser.noReportingUserId) {
+                config.discord.reporting_user_id = null;
+                System.out.println("Reporting user ID is cleared.");
+            }
         }
 
-        if (reportingChannel.id.isPresent()) {
-            config.discord.reporting_channel_id = reportingChannel.id.get();
-            System.out.println("Reporting channel ID set to: " + reportingChannel.id.get());
-        } else if (reportingChannel.noReportingChannelId) {
-            config.discord.reporting_channel_id = null;
-            System.out.println("Reporting channel ID is cleared.");
+        if (reportingChannel != null) {
+            if (reportingChannel.id.isPresent()) {
+                config.discord.reporting_channel_id = reportingChannel.id.get();
+                System.out.println("Reporting channel ID set to: " + reportingChannel.id.get());
+            } else if (reportingChannel.noReportingChannelId) {
+                config.discord.reporting_channel_id = null;
+                System.out.println("Reporting channel ID is cleared.");
+            }
         }
 
         if (Config.save(config)) {
@@ -196,12 +209,14 @@ public class CmdConfig {
     ) {
         Config config = Config.load();
 
-        if (enableDisable.enable) {
-            config.webapi.enabled = true;
-            System.out.println("Web API feature enabled.");
-        } else if (enableDisable.disable) {
-            config.webapi.enabled = false;
-            System.out.println("Web API feature disabled.");
+        if (enableDisable != null) {
+            if (enableDisable.enable) {
+                config.webapi.enabled = true;
+                System.out.println("Web API feature enabled.");
+            } else if (enableDisable.disable) {
+                config.webapi.enabled = false;
+                System.out.println("Web API feature disabled.");
+            }
         }
         
         if (bind.isPresent()) {
@@ -214,12 +229,14 @@ public class CmdConfig {
             System.out.println("Web API port set to: " + port.get());
         }
 
-        if (localStorage.path.isPresent()) {
-            config.webapi.local_storage = localStorage.path.get();
-            System.out.println("Web API local storage path set to: " + localStorage.path.get());
-        } else if (localStorage.noLocalStorage) {
-            config.webapi.local_storage = null;
-            System.out.println("Web API local storage is disabled.");
+        if (localStorage != null) {
+            if (localStorage.path.isPresent()) {
+                config.webapi.local_storage = localStorage.path.get();
+                System.out.println("Web API local storage path set to: " + localStorage.path.get());
+            } else if (localStorage.noLocalStorage) {
+                config.webapi.local_storage = null;
+                System.out.println("Web API local storage is disabled.");
+            }
         }
 
         if (Config.save(config)) {
@@ -336,7 +353,7 @@ public class CmdConfig {
         ));
         for (File dir : new File(".").listFiles()) {
             if (dir.isDirectory() && !searchDirs.contains(dir.getAbsolutePath())) {
-                searchDirs.add(dir.getAbsolutePath());
+                searchDirs.add(dir.toPath().toAbsolutePath().normalize().toString());
             }
         }
         List<String> foundPaths = new ArrayList<>();
@@ -351,7 +368,6 @@ public class CmdConfig {
         }
 
         if (foundPaths.isEmpty()) {
-            System.out.println("No Factorio installations found.");
             return Optional.empty();
         }
 

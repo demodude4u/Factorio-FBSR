@@ -678,7 +678,7 @@ public class FBSR {
 		}
 
 		LOGGER.info("FBSR loaded -- Factorio {} -- {} Entities, {} Tiles", 
-				FactorioManager.getFactorioVersion(),
+				factorioManager.getProfileVanilla().getAssetsFactorioVersion(),
 				factorioManager.getEntityFactoryByNameMap().size(),
 				factorioManager.getTileFactoryByNameMap().size());
 

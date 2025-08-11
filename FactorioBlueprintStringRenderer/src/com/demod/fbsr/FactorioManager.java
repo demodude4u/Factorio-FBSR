@@ -237,7 +237,11 @@ public class FactorioManager {
 			DataTable table = factorioData.getTable();
 
 			profileByData.put(factorioData, profile);
-			profile.getModLoader().getMods().keySet().forEach(mod -> profileByModName.put(mod, profile));
+			profile.listMods().forEach(mod -> profileByModName.put(mod.name, profile));
+			if (profile.isVanilla()) {
+				profileByModName.put("base", profile);
+				profileByModName.put("core", profile);
+			}
 
 			table.getRecipes().forEach(recipeByName::put);
 			table.getItems().forEach(itemByName::put);

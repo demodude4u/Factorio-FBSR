@@ -83,7 +83,7 @@ public class CmdProfile {
 
             return profiles.stream().distinct()
                     .filter(p -> !requireValid || p.isValid())
-                    .filter(p -> !requireEnabled || (p.isValid() && p.isEnabled()))
+                    .filter(p -> !requireEnabled || p.isEnabled())
                     .sorted((p1, p2) -> {
                         if (p1.isVanilla()) return -1;
                         if (p2.isVanilla()) return 1;
@@ -151,7 +151,13 @@ public class CmdProfile {
     public static void generateDefaultVanillaProfile(
             @Option(names = {"-f", "-force"}, description = "Force regeneration of the default vanilla profile, even if it already exists") boolean force
     ) {
-        if (Profile.generateDefaultVanillaProfile(force)) {
+        Profile profileVanilla = Profile.vanilla();
+        if ((profileVanilla.isValid()) && !force) {
+            System.out.println("Vanilla profile already exists.");
+            return;
+        }
+
+        if (Profile.generateDefaultVanillaProfile()) {
             System.out.println("Default vanilla profile created successfully. You can build the profile by running the command 'build vanilla'");
         } else {
             System.out.println("Failed to create default vanilla profile.");
@@ -167,7 +173,7 @@ public class CmdProfile {
         profileSelect.invalidAllowed();
         profileSelect.disabledAllowed();
         profileSelect.forEach((profile, result) -> {
-            if (enabledOnly && (!profile.isValid() || !profile.isEnabled())) {
+            if (enabledOnly && !profile.isEnabled()) {
                 return;
             }
 
@@ -185,6 +191,11 @@ public class CmdProfile {
                 System.out.println("Mods Downloaded: " + (profile.hasDownloaded() ? "Yes" : "No"));
                 System.out.println("Factorio Dump:   " + (profile.hasDump() ? "Yes" : "No"));
                 System.out.println("Assets Generated:  " + (profile.hasAssets() ? "Yes" : "No"));
+
+                if (profile.hasManifest() || profile.hasAssets()) {
+                    System.out.println("Mods:");
+                    profile.listMods().forEach(mod -> System.out.println("  - " + mod.name + (mod.version.isPresent() ? " " + mod.version.get() : "")));
+                }
                 
                 switch (profile.getStatus()) {
                     case BUILD_MANIFEST:
@@ -351,6 +362,11 @@ public class CmdProfile {
             return;
         }
 
+        if (profile.hasAssetsNoConfig()) {
+            System.out.println("Profile has assets only. Build files are needed to run Factorio.");
+            return;
+        }
+
         if (!profile.runFactorio()) {
             System.out.println("Failed to run Factorio with profile: " + profile.getName());
         }
@@ -405,9 +421,14 @@ public class CmdProfile {
             return;
         }
 
+        if (profile.hasAssetsNoConfig()) {
+            System.out.println("Profile has assets only. Profile folder is needed to edit the profile configuration.");
+            return;
+        }
+
         if (Desktop.isDesktopSupported()) {
             try {
-                Desktop.getDesktop().open(profile.getFileProfile());
+                Desktop.getDesktop().open(profile.getFileProfileConfig());
             } catch (IOException e) {
                 System.out.println("Failed to open profile in editor: " + e.getMessage());
             }

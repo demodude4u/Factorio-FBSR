@@ -93,7 +93,7 @@ public class FBSRCommands {
 
             // Run initial setup commands
             cmd.execute("dump-help");
-            cmd.execute("cfg-find-factorio");
+            cmd.execute("cfg-factorio", "-find-install");
             cmd.execute("profile-default-vanilla");
         }
 
@@ -102,7 +102,7 @@ public class FBSRCommands {
             System.out.println("Factorio installed: Version " + FactorioManager.getFactorioVersion());
         } else {
             System.out.println();
-            System.out.println("Factorio is not installed. Type `help cfg-factorio` to learn how to configure it, or type `cfg-find-factorio` to find the installation.");
+            System.out.println("Factorio is not configured or installed. Type `help cfg-factorio` to learn how to configure it, or type `cfg-factorio -find-install` to try to find the installation automatically.");
         }
 
         if (!Profile.vanilla().isValid()) {
@@ -121,7 +121,8 @@ public class FBSRCommands {
 
         } else {
             System.out.println();
-            System.out.println("All profiles are ready! Type command 'bot-run' to start the bot or 'bot-render preview <STRING>' to render an image.");
+            System.out.println("All profiles are ready! Type command 'bot-run' to start the service.");
+            System.out.println("While the bot service is running, start a second CLI and type 'bot-render -preview <STRING>' to render images over RPC.");
         }
 
         System.out.println();
