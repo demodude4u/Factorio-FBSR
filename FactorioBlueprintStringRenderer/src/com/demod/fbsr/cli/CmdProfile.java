@@ -183,7 +183,7 @@ public class CmdProfile {
 
             if (detailed) {
                 System.out.println();
-                System.out.println("[[[Profile: " + profile.getName() + "]]]");
+                System.out.println("[[[Profile: " + profile.getName() + "]]] -- " + profile.getStatus().name());
                 System.out.println("Folder: " + profile.getFolderProfile().getAbsolutePath());
                 System.out.println("Build Folder: " + profile.getFolderBuild().getAbsolutePath());
                 System.out.println("Assets File: " + profile.getFileAssets().getAbsolutePath());
@@ -194,7 +194,9 @@ public class CmdProfile {
 
                 if (profile.hasManifest() || profile.hasAssets()) {
                     System.out.println("Mods:");
-                    profile.listMods().forEach(mod -> System.out.println("  - " + mod.name + (mod.version.isPresent() ? " " + mod.version.get() : "")));
+                    profile.listMods().stream()
+                            .filter(mod -> !mod.name.equals("base"))
+                            .forEach(mod -> System.out.println("  - " + mod.name + (mod.version.isPresent() ? " " + mod.version.get() : "")));
                 }
                 
                 switch (profile.getStatus()) {
@@ -210,14 +212,11 @@ public class CmdProfile {
                     case BUILD_ASSETS:
                         System.out.println("Profile is in BUILD_ASSETS status. Next step is to run command 'build-assets " + profile.getName() + "' or 'build " + profile.getName() + "'");
                         break;
-                    case READY:
-                        System.out.println("Profile is in READY status. To run the bot, use command 'bot-run'");
-                        break;
                     case DISABLED:
                         System.out.println("Profile is in DISABLED status. It will be ignored when running the bot. To enable this profile, use command 'profile-enable " + profile.getName() + "'");
                         break;
                     case INVALID:
-                        System.out.println("Profile is in INVALID status. It cannot be used until fixed. The profile needs to have a profile.json configured. You can generate a new profile using the command 'profile-new <name> <mod1> <mod2> <mod3> ...'");
+                        System.out.println("Profile is in INVALID status. The profile needs to have a profile.json configured. You can generate a new profile using the command 'profile-new " + profile.getName() + " <mod1> <mod2> <mod3> ...'");
                         break;
                     case NEED_FACTORIO_INSTALL:
                         System.out.println("Profile is in NEED_FACTORIO_INSTALL status. Run command `help cfg-factorio` to see details on how to set up Factorio.");
@@ -225,6 +224,7 @@ public class CmdProfile {
                     case NEED_MOD_PORTAL_CREDENTIALS:
                         System.out.println("Profile is in NEED_MOD_PORTAL_CREDENTIALS status. Run command `help cfg-factorio` to see details on how to set up Mod Portal credentials.");
                         break;
+                    default:break;
                 }
             }
 
