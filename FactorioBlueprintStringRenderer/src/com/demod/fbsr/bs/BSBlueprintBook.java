@@ -22,7 +22,7 @@ public class BSBlueprintBook {
 
 	public BSBlueprintBook(JSONObject json) {
 		label = BSUtils.optString(json, "label");
-		version = new MapVersion(json.getInt("version"));
+		version = new MapVersion(json.getLong("version"));
 		description = BSUtils.optString(json, "description");
 		icons = BSUtils.optList(json, "icons", BSIcon::new);
 		blueprints = BSUtils.list(json, "blueprints", j -> new BSBlueprintString(j));
