@@ -17,6 +17,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.rapidoid.io.IO;
 import org.slf4j.Logger;
@@ -173,7 +174,12 @@ public class FactorioModPortal {
 				while ((line = reader.readLine()) != null) {
 					responseBuilder.append(line);
 				}
-				json = new JSONObject(responseBuilder.toString());
+				try {
+					json = new JSONObject(responseBuilder.toString());
+				} catch (JSONException e) {
+					LOGGER.error("Failed to parse JSON response from " + url, e);
+					LOGGER.error(responseBuilder.toString().substring(0, Math.min(1000, responseBuilder.length())));
+				}
 				cacheGet.put(url, json);
 			}
 		}
