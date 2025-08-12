@@ -43,7 +43,9 @@ public class TextPlateRendering extends EntityRendererFactory {
 	@Override
 	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
 		Consumer<SpriteDef> spriteRegister = entity.spriteRegister(register, protoRenderLayer);
-		protoPictures.defineSprites(spriteRegister, entity.<BSTextPlateEntity>fromBlueprint().variation - 1);
+		int variation = entity.<BSTextPlateEntity>fromBlueprint().variation - 1;
+		variation = Math.max(0, Math.min(variation, protoPictures.getVariationCount() - 1));
+		protoPictures.defineSprites(spriteRegister, variation);
 	}
 
 	@Override

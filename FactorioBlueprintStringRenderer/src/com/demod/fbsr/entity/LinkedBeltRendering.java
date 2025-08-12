@@ -30,7 +30,7 @@ public class LinkedBeltRendering extends TransportBeltConnectableRendering {
 		defineBeltSprites(entity.spriteRegister(register, Layer.TRANSPORT_BELT), entity.getDirection().cardinal(),
 				BeltBend.NONE.ordinal(), getAlternatingFrame(entity.getPosition()));
 
-		boolean input = bsEntity.type.get().equals("input");
+		boolean input = bsEntity.type.orElse("input").equals("input");
 		Direction structDir = input ? entity.getDirection() : entity.getDirection().back();
 		FPSprite4Way proto = (input ? protoStructureDirectionIn : protoStructureDirectionOut);
 		proto.defineSprites(entity.spriteRegister(register, Layer.HIGHER_OBJECT_UNDER), structDir);

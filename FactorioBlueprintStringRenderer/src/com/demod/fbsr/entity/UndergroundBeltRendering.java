@@ -34,7 +34,7 @@ public class UndergroundBeltRendering extends TransportBeltConnectableRendering 
 		defineBeltSprites(entity.spriteRegister(register, Layer.TRANSPORT_BELT), entity.getDirection().cardinal(),
 				BeltBend.NONE.ordinal(), getAlternatingFrame(entity.getPosition()));
 
-		boolean input = bsEntity.type.get().equals("input");
+		boolean input = bsEntity.type.orElse("input").equals("input");
 		Direction structDir = input ? entity.getDirection() : entity.getDirection().back();
 		FPSprite4Way protoStructSprite = input ? protoStructureDirectionIn : protoStructureDirectionOut;
 		if (entity.getDirection().isHorizontal()) {
@@ -87,7 +87,7 @@ public class UndergroundBeltRendering extends TransportBeltConnectableRendering 
 
 		Direction dir = entity.getDirection();
 		MapPosition pos = entity.getPosition();
-		boolean input = bsEntity.type.get().equals("input");
+		boolean input = bsEntity.type.orElse("input").equals("input");
 
 		if (input) {
 			setLogisticMove(map, pos, dir.backLeft(), dir);
@@ -119,7 +119,7 @@ public class UndergroundBeltRendering extends TransportBeltConnectableRendering 
 		super.populateWorldMap(map, entity);
 		
 		BSUndergroundBeltEntity bsEntity = entity.<BSUndergroundBeltEntity>fromBlueprint();
-		boolean input = bsEntity.type.get().equals("input");
+		boolean input = bsEntity.type.orElse("input").equals("input");
 
 		MapPosition pos = entity.getPosition();
 		if (input) {

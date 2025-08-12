@@ -25,6 +25,7 @@ public class BeaconRendering extends EntityWithOwnerRendering {
 	private FPBoundingBox protoSelectionBox;
 	private Optional<FPBeaconGraphicsSet> protoGraphicsSet;
 	private Optional<FPAnimation> protoBasePicture;
+	private Optional<FPAnimation> protoAnimation;
 	private double protoSupplyAreaDistance;
 	private double protoDistributionEffectivity;
 
@@ -35,8 +36,10 @@ public class BeaconRendering extends EntityWithOwnerRendering {
 		Consumer<SpriteDef> spriteRegister = entity.spriteRegister(register, Layer.OBJECT);
 		if (protoGraphicsSet.isPresent()) {
 			protoGraphicsSet.get().defineSprites(spriteRegister, 0);
-		} else {
+		} else if (protoBasePicture.isPresent()) {
 			protoBasePicture.get().defineSprites(spriteRegister, 0);
+		} else if (protoAnimation.isPresent()) {
+			protoAnimation.get().defineSprites(spriteRegister, 0);
 		}
 	}
 
@@ -46,8 +49,10 @@ public class BeaconRendering extends EntityWithOwnerRendering {
 
 		if (protoGraphicsSet.isPresent()) {
 			protoGraphicsSet.get().defineSprites(register, 0);
-		} else {
+		} else if (protoBasePicture.isPresent()) {
 			protoBasePicture.get().defineSprites(register, 0);
+		} else if (protoAnimation.isPresent()) {
+			protoAnimation.get().defineSprites(register, 0);
 		}
 	}
 
@@ -58,6 +63,7 @@ public class BeaconRendering extends EntityWithOwnerRendering {
 		protoSelectionBox = new FPBoundingBox(prototype.lua().get("selection_box"));
 		protoGraphicsSet = FPUtils.opt(profile, prototype.lua().get("graphics_set"), FPBeaconGraphicsSet::new);
 		protoBasePicture = FPUtils.opt(profile, prototype.lua().get("base_picture"), FPAnimation::new);
+		protoAnimation = FPUtils.opt(profile, prototype.lua().get("animation"), FPAnimation::new);
 		protoSupplyAreaDistance = prototype.lua().get("supply_area_distance").todouble();
 		protoDistributionEffectivity = prototype.lua().get("distribution_effectivity").todouble();
 	}

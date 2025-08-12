@@ -51,7 +51,7 @@ public abstract class LoaderRendering extends TransportBeltConnectableRendering 
 		defineBeltSprites(s -> register.accept(new MapSprite(s, Layer.TRANSPORT_BELT, beltPos)),
 				entity.getDirection().cardinal(), BeltBend.NONE.ordinal(), getAlternatingFrame(beltPos));
 
-		boolean input = bsEntity.type.get().equals("input");
+		boolean input = bsEntity.type.orElse("input").equals("input");
 		Direction structDir = input ? entity.getDirection() : entity.getDirection().back();
 		FPSprite4Way proto = (input ? protoStructureDirectionIn : protoStructureDirectionOut);
 		proto.defineSprites(entity.spriteRegister(register, Layer.HIGHER_OBJECT_UNDER), structDir);
@@ -88,13 +88,13 @@ public abstract class LoaderRendering extends TransportBeltConnectableRendering 
 	}
 
 	private MapPosition getBeltShift(MapEntity entity) {
-		boolean input = entity.<BSLoaderEntity>fromBlueprint().type.get().equals("input");
+		boolean input = entity.<BSLoaderEntity>fromBlueprint().type.orElse("input").equals("input");
 		Direction oppositeStructDir = input ? entity.getDirection().back() : entity.getDirection();
 		return MapPosition.byUnit(beltDistance * oppositeStructDir.getDx(), beltDistance * oppositeStructDir.getDy());
 	}
 
 	private MapPosition getContainerShift(MapEntity entity, double offset) {
-		boolean input = entity.<BSLoaderEntity>fromBlueprint().type.get().equals("input");
+		boolean input = entity.<BSLoaderEntity>fromBlueprint().type.orElse("input").equals("input");
 		Direction structDir = input ? entity.getDirection() : entity.getDirection().back();
 		double containerDistance = protoContainerDistance;
 		containerDistance += offset;
@@ -134,7 +134,7 @@ public abstract class LoaderRendering extends TransportBeltConnectableRendering 
 		MapPosition pos = entity.getPosition();
 		MapPosition beltShift = getBeltShift(entity);
 		MapPosition containerShift = getContainerShift(entity, -0.5);
-		boolean input = bsEntity.type.get().equals("input");
+		boolean input = bsEntity.type.orElse("input").equals("input");
 
 		if (input) {
 			MapPosition inPos = pos.add(beltShift);
@@ -205,8 +205,8 @@ public abstract class LoaderRendering extends TransportBeltConnectableRendering 
 	@Override
 	public void populateWorldMap(WorldMap map, MapEntity entity) {
 		super.populateWorldMap(map, entity);
-		
-		boolean input = entity.<BSLoaderEntity>fromBlueprint().type.get().equals("input");
+
+		boolean input = entity.<BSLoaderEntity>fromBlueprint().type.orElse("input").equals("input");
 		MapPosition beltShift = getBeltShift(entity);
 
 		MapPosition pos = entity.getPosition();
