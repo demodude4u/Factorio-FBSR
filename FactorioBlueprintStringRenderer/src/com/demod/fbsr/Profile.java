@@ -1678,7 +1678,7 @@ public class Profile {
             mods.add(new ModNameAndVersion(mod, version));
         }
 
-        Collections.sort(mods, Comparator.comparing(mod -> mod.name));
+        Collections.sort(mods, Comparator.comparing(mod -> mod.name.toLowerCase()));
         return mods;
     }
 
