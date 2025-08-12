@@ -1,6 +1,7 @@
 package com.demod.fbsr.entity;
 
 import com.demod.fbsr.EntityType;
+import com.demod.fbsr.FPUtils;
 
 import java.util.Arrays;
 import java.util.List;
@@ -45,7 +46,7 @@ public class WallRendering extends EntityWithOwnerRendering {
 			};
 	private List<FPSpriteVariations> protoPictures;
 	private Optional<FPSpriteVariations> protoFilling;
-	private FPSprite4Way protoWallDiodeRed;
+	private Optional<FPSprite4Way> protoWallDiodeRed;
 
 	@Override
 	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
@@ -95,7 +96,7 @@ public class WallRendering extends EntityWithOwnerRendering {
 		}
 
 		if (northGate || eastGate || southGate || westGate) {
-			protoWallDiodeRed.defineSprites(entity.spriteRegister(register, Layer.OBJECT), entity.getDirection());
+			protoWallDiodeRed.ifPresent(fp -> fp.defineSprites(entity.spriteRegister(register, Layer.OBJECT), entity.getDirection()));
 		}
 	}
 
@@ -112,7 +113,7 @@ public class WallRendering extends EntityWithOwnerRendering {
 
 		protoPictures.forEach(fp -> fp.getDefs(register));
 		protoFilling.ifPresent(fp -> fp.getDefs(register));
-		protoWallDiodeRed.getDefs(register);
+		protoWallDiodeRed.ifPresent(fp -> fp.getDefs(register));
 	}
 
 	@Override
@@ -130,7 +131,7 @@ public class WallRendering extends EntityWithOwnerRendering {
 			protoFilling = Optional.empty();
 		}
 		
-		protoWallDiodeRed = new FPSprite4Way(profile, prototype.lua().get("wall_diode_red"));
+		protoWallDiodeRed = FPUtils.opt(profile, prototype.lua().get("wall_diode_red"), FPSprite4Way::new);
 	}
 
 	@Override
