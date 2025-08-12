@@ -657,4 +657,16 @@ public class CmdProfile {
             System.out.println("Failed to render test image for entity: " + entity);
         }
     }
+
+    @Command(name = "profile-test-book", description = "Generate blueprint book with test blueprints")
+    public static void testBookRender(
+            @ArgGroup(exclusive = true, multiplicity = "1") ProfileSelect profileSelect
+    ) {
+        boolean openFolder = profileSelect.get().size() == 1;
+        profileSelect.forEach((profile, result) -> {
+            if (!profile.generateTestBook(openFolder)) {
+                System.out.println("Failed to generate test book for profile: " + profile.getName());
+            }
+        });
+    }
 }

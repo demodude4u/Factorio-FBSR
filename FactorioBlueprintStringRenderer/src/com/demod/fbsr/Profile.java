@@ -68,7 +68,11 @@ import com.demod.factorio.prototype.TilePrototype;
 import com.demod.fbsr.BlueprintFinder.FindBlueprintResult;
 import com.demod.fbsr.app.DiscordService.ImageShrinkResult;
 import com.demod.fbsr.bs.BSBlueprint;
+import com.demod.fbsr.bs.BSBlueprintBook;
 import com.demod.fbsr.bs.BSBlueprintString;
+import com.demod.fbsr.bs.BSBuilder;
+import com.demod.fbsr.bs.BSSignalID;
+import com.demod.fbsr.bs.BSBuilder.BookBuilder;
 import com.demod.fbsr.cli.CmdBot;
 import com.demod.fbsr.gui.GUISize;
 import com.demod.fbsr.gui.GUIStyle;
@@ -1272,11 +1276,8 @@ public class Profile {
                 continue; // Skip incompatible mods or optional dependencies
             }
 
-			// Extract prefix if present
 			if (dependency.startsWith("~")) {
-				int prefixEnd = dependency.indexOf(' ');
-				prefix = dependency.substring(0, prefixEnd).trim();
-				dependency = dependency.substring(prefixEnd).trim();
+                dependency = dependency.substring(1).trim();
 			}
 
 			// Identify version operator and split dependency
@@ -2230,6 +2231,52 @@ public class Profile {
         } finally{
             if (!FBSR.unload()) {
                 System.out.println("Failed to unload FBSR");
+            }
+        }
+
+        return true;
+    }
+
+    public boolean generateTestBook(boolean openFolder) {
+        if (!hasAssets()) {
+            System.out.println("Profile " + getName() + " does not have asset files.");
+            return false;
+        }
+
+        RenderingRegistry registry = new RenderingRegistry(this);
+        registry.loadConfig(getAssetsRenderingConfiguration());
+        
+        BookBuilder bb = BSBuilder.book();
+        bb.label(getName()+" test book");
+        for (EntityRendererFactory factory : registry.getEntityFactories()) {
+            bb.addBlueprint(b -> {
+                b.label(factory.getName());
+                b.addEntity(factory.getName(), 0, 0);
+            });
+        }
+        for (TileRendererFactory factory : registry.getTileFactories()) {
+            bb.addBlueprint(b -> {
+                b.label(factory.getName());
+                b.tile(factory.getName(), 0, 0);
+            });
+        }
+        JSONObject json = bb.toJson();
+        folderBuildTests.mkdirs();
+        File fileBook = new File(folderBuildTests, getName() + "-test-book.json");
+        try (FileWriter writer = new FileWriter(fileBook)) {
+            writer.write(json.toString(2));
+        } catch (IOException e) {
+            System.out.println("Failed to write test book JSON: " + e.getMessage());
+            return false;
+        }
+
+        if (openFolder) {
+            Desktop desktop = Desktop.getDesktop();
+            try {
+                desktop.open(folderBuildTests);
+            } catch (IOException e) {
+                System.out.println("Failed to open test book folder: " + e.getMessage());
+                return false;
             }
         }
 
