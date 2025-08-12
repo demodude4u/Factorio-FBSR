@@ -105,6 +105,8 @@ public class FBSRCommands {
             System.out.println("Factorio is not configured or installed. Type `help cfg-factorio` to learn how to configure it, or type `cfg-factorio -find-install` to try to find the installation automatically.");
         }
 
+        cmd.execute("profile-status", "-all");
+
         if (!Profile.vanilla().isValid()) {
             System.out.println();
             System.out.println("WARNING: The vanilla profile is missing or not valid! Type command 'profile-default-vanilla' to get started.");
@@ -112,12 +114,10 @@ public class FBSRCommands {
         } else if (!Profile.listProfiles().stream().allMatch(p -> !p.isEnabled() || p.isReady())) {
             System.out.println();
             System.out.println("WARNING: Not all profiles are ready! Type 'build -all' to build all profiles.");
-            cmd.execute("profile-status","-all");
 
         } else if (Profile.listProfiles().stream().anyMatch(p -> !p.getWarnings().isEmpty())) {
             System.out.println();
             System.out.println("WARNING: Some profiles have warnings!");
-            cmd.execute("profile-status", "-all");
 
         } else {
             System.out.println();
