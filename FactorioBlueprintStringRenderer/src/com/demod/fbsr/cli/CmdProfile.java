@@ -519,8 +519,8 @@ public class CmdProfile {
     public static void buildAllSteps(
             @ArgGroup(exclusive = true, multiplicity = "1") ProfileSelect profileSelect,
             @Option(names = {"-f", "-force"}, description = "Force regeneration of all steps, even if they already exist") boolean force,
-            @Option(names = {"-fd", "-force-dump"}, description = "Force regeneration of factorio dump") boolean forceDump,
-            @Option(names = {"-fa", "-force-assets"}, description = "Force regeneration of assets") boolean forceAssets
+            @Option(names = {"-force-dump"}, description = "Force regeneration of factorio dump") boolean forceDump,
+            @Option(names = {"-force-assets"}, description = "Force regeneration of assets") boolean forceAssets
     ) {
         Profile profileVanilla = Profile.vanilla();
 
