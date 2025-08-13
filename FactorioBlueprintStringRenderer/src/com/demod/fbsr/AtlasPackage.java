@@ -409,7 +409,7 @@ public class AtlasPackage {
 
 		int[] atlasIds = IntStream.range(0, jsonManifest.length()).map(i -> jsonManifest.getJSONArray(i).getInt(5))
 				.distinct().toArray();
-		LOGGER.info("Read Atlases: {}", Arrays.toString(atlasIds));
+		LOGGER.info("Read {} Atlases: {}", atlasIds.length, zipFile.getName());
 		AtomicBoolean failure = new AtomicBoolean(false);
 		atlases = Arrays.stream(atlasIds).parallel().mapToObj(id -> {
 			ZipEntry entry = zipFile.getEntry("atlas" + id + ".webp");
