@@ -701,9 +701,6 @@ public class Profile {
             Function<List<String>, List<String>> convertNames = modNames -> {
                 List<String> mods = new ArrayList<>();
                 for (String modName : modNames) {
-                    if (modName.equals("base") || modName.equals("core")) {
-                        continue;
-                    }
                     if (jsonProfileModOverrides.has(modName)) {
                         JSONObject jsonMod = jsonProfileModOverrides.getJSONObject(modName);
                         if (jsonMod.has("title")) {
@@ -716,6 +713,9 @@ public class Profile {
                         if (jsonMod.has("name")) {
                             modName = jsonMod.getString("name");
                         }
+                    }
+                    if (modName.equals("base") || modName.equals("core")) {
+                        continue;
                     }
                     Optional<Mod> optMod = modLoader.getMod(modName);
                     if (!optMod.isPresent()) {
@@ -799,10 +799,6 @@ public class Profile {
                                         modNames.add(modName);
                                     }
                                 });
-
-                                if (e.getName().equals("car-vehicle-machine-gun")) {
-                                    System.out.println("DEBUG");
-                                }
 
                                 IconLayer.fromPrototype(factory.prototype.lua()).forEach(layer -> {
                                     String modName = layer.getModName();
@@ -1180,14 +1176,12 @@ public class Profile {
             }
         }
 
-        Map<String, JSONObject> modInfo = new LinkedHashMap<>();
+        JSONObject jsonModInfo = new JSONObject();
+        Utils.terribleHackToHaveOrderedJSONObject(jsonModInfo);
+        System.out.println("Mod Portal Lookups: ");
         for (String modName : mods) {
-            if (BUILTIN_MODS.contains(modName)) {
-                modInfo.put(modName, new JSONObject());
-                continue;
-            }
             try {
-                walkDependencies(modInfo, modName, modVersions);
+                walkDependencies(jsonModInfo, modName, modVersions);
             } catch (IOException e) {
                 System.out.println("Failed to walk dependencies for mod: " + modName);
                 e.printStackTrace();
@@ -1198,26 +1192,25 @@ public class Profile {
         JSONObject jsonManifest = new JSONObject();
         JSONObject jsonZips = new JSONObject();
         jsonManifest.put("zips", jsonZips);
-        for (Entry<String, JSONObject> entry : modInfo.entrySet()) {
-            String modName = entry.getKey();
-
-            if (BUILTIN_MODS.contains(modName)) {
+        System.out.println();
+        System.out.println("Manifest Zips:");
+        for (String modName : jsonModInfo.keySet()) {
+            if (jsonModInfo.isNull(modName)) {
                 continue;
             }
 
-            JSONObject jsonRelease = entry.getValue();
+            JSONObject jsonRelease = jsonModInfo.getJSONObject(modName);
 
             String filename = jsonRelease.getString("file_name");
             String downloadUrl = jsonRelease.getString("download_url");
             String sha1 = jsonRelease.getString("sha1");
-            
 
             JSONArray jsonZip = new JSONArray();
             jsonZip.put(downloadUrl);
             jsonZip.put(sha1);
             jsonZips.put(filename, jsonZip);
 
-            System.out.println("MOD MANIFEST ZIP - [" + modName + "] " + filename + " " + downloadUrl + " " + sha1);
+            System.out.println(" - " + filename);
         
             if (!filename.endsWith(".zip")) {
                 System.out.println("Invalid mod file name: " + filename + ". Must end with .zip");
@@ -1227,13 +1220,22 @@ public class Profile {
 
         JSONArray jsonMods = new JSONArray();
         jsonManifest.put("mods", jsonMods);
-        for (Entry<String, JSONObject> entry : modInfo.entrySet()) {
-            String modName = entry.getKey();
-            JSONObject jsonRelease = entry.getValue();
+        System.out.println();
+        System.out.println("Manifest Mods:");
+        for (String modName : jsonModInfo.keySet()) {
             JSONObject jsonMod = new JSONObject();
             jsonMod.put("name", modName);
-            if (jsonRelease.has("version")) {
-                jsonMod.put("version", jsonRelease.getString("version"));
+            if (!jsonModInfo.isNull(modName)) {
+                JSONObject jsonRelease = jsonModInfo.getJSONObject(modName);
+                if (jsonRelease.has("version")) {
+                    String version = jsonRelease.getString("version");
+                    jsonMod.put("version", version);
+                    System.out.println(" - " + modName + " " + version);
+                } else {
+                    System.out.println(" - " + modName);
+                }
+            } else {
+                System.out.println(" - " + modName);
             }
             jsonMods.put(jsonMod);
         }
@@ -1254,17 +1256,31 @@ public class Profile {
         return true;
     }
 
-    private static void walkDependencies(Map<String, JSONObject> results, String mod, Map<String, String> modVersions) throws IOException {
-		JSONObject jsonRelease;
+    private static void walkDependencies(JSONObject results, String mod, Map<String, String> modVersions) throws IOException {
+        if (results.has(mod)) {
+            return;
+        }
+
+        if (BUILTIN_MODS.contains(mod)) {
+            results.put(mod, JSONObject.NULL);
+            if (mod.equals("space-age")) {
+                results.put("quality", JSONObject.NULL);
+                results.put("elevated-rails", JSONObject.NULL);
+            }
+            return;
+        }
+
+        JSONObject jsonRelease;
         if (modVersions.containsKey(mod)) {
+            System.out.println(" - " + mod + " " + modVersions.get(mod));
             jsonRelease = FactorioModPortal.findModReleaseInfoFull(mod, modVersions.get(mod));
         } else {
+            System.out.println(" - " + mod + " (latest)");
             jsonRelease = FactorioModPortal.findLatestModReleaseInfoFull(mod);
         }
 
-        if (results.put(mod, jsonRelease) != null) {
-            return; // Already processed this mod
-        }
+        results.put(mod, jsonRelease);
+
 		JSONArray jsonDependencies = jsonRelease.getJSONObject("info_json").getJSONArray("dependencies");
 
 		for (int i = 0; i < jsonDependencies.length(); i++) {
@@ -1295,13 +1311,10 @@ public class Profile {
 				depMod = dependency; // No version operator found, treat as mod name
 			}
 
-			if (!BUILTIN_MODS.contains(depMod)) {
-                //TODO we need to solve specific version dependencies
-				walkDependencies(results, depMod, modVersions);
-			}
+			//TODO we need to solve specific version dependencies
+			walkDependencies(results, depMod, modVersions);
 		}
 	}
-
     public boolean buildDownload() {
 
         if (!hasManifest()) {
