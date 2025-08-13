@@ -37,7 +37,7 @@ public abstract class ModdingResolver {
             @Override
             public <T> Optional<T> pickByProfile(List<T> items, Function<T, Profile> profileMapper) {
                 List<Profile> protoProfiles = items.stream().map(profileMapper).collect(Collectors.toList());
-                for (Profile profile : profileOrder) {
+                for (Profile profile : profileRanking) {
                     for (int i=0;i<protoProfiles.size();i++) {
                         if (profile.equals(protoProfiles.get(i))) {
                             return Optional.of(items.get(i));
