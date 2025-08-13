@@ -673,9 +673,9 @@ public class FBSR {
 
 		iconManager.initialize();
 
-		for (Profile profile : profiles) {
+		profiles.parallelStream().forEach(profile -> {
 			profile.getAtlasPackage().readFromZip(profile.getFileAssets());
-		}
+		});
 
 		LOGGER.info("FBSR loaded -- Factorio {} -- {} Entities, {} Tiles", 
 				factorioManager.getProfileVanilla().getAssetsFactorioVersion(),

@@ -229,38 +229,40 @@ public class FactorioManager {
 		}
 		initializedPrototypes = true;
 
-		for (Profile profile : profiles) {
+		profiles.parallelStream().forEach(profile -> {
 
 			FactorioData factorioData = profile.getFactorioData();
 
 			if (!factorioData.initialize(false)) {
 				System.out.println("Failed to initialize Factorio data for profile: " + profile.getName());
-				return false;
+				throw new RuntimeException("Initialization failed for profile: " + profile.getName());
 			}
 
 			DataTable table = factorioData.getTable();
 
-			profileByData.put(factorioData, profile);
-			profile.listMods().forEach(mod -> profileByModName.put(mod.name, profile));
-			if (profile.isVanilla()) {
-				profileByModName.put("base", profile);
-				profileByModName.put("core", profile);
-			}
+			synchronized (this) {
+				profileByData.put(factorioData, profile);
+				profile.listMods().forEach(mod -> profileByModName.put(mod.name, profile));
+				if (profile.isVanilla()) {
+					profileByModName.put("base", profile);
+					profileByModName.put("core", profile);
+				}
 
-			table.getRecipes().forEach(recipeByName::put);
-			table.getItems().forEach(itemByName::put);
-			table.getFluids().forEach(fluidByName::put);
-			table.getEntities().forEach(entityByName::put);
-			table.getTechnologies().forEach(technologyByName::put);
-			table.getTiles().forEach(tileByName::put);
-			table.getEquipments().forEach(equipmentByName::put);
-			table.getAchievements().forEach(achievementByName::put);
-			table.getItemGroups().forEach(itemGroupByName::put);
+				table.getRecipes().forEach(recipeByName::put);
+				table.getItems().forEach(itemByName::put);
+				table.getFluids().forEach(fluidByName::put);
+				table.getEntities().forEach(entityByName::put);
+				table.getTechnologies().forEach(technologyByName::put);
+				table.getTiles().forEach(tileByName::put);
+				table.getEquipments().forEach(equipmentByName::put);
+				table.getAchievements().forEach(achievementByName::put);
+				table.getItemGroups().forEach(itemGroupByName::put);
 
-			if (profile.isVanilla()) {
-				profileVanilla = profile;
+				if (profile.isVanilla()) {
+					profileVanilla = profile;
+				}
 			}
-		}
+		});
 
 		if (profileVanilla == null) {
 			System.out.println("No vanilla profile found!");
