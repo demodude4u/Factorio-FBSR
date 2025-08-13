@@ -673,7 +673,7 @@ public class FBSR {
 
 		iconManager.initialize();
 
-		profiles.parallelStream().forEach(profile -> {
+		profiles.stream().forEach(profile -> {
 			profile.getAtlasPackage().readFromZip(profile.getFileAssets());
 		});
 
