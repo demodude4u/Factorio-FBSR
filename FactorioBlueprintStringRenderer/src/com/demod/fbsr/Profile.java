@@ -686,6 +686,9 @@ public class Profile {
             AtomicBoolean failure = new AtomicBoolean(false);
 
             for (String name : jsonProfileEntityOverrides.keySet()) {
+                if (name.contains("*")) {
+                    continue;
+                }
                 if (!table.getEntity(name).isPresent()) {
                     System.out.println("Entity override for unknown entity: " + name);
                     failure.set(true);
@@ -750,13 +753,27 @@ public class Profile {
 
                         Optional<Class<? extends EntityRendererFactory>> factoryClass = EntityRendererFactory.findFactoryClassByType(e.getType());
 
-                        Optional<Collection<String>> overrideMods = Optional.empty();
+                        List<String> overrideMods = new ArrayList<>();
+                        List<String> overrideModAppends = new ArrayList<>();
+                        List<String> overrideKeys = new ArrayList<>();
                         if (jsonProfileEntityOverrides.has(e.getName())) {
-                            if (jsonProfileEntityOverrides.isNull(e.getName())) {
+                            overrideKeys.add(e.getName());
+                        } else {
+                            for (String key : jsonProfileEntityOverrides.keySet()) {
+                                if (key.contains("*")) {
+                                    String regex = key.replace("*", ".*");
+                                    if (e.getName().matches(regex)) {
+                                        overrideKeys.add(key);
+                                    }
+                                }
+                            }
+                        }
+                        for (String overrideKey : overrideKeys) {
+                            if (jsonProfileEntityOverrides.isNull(overrideKey)) {
                                 return;
                             }
 
-                            JSONObject jsonOverride = jsonProfileEntityOverrides.getJSONObject(e.getName());
+                            JSONObject jsonOverride = jsonProfileEntityOverrides.getJSONObject(overrideKey);
                             if (jsonOverride.has("rendering")) {
                                 String renderingClassName = jsonOverride.getString("rendering");
                                 factoryClass = EntityRendererFactory.findFactoryClassByName(renderingClassName);
@@ -768,9 +785,20 @@ public class Profile {
                             }
                             if (jsonOverride.has("mods")) {
                                 JSONArray jsonMods = jsonOverride.getJSONArray("mods");
-                                overrideMods = Optional.of(jsonMods.toList().stream()
-                                        .map(Object::toString).collect(Collectors.toList()));
-                            } 
+                                jsonMods.toList().stream().map(Object::toString).forEach(mod -> {
+                                    if (!overrideMods.contains(mod)) {
+                                        overrideMods.add(mod);
+                                    }
+                                });
+                            }
+                            if (jsonOverride.has("mods-append")) {
+                                JSONArray jsonModsAppend = jsonOverride.getJSONArray("mods-append");
+                                jsonModsAppend.toList().stream().map(Object::toString).forEach(mod -> {
+                                    if (!overrideModAppends.contains(mod)) {
+                                        overrideModAppends.add(mod);
+                                    }
+                                });
+                            }
                         }
 
                         if (!factoryClass.isPresent()) {
@@ -780,8 +808,8 @@ public class Profile {
                         }
 
                         List<String> modNames = new ArrayList<>();
-                        if (overrideMods.isPresent()) {
-                            for (String modName : overrideMods.get()) {
+                        if (!overrideMods.isEmpty()) {
+                            for (String modName : overrideMods) {
                                 if (!modNames.contains(modName)) {
                                     modNames.add(modName);
                                 }
@@ -821,6 +849,14 @@ public class Profile {
                                 ex.printStackTrace();
                                 failure.set(true);
                                 return;
+                            }
+                        }
+
+                        if (!overrideModAppends.isEmpty()) {
+                            for (String modName : overrideModAppends) {
+                                if (!modNames.contains(modName)) {
+                                    modNames.add(modName);
+                                }
                             }
                         }
 
