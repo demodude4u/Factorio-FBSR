@@ -42,7 +42,7 @@ public class CmdBot {
         @Option(names = {"-r", "-ignore-not-ready"}, description = "Ignore profiles that are not ready", defaultValue = "false") boolean ignoreNotReady,
         @Option(names = {"-e", "-require-all-enabled"}, description = "Require all profiles to be enabled and ready before starting the bot", defaultValue = "false") boolean requireAllEnabled
     ) {
-        if (!ignoreNotReady && !checkProfilesReady(requireAllEnabled)) {
+        if (!ignoreNotReady && !checkProfilesReady(requestedProfiles, requireAllEnabled)) {
             return;
         }
 
@@ -84,20 +84,30 @@ public class CmdBot {
         LOGGER.info("Blueprint Bot service status: {}", status);
     }
 
-    private static boolean checkProfilesReady(boolean requireAllEnabled) {
-        if (requireAllEnabled && !Profile.listProfiles().stream().allMatch(p -> p.isEnabled())) {
+    private static boolean checkProfilesReady(List<String> requestedProfiles, boolean requireAllEnabled) {
+        List<Profile> profiles = new ArrayList<>();
+        if (requestedProfiles == null || requestedProfiles.isEmpty()) {
+            profiles.addAll(Profile.listProfiles());
+        } else {
+            requestedProfiles.stream().map(Profile::byName).forEach(profiles::add);
+            if (!profiles.stream().anyMatch(Profile::isVanilla)) {
+                profiles.add(0, Profile.vanilla());
+            }
+        }
+
+        if (requireAllEnabled && !profiles.stream().allMatch(p -> p.isEnabled())) {
             System.out.println("Some profiles are not enabled. Please ensure all profiles are valid and have been built.");
-            for (Profile profile : Profile.listProfiles()) {
+            for (Profile profile : profiles) {
                 System.out.println("Profile: " + profile.getName() + " (" + profile.getStatus() + ")");
             }
             return false;
         }
 
-        List<Profile> enabledProfiles = Profile.listProfiles().stream().filter(Profile::isEnabled).collect(Collectors.toList());
+        List<Profile> enabledProfiles = profiles.stream().filter(Profile::isEnabled).collect(Collectors.toList());
 
         if (!enabledProfiles.stream().allMatch(p->p.getStatus() == ProfileStatus.READY)) {
             System.out.println("Some profiles are not ready. Please ensure all profiles are valid and have been built. Add `-ignore-not-ready` to ignore this check, or type `profile-disable <PROFILE>` to disable a profile.");
-            for (Profile profile : Profile.listProfiles()) {
+            for (Profile profile : profiles) {
                 System.out.println("Profile: " + profile.getName() + " (" + profile.getStatus() + ")");
             }
             return false;
