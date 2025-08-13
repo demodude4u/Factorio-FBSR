@@ -416,6 +416,8 @@ public class DiscordService extends AbstractIdleService {
 			BSBlueprintBook book = blueprintString.blueprintBook.get();
 			List<BSBlueprint> blueprints = book.getAllBlueprints();
 
+			reporting.addField(new Field("Blueprint Version", book.version.toString(), true));
+
 			if (blueprints.isEmpty()) {
 				event.replyEmbed(new EmbedBuilder()//
 						.setColor(Color.red)//
