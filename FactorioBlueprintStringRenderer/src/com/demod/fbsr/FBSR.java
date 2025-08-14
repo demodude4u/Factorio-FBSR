@@ -674,7 +674,7 @@ public class FBSR {
 		iconManager.initialize();
 
 		profiles.stream().forEach(profile -> {
-			profile.getAtlasPackage().readFromZip(profile.getFileAssets());
+			profile.getAtlasPackage().readFromZip(profile.getFileAssets(), profile.getAssetsAtlasManifest());
 		});
 
 		LOGGER.info("FBSR loaded -- Factorio {} -- {} Entities, {} Tiles", 
@@ -705,13 +705,13 @@ public class FBSR {
 		return true;
 	}
 
-	public static boolean populateAssets(Profile profile, JSONObject jsonRendering, ZipOutputStream zos) {
+	public static JSONObject populateAssets(Profile profile, JSONObject jsonRendering, ZipOutputStream zos) {
 
 		profile.resetLoadedData();
 
 		if (!FactorioManager.hasFactorioInstall()) {
 			System.out.println("No Factorio install found, cannot build data for profile: " + profile.getName());
-			return false;
+			return null;
 		}
 
 		List<Profile> profiles = new ArrayList<>();
@@ -723,7 +723,7 @@ public class FBSR {
 
 			if (!profileVanilla.hasAssets()) {
 				System.out.println("Vanilla profile must be built first, cannot build data for profile: " + profile.getName());
-				return false;
+				return null;
 			}
 
 			profileVanilla.resetLoadedData();
@@ -756,35 +756,35 @@ public class FBSR {
 		if (profile.isVanilla()) {
 			if (!GUIStyle.populateZipWithFonts(zos)) {
                 System.out.println("Failed to copy fonts to vanilla profile.");
-                return false;
+                return null;
             }
 		}
 		
 		try {
 			if (!factorioManager.initializePrototypes()) {
-				return false;
+				return null;
 			}
 
 			guiStyle.initialize(factorioManager.getProfileVanilla(), false);
 
 			if (!factorioManager.initializeFactories()) {
-				return false;
+				return null;
 			}
 
 			iconManager.initialize();
 
-			profile.getAtlasPackage().populateZip(zos);
+			JSONObject jsonAtlasManifest = profile.getAtlasPackage().populateZip(zos);
+			return jsonAtlasManifest;
 
 		} catch (JSONException | IOException e) {
 			e.printStackTrace();
-			return false;
-		}
+			return null;
 
-		for (Profile p : profiles) {
-			p.resetLoadedData();
-		}
-
-		return true;
+		} finally {
+			for (Profile p : profiles) {
+				p.resetLoadedData();
+			}
+		}		
 	}
 
 	private static void populateRailBlocking(WorldMap map, boolean elevated) {

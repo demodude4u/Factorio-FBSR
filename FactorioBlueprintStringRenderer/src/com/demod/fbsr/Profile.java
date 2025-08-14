@@ -91,6 +91,7 @@ public class Profile {
     public static final String ASSETS_ZIP_DUMP_JSON = "dump.json";
     public static final String ASSETS_ZIP_RENDERING_JSON = "rendering.json";
     public static final String ASSETS_ZIP_MANIFEST_JSON = "manifest.json";
+    public static final String ASSETS_ZIP_ATLAS_MANIFEST_JSON = "atlas-manifest.json";
 
     public static final Set<String> BUILTIN_MODS = Set.of(
             "base", "space-age", "quality", "elevated-rails");
@@ -106,8 +107,8 @@ public class Profile {
         BUILD_DUMP, // Factorio Updates
         BUILD_ASSETS, // Rendering Updates
         
-        NEED_FACTORIO_INSTALL, // Factorio is not configured
-        NEED_MOD_PORTAL_CREDENTIALS, // Mod Portal API is not configured
+        NEED_FACTORIO, // Factorio is not configured
+        NEED_MOD_PORTAL, // Mod Portal API is not configured
     }
 
     public static enum ProfileWarning {
@@ -404,25 +405,11 @@ public class Profile {
     }
 
     public String getStateCode() {
-        String prefix;
-        String postfix;
-        if (!getWarnings().isEmpty()) {
-            prefix = "!";
-            postfix = "!";
-        } else if (hasAssetsNoConfig()) {
-            prefix = "<";
-            postfix = ">";
-        } else {
-            prefix = "[";
-            postfix = "]";
-        }
-
-        return prefix
-            + (hasManifest() ? "M" : "-")
-            + (hasDownloaded() ? "D" : "-")
-            + (hasDump() ? "U" : "-")
-            + (hasAssets() ? "A" : "-")
-            + postfix;
+        return (hasManifest() ? "M" : " ")
+            + (hasDownloaded() ? "D" : " ")
+            + (hasDump() ? "U" : " ")
+            + (hasAssets() ? "A" : " ")
+            + (!getWarnings().isEmpty() ? "W" : " ");
     }
 
     public List<ProfileWarning> getWarnings() {
@@ -458,21 +445,21 @@ public class Profile {
             if (FactorioManager.hasFactorioInstall()) {
                 return ProfileStatus.BUILD_ASSETS;
             } else {
-                return ProfileStatus.NEED_FACTORIO_INSTALL;
+                return ProfileStatus.NEED_FACTORIO;
             }
 
         } else if ((hasManifest() && hasDownloaded())) {
             if (FactorioManager.hasFactorioInstall()) {
                 return ProfileStatus.BUILD_DUMP;
             } else {
-                return ProfileStatus.NEED_FACTORIO_INSTALL;
+                return ProfileStatus.NEED_FACTORIO;
             }
 
         } else if (hasManifest()) {
             if (FactorioManager.hasModPortalApi()) {
                 return ProfileStatus.BUILD_DOWNLOAD;
             } else {
-                return ProfileStatus.NEED_MOD_PORTAL_CREDENTIALS;
+                return ProfileStatus.NEED_MOD_PORTAL;
             }
 
         } else {
@@ -508,6 +495,14 @@ public class Profile {
         }
 
         return readJsonAssetFile(ASSETS_ZIP_RENDERING_JSON);
+    }
+
+    public JSONObject getAssetsAtlasManifest() {
+        if (!hasAssets()) {
+            return null;
+        }
+
+        return readJsonAssetFile(ASSETS_ZIP_ATLAS_MANIFEST_JSON);
     }
 
     public boolean hasVersionMismatch() {
@@ -1571,9 +1566,16 @@ public class Profile {
                 zos.closeEntry();
             }
 
-            if (!FBSR.populateAssets(this, jsonRendering, zos)) {
-                System.out.println("Failed to populate assets for profile: " + folderProfile.getName());
-                return false;
+            {
+                JSONObject jsonAtlasManifest = FBSR.populateAssets(this, jsonRendering, zos);
+                if (jsonAtlasManifest == null) {
+                    System.out.println("Failed to populate assets for profile: " + folderProfile.getName());
+                    return false;
+                }
+                ZipEntry entryAtlasManifest = new ZipEntry(ASSETS_ZIP_ATLAS_MANIFEST_JSON);
+                zos.putNextEntry(entryAtlasManifest);
+                zos.write(jsonAtlasManifest.toString(2).getBytes(StandardCharsets.UTF_8));
+                zos.closeEntry();
             }
 
             zos.close();

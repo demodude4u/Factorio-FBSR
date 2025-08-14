@@ -73,7 +73,7 @@ public class AtlasPackage {
 	private final Semaphore loadingSemaphore = new Semaphore(MAX_PARALLEL_LOADS);
 	private static final int CLEANUP_INTERVAL = 1000;
 
-	public void populateZip(ZipOutputStream zos) throws IOException {
+	public JSONObject populateZip(ZipOutputStream zos) throws IOException {
 		for (ImageDef def : defs) {
 			def.getAtlasRef().reset();
 		}
@@ -174,7 +174,7 @@ public class AtlasPackage {
 			} catch (ExecutionException e) {
 				e.printStackTrace();
 				System.exit(-1);
-				return;
+				return null;
 			}
 			String md5key = computeMD5(imageSheet, trimmed);
 			cached = md5Check.get(md5key);
@@ -266,7 +266,9 @@ public class AtlasPackage {
 		imageSheets.cleanUp();
 
 
-		JSONArray jsonManifest = new JSONArray();
+		JSONObject jsonManifest = new JSONObject();
+		JSONArray jsonEntries = new JSONArray();
+		jsonManifest.put("entries", jsonEntries);
 		for (ImageDef def : defs) {
 			Rectangle source = def.getSource();
 			AtlasRef atlasRef = def.getAtlasRef();
@@ -292,11 +294,8 @@ public class AtlasPackage {
 			jsonEntry.put(rect.height);
 			jsonEntry.put(trim.x);
 			jsonEntry.put(trim.y);
-			jsonManifest.put(jsonEntry);
+			jsonEntries.put(jsonEntry);
 		}
-		zos.putNextEntry(new ZipEntry("atlas-manifest.json"));
-		zos.write(jsonManifest.toString(2).getBytes(StandardCharsets.UTF_8));
-		zos.closeEntry();
 
 		for (Atlas atlas : atlases) {
 			String filename = "atlas" + atlas.getId() + ".webp";
@@ -321,27 +320,16 @@ public class AtlasPackage {
 			zos.closeEntry();
 			LOGGER.info("Write Atlas: {}", filename);
 		}
+
+		return jsonManifest;
 	}
 
-    public boolean readFromZip(File fileAssetsZip) {
+    public boolean readFromZip(File fileAssetsZip, JSONObject jsonManifest) {
 		
 		try (ZipFile zipFile = new ZipFile(fileAssetsZip)) {
-			
-			JSONArray jsonManifest;
-			ZipEntry entry = zipFile.getEntry("atlas-manifest.json");
-			if (entry == null) {
-				System.out.println("Missing atlas-manifest.json in zip file: " + zipFile.getName());
-				return false;
-			}
-			try (var reader = new InputStreamReader(zipFile.getInputStream(entry), StandardCharsets.UTF_8)) {
-				jsonManifest = new JSONArray(new JSONTokener(reader));
-			} catch (IOException e) {
-				System.out.println("Failed to read atlas-manifest.json: " + e.getMessage());
-				return false;
-			}
 	
 			if (!checkValidManifest(jsonManifest)) {
-				System.out.println("Atlas manifest is invalid or does not match current definitions. Data needs to be regenerated.");
+				System.out.println("Atlas manifest is invalid or does not match current definitions. Assets need to be regenerated.");
 				return false;
 			}
 			
@@ -358,7 +346,13 @@ public class AtlasPackage {
 		}
 	}
 
-	private boolean checkValidManifest(JSONArray jsonManifest) {
+	private boolean checkValidManifest(JSONObject jsonManifest) {
+		if (!jsonManifest.has("entries")) {
+			LOGGER.error("Atlas manifest is missing 'entries' key");
+			return false;
+		}
+		JSONArray jsonEntries = jsonManifest.getJSONArray("entries");
+
 		Set<String> currentKeys = new HashSet<>();
 		for (ImageDef image : defs) {
 			Rectangle source = image.getSource();
@@ -369,8 +363,8 @@ public class AtlasPackage {
 
 		Set<String> manifestKeys = new HashSet<>();
 
-		for (int i = 0; i < jsonManifest.length(); i++) {
-			JSONArray jsonEntry = jsonManifest.getJSONArray(i);
+		for (int i = 0; i < jsonEntries.length(); i++) {
+			JSONArray jsonEntry = jsonEntries.getJSONArray(i);
 			String path = jsonEntry.getString(0);
 			int srcX = jsonEntry.getInt(1);
 			int srcY = jsonEntry.getInt(2);
@@ -403,11 +397,12 @@ public class AtlasPackage {
 		return mismatched.isEmpty();
 	}
 
-	private boolean loadAtlases(ZipFile zipFile, JSONArray jsonManifest) {
+	private boolean loadAtlases(ZipFile zipFile, JSONObject jsonManifest) {
+		JSONArray jsonEntries = jsonManifest.getJSONArray("entries");
 
 		defs.forEach(d -> d.getAtlasRef().reset());
 
-		int[] atlasIds = IntStream.range(0, jsonManifest.length()).map(i -> jsonManifest.getJSONArray(i).getInt(5))
+		int[] atlasIds = IntStream.range(0, jsonEntries.length()).map(i -> jsonEntries.getJSONArray(i).getInt(5))
 				.distinct().toArray();
 		LOGGER.info("Read {} Atlases: {}", atlasIds.length, zipFile.getName());
 		AtomicBoolean failure = new AtomicBoolean(false);
@@ -440,8 +435,8 @@ public class AtlasPackage {
 			Point trim;
 		}
 		Map<String, RefValues> locationMap = new HashMap<>();
-		for (int i = 0; i < jsonManifest.length(); i++) {
-			JSONArray jsonEntry = jsonManifest.getJSONArray(i);
+		for (int i = 0; i < jsonEntries.length(); i++) {
+			JSONArray jsonEntry = jsonEntries.getJSONArray(i);
 			String path = jsonEntry.getString(0);
 			int srcX = jsonEntry.getInt(1);
 			int srcY = jsonEntry.getInt(2);

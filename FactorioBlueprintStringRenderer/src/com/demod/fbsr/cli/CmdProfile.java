@@ -9,6 +9,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalDouble;
+import java.util.OptionalInt;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
@@ -17,6 +18,7 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.slf4j.MDC;
@@ -27,6 +29,7 @@ import com.demod.factorio.prototype.DataPrototype;
 import com.demod.fbsr.Dir16;
 import com.demod.fbsr.FactorioManager;
 import com.demod.fbsr.Profile;
+import com.demod.fbsr.RenderingRegistry;
 import com.demod.fbsr.Profile.ProfileStatus;
 import com.demod.fbsr.Profile.ProfileWarning;
 import com.demod.fbsr.RenderRequest.Debug;
@@ -172,6 +175,7 @@ public class CmdProfile {
     ) {
         profileSelect.invalidAllowed();
         profileSelect.disabledAllowed();
+        AtomicBoolean first = new AtomicBoolean(true);
         profileSelect.forEach((profile, result) -> {
             if (enabledOnly && !profile.isEnabled()) {
                 return;
@@ -218,20 +222,50 @@ public class CmdProfile {
                     case INVALID:
                         System.out.println("Profile is in INVALID status. The profile needs to have a profile.json configured. You can generate a new profile using the command 'profile-new " + profile.getName() + " <mod1> <mod2> <mod3> ...'");
                         break;
-                    case NEED_FACTORIO_INSTALL:
-                        System.out.println("Profile is in NEED_FACTORIO_INSTALL status. Run command `help cfg-factorio` to see details on how to set up Factorio.");
+                    case NEED_FACTORIO:
+                        System.out.println("Profile is in NEED_FACTORIO status. Run command `help cfg-factorio` to see details on how to set up Factorio.");
                         break;
-                    case NEED_MOD_PORTAL_CREDENTIALS:
-                        System.out.println("Profile is in NEED_MOD_PORTAL_CREDENTIALS status. Run command `help cfg-factorio` to see details on how to set up Mod Portal credentials.");
+                    case NEED_MOD_PORTAL:
+                        System.out.println("Profile is in NEED_MOD_PORTAL status. Run command `help cfg-factorio` to see details on how to set up Mod Portal credentials.");
                         break;
                     default:break;
                 }
             }
 
+            int modCount = 0;
+            int entityCount = 0;
+            int tileCount = 0;
+            int imageCount = 0;
+            if (profile.hasManifest() || profile.hasAssets()) {
+                modCount = profile.listMods().size();
+                JSONObject jsonRendering = profile.getAssetsRenderingConfiguration();
+                entityCount = Optional.ofNullable(jsonRendering.optJSONObject("entities")).map(JSONObject::length).orElse(0);
+                tileCount = Optional.ofNullable(jsonRendering.optJSONObject("tiles")).map(JSONObject::length).orElse(0);
+            }
+            if (profile.hasAssets()) {
+                JSONObject jsonManifest = profile.getAssetsAtlasManifest();
+                if (jsonManifest != null && jsonManifest.has("entries")) {
+                    JSONArray jsonEntries = jsonManifest.getJSONArray("entries");
+                    imageCount = jsonEntries.length();
+                }
+            }
             List<ProfileWarning> warnings = profile.getWarnings();
-            result.println(profile.getStateCode()+ " " + profile.getName() 
-                    + " (" + profile.getStatus() + ")"
-                    + (warnings.isEmpty() ? "" : warnings.stream().map(ProfileWarning::name).collect(Collectors.joining(",", " <<", ">>"))));
+            if (first.get()) {
+                System.out.println();
+                System.out.println(String.format("%-20s | %-5s | %-15s | %-4s | %-6s | %-6s | %-30s", 
+                        "Profile", "State", "Status", "Mods", "Protos", "Images", "Warnings"));
+                System.out.println(String.format("%-20s | %-5s | %-15s | %-4s | %-6s | %-6s | %-30s", 
+                        "--------------------", "-----", "---------------", "----", "------", "------", "------------------------------"));
+                first.set(false);
+            }
+            System.out.println(String.format("%-20s | %-5s | %-15s | %-4s | %-6s | %-6s | %-30s",
+                    profile.getName(),
+                    profile.getStateCode(),
+                    profile.getStatus(),
+                    modCount > 0 ? modCount : "",
+                    (entityCount + tileCount) > 0 ? (entityCount + tileCount) : "",
+                    imageCount > 0 ? imageCount : "",
+                    warnings.stream().map(ProfileWarning::name).collect(Collectors.joining(", "))));
         });
     }
 

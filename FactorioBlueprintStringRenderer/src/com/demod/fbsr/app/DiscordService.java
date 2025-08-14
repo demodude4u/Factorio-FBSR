@@ -1583,12 +1583,12 @@ public class DiscordService extends AbstractIdleService {
 				.withCredits("Special Thanks", "Members of Team Steelaxe")//
 				.withVersion("Multiverse " + version)
 				.withCustomField("Load Counts",
-						factorioManager.getProfileByModNameMap().keySet().size() + " Mods\n" +
-						factorioManager.getEntityFactoryByNameMap().keySet().size() + " Entities\n" +
-						factorioManager.getTileFactoryByNameMap().keySet().size() + " Tiles\n" +
-						iconCount + " Icons\n" +
-						spriteCount + " Sprites\n" +
-						factorioManager.getProfiles().size() + " Profiles")
+						String.format("%,d", factorioManager.getProfileByModNameMap().keySet().size()) + " Mods\n" +
+						String.format("%,d", factorioManager.getEntityFactoryByNameMap().keySet().size()) + " Entities\n" +
+						String.format("%,d", factorioManager.getTileFactoryByNameMap().keySet().size()) + " Tiles\n" +
+						String.format("%,d", iconCount) + " Icons\n" +
+						String.format("%,d", spriteCount) + " Sprites\n" +
+						String.format("%,d", factorioManager.getProfiles().size()) + " Profiles")
 				//
 				.async(true)//
 				//
