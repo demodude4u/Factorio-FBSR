@@ -408,8 +408,7 @@ public class Profile {
         return (hasManifest() ? "M" : " ")
             + (hasDownloaded() ? "D" : " ")
             + (hasDump() ? "U" : " ")
-            + (hasAssets() ? "A" : " ")
-            + (!getWarnings().isEmpty() ? "W" : " ");
+            + (hasAssets() ? "A" : " ");
     }
 
     public List<ProfileWarning> getWarnings() {

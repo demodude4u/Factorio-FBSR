@@ -252,13 +252,13 @@ public class CmdProfile {
             List<ProfileWarning> warnings = profile.getWarnings();
             if (first.get()) {
                 System.out.println();
-                System.out.println(String.format("%-20s | %-5s | %-15s | %-4s | %-6s | %-6s | %-30s", 
-                        "Profile", "State", "Status", "Mods", "Protos", "Images", "Warnings"));
-                System.out.println(String.format("%-20s | %-5s | %-15s | %-4s | %-6s | %-6s | %-30s", 
-                        "--------------------", "-----", "---------------", "----", "------", "------", "------------------------------"));
+                System.out.println(String.format("%-20s | %-4s | %-15s | %-4s | %-6s | %-6s | %-30s", 
+                        "Profile", "Code", "Status", "Mods", "Protos", "Images", "Warnings"));
+                System.out.println(String.format("%-20s | %-4s | %-15s | %-4s | %-6s | %-6s | %-30s", 
+                        "--------------------", "----", "---------------", "----", "------", "------", "------------------------------"));
                 first.set(false);
             }
-            System.out.println(String.format("%-20s | %-5s | %-15s | %-4s | %-6s | %-6s | %-30s",
+            System.out.println(String.format("%-20s | %-4s | %-15s | %-4s | %-6s | %-6s | %-30s",
                     profile.getName(),
                     profile.getStateCode(),
                     profile.getStatus(),
