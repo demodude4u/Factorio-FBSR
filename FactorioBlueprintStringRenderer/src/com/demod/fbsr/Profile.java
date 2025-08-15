@@ -60,12 +60,14 @@ import com.demod.dcba.CommandReporting;
 import com.demod.dcba.CommandReporting.ExceptionWithBlame;
 import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
+import com.demod.factorio.ModInfo;
 import com.demod.factorio.ModLoader;
 import com.demod.factorio.ModLoader.Mod;
 import com.demod.factorio.Utils;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.factorio.prototype.TilePrototype;
 import com.demod.fbsr.BlueprintFinder.FindBlueprintResult;
+import com.demod.fbsr.DependencySolver.ModNameAndVersion;
 import com.demod.fbsr.app.DiscordService.ImageShrinkResult;
 import com.demod.fbsr.bs.BSBlueprint;
 import com.demod.fbsr.bs.BSBlueprintBook;
@@ -79,6 +81,7 @@ import com.demod.fbsr.gui.GUIStyle;
 import com.demod.fbsr.gui.layout.GUILayoutBlueprint;
 import com.demod.fbsr.gui.layout.GUILayoutBook;
 import com.demod.fbsr.map.MapVersion;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -658,10 +661,16 @@ public class Profile {
             }
 
             JSONObject jsonProfile = readJsonFile(fileProfileConfig);
-            JSONObject jsonProfileModOverrides = jsonProfile.optJSONObject("mod-overrides", new JSONObject());
             JSONObject jsonProfileEntityOverrides = jsonProfile.optJSONObject("entity-overrides", new JSONObject());
             JSONObject jsonProfileTileOverrides = jsonProfile.optJSONObject("tile-overrides", new JSONObject());
-            
+
+            Map<String, String> modRedirects = new HashMap<>();
+            Utils.forEach(jsonProfile.optJSONObject("mod-overrides", new JSONObject()), (String mod, JSONObject json) -> {
+                if (json.has("redirect")) {
+                    modRedirects.put(mod, json.getString("redirect"));
+                }
+            });
+
             FactorioData factorioData = new FactorioData(fileScriptOutputDumpJson, getDumpFactorioVersion());
             if (!factorioData.initialize(false)) {
                 System.out.println("Failed to initialize Factorio data for profile: " + folderProfile.getName());
@@ -694,38 +703,6 @@ public class Profile {
                     failure.set(true);
                 }
             }
-
-            Function<List<String>, List<String>> convertNames = modNames -> {
-                List<String> mods = new ArrayList<>();
-                for (String modName : modNames) {
-                    if (jsonProfileModOverrides.has(modName)) {
-                        JSONObject jsonMod = jsonProfileModOverrides.getJSONObject(modName);
-                        if (jsonMod.has("title")) {
-                            String title = jsonMod.getString("title");
-                            if (!mods.contains(title)) {
-                                mods.add(title);
-                                continue;
-                            }
-                        }
-                        if (jsonMod.has("name")) {
-                            modName = jsonMod.getString("name");
-                        }
-                    }
-                    if (modName.equals("base") || modName.equals("core")) {
-                        continue;
-                    }
-                    Optional<Mod> optMod = modLoader.getMod(modName);
-                    if (!optMod.isPresent()) {
-                        mods.add(modName);
-                        continue;
-                    }
-                    String modTitle = optMod.get().getInfo().getTitle();
-                    if (!mods.contains(modTitle)) {
-                        mods.add(modTitle);
-                    }
-                }
-                return mods;
-            };
 
             JSONObject jsonRenderingEntities = new JSONObject();
             Utils.terribleHackToHaveOrderedJSONObject(jsonRenderingEntities);
@@ -801,11 +778,11 @@ public class Profile {
                             return;
                         }
 
-                        List<String> modNames = new ArrayList<>();
+                        List<String> preMods = new ArrayList<>();
                         if (!overrideMods.isEmpty()) {
                             for (String modName : overrideMods) {
-                                if (!modNames.contains(modName)) {
-                                    modNames.add(modName);
+                                if (!preMods.contains(modName)) {
+                                    preMods.add(modName);
                                 }
                             }
 
@@ -817,23 +794,23 @@ public class Profile {
                                 factory.initFromPrototype();
                                 factory.initAtlas(def -> {
                                     String modName = def.getModName();
-                                    if (!modNames.contains(modName)) {
-                                        modNames.add(modName);
+                                    if (!preMods.contains(modName)) {
+                                        preMods.add(modName);
                                     }
                                 });
 
                                 IconLayer.fromPrototype(factory.prototype.lua()).forEach(layer -> {
                                     String modName = layer.getModName();
-                                    if (!modNames.contains(modName)) {
-                                        modNames.add(modName);
+                                    if (!preMods.contains(modName)) {
+                                        preMods.add(modName);
                                     }
                                 });
 
                                 factory.prototype.getTable().getItem(e.getName()).ifPresent(p -> {
                                     IconLayer.fromPrototype(p.lua()).forEach(layer -> {
                                         String modName = layer.getModName();
-                                        if (!modNames.contains(modName)) {
-                                            modNames.add(modName);
+                                        if (!preMods.contains(modName)) {
+                                            preMods.add(modName);
                                         }
                                     });
                                 });
@@ -848,13 +825,22 @@ public class Profile {
 
                         if (!overrideModAppends.isEmpty()) {
                             for (String modName : overrideModAppends) {
-                                if (!modNames.contains(modName)) {
-                                    modNames.add(modName);
+                                if (!preMods.contains(modName)) {
+                                    preMods.add(modName);
                                 }
                             }
                         }
 
-                        List<String> mods = convertNames.apply(modNames);
+                        List<String> mods = preMods.stream()
+                                .map(mod -> {
+                                    if (modRedirects.containsKey(mod)) {
+                                        return modRedirects.get(mod);
+                                    }
+                                    return mod;
+                                })
+                                .filter(mod -> !mod.equals("base") && !mod.equals("core"))
+                                .collect(Collectors.toList());
+
                         if (mods.isEmpty() && !isVanilla()) {
                             System.out.println("Entity " + e.getName() + " (" + factoryClass.get().getSimpleName() + ") has no mods associated with it in a non-vanilla profile!");
                             failure.set(true);
@@ -907,11 +893,11 @@ public class Profile {
                             overrideMods = Optional.empty();
                         }
 
-                        List<String> modNames = new ArrayList<>();
+                        List<String> preMods = new ArrayList<>();
                         if (overrideMods.isPresent()) {
                             for (String modName : overrideMods.get()) {
-                                if (!modNames.contains(modName)) {
-                                    modNames.add(modName);
+                                if (!preMods.contains(modName)) {
+                                    preMods.add(modName);
                                 }
                             }
 
@@ -923,23 +909,23 @@ public class Profile {
                                 factory.initFromPrototype(table);
                                 factory.initAtlas(def -> {
                                     String modName = def.getModName();
-                                    if (!modNames.contains(modName)) {
-                                        modNames.add(modName);
+                                    if (!preMods.contains(modName)) {
+                                        preMods.add(modName);
                                     }
                                 });
 
                                 IconLayer.fromPrototype(factory.prototype.lua()).forEach(layer -> {
                                     String modName = layer.getModName();
-                                    if (!modNames.contains(modName)) {
-                                        modNames.add(modName);
+                                    if (!preMods.contains(modName)) {
+                                        preMods.add(modName);
                                     }
                                 });
 
                                 factory.prototype.getTable().getItem(t.getName()).ifPresent(p -> {
                                     IconLayer.fromPrototype(p.lua()).forEach(layer -> {
                                         String modName = layer.getModName();
-                                        if (!modNames.contains(modName)) {
-                                            modNames.add(modName);
+                                        if (!preMods.contains(modName)) {
+                                            preMods.add(modName);
                                         }
                                     });
                                 });
@@ -952,7 +938,17 @@ public class Profile {
                             }
                         }
 
-                        List<String> mods = convertNames.apply(modNames);
+                        List<String> mods = preMods.stream()
+                                .map(mod -> {
+                                    if (modRedirects.containsKey(mod)) {
+                                        return modRedirects.get(mod);
+                                    }
+                                    return mod;
+                                })
+                                .filter(mod -> !mod.equals("base") && !mod.equals("core"))
+                                .collect(Collectors.toList());
+
+
                         if (mods.isEmpty() && !isVanilla()) {
                             System.out.println("Tile " + t.getName() + " has no mods associated with it in a non-vanilla profile!");
                             failure.set(true);
@@ -1048,7 +1044,7 @@ public class Profile {
         if (folderBuildMods.exists()) {
             for (File file : folderBuildMods.listFiles()) {
                 if (!validZips.contains(file.getName())) {
-                    System.out.println("Deleting invalid download: " + file.getName());
+                    System.out.println("Deleting: " + file.getName());
                     if (!file.delete()) {
                         System.out.println("Failed to delete file: " + file.getAbsolutePath());
                         return false;
@@ -1168,24 +1164,24 @@ public class Profile {
             System.out.println("Profile " + folderProfile.getName() + " has no config.");
             return false;
         }
-
         if (!force && hasManifest()) {
             System.out.println("Profile " + folderProfile.getName() + " already has a manifest.");
             return false;
         }
-        
-        //TODO load specific versions of mods and calculate dependencies with version compatibility
+
+        cleanDump();
+        deleteAssets();
 
         JSONObject jsonProfile = readJsonFile(fileProfileConfig);
         JSONArray jsonProfileMods = jsonProfile.optJSONArray("mods");
+        JSONObject jsonProfileModOverrides = jsonProfile.optJSONObject("mod-overrides", new JSONObject());
 
-        List<String> mods = new ArrayList<>();
-        Map<String, String> modVersions = new HashMap<>();
-        mods.add("base"); // Always include base mod
-
+        // Build required roots for solver
+        List<ModNameAndVersion> required = new ArrayList<>();
+        Set<String> rootNames = new HashSet<>();
         for (int i = 0; i < jsonProfileMods.length(); i++) {
             String dependency = jsonProfileMods.getString(i).trim();
-
+            if (dependency.isEmpty()) continue;
             String modName;
             Optional<String> modVersion;
             if (dependency.contains("=")) {
@@ -1196,155 +1192,132 @@ public class Profile {
                 modName = dependency.trim();
                 modVersion = Optional.empty();
             }
-
             if (modVersion.isPresent()) {
-                modVersions.put(modName, modVersion.get());
+                required.add(new ModNameAndVersion(modName, modVersion.get()));
+            } else {
+                required.add(new ModNameAndVersion(modName));
             }
+            rootNames.add(modName);
+        }
+        // Always include base (builtin) so we record it in manifest mods list
+        if (!rootNames.contains("base")) {
+            required.add(new ModNameAndVersion("base"));
+            rootNames.add("base");
+        }
 
-            if (!mods.contains(modName)) {
-                mods.add(modName);
+        Optional<List<ModInfo>> solvedOpt = DependencySolver.solveDebug(required);
+        if (solvedOpt.isEmpty()) {
+            System.out.println("Dependency resolution failed for profile: " + folderProfile.getName());
+            return false;
+        }
+        List<ModInfo> loadOrder = solvedOpt.get();
+
+        // Unique mods in load order (skip duplicates)
+        LinkedHashMap<String, ModInfo> resolvedByName = new LinkedHashMap<>();
+        for (ModInfo mi : loadOrder) {
+            resolvedByName.putIfAbsent(mi.getName(), mi);
+        }
+
+        // Determine builtin mods used (always include base)
+        Set<String> builtinUsed = new LinkedHashSet<>();
+        builtinUsed.add("base");
+        for (String root : rootNames) {
+            if (BUILTIN_MODS.contains(root)) builtinUsed.add(root);
+        }
+        for (ModInfo mi : resolvedByName.values()) {
+            for (ModInfo.Dependency dep : mi.getDependencies()) {
+                String dn = dep.getName();
+                if (BUILTIN_MODS.contains(dn)) builtinUsed.add(dn);
             }
         }
 
-        JSONObject jsonModInfo = new JSONObject();
-        Utils.terribleHackToHaveOrderedJSONObject(jsonModInfo);
-        System.out.println("Mod Portal Lookups: ");
-        for (String modName : mods) {
-            try {
-                walkDependencies(jsonModInfo, modName, modVersions);
-            } catch (IOException e) {
-                System.out.println("Failed to walk dependencies for mod: " + modName);
-                e.printStackTrace();
-                return false;
-            }
-        }
-
+        // Build manifest JSON
         JSONObject jsonManifest = new JSONObject();
         JSONObject jsonZips = new JSONObject();
         jsonManifest.put("zips", jsonZips);
-        System.out.println();
-        System.out.println("Manifest Zips:");
-        for (String modName : jsonModInfo.keySet()) {
-            if (jsonModInfo.isNull(modName)) {
-                continue;
+
+        System.out.println("Resolved Mods (load order):");
+        for (ModInfo mi : resolvedByName.values()) {
+            if (BUILTIN_MODS.contains(mi.getName())) continue;
+            // Portal-provided mods should have filename & download data
+            String filename = mi.getFilename();
+            String downloadUrl = mi.getDownloadUrl();
+            String sha1 = mi.getSha1();
+            if (filename == null || downloadUrl == null || sha1 == null) {
+                System.out.println("Missing download info for " + mi.getName() + " " + mi.getVersion());
+                return false;
             }
-
-            JSONObject jsonRelease = jsonModInfo.getJSONObject(modName);
-
-            String filename = jsonRelease.getString("file_name");
-            String downloadUrl = jsonRelease.getString("download_url");
-            String sha1 = jsonRelease.getString("sha1");
-
+            if (!filename.endsWith(".zip")) {
+                System.out.println("Invalid mod file name: " + filename + " (must end with .zip)");
+                return false;
+            }
             JSONArray jsonZip = new JSONArray();
             jsonZip.put(downloadUrl);
             jsonZip.put(sha1);
             jsonZips.put(filename, jsonZip);
-
             System.out.println(" - " + filename);
-        
-            if (!filename.endsWith(".zip")) {
-                System.out.println("Invalid mod file name: " + filename + ". Must end with .zip");
-                return false;
-            }
         }
 
         JSONArray jsonMods = new JSONArray();
         jsonManifest.put("mods", jsonMods);
         System.out.println();
         System.out.println("Manifest Mods:");
-        for (String modName : jsonModInfo.keySet()) {
+        // Add builtin mods first (stable order)
+        for (String builtin : builtinUsed) {
             JSONObject jsonMod = new JSONObject();
-            jsonMod.put("name", modName);
-            if (!jsonModInfo.isNull(modName)) {
-                JSONObject jsonRelease = jsonModInfo.getJSONObject(modName);
-                if (jsonRelease.has("version")) {
-                    String version = jsonRelease.getString("version");
-                    jsonMod.put("version", version);
-                    System.out.println(" - " + modName + " " + version);
-                } else {
-                    System.out.println(" - " + modName);
+            Utils.terribleHackToHaveOrderedJSONObject(jsonMod);
+            jsonMod.put("name", builtin);
+            jsonMod.put("builtin", true);
+            if (jsonProfileModOverrides.has(builtin)) {
+                JSONObject jsonModOverride = jsonProfileModOverrides.getJSONObject(builtin);
+                if (jsonModOverride.has("title")) {
+                    jsonMod.put("title", jsonModOverride.getString("title"));
                 }
-            } else {
-                System.out.println(" - " + modName);
+                if (jsonModOverride.has("redirect")) {
+                    jsonMod.put("redirect", jsonModOverride.getString("redirect"));
+                }
             }
+            jsonMods.put(jsonMod);
+            System.out.println(" - " + builtin);
+        }
+        // Add non-builtin mods
+        for (ModInfo mi : resolvedByName.values()) {
+            if (BUILTIN_MODS.contains(mi.getName())) continue;
+            JSONObject jsonMod = new JSONObject();
+            Utils.terribleHackToHaveOrderedJSONObject(jsonMod);
+            jsonMod.put("name", mi.getName());
+            jsonMod.put("title", mi.getTitle());
+            if (mi.getCategory() != null) jsonMod.put("category", mi.getCategory());
+            jsonMod.put("tags", new JSONArray(mi.getTags()));
+            jsonMod.put("downloads", mi.getDownloads());
+            jsonMod.put("owner", mi.getOwner());
+            if (mi.getUpdated() != null) jsonMod.put("updated", mi.getUpdated());
+            jsonMod.put("version", mi.getVersion());
+
+            if (jsonProfileModOverrides.has(mi.getName())) {
+                JSONObject jsonModOverride = jsonProfileModOverrides.getJSONObject(mi.getName());
+                if (jsonModOverride.has("title")) {
+                    jsonMod.put("title", jsonModOverride.getString("title"));
+                }
+                if (jsonModOverride.has("redirect")) {
+                    jsonMod.put("redirect", jsonModOverride.getString("redirect"));
+                }
+            }
+
+            System.out.println(" - " + mi.getName() + " " + mi.getVersion());
             jsonMods.put(jsonMod);
         }
 
-        if (!folderBuild.exists()) {
-            folderBuild.mkdirs();
-        }
-
+        if (!folderBuild.exists()) folderBuild.mkdirs();
         if (!writeJsonFile(fileManifest, jsonManifest)) {
             System.out.println("Failed to write manifest.json for profile: " + folderProfile.getName());
             return false;
         }
 
         cleanInvalidDownloads();
-        cleanDump();
-        deleteAssets();
-
         return true;
     }
 
-    private static void walkDependencies(JSONObject results, String mod, Map<String, String> modVersions) throws IOException {
-        if (results.has(mod)) {
-            return;
-        }
-
-        if (BUILTIN_MODS.contains(mod)) {
-            results.put(mod, JSONObject.NULL);
-            if (mod.equals("space-age")) {
-                results.put("quality", JSONObject.NULL);
-                results.put("elevated-rails", JSONObject.NULL);
-            }
-            return;
-        }
-
-        JSONObject jsonRelease;
-        if (modVersions.containsKey(mod)) {
-            System.out.println(" - " + mod + " " + modVersions.get(mod));
-            jsonRelease = FactorioModPortal.findModReleaseInfoFull(mod, modVersions.get(mod));
-        } else {
-            System.out.println(" - " + mod + " (latest)");
-            jsonRelease = FactorioModPortal.findLatestModReleaseInfoFull(mod);
-        }
-
-        results.put(mod, jsonRelease);
-
-		JSONArray jsonDependencies = jsonRelease.getJSONObject("info_json").getJSONArray("dependencies");
-
-		for (int i = 0; i < jsonDependencies.length(); i++) {
-			String dependency = jsonDependencies.getString(i).trim();
-			String prefix = "";
-			String depMod = null;
-
-            if (dependency.startsWith("!") || dependency.startsWith("?") || dependency.startsWith("(?)")) {
-                continue; // Skip incompatible mods or optional dependencies
-            }
-
-			if (dependency.startsWith("~")) {
-                dependency = dependency.substring(1).trim();
-			}
-
-			// Identify version operator and split dependency
-			int versionIndex = -1;
-			for (String operator : new String[]{"<=", ">=", "=", "<", ">"}) {
-				versionIndex = dependency.indexOf(operator);
-				if (versionIndex != -1) {
-					break;
-				}
-			}
-
-			if (versionIndex != -1) {
-				depMod = dependency.substring(0, versionIndex).trim();
-			} else {
-				depMod = dependency; // No version operator found, treat as mod name
-			}
-
-			//TODO we need to solve specific version dependencies
-			walkDependencies(results, depMod, modVersions);
-		}
-	}
     public boolean buildDownload() {
 
         if (!hasManifest()) {
@@ -1422,6 +1395,8 @@ public class Profile {
             return false;
         }
 
+        deleteAssets();
+
         folderBuildData.mkdirs();
 
         if (force && fileScriptOutputDumpJson.exists()) {
@@ -1443,8 +1418,6 @@ public class Profile {
             System.out.println("Profile " + folderProfile.getName() + " was unable to generate a dump file!");
             return false;
         }
-
-        deleteAssets();
 
         return true;
     }
@@ -1695,24 +1668,50 @@ public class Profile {
 		}
 	}
 
-    public static class ModNameAndVersion {
+    public static class ManifestModInfo {
         public final String name;
-        public final Optional<String> version;
+        public final boolean builtin;
+        public final String version;
+        public final String title;
+        public final String category;
+        public final List<String> tags;
+        public final long downloads;
+        public final String owner;
+        public final String updated;
 
-        public ModNameAndVersion(String name, Optional<String> version) {
-            this.name = name;
-            this.version = version;
+        public ManifestModInfo(JSONObject json) {
+            name = json.getString("name");
+            builtin = json.optBoolean("builtin", false);
+            if (!builtin) {
+                title = json.getString("title");
+                version = json.getString("version");
+                category = json.getString("category");
+                tags = json.getJSONArray("tags").toList().stream()
+                        .map(Object::toString)
+                        .collect(Collectors.toList());
+                downloads = json.getLong("downloads");
+                owner = json.getString("owner");
+                updated = json.getString("updated");
+            } else {
+                title = null;
+                version = null;
+                category = null;
+                tags = null;
+                downloads = 0;
+                owner = null;
+                updated = null;
+            }
         }
     }
 
-    public List<ModNameAndVersion> listMods() {
+    public List<ManifestModInfo> listMods() {
 
         if (!hasManifest() && !hasAssets()) {
             System.out.println("Profile " + folderProfile.getName() + " has no manifest or assets to list mods.");
             return ImmutableList.of();
         }
 
-        List<ModNameAndVersion> mods = new ArrayList<>();
+        List<ManifestModInfo> mods = new ArrayList<>();
 
         JSONObject jsonManifest;
         if (hasAssets()) {
@@ -1724,9 +1723,7 @@ public class Profile {
         JSONArray jsonMods = jsonManifest.getJSONArray("mods");
         for (int i = 0; i < jsonMods.length(); i++) {
             JSONObject jsonMod = jsonMods.getJSONObject(i);
-            String mod = jsonMod.getString("name");
-            Optional<String> version = jsonMod.has("version") ? Optional.of(jsonMod.getString("version")) : Optional.empty();
-            mods.add(new ModNameAndVersion(mod, version));
+            mods.add(new ManifestModInfo(jsonMod));
         }
 
         Collections.sort(mods, Comparator.comparing(mod -> mod.name.toLowerCase()));
@@ -2146,8 +2143,8 @@ public class Profile {
             }
 
             try {
-                JSONObject jsonRelease = FactorioModPortal.findLatestModReleaseInfo(modName);
-                String latestVersion = jsonRelease.getString("version");
+                ModInfo latestMod = FactorioModPortal.findLatestMod(modName, false);
+                String latestVersion = latestMod.getVersion();
 
                 if (!modVersion.equals(Optional.of(latestVersion))) {
                     jsonMods.put(i, modName + " = " + latestVersion);

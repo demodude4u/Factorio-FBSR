@@ -6,10 +6,14 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.OptionalInt;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
@@ -27,14 +31,21 @@ import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
 import com.demod.factorio.prototype.DataPrototype;
 import com.demod.fbsr.Dir16;
+import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.FactorioManager;
 import com.demod.fbsr.Profile;
 import com.demod.fbsr.RenderingRegistry;
+import com.demod.fbsr.TileRendererFactory;
+import com.demod.fbsr.Profile.ManifestModInfo;
 import com.demod.fbsr.Profile.ProfileStatus;
 import com.demod.fbsr.Profile.ProfileWarning;
 import com.demod.fbsr.RenderRequest.Debug;
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.SetMultimap;
 
 import picocli.CommandLine.ArgGroup;
 import picocli.CommandLine.Command;
@@ -200,7 +211,7 @@ public class CmdProfile {
                     System.out.println("Mods:");
                     profile.listMods().stream()
                             .filter(mod -> !mod.name.equals("base"))
-                            .forEach(mod -> System.out.println("  - " + mod.name + (mod.version.isPresent() ? " " + mod.version.get() : "")));
+                            .forEach(mod -> System.out.println("  - " + mod.name + (!mod.builtin ? " " + mod.version : "")));
                 }
                 
                 switch (profile.getStatus()) {
@@ -238,11 +249,11 @@ public class CmdProfile {
             int imageCount = 0;
             if (profile.hasManifest() || profile.hasAssets()) {
                 modCount = profile.listMods().size();
+            }
+            if (profile.hasAssets()) {   
                 JSONObject jsonRendering = profile.getAssetsRenderingConfiguration();
                 entityCount = Optional.ofNullable(jsonRendering.optJSONObject("entities")).map(JSONObject::length).orElse(0);
                 tileCount = Optional.ofNullable(jsonRendering.optJSONObject("tiles")).map(JSONObject::length).orElse(0);
-            }
-            if (profile.hasAssets()) {
                 JSONObject jsonManifest = profile.getAssetsAtlasManifest();
                 if (jsonManifest != null && jsonManifest.has("entries")) {
                     JSONArray jsonEntries = jsonManifest.getJSONArray("entries");
@@ -267,6 +278,158 @@ public class CmdProfile {
                     imageCount > 0 ? imageCount : "",
                     warnings.stream().map(ProfileWarning::name).collect(Collectors.joining(", "))));
         });
+    }
+
+    @Command(name = "mod-query", description = "List mods based on filters")
+    public static void modQuery(
+            @Option(names = {"-m", "-mod"}, description = "Filter by mod", arity = "0..*") List<String> modFilter,
+            @Option(names = {"-p", "-profile"}, description = "Filter by profile", arity = "0..*") List<String> profileFilter,
+            @Option(names = {"-e", "-entity"}, description = "Filter by entity", arity = "0..*") List<String> entityFilter,
+            @Option(names = {"-t", "-tile"}, description = "Filter by tile", arity = "0..*") List<String> tileFilter,
+            @Option(names = {"-d", "-detailed"}, description = "Show mod details") boolean detailed
+    ) {
+        Set<String> mods = new HashSet<>();
+        ListMultimap<String, Profile> profileByMod = ArrayListMultimap.create();
+        ListMultimap<String, String> entityByMod = ArrayListMultimap.create();
+        ListMultimap<String, String> tileByMod = ArrayListMultimap.create();
+
+        ListMultimap<String, ManifestModInfo> modInfoByMod = ArrayListMultimap.create();
+        
+        for (Profile profile : Profile.listProfiles()) {
+            if (!profile.hasAssets()) {
+                continue;
+            }
+
+            List<ManifestModInfo> profileMods = profile.listMods();
+            for (ManifestModInfo modInfo : profileMods) {
+                if (modInfo.builtin) {
+                    continue;
+                }
+
+                String mod = modInfo.name;
+                mods.add(mod);
+                profileByMod.put(mod, profile);
+                modInfoByMod.put(mod, modInfo);
+            }
+
+            RenderingRegistry registry = new RenderingRegistry(profile);
+            registry.loadConfig(profile.getAssetsRenderingConfiguration());
+            for (EntityRendererFactory factory : registry.getEntityFactories()) {
+                for (String mod : factory.getMods()) {
+                    mods.add(mod);
+                    entityByMod.put(mod, factory.getName());
+                }
+            }
+            for (TileRendererFactory factory : registry.getTileFactories()) {
+                for (String mod : factory.getMods()) {
+                    mods.add(mod);
+                    tileByMod.put(mod, factory.getName());
+                }
+            }
+        }
+
+        ListMultimap<String, String> filteredBy = ArrayListMultimap.create();
+        interface MatchAny {
+            boolean filter(String mod, String value, List<String> patterns);
+        }
+        MatchAny matchesAny = (mod, value, patterns) -> {
+            boolean match = false;
+            for (String pattern : patterns) {
+                if (pattern.equals("*") || value.equals(pattern)) {
+                    match = true;
+                    filteredBy.put(mod, value);
+                    continue;
+                };
+                if (pattern.contains("*")) {
+                    String regex = pattern.replace(".", "\\.").replace("*", ".*");
+                    if (value.matches(regex)) {
+                        match = true;
+                        filteredBy.put(mod, value);
+                    }
+                }
+            }
+            return match;
+        };
+
+        if (modFilter != null && !modFilter.isEmpty()) {
+            mods.removeIf(mod -> !matchesAny.filter(mod, mod, modFilter));
+        }
+        if (profileFilter != null && !profileFilter.isEmpty()) {
+            mods.removeIf(mod -> {
+                List<Profile> profiles = profileByMod.get(mod);
+                return profiles.stream().noneMatch(p -> matchesAny.filter(mod, p.getName(), profileFilter));
+            });
+        }
+        if (entityFilter != null && !entityFilter.isEmpty()) {
+            mods.removeIf(mod -> {
+                List<String> entities = entityByMod.get(mod);
+                return entities.stream().noneMatch(e -> matchesAny.filter(mod, e, entityFilter));
+            });
+        }
+        if (tileFilter != null && !tileFilter.isEmpty()) {
+            mods.removeIf(mod -> {
+                List<String> tiles = tileByMod.get(mod);
+                return tiles.stream().noneMatch(t -> matchesAny.filter(mod, t, tileFilter));
+            });
+        }
+
+        List<String> modOrder = mods.stream().sorted().collect(Collectors.toList());
+        List<String> tableMessage = new ArrayList<>();
+        boolean firstTableEntry = true;
+        for (String mod : modOrder) {
+            List<Profile> profiles = profileByMod.get(mod);
+            if (profiles.isEmpty()) {
+                continue;
+            }
+
+            List<ManifestModInfo> modInfos = modInfoByMod.get(mod);
+            List<String> versions = modInfos.stream().map(info -> info.version).distinct().collect(Collectors.toList());
+
+            String titlesStr = modInfos.stream().map(info -> info.title).distinct().sorted().collect(Collectors.joining(", "));
+            String versionsStr = versions.stream().sorted().collect(Collectors.joining(", "));
+            String profilesStr = profiles.stream().map(Profile::getName).collect(Collectors.joining(", "));
+            String entitiesStr = entityByMod.get(mod).stream().sorted().collect(Collectors.joining(", "));
+            String tilesStr = tileByMod.get(mod).stream().sorted().collect(Collectors.joining(", "));
+            String filteredByStr = filteredBy.get(mod).stream().sorted().collect(Collectors.joining(", "));
+
+            if (detailed) {
+                System.out.println();
+                System.out.println("<< " + mod + " " + versionsStr + " >> -- " + titlesStr);
+                System.out.println("Profile: " + profilesStr);
+                System.out.println("Downloads: " + modInfos.stream().mapToLong(info -> info.downloads).max().orElse(0));
+                System.out.println("Category: " + modInfos.stream().map(info -> info.category).distinct().collect(Collectors.joining(", ")));
+                System.out.println("Tags: " + modInfos.stream().flatMap(info -> info.tags.stream()).distinct().collect(Collectors.joining(", ")));
+                System.out.println("Owner: " + modInfos.stream().map(info -> info.owner).distinct().collect(Collectors.joining(", ")));
+                System.out.println("Last Updated: " + modInfos.stream().map(info -> info.updated).distinct().sorted(Comparator.reverseOrder()).findFirst().orElse(""));
+                System.out.println("Entities: " + (entitiesStr.isBlank() ? "<None>" : entitiesStr));
+                System.out.println("Tiles:    " + (tilesStr.isBlank() ? "<None>" : tilesStr));
+                if (filteredBy.size() > 0) {
+                    System.out.println("Filtered By: " + filteredByStr);
+                }
+            }
+
+            String modStr = mod.length() > 25 ? mod.substring(0, 25-3) + "..." : mod;
+            titlesStr = titlesStr.length() > 30 ? titlesStr.substring(0, 30-3) + "..." : titlesStr;
+            profilesStr = profilesStr.length() > 15 ? profilesStr.substring(0, 15-3) + "..." : profilesStr;
+            filteredByStr = filteredByStr.length() > 30 ? filteredByStr.substring(0, 30-3) + "..." : filteredByStr;
+
+            if (firstTableEntry) {
+                tableMessage.add(String.format("%-25s | %-30s | %-8s | %-15s" + (filteredBy.isEmpty() ? "" : " | %-30s"), 
+                        "Mod", "Title", "Version", "Profile", "Filtered By"));
+                tableMessage.add(String.format("%-25s | %-30s | %-8s | %-15s" + (filteredBy.isEmpty() ? "" : " | %-30s"),
+                        "-------------------------", "------------------------------", "--------", "---------------", "------------------------------"));
+                firstTableEntry = false;
+            }
+            tableMessage.add(String.format("%-25s | %-30s | %-8s | %-15s" + (filteredBy.isEmpty() ? "" : " | %-30s"),
+                    modStr,
+                    titlesStr,
+                    versions.size() > 2 ? "*.*.*" : versionsStr,
+                    profilesStr,
+                    filteredByStr));
+        }
+
+        System.out.println();
+        tableMessage.forEach(System.out::println);
     }
 
     @Command(name = "profile-disable", description = "Disable a profile")

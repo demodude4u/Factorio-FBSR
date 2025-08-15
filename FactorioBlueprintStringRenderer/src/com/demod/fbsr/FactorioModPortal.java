@@ -14,7 +14,9 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -23,6 +25,7 @@ import org.rapidoid.io.IO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.demod.factorio.ModInfo;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 
@@ -56,12 +59,11 @@ public class FactorioModPortal {
 	public static synchronized File downloadMod(File folder, String modName, String modVersion, String authParams)
 			throws IOException {
 
-		JSONObject jsonRelease = findModReleaseInfo(modName, modVersion);
-
-		String filename = jsonRelease.getString("file_name");
+		ModInfo modInfo = findMod(modName, modVersion, false);
+		String filename = modInfo.getFilename();
 		File target = new File(folder, filename);
-		String downloadUrl = jsonRelease.getString("download_url");
-		String sha1 = jsonRelease.getString("sha1");
+		String downloadUrl = modInfo.getDownloadUrl();
+		String sha1 = modInfo.getSha1();
 
 		downloadModDirect(target, downloadUrl, sha1, authParams);
 		return target;
@@ -92,74 +94,38 @@ public class FactorioModPortal {
 			System.exit(-1);
 		}
 	}
-
-	public static JSONObject findLatestModReleaseInfo(String modName) throws IOException {
-		JSONObject json = get(API_URL + "api/mods/" + modName);
+	
+	public static List<ModInfo> findModAllVersions(String modName, boolean full) throws IOException {
+		JSONObject json = get(API_URL + "api/mods/" + modName + (full ? "/full" : ""));
 		JSONArray jsonReleases = json.getJSONArray("releases");
-		JSONObject latestJson = jsonReleases.getJSONObject(0);
-		String latestVersion = latestJson.getString("version");
-		for (int i = 1; i < jsonReleases.length(); i++) {
-			JSONObject jsonRelease = jsonReleases.getJSONObject(i);
-			String version = jsonRelease.getString("version");
-			if (compareVersions(version, latestVersion) > 0) {
-				latestJson = jsonRelease;
-				latestVersion = version;
-			}
-		}
-		return latestJson;
-	}
-
-	public static JSONObject findLatestModReleaseInfoFull(String modName) throws IOException {
-		JSONObject json = get(API_URL + "api/mods/" + modName + "/full");
-		JSONArray jsonReleases = json.getJSONArray("releases");
-		JSONObject latestJson = jsonReleases.getJSONObject(0);
-		String latestVersion = latestJson.getString("version");
-		for (int i = 1; i < jsonReleases.length(); i++) {
-			JSONObject jsonRelease = jsonReleases.getJSONObject(i);
-			String version = jsonRelease.getString("version");
-			if (compareVersions(version, latestVersion) > 0) {
-				latestJson = jsonRelease;
-				latestVersion = version;
-			}
-		}
-		return latestJson;
-	}
-
-	public static String findLatestModVersion(String modName) throws IOException {
-		JSONObject json = get(API_URL + "api/mods/" + modName);
-		JSONArray jsonReleases = json.getJSONArray("releases");
-		String latestVersion = jsonReleases.getJSONObject(0).getString("version");
-		for (int i = 1; i < jsonReleases.length(); i++) {
-			String version = jsonReleases.getJSONObject(i).getString("version");
-			if (compareVersions(version, latestVersion) > 0) {
-				latestVersion = version;
-			}
-		}
-		return latestVersion;
-	}
-
-	public static JSONObject findModReleaseInfo(String modName, String modVersion) throws IOException {
-		JSONObject json = get(API_URL + "api/mods/" + modName);
-		JSONArray jsonReleases = json.getJSONArray("releases");
+		List<ModInfo> allVersions = new ArrayList<>();
 		for (int i = 0; i < jsonReleases.length(); i++) {
 			JSONObject jsonRelease = jsonReleases.getJSONObject(i);
-			if (jsonRelease.getString("version").equals(modVersion)) {
-				return jsonRelease;
-			}
+			ModInfo modInfo = new ModInfo(json, jsonRelease);
+			allVersions.add(modInfo);
 		}
-		throw new IOException("Mod not found! " + modName + " " + modVersion);
+		return allVersions;
 	}
 
-	public static synchronized JSONObject findModReleaseInfoFull(String modName, String modVersion) throws IOException {
-		JSONObject json = get(API_URL + "api/mods/" + modName + "/full");
-		JSONArray jsonReleases = json.getJSONArray("releases");
-		for (int i = 0; i < jsonReleases.length(); i++) {
-			JSONObject jsonRelease = jsonReleases.getJSONObject(i);
-			if (jsonRelease.getString("version").equals(modVersion)) {
-				return jsonRelease;
+	public static ModInfo findLatestMod(String modName, boolean full) throws IOException {
+		List<ModInfo> allVersions = findModAllVersions(modName, full);
+		ModInfo latestModInfo = null;
+		for (ModInfo modInfo : allVersions) {
+			if (latestModInfo == null || compareVersions(modInfo.getVersion(), latestModInfo.getVersion()) > 0) {
+				latestModInfo = modInfo;
 			}
 		}
-		throw new IOException("Mod not found! " + modName + " " + modVersion);
+		return latestModInfo;
+	}
+
+	public static ModInfo findMod(String modName, String modVersion, boolean full) throws IOException {
+		List<ModInfo> allVersions = findModAllVersions(modName, full);
+		for (ModInfo modInfo : allVersions) {
+			if (modInfo.getVersion().trim().equals(modVersion.trim())) {
+				return modInfo;
+			}
+		}
+		throw new IOException("Mod version not found: " + modName + " " + modVersion);
 	}
 
 	private static synchronized JSONObject get(String url) throws IOException {
