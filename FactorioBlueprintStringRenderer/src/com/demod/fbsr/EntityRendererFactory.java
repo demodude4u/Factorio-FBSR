@@ -28,6 +28,7 @@ import com.demod.factorio.FactorioData;
 import com.demod.factorio.fakelua.LuaTable;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.factorio.prototype.RecipePrototype;
+import com.demod.fbsr.Profile.ManifestModInfo;
 import com.demod.fbsr.WirePoints.WirePoint;
 import com.demod.fbsr.WorldMap.BeaconSource;
 import com.demod.fbsr.bs.BSEntity;
@@ -132,7 +133,7 @@ public abstract class EntityRendererFactory {
 
 	protected String name = null;
 	protected Profile profile = null;
-	protected List<String> mods = null;
+	protected List<ManifestModInfo> mods = null;
 
 	protected EntityPrototype prototype = null;
 
@@ -256,7 +257,7 @@ public abstract class EntityRendererFactory {
 		return name;
 	}
 
-	public List<String> getMods() {
+	public List<ManifestModInfo> getMods() {
 		return mods;
 	}
 
@@ -313,7 +314,7 @@ public abstract class EntityRendererFactory {
 		this.profile = profile;
 	}
 
-	public void setMods(List<String> mods) {
+	public void setMods(List<ManifestModInfo> mods) {
 		this.mods = mods;
 	}
 

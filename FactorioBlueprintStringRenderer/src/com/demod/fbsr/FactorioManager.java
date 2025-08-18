@@ -36,6 +36,7 @@ import com.demod.factorio.prototype.ItemPrototype;
 import com.demod.factorio.prototype.RecipePrototype;
 import com.demod.factorio.prototype.TechPrototype;
 import com.demod.factorio.prototype.TilePrototype;
+import com.demod.fbsr.Profile.ManifestModInfo;
 import com.demod.fbsr.Profile.ProfileStatus;
 import com.demod.fbsr.entity.UnknownEntityRendering;
 import com.demod.fbsr.fp.FPUtilitySprites;
@@ -102,6 +103,7 @@ public class FactorioManager {
 	private final ListMultimap<String, Profile> profileByModName = ArrayListMultimap.create();
 	private final ListMultimap<String, Profile> profileByEntityName = ArrayListMultimap.create();
 	private final ListMultimap<String, Profile> profileByTileName = ArrayListMultimap.create();
+	private final ListMultimap<String, ManifestModInfo> modInfoByName = ArrayListMultimap.create();
 
 	private final ListMultimap<String, EntityRendererFactory> entityFactoryByName = ArrayListMultimap.create();
 	private final ListMultimap<String, TileRendererFactory> tileFactoryByName = ArrayListMultimap.create();
@@ -242,7 +244,10 @@ public class FactorioManager {
 
 			synchronized (this) {
 				profileByData.put(factorioData, profile);
-				profile.listMods().forEach(mod -> profileByModName.put(mod.name, profile));
+				profile.listMods().forEach(mod -> {
+					profileByModName.put(mod.name, profile);
+					modInfoByName.put(mod.name, mod);
+				});
 				if (profile.isVanilla()) {
 					profileByModName.put("base", profile);
 					profileByModName.put("core", profile);

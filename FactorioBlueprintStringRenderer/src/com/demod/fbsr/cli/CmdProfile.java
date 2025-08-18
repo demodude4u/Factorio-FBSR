@@ -315,15 +315,15 @@ public class CmdProfile {
             RenderingRegistry registry = new RenderingRegistry(profile);
             registry.loadConfig(profile.getAssetsRenderingConfiguration());
             for (EntityRendererFactory factory : registry.getEntityFactories()) {
-                for (String mod : factory.getMods()) {
-                    mods.add(mod);
-                    entityByMod.put(mod, factory.getName());
+                for (ManifestModInfo mod : factory.getMods()) {
+                    mods.add(mod.name);
+                    entityByMod.put(mod.name, factory.getName());
                 }
             }
             for (TileRendererFactory factory : registry.getTileFactories()) {
-                for (String mod : factory.getMods()) {
-                    mods.add(mod);
-                    tileByMod.put(mod, factory.getName());
+                for (ManifestModInfo mod : factory.getMods()) {
+                    mods.add(mod.name);
+                    tileByMod.put(mod.name, factory.getName());
                 }
             }
         }

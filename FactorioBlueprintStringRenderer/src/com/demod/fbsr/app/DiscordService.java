@@ -58,6 +58,7 @@ import com.demod.fbsr.Config;
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.FBSR;
 import com.demod.fbsr.FBSR.RenderDebugLayersResult;
+import com.demod.fbsr.Profile.ManifestModInfo;
 import com.demod.fbsr.FactorioManager;
 import com.demod.fbsr.ModdingResolver;
 import com.demod.fbsr.Profile;
@@ -1015,8 +1016,8 @@ public class DiscordService extends AbstractIdleService {
 				RenderingRegistry registry = profile.getRenderingRegistry();
 				for (EntityRendererFactory factory : registry.getEntityFactories()) {
 					if (factory.getName().equals(entityName)) {
-						for (String mod : factory.getMods()) {
-							possibleMatches.put(mod, profile);
+						for (ManifestModInfo mod : factory.getMods()) {
+							possibleMatches.put(mod.title, profile);
 						}
 					}
 				}

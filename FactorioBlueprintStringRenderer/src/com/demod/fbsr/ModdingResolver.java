@@ -117,6 +117,10 @@ public abstract class ModdingResolver {
         this.factorioManager = factorioManager;
     }
 
+    public FactorioManager getFactorioManager() {
+        return factorioManager;
+    }
+
     public abstract <T> Optional<T> pickByProfile(List<T> items, Function<T, Profile> profileMapper);
 
     public <T> Optional<T> pickByPrototype(List<T> items, Function<T, ? extends DataPrototype> prototypeMapper) {

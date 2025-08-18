@@ -21,7 +21,10 @@ import com.demod.factorio.FactorioData;
 import com.demod.factorio.Utils;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.factorio.prototype.TilePrototype;
+import com.demod.fbsr.Profile.ManifestModInfo;
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimap;
 
 public class RenderingRegistry {
@@ -72,7 +75,10 @@ public class RenderingRegistry {
 	public boolean loadConfig(JSONObject jsonRendering) {
 		clear();
 
-		boolean failed = false;
+		AtomicBoolean failed = new AtomicBoolean(false);
+
+		Map<String, ManifestModInfo> modLookup = new HashMap<>();
+		profile.listMods().forEach(mod -> modLookup.put(mod.name, mod));
 
 		// Entities
 		JSONObject jsonEntities = jsonRendering.optJSONObject("entities");
@@ -93,7 +99,7 @@ public class RenderingRegistry {
 					}
 					if (!factoryClassOpt.isPresent()) {
 						System.out.println("Entity rendering class not found: " + renderingClassName + " for " + entityName);
-						failed = true;
+						failed.set(true);
 						continue;
 					}
 					EntityRendererFactory factory = factoryClassOpt.get().getConstructor().newInstance();
@@ -101,18 +107,24 @@ public class RenderingRegistry {
 					factory.setName(entityName);
 					factory.setProfile(profile);
 
-					JSONArray modsArr = jsonEntity.getJSONArray("mods");
-					List<String> mods = new ArrayList<>();
-					for (Object mod : modsArr) mods.add(mod.toString());
+					List<ManifestModInfo> mods = new ArrayList<>();
+					Utils.forEach(jsonEntity.getJSONArray("mods"), mod -> {
+						if (!modLookup.containsKey(mod.toString())) {
+							System.out.println("Mod \"" + mod.toString() + "\" not found in profile " + profile.getName());
+							failed.set(true);
+							return;
+						}
+						mods.add(modLookup.get(mod.toString()));
+					});
 					factory.setMods(mods);
-					
+
 					entityFactories.add(factory);
 					entityFactoryByName.put(factory.getName(), factory);
 
 				} catch (Exception ex) {
 					System.out.println("Failed to initialize entity renderer factory for " + entityName + ": " + renderingClassName);
 					ex.printStackTrace();
-					failed = true;
+					failed.set(true);
 				}
 			}
 		}
@@ -132,22 +144,28 @@ public class RenderingRegistry {
 					factory.setName(tileName);
 					factory.setProfile(profile);
 
-					JSONArray modsArr = jsonTile.getJSONArray("mods");
-					List<String> mods = new ArrayList<>();
-					for (Object mod : modsArr) mods.add(mod.toString());
+					List<ManifestModInfo> mods = new ArrayList<>();
+					Utils.forEach(jsonTile.getJSONArray("mods"), mod -> {
+						if (!modLookup.containsKey(mod.toString())) {
+							System.out.println("Mod \"" + mod.toString() + "\" not found in profile " + profile.getName());
+							failed.set(true);
+							return;
+						}
+						mods.add(modLookup.get(mod.toString()));
+					});
 					factory.setMods(mods);
-					
+
 					tileFactories.add(factory);
 					tileFactoryByName.put(factory.getName(), factory);
 				} catch (Exception ex) {
 					System.out.println("Failed to initialize tile renderer factory for " + tileName);
 					ex.printStackTrace();
-					failed = true;
+					failed.set(true);
 				}
 			}
 		}
 
-		return !failed;
+		return !failed.get();
 	}
 
 	public boolean initializeFactories() {

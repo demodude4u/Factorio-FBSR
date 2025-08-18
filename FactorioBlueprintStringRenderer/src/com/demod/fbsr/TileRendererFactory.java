@@ -29,6 +29,7 @@ import org.slf4j.LoggerFactory;
 import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
 import com.demod.factorio.prototype.TilePrototype;
+import com.demod.fbsr.Profile.ManifestModInfo;
 import com.demod.fbsr.bs.BSPosition;
 import com.demod.fbsr.bs.BSTile;
 import com.demod.fbsr.def.ImageDef;
@@ -497,7 +498,7 @@ public class TileRendererFactory {
 	protected String name;
 	protected Profile profile;
 	protected TilePrototype prototype;
-	protected List<String> mods;
+	protected List<ManifestModInfo	> mods;
 
 	private FPTileTransitionsVariants protoVariants;
 	private Optional<FPTileMainPictures> protoVariantsMainSize1;
@@ -523,7 +524,7 @@ public class TileRendererFactory {
 		return prototype;
 	}
 
-	public List<String> getMods() {
+	public List<ManifestModInfo> getMods() {
 		return mods;
 	}
 
@@ -582,7 +583,7 @@ public class TileRendererFactory {
 		this.name = name;
 	}
 
-	public void setMods(List<String> mods) {
+	public void setMods(List<ManifestModInfo> mods) {
 		this.mods = mods;
 	}
 

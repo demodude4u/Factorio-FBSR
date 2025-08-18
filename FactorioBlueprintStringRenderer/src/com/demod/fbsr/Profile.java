@@ -99,6 +99,11 @@ public class Profile {
 
     public static final Set<String> BUILTIN_MODS = Set.of(
             "base", "space-age", "quality", "elevated-rails");
+    public static final Map<String, String> BUILTIN_TITLES = Map.of(
+        "base", "Base",
+        "quality", "Quality",
+        "space-age", "Space Age",
+        "elevated-rails", "Elevated Rails");
 
     //The BUILD statuses are named after the next step in the build process
     public static enum ProfileStatus {
@@ -623,6 +628,11 @@ public class Profile {
 
             if (!hasProfileConfig()) {
                 System.out.println("Profile has no config: " + folderProfile.getName());
+                return Optional.empty();
+            }
+
+            if (!hasManifest()) {
+                System.out.println("Profile does not have a manifest file: " + folderProfile.getName());
                 return Optional.empty();
             }
 
@@ -1247,6 +1257,7 @@ public class Profile {
             JSONObject jsonMod = new JSONObject();
             Utils.terribleHackToHaveOrderedJSONObject(jsonMod);
             jsonMod.put("name", builtin);
+            jsonMod.put("title", BUILTIN_TITLES.get(builtin));
             jsonMod.put("builtin", true);
             if (jsonProfileModOverrides.has(builtin)) {
                 JSONObject jsonModOverride = jsonProfileModOverrides.getJSONObject(builtin);
@@ -1648,7 +1659,7 @@ public class Profile {
 		}
 	}
 
-    public static class ManifestModInfo {
+    public class ManifestModInfo {
         public final String name;
         public final boolean builtin;
         public final String version;
@@ -1658,12 +1669,14 @@ public class Profile {
         public final long downloads;
         public final String owner;
         public final String updated;
+        public final String redirect;
 
         public ManifestModInfo(JSONObject json) {
             name = json.getString("name");
+            title = json.getString("title");
+            redirect = json.optString("redirect", null);
             builtin = json.optBoolean("builtin", false);
             if (!builtin) {
-                title = json.getString("title");
                 version = json.getString("version");
                 category = json.getString("category");
                 tags = json.getJSONArray("tags").toList().stream()
@@ -1673,7 +1686,6 @@ public class Profile {
                 owner = json.getString("owner");
                 updated = json.getString("updated");
             } else {
-                title = null;
                 version = null;
                 category = null;
                 tags = null;
@@ -1681,6 +1693,10 @@ public class Profile {
                 owner = null;
                 updated = null;
             }
+        }
+
+        public Profile getProfile() {
+            return Profile.this;
         }
     }
 
@@ -2035,13 +2051,13 @@ public class Profile {
             for (Entry<String, EntityRendererFactory> entry : entitiesRemaining.entrySet()) {
                 String entityName = entry.getKey();
                 EntityRendererFactory factory = entry.getValue();
-                report.accept("Entity not rendered: " + factory.profile.name + " / " + factory.mods.stream().collect(Collectors.joining(",", "[","]")) + " / " + entityName);
+                report.accept("Entity not rendered: " + factory.profile.name + " / " + factory.mods.stream().map(m -> m.name).collect(Collectors.joining(",", "[","]")) + " / " + entityName);
                 renderProblem = true;
             }
             for (Entry<String, TileRendererFactory> entry : tilesRemaining.entrySet()) {
                 String tileName = entry.getKey();
                 TileRendererFactory factory = entry.getValue();
-                report.accept("Tile not rendered: " + factory.profile.name + " / " + factory.mods.stream().collect(Collectors.joining(",", "[","]")) + " / " + tileName);
+                report.accept("Tile not rendered: " + factory.profile.name + " / " + factory.mods.stream().map(m -> m.name).collect(Collectors.joining(",", "[","]")) + " / " + tileName);
                 renderProblem = true;
             }
 
