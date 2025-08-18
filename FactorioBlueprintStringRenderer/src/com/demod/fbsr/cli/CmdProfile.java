@@ -428,6 +428,11 @@ public class CmdProfile {
                     filteredByStr));
         }
 
+        if (modOrder.isEmpty()) {
+            System.out.println();
+            System.out.println("No mods matched the query.");
+        }
+
         System.out.println();
         tableMessage.forEach(System.out::println);
     }
