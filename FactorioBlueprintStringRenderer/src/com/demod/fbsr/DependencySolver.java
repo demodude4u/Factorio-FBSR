@@ -61,31 +61,47 @@ public class DependencySolver {
         }
     }
 
-    /**
-     * Expands builtin set with implicit builtin dependencies.
-     * Current rule: space-age implies quality and elevated-rails.
-     */
-    public static Set<String> expandBuiltinDependencies(Set<String> builtins) {
-        Set<String> out = new LinkedHashSet<>(builtins);
-        if (out.contains("space-age")) {
-            out.add("quality");
-            out.add("elevated-rails");
+    public static class DepSolution {
+        public final List<String> builtins;
+        public final List<ModInfo> mods;
+
+        public DepSolution(List<String> builtins, List<ModInfo> mods) {
+            this.builtins = builtins;
+            this.mods = mods;
         }
+    }
+
+    public static List<String> expandBuiltinDependencies(List<String> builtins) {
+        List<String> out = new ArrayList<>(builtins);
+        insertBuiltinDepIfPresent(out, "space-age", "quality");
+        insertBuiltinDepIfPresent(out, "space-age", "elevated-rails");
         return out;
     }
 
-    // Public existing API now delegates to internal (debug=false)
-    public static Optional<List<ModInfo>> solve(List<ModNameAndVersion> required) {
+    private static void insertBuiltinDepIfPresent(List<String> out, String modName, String depName) {
+        int idx = out.indexOf(modName);
+        if (idx != -1) {
+            if (!out.contains(depName)) {
+                out.add(idx, depName);
+            } else {
+                int depIdx = out.indexOf(depName);
+                if (depIdx > idx) {
+                    out.remove(depIdx);
+                    out.add(idx, depName);
+                }
+            }
+        }
+    }
+
+    public static Optional<DepSolution> solve(List<ModNameAndVersion> required) {
         return solveInternal(required, false);
     }
 
-    // New debug API
-    public static Optional<List<ModInfo>> solveDebug(List<ModNameAndVersion> required) {
+    public static Optional<DepSolution> solveDebug(List<ModNameAndVersion> required) {
         return solveInternal(required, true);
     }
 
-    // Core implementation with optional debug logging
-    private static Optional<List<ModInfo>> solveInternal(List<ModNameAndVersion> required, boolean debug) {
+    private static Optional<DepSolution> solveInternal(List<ModNameAndVersion> required, boolean debug) {
         if (debug) {
             System.out.println("[DepSolver] Starting dependency resolution");
             System.out.println("[DepSolver] Roots:");
@@ -114,10 +130,6 @@ public class DependencySolver {
                 try {
                     List<ModInfo> allVersions = FactorioModPortal.findModAllVersions(mod.name, true);
                     modInfoLookup.putAll(mod.name, allVersions);
-                    if (debug) {
-                        System.out.println("[DepSolver] Fetched versions for " + mod.name + ": " +
-                                allVersions.stream().map(ModInfo::getVersion).collect(Collectors.joining(", ")));
-                    }
                 } catch (IOException e) {
                     System.out.println("Failed to retrieve mod info for " + mod.name + ": " + e.getMessage());
                     return Optional.empty();
@@ -140,7 +152,6 @@ public class DependencySolver {
                         (v.isEmpty() ? "<any>" : v.stream().map(Object::toString).collect(Collectors.joining(" & ")))));
             }
 
-            // Version selection
             for (String modName : new HashSet<>(constraints.keySet())) {
                 if (Profile.BUILTIN_MODS.contains(modName)) continue;
                 if (!modInfoLookup.containsKey(modName)) {
@@ -163,7 +174,7 @@ public class DependencySolver {
                 ModInfo best = null;
                 for (ModInfo mi : candidates) {
                     boolean ok = satisfiesAll(mi, constraints.get(modName));
-                    if (debug) {
+                    if (debug && ok) {
                         System.out.println("    - " + mi.getVersion() + (ok ? " [OK]" : " [FAIL]"));
                     }
                     if (ok) {
@@ -188,7 +199,6 @@ public class DependencySolver {
                 }
             }
 
-            // Build new constraints from required dependencies
             Map<String, List<VersionConstraint>> newConstraints = cloneConstraintMap(constraints);
             boolean constraintsChanged = false;
             for (ModInfo mi : selected.values()) {
@@ -237,7 +247,7 @@ public class DependencySolver {
 
         // Flatten load order
         LinkedHashSet<ModInfo> ordered = new LinkedHashSet<>();
-        Set<String> visiting = new HashSet<>();
+        Set<String> visiting = new LinkedHashSet<>();
         class visit {
             void go(String modName) {
                 if (Profile.BUILTIN_MODS.contains(modName)) return;
@@ -247,15 +257,13 @@ public class DependencySolver {
                     throw new RuntimeException();
                 }
                 if (ordered.contains(mi)) return;
-                if (!visiting.add(modName)) {
-                    System.out.println("Cycle detected involving " + modName);
-                    throw new RuntimeException();
-                }
-                for (ModInfo.Dependency dep : mi.getDependencies()) {
-                    if (dep.isRequired()) {
-                        String dn = dep.getName();
-                        if (Profile.BUILTIN_MODS.contains(dn)) continue;
-                        go(dn);
+                if (visiting.add(modName)) {
+                    for (ModInfo.Dependency dep : mi.getDependencies()) {
+                        if (dep.isRequired()) {
+                            String dn = dep.getName();
+                            if (Profile.BUILTIN_MODS.contains(dn)) continue;
+                            go(dn);
+                        }
                     }
                 }
                 ordered.add(mi);
@@ -292,24 +300,30 @@ public class DependencySolver {
             System.out.println("[DepSolver] Resolution complete.");
         }
 
-        // Derive builtin roots referenced directly or via dependencies
-        Set<String> builtinReferenced = new LinkedHashSet<>();
+        List<String> builtinReferenced = new ArrayList<>();
         for (ModNameAndVersion root : required) {
-            if (Profile.BUILTIN_MODS.contains(root.name)) builtinReferenced.add(root.name);
+            if (Profile.BUILTIN_MODS.contains(root.name) && !builtinReferenced.contains(root.name)) {
+                builtinReferenced.add(root.name);
+            }
         }
         for (ModInfo mi : ordered) {
             for (Dependency d : mi.getDependencies()) {
-                if (Profile.BUILTIN_MODS.contains(d.getName())) builtinReferenced.add(d.getName());
+                if (!d.isRequired()) {
+                    continue;
+                }
+                if (Profile.BUILTIN_MODS.contains(d.getName()) && !builtinReferenced.contains(d.getName())) {
+                    builtinReferenced.add(d.getName());
+                }
             }
         }
-        Set<String> expandedBuiltins = expandBuiltinDependencies(builtinReferenced);
+        List<String> expandedBuiltins = expandBuiltinDependencies(builtinReferenced);
         System.out.println();
         System.out.println("[DepSolver] Builtin referenced: " + builtinReferenced);
         if (!expandedBuiltins.equals(builtinReferenced)) {
             System.out.println("[DepSolver] Builtin expanded (implicit deps applied): " + expandedBuiltins);
         }
 
-        return Optional.of(new ArrayList<>(ordered));
+        return Optional.of(new DepSolution(expandedBuiltins, new ArrayList<>(ordered)));
     }
 
     private static void addConstraint(Map<String, List<VersionConstraint>> map, String mod, VersionConstraint vc) {
@@ -359,7 +373,6 @@ public class DependencySolver {
                     ModInfo other = selected.get(dep.getName());
                     if (other == null) continue;
                     if (dep.getOp() == null) {
-                        // any presence is incompatible
                         System.out.println("Incompatibility: " + mi.getName() + " incompatible with " + other.getName());
                         return false;
                     } else {
@@ -399,7 +412,6 @@ public class DependencySolver {
             List<VersionConstraint> lb = b.get(key);
             if (lb == null) return false;
             if (la.size() != lb.size()) return false;
-            // Compare as sets
             Set<VersionConstraint> sa = new HashSet<>(la);
             Set<VersionConstraint> sb = new HashSet<>(lb);
             if (!sa.equals(sb)) return false;

@@ -67,6 +67,7 @@ import com.demod.factorio.Utils;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.factorio.prototype.TilePrototype;
 import com.demod.fbsr.BlueprintFinder.FindBlueprintResult;
+import com.demod.fbsr.DependencySolver.DepSolution;
 import com.demod.fbsr.DependencySolver.ModNameAndVersion;
 import com.demod.fbsr.app.DiscordService.ImageShrinkResult;
 import com.demod.fbsr.bs.BSBlueprint;
@@ -1205,39 +1206,19 @@ public class Profile {
             rootNames.add("base");
         }
 
-        Optional<List<ModInfo>> solvedOpt = DependencySolver.solveDebug(required);
+        Optional<DepSolution> solvedOpt = DependencySolver.solveDebug(required);
         if (solvedOpt.isEmpty()) {
             System.out.println("Dependency resolution failed for profile: " + folderProfile.getName());
             return false;
         }
-        List<ModInfo> loadOrder = solvedOpt.get();
-
-        // Unique mods in load order (skip duplicates)
-        LinkedHashMap<String, ModInfo> resolvedByName = new LinkedHashMap<>();
-        for (ModInfo mi : loadOrder) {
-            resolvedByName.putIfAbsent(mi.getName(), mi);
-        }
-
-        // Determine builtin mods used (always include base)
-        Set<String> builtinUsed = new LinkedHashSet<>();
-        builtinUsed.add("base");
-        for (String root : rootNames) {
-            if (BUILTIN_MODS.contains(root)) builtinUsed.add(root);
-        }
-        for (ModInfo mi : resolvedByName.values()) {
-            for (ModInfo.Dependency dep : mi.getDependencies()) {
-                String dn = dep.getName();
-                if (BUILTIN_MODS.contains(dn)) builtinUsed.add(dn);
-            }
-        }
+        DepSolution solution = solvedOpt.get();
 
         // Build manifest JSON
         JSONObject jsonManifest = new JSONObject();
         JSONObject jsonZips = new JSONObject();
         jsonManifest.put("zips", jsonZips);
 
-        System.out.println("Resolved Mods (load order):");
-        for (ModInfo mi : resolvedByName.values()) {
+        for (ModInfo mi : solution.mods) {
             if (BUILTIN_MODS.contains(mi.getName())) continue;
             // Portal-provided mods should have filename & download data
             String filename = mi.getFilename();
@@ -1255,7 +1236,6 @@ public class Profile {
             jsonZip.put(downloadUrl);
             jsonZip.put(sha1);
             jsonZips.put(filename, jsonZip);
-            System.out.println(" - " + filename);
         }
 
         JSONArray jsonMods = new JSONArray();
@@ -1263,7 +1243,7 @@ public class Profile {
         System.out.println();
         System.out.println("Manifest Mods:");
         // Add builtin mods first (stable order)
-        for (String builtin : builtinUsed) {
+        for (String builtin : solution.builtins) {
             JSONObject jsonMod = new JSONObject();
             Utils.terribleHackToHaveOrderedJSONObject(jsonMod);
             jsonMod.put("name", builtin);
@@ -1281,7 +1261,7 @@ public class Profile {
             System.out.println(" - " + builtin);
         }
         // Add non-builtin mods
-        for (ModInfo mi : resolvedByName.values()) {
+        for (ModInfo mi : solution.mods) {
             if (BUILTIN_MODS.contains(mi.getName())) continue;
             JSONObject jsonMod = new JSONObject();
             Utils.terribleHackToHaveOrderedJSONObject(jsonMod);
