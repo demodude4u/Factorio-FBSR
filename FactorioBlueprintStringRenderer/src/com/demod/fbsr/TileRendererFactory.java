@@ -535,10 +535,10 @@ public class TileRendererFactory {
 		protoTransitionMergesWithTileID = FPUtils.optString(prototype.lua().get("transition_merges_with_tile"));
 		protoTransitionMergesWithTile = protoTransitionMergesWithTileID.map(k -> resolveMergeTileID(k));
 
-		if (!protoVariants.main.isEmpty())
-			renderProcess = new TileRenderProcessMain();
-		else if (protoVariants.materialBackground.isPresent()) {
+		if (protoVariants.materialBackground.isPresent()) {
 			renderProcess = new TileRenderProcessMaterial();
+		} else if (!protoVariants.main.isEmpty()) {
+			renderProcess = new TileRenderProcessMain();
 		}
 
 		protoDoubleSided = protoVariants.transition.stream()
