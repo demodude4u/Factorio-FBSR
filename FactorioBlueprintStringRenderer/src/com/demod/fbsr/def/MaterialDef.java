@@ -3,7 +3,7 @@ package com.demod.fbsr.def;
 import java.awt.Dimension;
 import java.awt.Rectangle;
 
-import com.demod.fbsr.ModsProfile;
+import com.demod.fbsr.Profile;
 
 public class MaterialDef extends ImageDef {
 
@@ -11,7 +11,7 @@ public class MaterialDef extends ImageDef {
 	private final int cols;
 	private final Dimension tile;
 
-	public MaterialDef(ModsProfile profile, String path, ImageSheetLoader loader, Rectangle source, int rows, int cols) {
+	public MaterialDef(Profile profile, String path, ImageSheetLoader loader, Rectangle source, int rows, int cols) {
 		super(profile, path, loader, source, false);
 		this.rows = rows;
 		this.cols = cols;
@@ -19,7 +19,7 @@ public class MaterialDef extends ImageDef {
 		setTrimmable(false);
 	}
 
-	public MaterialDef(ModsProfile profile, String path, Rectangle source, int rows, int cols) {
+	public MaterialDef(Profile profile, String path, Rectangle source, int rows, int cols) {
 		super(profile, path, source, false);
 		this.rows = rows;
 		this.cols = cols;

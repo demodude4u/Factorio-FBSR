@@ -6,7 +6,8 @@ import java.util.List;
 
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.FBSR;
-import com.demod.fbsr.ModsProfile;
+import com.demod.fbsr.FPUtils;
+import com.demod.fbsr.Profile;
 import com.demod.fbsr.def.SpriteDef;
 import com.demod.fbsr.map.MapRect;
 
@@ -17,7 +18,7 @@ public class FPAnimationParameters extends FPSpriteParameters {
 
 	private final List<SpriteDef> defs;
 
-	public FPAnimationParameters(ModsProfile profile, LuaValue lua) {
+	public FPAnimationParameters(Profile profile, LuaValue lua) {
 		super(profile, lua);
 
 		frameCount = lua.get("frame_count").optint(1);
@@ -28,9 +29,10 @@ public class FPAnimationParameters extends FPSpriteParameters {
 		this.lineLength = lineLength;
 
 		defs = createDefs(profile);
+		FPUtils.verifyNotNull(lua.getDebugPath() + " defs", defs);
 	}
 
-	private List<SpriteDef> createDefs(ModsProfile profile) {
+	private List<SpriteDef> createDefs(Profile profile) {
 		List<SpriteDef> defs = new ArrayList<>();
 		for (int frame = 0; frame < frameCount; frame++) {
 			int x = this.x + width * (frame % lineLength);

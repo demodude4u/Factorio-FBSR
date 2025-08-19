@@ -11,9 +11,9 @@ import com.demod.factorio.FactorioData;
 import com.demod.factorio.fakelua.LuaTable;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.EntityRendererFactory;
-import com.demod.fbsr.FactorioManager;
+import com.demod.fbsr.EntityType;
 import com.demod.fbsr.Layer;
-import com.demod.fbsr.ModsProfile;
+import com.demod.fbsr.Profile;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.WirePoints.WirePoint;
 import com.demod.fbsr.WorldMap;
@@ -27,12 +27,13 @@ import com.demod.fbsr.map.MapText;
 import com.demod.fbsr.map.MapUnknownEntityMarker;
 
 public class UnknownEntityRendering extends EntityRendererFactory {
-	public static final Font FONT = GUIStyle.FONT_BP_BOLD.deriveFont(0.4f);
-
 	private final Color color;
 	private final float offset;
 
-	public UnknownEntityRendering(String name) {
+	private Profile profile;
+
+	public UnknownEntityRendering(Profile profile, String name) {
+		this.profile = profile;
 		this.name = name;
 		color = RenderUtils.getUnknownColor(name);
 		offset = RenderUtils.getUnknownTextOffset(name);
@@ -52,8 +53,9 @@ public class UnknownEntityRendering extends EntityRendererFactory {
 		MapPosition pos = entity.getPosition();
 		register.accept(new MapUnknownEntityMarker(pos, color));
 		if (map.addUnknownEntity(name)) {
+			Font FONT = profile.getGuiStyle().FONT_BP_BOLD.deriveFont(0.4f);
 			register.accept(
-					new MapText(Layer.ENTITY_INFO_TEXT, pos.addUnit(-0.5, -0.5 + offset), 0, FONT, Color.white, name, false));
+					new MapText(Layer.ENTITY_INFO_TEXT, pos.addUnit(-0.5, -0.5 + offset), 0, FONT, Color.white, name, false, entity.getResolver()));
 		}
 	}
 
@@ -64,8 +66,8 @@ public class UnknownEntityRendering extends EntityRendererFactory {
 	}
 
 	@Override
-	public ModsProfile getProfile() {
-		return FactorioManager.getBaseProfile();
+	public Profile getProfile() {
+		return profile;
 	}
 
 	@Override
@@ -94,4 +96,8 @@ public class UnknownEntityRendering extends EntityRendererFactory {
 	public void populateWorldMap(WorldMap map, MapEntity entity) {
 	}
 
+	@Override
+	public boolean isEntityTypeMatch(EntityPrototype proto) {
+		return true;
+	}
 }

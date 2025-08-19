@@ -1,5 +1,7 @@
 package com.demod.fbsr.entity;
 
+import com.demod.fbsr.EntityType;
+
 import java.util.Optional;
 import java.util.function.Consumer;
 
@@ -17,6 +19,7 @@ import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapPosition;
 import com.demod.fbsr.map.MapRenderable;
 
+@EntityType("transport-belt")
 public class TransportBeltRendering extends TransportBeltConnectableRendering {
 	private static final int CONTROL_FRAME = 0;
 

@@ -7,7 +7,7 @@ import java.util.function.Consumer;
 
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.FPUtils;
-import com.demod.fbsr.ModsProfile;
+import com.demod.fbsr.Profile;
 import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.def.SpriteDef;
 import com.google.common.collect.ImmutableList;
@@ -17,7 +17,7 @@ public class FPAnimationVariations {
 	public final Optional<List<FPAnimationSheet>> sheets;
 	public final Optional<List<FPAnimation>> animations;
 
-	public FPAnimationVariations(ModsProfile profile, LuaValue lua) {
+	public FPAnimationVariations(Profile profile, LuaValue lua) {
 		// XXX is there a better way to determine if this is an array?
 		LuaValue luaFilenames = lua.get("filenames");
 		LuaValue luaFilename = lua.get("filename");

@@ -8,18 +8,24 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
+import java.net.URI;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
+import org.rapidoid.io.IO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.demod.factorio.ModInfo;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 
@@ -53,17 +59,21 @@ public class FactorioModPortal {
 	public static synchronized File downloadMod(File folder, String modName, String modVersion, String authParams)
 			throws IOException {
 
-		JSONObject jsonRelease = findModReleaseInfo(modName, modVersion);
+		ModInfo modInfo = findMod(modName, modVersion, false);
+		String filename = modInfo.getFilename();
+		File target = new File(folder, filename);
+		String downloadUrl = modInfo.getDownloadUrl();
+		String sha1 = modInfo.getSha1();
 
-		String downloadUrl = API_URL + jsonRelease.getString("download_url") + authParams;
-		String filename = jsonRelease.getString("file_name");
-		String expectedSha1 = jsonRelease.getString("sha1");
+		downloadModDirect(target, downloadUrl, sha1, authParams);
+		return target;
+	}
 
-		URL url = new URL(downloadUrl);
-		File file = new File(folder, filename);
+	public static synchronized void downloadModDirect(File target, String downloadUrl, String sha1, String authParams) throws IOException {
+		URL url = URI.create(API_URL + downloadUrl + authParams).toURL();
 		HttpURLConnection conn = (HttpURLConnection) url.openConnection();
 
-		try (InputStream in = conn.getInputStream(); FileOutputStream out = new FileOutputStream(file)) {
+		try (InputStream in = conn.getInputStream(); FileOutputStream out = new FileOutputStream(target)) {
 			MessageDigest sha1Digest = MessageDigest.getInstance("SHA-1");
 			byte[] buffer = new byte[32768];
 			int bytesRead;
@@ -71,95 +81,58 @@ public class FactorioModPortal {
 				out.write(buffer, 0, bytesRead);
 				sha1Digest.update(buffer, 0, bytesRead);
 			}
-			LOGGER.info("Downloaded {}", file.getAbsolutePath());
+			LOGGER.info("Downloaded {}", target.getAbsolutePath());
 
 			// Verify SHA-1 hash
 			String fileSha1 = bytesToHex(sha1Digest.digest());
-			if (!fileSha1.equalsIgnoreCase(expectedSha1)) {
-				throw new IOException("SHA-1 mismatch! Expected: " + expectedSha1 + " but got: " + fileSha1);
+			if (!fileSha1.equalsIgnoreCase(sha1)) {
+				throw new IOException("SHA-1 mismatch! Expected: " + sha1 + " but got: " + fileSha1);
 			}
 			LOGGER.info("SHA-1 hash verified successfully.");
-			return file;
 		} catch (NoSuchAlgorithmException e) {
 			e.printStackTrace();
 			System.exit(-1);
-			return null;
 		}
 	}
-
-	public static JSONObject findLatestModReleaseInfo(String modName) throws IOException {
-		JSONObject json = get(API_URL + "api/mods/" + modName);
+	
+	public static List<ModInfo> findModAllVersions(String modName, boolean full) throws IOException {
+		JSONObject json = get(API_URL + "api/mods/" + modName + (full ? "/full" : ""));
 		JSONArray jsonReleases = json.getJSONArray("releases");
-		JSONObject latestJson = jsonReleases.getJSONObject(0);
-		String latestVersion = latestJson.getString("version");
-		for (int i = 1; i < jsonReleases.length(); i++) {
-			JSONObject jsonRelease = jsonReleases.getJSONObject(i);
-			String version = jsonRelease.getString("version");
-			if (compareVersions(version, latestVersion) > 0) {
-				latestJson = jsonRelease;
-				latestVersion = version;
-			}
-		}
-		return latestJson;
-	}
-
-	public static JSONObject findLatestModReleaseInfoFull(String modName) throws IOException {
-		JSONObject json = get(API_URL + "api/mods/" + modName + "/full");
-		JSONArray jsonReleases = json.getJSONArray("releases");
-		JSONObject latestJson = jsonReleases.getJSONObject(0);
-		String latestVersion = latestJson.getString("version");
-		for (int i = 1; i < jsonReleases.length(); i++) {
-			JSONObject jsonRelease = jsonReleases.getJSONObject(i);
-			String version = jsonRelease.getString("version");
-			if (compareVersions(version, latestVersion) > 0) {
-				latestJson = jsonRelease;
-				latestVersion = version;
-			}
-		}
-		return latestJson;
-	}
-
-	public static String findLatestModVersion(String modName) throws IOException {
-		JSONObject json = get(API_URL + "api/mods/" + modName);
-		JSONArray jsonReleases = json.getJSONArray("releases");
-		String latestVersion = jsonReleases.getJSONObject(0).getString("version");
-		for (int i = 1; i < jsonReleases.length(); i++) {
-			String version = jsonReleases.getJSONObject(i).getString("version");
-			if (compareVersions(version, latestVersion) > 0) {
-				latestVersion = version;
-			}
-		}
-		return latestVersion;
-	}
-
-	public static JSONObject findModReleaseInfo(String modName, String modVersion) throws IOException {
-		JSONObject json = get(API_URL + "api/mods/" + modName);
-		JSONArray jsonReleases = json.getJSONArray("releases");
+		List<ModInfo> allVersions = new ArrayList<>();
 		for (int i = 0; i < jsonReleases.length(); i++) {
 			JSONObject jsonRelease = jsonReleases.getJSONObject(i);
-			if (jsonRelease.getString("version").equals(modVersion)) {
-				return jsonRelease;
-			}
+			ModInfo modInfo = new ModInfo(json, jsonRelease);
+			allVersions.add(modInfo);
 		}
-		throw new IOException("Mod not found! " + modName + " " + modVersion);
+		return allVersions;
 	}
 
-	public static synchronized JSONObject findModReleaseInfoFull(String modName, String modVersion) throws IOException {
-		JSONObject json = get(API_URL + "api/mods/" + modName + "/full");
-		JSONArray jsonReleases = json.getJSONArray("releases");
-		for (int i = 0; i < jsonReleases.length(); i++) {
-			JSONObject jsonRelease = jsonReleases.getJSONObject(i);
-			if (jsonRelease.getString("version").equals(modVersion)) {
-				return jsonRelease;
+	public static ModInfo findLatestMod(String modName, boolean full) throws IOException {
+		List<ModInfo> allVersions = findModAllVersions(modName, full);
+		ModInfo latestModInfo = null;
+		for (ModInfo modInfo : allVersions) {
+			if (latestModInfo == null || compareVersions(modInfo.getVersion(), latestModInfo.getVersion()) > 0) {
+				latestModInfo = modInfo;
 			}
 		}
-		throw new IOException("Mod not found! " + modName + " " + modVersion);
+		return latestModInfo;
+	}
+
+	public static ModInfo findMod(String modName, String modVersion, boolean full) throws IOException {
+		List<ModInfo> allVersions = findModAllVersions(modName, full);
+		for (ModInfo modInfo : allVersions) {
+			if (modInfo.getVersion().trim().equals(modVersion.trim())) {
+				return modInfo;
+			}
+		}
+		throw new IOException("Mod version not found: " + modName + " " + modVersion);
 	}
 
 	private static synchronized JSONObject get(String url) throws IOException {
+		url = url.replace(" ", "%20");
 		JSONObject json = cacheGet.getIfPresent(url);
 		if (json == null) {
-			HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
+			HttpURLConnection conn = (HttpURLConnection) URI.create(url).toURL().openConnection();
 
 			try (BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()))) {
 				StringBuilder responseBuilder = new StringBuilder();
@@ -167,7 +140,12 @@ public class FactorioModPortal {
 				while ((line = reader.readLine()) != null) {
 					responseBuilder.append(line);
 				}
-				json = new JSONObject(responseBuilder.toString());
+				try {
+					json = new JSONObject(responseBuilder.toString());
+				} catch (JSONException e) {
+					LOGGER.error("Failed to parse JSON response from " + url, e);
+					LOGGER.error(responseBuilder.toString().substring(0, Math.min(1000, responseBuilder.length())));
+				}
 				cacheGet.put(url, json);
 			}
 		}
@@ -175,8 +153,7 @@ public class FactorioModPortal {
 	}
 
 	public static synchronized String getAuthParams(String username, String password) throws IOException {
-		URL url = new URL("https://auth.factorio.com/api-login");
-		HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+		HttpURLConnection conn = (HttpURLConnection) URI.create("https://auth.factorio.com/api-login").toURL().openConnection();
 		conn.setRequestMethod("POST");
 		conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
 		conn.setDoOutput(true);

@@ -9,6 +9,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLEncoder;
@@ -21,7 +22,6 @@ import javax.imageio.ImageIO;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import com.demod.factorio.Config;
 import com.demod.factorio.Utils;
 
 public final class WebUtils {
@@ -50,19 +50,6 @@ public final class WebUtils {
 			e.printStackTrace();
 			throw new InternalError(e);
 		}
-	}
-
-	private static synchronized String getImgBBAPIKey() {
-		if (IMGBB_API_KEY.isPresent()) {
-			return IMGBB_API_KEY.get();
-		}
-
-		JSONObject configJson = Config.get().getJSONObject("reddit");
-		if (!configJson.has("imgbb-api-key")) {
-			throw new IllegalStateException("Missing ImgBB API Key!");
-		}
-		IMGBB_API_KEY = Optional.of(configJson.getString("imgbb-api-key"));
-		return IMGBB_API_KEY.get();
 	}
 
 	public static InputStream limitMaxBytes(InputStream delegate, int maxBytes) {
@@ -100,54 +87,7 @@ public final class WebUtils {
 	}
 
 	public static JSONObject readJsonFromURL(String url) throws JSONException, MalformedURLException, IOException {
-		return Utils.readJsonFromStream(new URL(url).openStream());
-	}
-
-	public static String uploadToImgBB(BufferedImage image, String name) throws IOException {
-		// 1. Convert BufferedImage to base64
-		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		ImageIO.write(image, "png", baos);
-		String base64Image = Base64.getEncoder().encodeToString(baos.toByteArray());
-
-		String endpoint = "https://api.imgbb.com/1/upload?key=" + getImgBBAPIKey();
-		String postData = "image=" + URLEncoder.encode(base64Image, StandardCharsets.UTF_8) + "&name="
-				+ URLEncoder.encode(name, StandardCharsets.UTF_8);
-
-		URL url = new URL(endpoint);
-		HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-		conn.setRequestMethod("POST");
-		conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-		conn.setDoOutput(true);
-
-		try (DataOutputStream dos = new DataOutputStream(conn.getOutputStream())) {
-			dos.writeBytes(postData);
-			dos.flush();
-		}
-
-		int responseCode = conn.getResponseCode();
-		if (responseCode != HttpURLConnection.HTTP_OK) {
-			throw new IOException("ImgBB upload failed with HTTP code: " + responseCode);
-		}
-
-		StringBuilder responseBuilder = new StringBuilder();
-		try (BufferedReader br = new BufferedReader(
-				new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
-			String line;
-			while ((line = br.readLine()) != null) {
-				responseBuilder.append(line);
-			}
-		}
-		conn.disconnect();
-
-		JSONObject json = new JSONObject(responseBuilder.toString());
-		if (!json.isNull("data")) {
-			JSONObject dataObject = json.getJSONObject("data");
-			if (!dataObject.isNull("url")) {
-				return dataObject.getString("url");
-			}
-		}
-
-		throw new IOException("Failed to parse ImgBB response. Data or url is missing.");
+		return Utils.readJsonFromStream(URI.create(url).toURL().openStream());
 	}
 
 	private WebUtils() {

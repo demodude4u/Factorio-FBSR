@@ -293,6 +293,8 @@ public class WorldMap {
 	private boolean altMode = false;
 	private boolean foundation = false;
 
+	private ModdingResolver resolver;
+
 	public boolean addUnknownEntity(String name) {
 		return unknownEntities.add(name);
 	}
@@ -464,6 +466,14 @@ public class WorldMap {
 
 	public boolean isAltMode() {
 		return altMode;
+	}
+
+	public void setResolver(ModdingResolver resolver) {
+		this.resolver = resolver;
+	}
+
+	public ModdingResolver getResolver() {
+		return resolver;
 	}
 
 	public boolean isBeltFacingMeFrom(MapPosition pos, Direction dir) {

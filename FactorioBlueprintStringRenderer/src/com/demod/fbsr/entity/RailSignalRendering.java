@@ -1,11 +1,13 @@
 package com.demod.fbsr.entity;
 
 import com.demod.fbsr.Direction;
+import com.demod.fbsr.EntityType;
 import com.demod.fbsr.Dir16;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapPosition;
 
+@EntityType("rail-signal")
 public class RailSignalRendering extends RailSignalBaseRendering {
 	@Override
 	public void populateWorldMap(WorldMap map, MapEntity entity) {

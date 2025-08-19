@@ -8,7 +8,7 @@ import java.util.function.Consumer;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.Layer;
-import com.demod.fbsr.ModsProfile;
+import com.demod.fbsr.Profile;
 import com.demod.fbsr.def.LayeredSpriteDef;
 import com.demod.fbsr.def.SpriteDef;
 
@@ -16,7 +16,7 @@ public class FPLayeredSprite extends FPSprite {
 	public final Optional<Layer> renderLayer;
 	public final Optional<List<FPLayeredSprite>> array;
 
-	public FPLayeredSprite(ModsProfile profile, LuaValue lua) {
+	public FPLayeredSprite(Profile profile, LuaValue lua) {
 		super(profile, lua);
 
 		if (!layers.isPresent() && !filename.isPresent()) {

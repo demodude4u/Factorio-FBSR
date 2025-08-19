@@ -1,7 +1,9 @@
 package com.demod.fbsr.entity;
 
+import com.demod.fbsr.EntityType;
 import com.demod.factorio.fakelua.LuaTable;
 
+@EntityType("accumulator")
 public class AccumulatorRendering extends EntityWithOwnerRendering {
 	@Override
 	public void defineEntity(Bindings bind, LuaTable lua) {

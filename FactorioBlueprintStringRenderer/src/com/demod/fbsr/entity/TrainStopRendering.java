@@ -6,6 +6,7 @@ import java.util.function.Consumer;
 
 import com.demod.factorio.fakelua.LuaTable;
 import com.demod.fbsr.Direction;
+import com.demod.fbsr.EntityType;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.bs.BSEntity;
@@ -19,8 +20,8 @@ import com.demod.fbsr.map.MapPosition;
 import com.demod.fbsr.map.MapRenderable;
 import com.demod.fbsr.map.MapText;
 
+@EntityType("train-stop")
 public class TrainStopRendering extends EntityWithOwnerRendering {
-	public static final Font FONT = GUIStyle.FONT_BP_BOLD.deriveFont(0.5f);
 	private static final int FRAME = 0;
 
 	private FPColor protoColor;
@@ -51,8 +52,9 @@ public class TrainStopRendering extends EntityWithOwnerRendering {
 
 		if (bsEntity.station.isPresent() && map.isAltMode()) {
 			String stationName = bsEntity.station.get();
+			Font FONT = profile.getGuiStyle().FONT_BP_BOLD.deriveFont(0.5f);
 			register.accept(
-					new MapText(Layer.ENTITY_INFO_TEXT, entity.getPosition().addUnit(0.5, -2.0), -30, FONT, Color.white, stationName, false));
+					new MapText(Layer.ENTITY_INFO_TEXT, entity.getPosition().addUnit(0.5, -2.0), -30, FONT, Color.white, stationName, false, entity.getResolver()));
 		}
 	}
 

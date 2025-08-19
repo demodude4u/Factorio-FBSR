@@ -3,10 +3,12 @@ package com.demod.fbsr.entity;
 import java.util.List;
 
 import com.demod.fbsr.Dir16;
+import com.demod.fbsr.EntityType;
 import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapRect;
 import com.google.common.collect.ImmutableList;
 
+@EntityType("half-diagonal-rail")
 public class HalfDiagonalRailRendering extends RailRendering {
 
 	public static final RailSpliner SPLINER = StraightRailRendering.SPLINER;

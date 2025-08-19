@@ -10,7 +10,7 @@ import java.util.stream.IntStream;
 
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.FPUtils;
-import com.demod.fbsr.ModsProfile;
+import com.demod.fbsr.Profile;
 import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.def.SpriteDef;
 import com.google.common.collect.ImmutableList;
@@ -29,11 +29,11 @@ public class FPRotatedAnimation extends FPAnimationParameters {
 	private final List<List<SpriteDef>> defs;
 	private final int limitedDirectionCount;
 
-	public FPRotatedAnimation(ModsProfile profile, LuaValue lua) {
+	public FPRotatedAnimation(Profile profile, LuaValue lua) {
 		this(profile, lua, Integer.MAX_VALUE);
 	}
 
-	public FPRotatedAnimation(ModsProfile profile, LuaValue lua, int limitDirectionCount) {
+	public FPRotatedAnimation(Profile profile, LuaValue lua, int limitDirectionCount) {
 		super(profile, lua);
 
 		layers = FPUtils.optList(lua.get("layers"), l -> new FPRotatedAnimation(profile, l, limitDirectionCount));
@@ -48,9 +48,10 @@ public class FPRotatedAnimation extends FPAnimationParameters {
 		this.limitedDirectionCount = Math.min(limitDirectionCount, directionCount);
 		List<List<SpriteDef>> allDefs = createDefs(profile);
 		defs = limitedDirectionDefs(allDefs);
+		FPUtils.verifyNotNull(lua.getDebugPath() + " defs", defs);
 	}
 
-	private List<List<SpriteDef>> createDefs(ModsProfile profile) {
+	private List<List<SpriteDef>> createDefs(Profile profile) {
 		if (layers.isPresent()) {
 			return ImmutableList.of();
 		}

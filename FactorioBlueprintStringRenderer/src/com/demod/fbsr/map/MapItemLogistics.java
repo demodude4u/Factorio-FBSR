@@ -13,8 +13,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.demod.fbsr.Atlas;
+import com.demod.fbsr.FBSR;
 import com.demod.fbsr.Atlas.AtlasRef;
-import com.demod.fbsr.IconManager;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.LogisticGridCell;
 import com.demod.fbsr.RenderUtils;
@@ -26,20 +26,6 @@ public class MapItemLogistics extends MapRenderable {
 	private static final Logger LOGGER = LoggerFactory.getLogger(MapItemLogistics.class);
 
 	private static final Map<String, Color> itemColorCache = new HashMap<>();
-
-	private static synchronized Color getItemLogisticColor(String itemName) {
-		return itemColorCache.computeIfAbsent(itemName, k -> {
-			Optional<IconDef> icon = IconManager.lookupItem(k);
-			if (!icon.isPresent()) {
-				LOGGER.warn("ITEM MISSING FOR LOGISTICS: {}", k);
-				return Color.MAGENTA;
-			}
-			AtlasRef ref = icon.get().getAtlasRef();
-			Color color = RenderUtils.getAverageColor(ref.getAtlas().getImage(), ref.getRect());
-			float[] hsb = Color.RGBtoHSB(color.getRed(), color.getGreen(), color.getBlue(), null);
-			return Color.getHSBColor(hsb[0], Math.max(0.25f, hsb[1]), Math.max(0.5f, hsb[2]));
-		});
-	}
 
 	private final WorldMap map;
 
@@ -78,4 +64,17 @@ public class MapItemLogistics extends MapRenderable {
 		});
 	}
 
+	private Color getItemLogisticColor(String itemName) {
+		return itemColorCache.computeIfAbsent(itemName, k -> {
+			Optional<IconDef> icon = map.getResolver().resolveIconItemName(k);
+			if (!icon.isPresent()) {
+				LOGGER.warn("ITEM MISSING FOR LOGISTICS: {}", k);
+				return Color.MAGENTA;
+			}
+			AtlasRef ref = icon.get().getAtlasRef();
+			Color color = RenderUtils.getAverageColor(ref.getAtlas().getImage(), ref.getRect());
+			float[] hsb = Color.RGBtoHSB(color.getRed(), color.getGreen(), color.getBlue(), null);
+			return Color.getHSBColor(hsb[0], Math.max(0.25f, hsb[1]), Math.max(0.5f, hsb[2]));
+		});
+	}
 }

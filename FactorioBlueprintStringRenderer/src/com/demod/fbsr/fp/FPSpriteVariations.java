@@ -7,7 +7,7 @@ import java.util.function.Consumer;
 
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.FPUtils;
-import com.demod.fbsr.ModsProfile;
+import com.demod.fbsr.Profile;
 import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.def.SpriteDef;
 
@@ -16,7 +16,7 @@ public class FPSpriteVariations {
 	public final Optional<FPSpriteSheet> sheet;
 	public final Optional<List<FPSprite>> sprites;
 
-	public FPSpriteVariations(ModsProfile profile, LuaValue lua) {
+	public FPSpriteVariations(Profile profile, LuaValue lua) {
 		if (lua.isarray()) { // This is a Sprite array
 			sheet = Optional.empty();
 			sprites = FPUtils.optList(profile, lua, FPSprite::new);

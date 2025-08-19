@@ -6,6 +6,7 @@ import java.util.stream.Collectors;
 
 import com.demod.factorio.fakelua.LuaTable;
 import com.demod.factorio.fakelua.LuaValue;
+import com.demod.fbsr.EntityType;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.WorldMap;
@@ -17,6 +18,7 @@ import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapPosition;
 import com.demod.fbsr.map.MapRenderable;
 
+@EntityType("fusion-reactor")
 public class FusionReactorRendering extends EntityWithOwnerRendering {
 
 	private List<FPAnimation> protoConnectionPictures;

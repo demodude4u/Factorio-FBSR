@@ -9,6 +9,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import com.demod.factorio.fakelua.LuaTable;
+import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.WirePoints;
@@ -79,7 +80,10 @@ public abstract class CombinatorRendering extends EntityWithOwnerRendering {
 		defineOperations(operations);
 		protoOperationSprites = new LinkedHashMap<>();
 		for (Entry<String, String> entry : operations.entrySet()) {
-			protoOperationSprites.put(entry.getKey(), new FPSprite4Way(profile, prototype.lua().get(entry.getValue())));
+			LuaValue luaOperation = prototype.lua().get(entry.getValue());
+			if (!luaOperation.isnil()) {
+				protoOperationSprites.put(entry.getKey(), new FPSprite4Way(profile, luaOperation));
+			}
 		}
 	}
 

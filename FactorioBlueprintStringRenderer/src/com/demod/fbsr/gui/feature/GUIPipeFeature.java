@@ -6,7 +6,7 @@ import java.util.Optional;
 import java.util.function.ToIntBiFunction;
 import java.util.stream.IntStream;
 
-import com.demod.fbsr.ModsProfile;
+import com.demod.fbsr.Profile;
 import com.demod.fbsr.gui.GUIBox;
 import com.google.common.collect.Table;
 
@@ -85,11 +85,11 @@ public class GUIPipeFeature extends GUISourcedFeature {
 			NSEW,// 15
 	};
 
-	public static GUIPipeFeature dragLines(ModsProfile profile, String filename, GUIBox source) {
+	public static GUIPipeFeature dragLines(Profile profile, String filename, GUIBox source) {
 		return new GUIPipeFeature(profile, filename, source, INDICES_DRAGLINES);
 	}
 
-	public static GUIPipeFeature full(ModsProfile profile, String filename, GUIBox source) {
+	public static GUIPipeFeature full(Profile profile, String filename, GUIBox source) {
 		return new GUIPipeFeature(profile, filename, source, INDICES_FULL);
 	}
 
@@ -97,7 +97,7 @@ public class GUIPipeFeature extends GUISourcedFeature {
 	public final int[] indices;
 	public final int[] sx;
 
-	public GUIPipeFeature(ModsProfile profile, String filename, GUIBox source, int[] indices) {
+	public GUIPipeFeature(Profile profile, String filename, GUIBox source, int[] indices) {
 		super(profile, filename, source);
 		size = source.height;
 		this.indices = indices;

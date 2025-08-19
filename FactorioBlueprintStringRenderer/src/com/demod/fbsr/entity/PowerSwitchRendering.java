@@ -3,11 +3,13 @@ package com.demod.fbsr.entity;
 import java.util.function.BiConsumer;
 
 import com.demod.factorio.fakelua.LuaTable;
+import com.demod.fbsr.EntityType;
 import com.demod.fbsr.WirePoints;
 import com.demod.fbsr.WirePoints.WireColor;
 import com.demod.fbsr.fp.FPWireConnectionPoint;
 import com.google.common.collect.ImmutableList;
 
+@EntityType("power-switch")
 public class PowerSwitchRendering extends EntityWithOwnerRendering {
 	@Override
 	public void defineEntity(Bindings bind, LuaTable lua) {

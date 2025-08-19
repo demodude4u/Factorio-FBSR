@@ -13,9 +13,8 @@ import com.demod.factorio.prototype.RecipePrototype;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.FPUtils;
-import com.demod.fbsr.FactorioManager;
 import com.demod.fbsr.Layer;
-import com.demod.fbsr.IconManager;
+import com.demod.fbsr.ModdingResolver;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.bs.entity.BSCraftingMachineEntity;
@@ -91,7 +90,10 @@ public abstract class CraftingMachineRendering extends EntityWithOwnerRendering 
 		}
 
 		if (bsEntity.recipe.isPresent() && map.isAltMode()) {
-			Optional<IconDef> icon = IconManager.lookupRecipe(bsEntity.recipe.get());
+
+			ModdingResolver resolver = entity.getResolver();
+
+			Optional<IconDef> icon = resolver.resolveIconRecipeName(bsEntity.recipe.get());
 			if (icon.isEmpty()) {
 				if (bsEntity.getProtoRecipe().isPresent()) {
 					RecipePrototype protoRecipe = bsEntity.getProtoRecipe().get();
@@ -101,15 +103,15 @@ public abstract class CraftingMachineRendering extends EntityWithOwnerRendering 
 					} else {
 						name = protoRecipe.lua().get("result").toString();
 					}
-					icon = IconManager.lookupItem(name);
+					icon = resolver.resolveIconItemName(name);
 					if (icon.isEmpty()) {
-						icon = IconManager.lookupFluid(name);
+						icon = resolver.resolveIconFluidName(name);
 					}
 				}
 			}
 			if (icon.isPresent()) {
 				register.accept(new MapIcon(entity.getPosition().addUnit(0, -0.3), icon.get(), 1.4,
-						OptionalDouble.of(0.1), false, bsEntity.recipeQuality.filter(s -> !s.equals("normal"))));
+						OptionalDouble.of(0.1), false, bsEntity.recipeQuality.filter(s -> !s.equals("normal")), resolver));
 			}
 		}
 	}
@@ -148,7 +150,7 @@ public abstract class CraftingMachineRendering extends EntityWithOwnerRendering 
 
 		Optional<String> recipe = entity.<BSCraftingMachineEntity>fromBlueprint().recipe;
 		if (recipe.isPresent()) {
-			Optional<RecipePrototype> optRecipe = profile.getData().getTable().getRecipe(recipe.get());
+			Optional<RecipePrototype> optRecipe = profile.getFactorioData().getTable().getRecipe(recipe.get());
 			if (optRecipe.isPresent()) {
 				RecipePrototype protoRecipe = optRecipe.get();
 				setLogisticMachine(map, entity.getBounds(), protoRecipe);
@@ -162,7 +164,7 @@ public abstract class CraftingMachineRendering extends EntityWithOwnerRendering 
 
 		BSCraftingMachineEntity bsEntity = entity.<BSCraftingMachineEntity>fromBlueprint();
 
-		bsEntity.setProtoRecipe(bsEntity.recipe.flatMap(n -> FactorioManager.lookupRecipeByName(n)));
+		bsEntity.setProtoRecipe(bsEntity.recipe.flatMap(n -> entity.getResolver().resolveRecipeName(n)));
 
 		if (bsEntity.getProtoRecipe().isPresent()) {
 			RecipePrototype protoRecipe = bsEntity.getProtoRecipe().get();

@@ -13,7 +13,7 @@ import com.demod.fbsr.gui.GUIStyle;
 
 public class MapGrid extends MapRenderable {
 	private static final BasicStroke STROKE = new BasicStroke((float) (3 / FBSR.TILE_SIZE));
-	public static final Font FONT = GUIStyle.FONT_BP_REGULAR.deriveFont(0.6f);
+	public static final Font FONT = FBSR.getGuiStyle().FONT_BP_REGULAR.deriveFont(0.6f);
 
 	private final MapRect3D bounds;
 	private final Color color;

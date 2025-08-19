@@ -6,6 +6,7 @@ import java.util.function.Consumer;
 import com.demod.factorio.fakelua.LuaTable;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.EntityRendererFactory;
+import com.demod.fbsr.EntityType;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.Dir16;
@@ -18,6 +19,7 @@ import com.demod.fbsr.map.MapPosition;
 import com.demod.fbsr.map.MapRail;
 import com.demod.fbsr.map.MapRenderable;
 
+@EntityType("rail-support")
 public class RailSupportRendering extends EntityWithOwnerRendering {
 	
 	private FPRotatedSprite protoStructure;

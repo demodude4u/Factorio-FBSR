@@ -3,6 +3,7 @@ package com.demod.fbsr;
 import java.util.Optional;
 import java.util.OptionalDouble;
 
+import com.demod.factorio.prototype.DataPrototype;
 import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.map.MapIcon;
 import com.demod.fbsr.map.MapPosition;

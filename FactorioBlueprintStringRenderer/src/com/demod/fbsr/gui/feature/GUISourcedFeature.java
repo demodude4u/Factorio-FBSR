@@ -7,14 +7,14 @@ import java.awt.image.BufferedImage;
 import com.demod.fbsr.Atlas;
 import com.demod.fbsr.Atlas.AtlasRef;
 import com.demod.fbsr.AtlasPackage;
-import com.demod.fbsr.ModsProfile;
+import com.demod.fbsr.Profile;
 import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.gui.GUIBox;
 
 public abstract class GUISourcedFeature {
 	public final ImageDef def;
 
-	public GUISourcedFeature(ModsProfile profile, String filename, GUIBox source) {
+	public GUISourcedFeature(Profile profile, String filename, GUIBox source) {
 		def = new ImageDef(profile, filename, new Rectangle(source.x, source.y, source.width, source.height));
 		def.setTrimmable(false);
 		profile.getAtlasPackage().registerDef(def);

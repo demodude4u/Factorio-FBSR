@@ -10,9 +10,10 @@ import java.util.Optional;
 import java.util.OptionalDouble;
 
 import com.demod.fbsr.Atlas;
+import com.demod.fbsr.FBSR;
 import com.demod.fbsr.Atlas.AtlasRef;
-import com.demod.fbsr.IconManager;
 import com.demod.fbsr.Layer;
+import com.demod.fbsr.ModdingResolver;
 import com.demod.fbsr.def.IconDef;
 import com.demod.fbsr.def.ImageDef;
 
@@ -24,15 +25,17 @@ public class MapIcon extends MapRenderable {
 	private final double size;
 	private final OptionalDouble border;
 	private final Optional<String> quality;
+	private final ModdingResolver resolver;
 
 	public MapIcon(MapPosition position, ImageDef image, double size, OptionalDouble border, boolean above,
-			Optional<String> quality) {
+			Optional<String> quality, ModdingResolver resolver) {
 		super(above ? Layer.ENTITY_INFO_ICON_ABOVE : Layer.ENTITY_INFO_ICON);
 		this.position = position;
 		this.image = image;
 		this.size = size;
 		this.border = border;
 		this.quality = quality;
+		this.resolver = resolver;
 	}
 
 	@Override
@@ -64,12 +67,13 @@ public class MapIcon extends MapRenderable {
 		g.scale(bounds.getWidth(), bounds.getHeight());
 		g.drawImage(image, 0, 0, 1, 1, source.x, source.y, source.x + source.width, source.y + source.height, null);
 
-		if (quality.isPresent()) {
-			Optional<IconDef> def = IconManager.lookupQuality(quality.get());
+		Optional<IconDef> qualityIcon = quality.flatMap(resolver::resolveIconQualityName);
+		if (qualityIcon.isPresent()) {
+			IconDef qDef = qualityIcon.get();
 			double qSize = 0.4;
 			g.translate(0, 1.0 - qSize);
 			g.scale(qSize, qSize);
-			AtlasRef qRef = def.get().getAtlasRef();
+			AtlasRef qRef = qDef.getAtlasRef();
 			Image qImage = qRef.getAtlas().getImage();
 			Rectangle qSource = qRef.getRect();
 			g.drawImage(qImage, 0, 0, 1, 1, qSource.x, qSource.y, qSource.x + qSource.width, qSource.y + qSource.height,

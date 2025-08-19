@@ -15,7 +15,7 @@ import org.slf4j.LoggerFactory;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.FPUtils;
-import com.demod.fbsr.ModsProfile;
+import com.demod.fbsr.Profile;
 import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.def.SpriteDef;
 import com.google.common.collect.ImmutableList;
@@ -37,28 +37,28 @@ public class FPRotatedSprite extends FPSpriteParameters {
 
 	private final int limitedDirectionCount;
 	
-	public FPRotatedSprite(ModsProfile profile, LuaValue lua) {
+	public FPRotatedSprite(Profile profile, LuaValue lua) {
 		this(profile, lua, Optional.empty(), Integer.MAX_VALUE);
 	}
 
-	public FPRotatedSprite(ModsProfile profile, LuaValue lua, int limitDirectionCount) {
+	public FPRotatedSprite(Profile profile, LuaValue lua, int limitDirectionCount) {
 		this(profile, lua, Optional.empty(), limitDirectionCount);
 	}
 
-	public FPRotatedSprite(ModsProfile profile, LuaValue lua, Optional<Boolean> overrideBackEqualsFront) {
+	public FPRotatedSprite(Profile profile, LuaValue lua, Optional<Boolean> overrideBackEqualsFront) {
 		this(profile, lua, overrideBackEqualsFront, Integer.MAX_VALUE);
 	}
 
-	public FPRotatedSprite(ModsProfile profile, LuaValue lua, Optional<Boolean> overrideBackEqualsFront, int limitDirectionCount) {
+	public FPRotatedSprite(Profile profile, LuaValue lua, Optional<Boolean> overrideBackEqualsFront, int limitDirectionCount) {
 		this(profile, lua, overrideBackEqualsFront, limitDirectionCount, (p, l) -> new FPRotatedSprite(p, l, overrideBackEqualsFront, limitDirectionCount));
 	}
 
 	//For Sloped Sprites
-	protected FPRotatedSprite(ModsProfile profile, LuaValue lua, BiFunction<ModsProfile, LuaValue, FPRotatedSprite> layerFactory) {
+	protected FPRotatedSprite(Profile profile, LuaValue lua, BiFunction<Profile, LuaValue, FPRotatedSprite> layerFactory) {
 		this(profile, lua, Optional.empty(), Integer.MAX_VALUE, layerFactory);
 	}
 
-	private FPRotatedSprite(ModsProfile profile, LuaValue lua, Optional<Boolean> overrideBackEqualsFront, int limitDirectionCount, BiFunction<ModsProfile, LuaValue, FPRotatedSprite> layerFactory) {
+	private FPRotatedSprite(Profile profile, LuaValue lua, Optional<Boolean> overrideBackEqualsFront, int limitDirectionCount, BiFunction<Profile, LuaValue, FPRotatedSprite> layerFactory) {
 		super(profile, lua);
 
 		layers = FPUtils.optList(profile, lua.get("layers"),layerFactory);
@@ -83,9 +83,10 @@ public class FPRotatedSprite extends FPSpriteParameters {
 		this.limitedDirectionCount = Math.min(limitDirectionCount, directionCount);
 		List<SpriteDef> allDefs = createDefs(profile);
 		defs = limitedDirectionDefs(allDefs);
+		FPUtils.verifyNotNull(lua.getDebugPath() + " defs", defs);
 	}
 
-	private List<SpriteDef> createDefs(ModsProfile profile) {
+	private List<SpriteDef> createDefs(Profile profile) {
 		if (layers.isPresent()) {
 			return ImmutableList.of();
 		}

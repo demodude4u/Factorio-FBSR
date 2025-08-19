@@ -12,7 +12,7 @@ import com.demod.fbsr.map.MapTile;
 import com.demod.fbsr.map.MapUnknownTileMarker;
 
 public class UnknownTileRendering extends TileRendererFactory {
-	public static final Font FONT = GUIStyle.FONT_BP_BOLD.deriveFont(0.4f);
+	private static Font FONT = null;
 
 	private final Color color;
 	private final float offset;
@@ -25,11 +25,15 @@ public class UnknownTileRendering extends TileRendererFactory {
 
 	@Override
 	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapTile tile) {
+		if (FONT == null) {
+			FONT = FBSR.getGuiStyle().FONT_BP_BOLD.deriveFont(0.4f);
+		}
+		
 		MapPosition pos = tile.getPosition();
 		register.accept(new MapUnknownTileMarker(pos, color));
 		if (map.addUnknownTile(name)) {
 			register.accept(new MapText(Layer.ENTITY_INFO_TEXT, pos.addUnit(-0.25, -0.25 + offset), 0, FONT,
-					Color.white, name, false));
+					Color.white, name, false, tile.getResolver()));
 		}
 	}
 

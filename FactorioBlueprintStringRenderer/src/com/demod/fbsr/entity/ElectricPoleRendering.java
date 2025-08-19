@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 
 import com.demod.factorio.fakelua.LuaTable;
 import com.demod.fbsr.EntityRendererFactory;
+import com.demod.fbsr.EntityType;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.WirePoints;
@@ -20,6 +21,7 @@ import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapPosition;
 import com.demod.fbsr.map.MapRenderable;
 
+@EntityType("electric-pole")
 public class ElectricPoleRendering extends EntityWithOwnerRendering {
 
 	private FPRotatedSprite protoPictures;

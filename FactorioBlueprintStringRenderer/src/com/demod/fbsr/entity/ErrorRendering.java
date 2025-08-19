@@ -3,6 +3,7 @@ package com.demod.fbsr.entity;
 import java.util.Optional;
 import java.util.function.Consumer;
 
+import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.WirePoints.WirePoint;
 import com.demod.fbsr.WorldMap;
@@ -43,6 +44,11 @@ public class ErrorRendering extends EntityRendererFactory {
 
 	@Override
 	public void populateWorldMap(WorldMap map, MapEntity entity) {
+	}
+
+	@Override
+	public boolean isEntityTypeMatch(EntityPrototype proto) {
+		return true;
 	}
 
 }

@@ -8,13 +8,19 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
+import java.util.zip.ZipOutputStream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.demod.factorio.DataTable;
+import com.demod.factorio.ModLoader;
 import com.demod.fbsr.FactorioManager;
-import com.demod.fbsr.ModsProfile;
+import com.demod.fbsr.Profile;
 import com.demod.fbsr.def.ImageDef;
+import com.demod.fbsr.fp.FPUtilitySprites;
 import com.demod.fbsr.gui.feature.GUIPipeFeature;
 import com.demod.fbsr.gui.feature.GUISliceFeature;
 import com.demod.fbsr.gui.feature.GUIStaticFeature;
@@ -22,57 +28,79 @@ import com.demod.fbsr.gui.feature.GUIStaticFeature;
 public final class GUIStyle {
 	private static final Logger LOGGER = LoggerFactory.getLogger(GUIStyle.class);
 
-	public static Font FONT_BP_REGULAR;
-	public static Font FONT_BP_BOLD;
-	public static Color FONT_BP_COLOR;
+	public Font FONT_BP_REGULAR;
+	public Font FONT_BP_BOLD;
+	public Color FONT_BP_COLOR;
 
-	public static GUISliceFeature FRAME_INNER;
-	public static GUISliceFeature FRAME_OUTER;
-	public static GUISliceFeature FRAME_DARK_INNER;
-	public static GUISliceFeature FRAME_DARK_OUTER;
-	public static GUISliceFeature FRAME_DARK_BUMP_OUTER;
-	public static GUISliceFeature FRAME_WHITE_INNER;
-	public static GUISliceFeature FRAME_WHITE_OUTER;
-	public static GUISliceFeature FRAME_WHITE_DARK_INNER;
-	public static GUISliceFeature FRAME_LIGHT_INNER;
-	public static GUISliceFeature FRAME_LIGHT_OUTER;
-	public static GUISliceFeature CIRCLE_WHITE;
-	public static GUISliceFeature CIRCLE_YELLOW;
-	public static GUISliceFeature FRAME_TAB;
-	public static GUIPipeFeature PIPE;
-	public static GUIPipeFeature DRAG_LINES;
-	public static GUIPipeFeature DRAG_LINES_WHITE;
-	public static GUIStaticFeature ITEM_SLOT;
+	public GUISliceFeature FRAME_INNER;
+	public GUISliceFeature FRAME_OUTER;
+	public GUISliceFeature FRAME_DARK_INNER;
+	public GUISliceFeature FRAME_DARK_OUTER;
+	public GUISliceFeature FRAME_DARK_BUMP_OUTER;
+	public GUISliceFeature FRAME_WHITE_INNER;
+	public GUISliceFeature FRAME_WHITE_OUTER;
+	public GUISliceFeature FRAME_WHITE_DARK_INNER;
+	public GUISliceFeature FRAME_LIGHT_INNER;
+	public GUISliceFeature FRAME_LIGHT_OUTER;
+	public GUISliceFeature CIRCLE_WHITE;
+	public GUISliceFeature CIRCLE_YELLOW;
+	public GUISliceFeature FRAME_TAB;
+	public GUIPipeFeature PIPE;
+	public GUIPipeFeature DRAG_LINES;
+	public GUIPipeFeature DRAG_LINES_WHITE;
+	public GUIStaticFeature ITEM_SLOT;
 
-	public static ImageDef DEF_CLOCK;
+	public ImageDef DEF_CLOCK;
 
-	public static Font createFont(String folder, String filename) {
-
-		File folderFonts = new File(FactorioManager.getFolderDataRoot(), "fonts");
-		folderFonts.mkdirs();
-
-		File fileFont = new File(folderFonts, filename);
-
+	private static boolean copyFont(ZipOutputStream zos, String filename) {
+		File fileInstallFont = new File(FactorioManager.getFactorioInstall(), "data/core/fonts/" + filename);
+		ZipEntry entry = new ZipEntry(filename);
 		try {
-			if (FactorioManager.hasFactorioInstall() && !fileFont.exists()) {
-				InputStream inputStream = FactorioManager.getBaseProfile().getData().getModResource(folder + "/" + filename).get();
-				Files.copy(inputStream, fileFont.toPath(), StandardCopyOption.REPLACE_EXISTING);
-			}
+			zos.putNextEntry(entry);
+			Files.copy(fileInstallFont.toPath(), zos);
+			zos.closeEntry();
+		} catch (IOException e) {
+			LOGGER.error("FAILED TO COPY FONT: {}", fileInstallFont.getAbsolutePath(), e);
+			return false;
+		}
+		return true;
+	}
 
-			return Font.createFont(Font.TRUETYPE_FONT, fileFont);
+	private static Font createFont(ZipFile zip, String filename) {
+		try (InputStream is = zip.getInputStream(zip.getEntry(filename))) {
+			return Font.createFont(Font.TRUETYPE_FONT, is);
 		} catch (FontFormatException | IOException e) {
-			LOGGER.error("FAILED TO LOAD FONT: {}", fileFont.getAbsolutePath(), e);
+			LOGGER.error("FAILED TO LOAD FONT: {}", filename, e);
 			throw new RuntimeException(e);
 		}
 	}
 
-	public static void initialize() {
-		ModsProfile profile = FactorioManager.getBaseProfile();
+	public static boolean populateZipWithFonts(ZipOutputStream zos) {
+		if (!FactorioManager.hasFactorioInstall()) {
+			LOGGER.error("Factorio installation not found, cannot copy fonts");
+			return false;
+		}
+
+        boolean ret = true;
+		ret &= copyFont(zos, "Lilittium-Regular.ttf");
+		ret &= copyFont(zos, "Lilittium-Bold.ttf");
+		return ret;
+    }
+
+	public void initialize(Profile profile, boolean loadFonts) {
 		String filename = "__core__/graphics/gui-new.png";
 
-		FONT_BP_REGULAR = createFont("__core__/fonts", "Lilittium-Regular.ttf");
-		FONT_BP_BOLD = createFont("__core__/fonts", "Lilittium-Bold.ttf");
-		FONT_BP_COLOR = new Color(0xffe6c0);
+		if (loadFonts) {
+			try (ZipFile zip = new ZipFile(profile.getFileAssets())) {
+				FONT_BP_REGULAR = createFont(zip, "Lilittium-Regular.ttf");
+				FONT_BP_BOLD = createFont(zip, "Lilittium-Bold.ttf");
+			} catch (IOException e) {
+				LOGGER.error("Failed to load GUI fonts from profile: {}", profile.getName(), e);
+				throw new RuntimeException(e);
+			}
+			FONT_BP_COLOR = new Color(0xffe6c0);
+		}
+
 
 		FRAME_INNER = GUISliceFeature.inner(profile, filename, new GUIBox(0, 0, 17, 17), new GUISpacing(8, 8, 8, 8));
 		FRAME_OUTER = GUISliceFeature.outer(profile, filename, new GUIBox(17, 0, 17, 17), new GUISpacing(8, 8, 8, 8));
@@ -92,7 +120,10 @@ public final class GUIStyle {
 		DRAG_LINES_WHITE = GUIPipeFeature.dragLines(profile, filename, new GUIBox(446, 78, 24, 8));
 		ITEM_SLOT = new GUIStaticFeature(profile, filename, new GUIBox(0, 736, 80, 80));
 
-		DEF_CLOCK = FactorioManager.getUtilitySprites().clock.defineSprites().get(0);
+		DataTable table = profile.getFactorioData().getTable();
+		FPUtilitySprites utilitySprites = new FPUtilitySprites(profile, table.getRaw("utility-sprites", "default").get());
+
+		DEF_CLOCK = utilitySprites.clock.defineSprites().get(0);
 		DEF_CLOCK.getProfile().getAtlasPackage().registerDef(DEF_CLOCK);
 	}
 }

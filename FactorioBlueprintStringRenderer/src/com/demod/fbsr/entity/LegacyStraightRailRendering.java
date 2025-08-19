@@ -3,6 +3,7 @@ package com.demod.fbsr.entity;
 import java.util.List;
 
 import com.demod.fbsr.Direction;
+import com.demod.fbsr.EntityType;
 import com.demod.fbsr.Dir16;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.map.MapEntity;
@@ -10,6 +11,7 @@ import com.demod.fbsr.map.MapPosition;
 import com.demod.fbsr.map.MapPosition3D;
 import com.google.common.collect.ImmutableList;
 
+@EntityType("legacy-straight-rail")
 public class LegacyStraightRailRendering extends RailRendering {
 
 	public static final RailSpliner SPLINER = new RailSpliner() {

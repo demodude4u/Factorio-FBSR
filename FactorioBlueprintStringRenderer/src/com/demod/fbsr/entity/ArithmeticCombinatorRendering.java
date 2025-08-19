@@ -11,8 +11,9 @@ import java.util.function.Consumer;
 import org.json.JSONObject;
 
 import com.demod.fbsr.BSUtils;
+import com.demod.fbsr.EntityType;
 import com.demod.fbsr.IconDefWithQuality;
-import com.demod.fbsr.IconManager;
+import com.demod.fbsr.ModdingResolver;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.bs.BSNetworkPorts;
@@ -22,6 +23,7 @@ import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapPosition;
 import com.demod.fbsr.map.MapRenderable;
 
+@EntityType("arithmetic-combinator")
 public class ArithmeticCombinatorRendering extends CombinatorRendering {
 
 	public static class BSArithmeticConditions {
@@ -67,15 +69,17 @@ public class ArithmeticCombinatorRendering extends CombinatorRendering {
 
 		if (bsEntity.arithmeticConditions.isPresent()) {
 
+			ModdingResolver resolver = entity.getResolver();
+
 			List<IconDefWithQuality> inputIcons = new ArrayList<>();
 			bsEntity.arithmeticConditions.get().firstSignal
-					.ifPresent(s -> IconManager.lookupSignalID(s.type, s.name, s.quality).ifPresent(inputIcons::add));
+					.ifPresent(s -> resolver.resolveSignalID(s.type, s.name, s.quality).ifPresent(inputIcons::add));
 			bsEntity.arithmeticConditions.get().secondSignal
-					.ifPresent(s -> IconManager.lookupSignalID(s.type, s.name, s.quality).ifPresent(inputIcons::add));
+					.ifPresent(s -> resolver.resolveSignalID(s.type, s.name, s.quality).ifPresent(inputIcons::add));
 
 			List<IconDefWithQuality> outputIcons = new ArrayList<>();
 			bsEntity.arithmeticConditions.get().outputSignal
-					.ifPresent(s -> IconManager.lookupSignalID(s.type, s.name, s.quality).ifPresent(outputIcons::add));
+					.ifPresent(s -> resolver.resolveSignalID(s.type, s.name, s.quality).ifPresent(outputIcons::add));
 
 			double iconStartY = entity.getDirection().isHorizontal() ? -0.5 : -0.25;
 
@@ -87,7 +91,7 @@ public class ArithmeticCombinatorRendering extends CombinatorRendering {
 					for (int i = 0; i < icons.size(); i++) {
 						IconDefWithQuality icon = icons.get(i);
 						MapPosition iconPos = rowPos.addUnit(i * 0.5, 0);
-						register.accept(icon.createMapIcon(iconPos, 0.4, OptionalDouble.of(0.05), false));
+						register.accept(icon.createMapIcon(iconPos, 0.4, OptionalDouble.of(0.05), false, resolver));
 					}
 				}
 			}

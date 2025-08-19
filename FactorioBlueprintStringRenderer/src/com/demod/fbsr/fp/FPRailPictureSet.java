@@ -6,7 +6,7 @@ import java.util.function.Consumer;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.FPUtils;
-import com.demod.fbsr.ModsProfile;
+import com.demod.fbsr.Profile;
 import com.demod.fbsr.def.ImageDef;
 import com.google.common.collect.ImmutableList;
 
@@ -25,7 +25,7 @@ public class FPRailPictureSet {
 	
 	private final ImmutableList<FPRailPieceLayers> dirs;
 
-	public FPRailPictureSet(ModsProfile profile, LuaValue lua) {
+	public FPRailPictureSet(Profile profile, LuaValue lua) {
 		north = new FPRailPieceLayers(profile, lua.get("north"));
 		northeast = new FPRailPieceLayers(profile, lua.get("northeast"));
 		east = new FPRailPieceLayers(profile, lua.get("east"));

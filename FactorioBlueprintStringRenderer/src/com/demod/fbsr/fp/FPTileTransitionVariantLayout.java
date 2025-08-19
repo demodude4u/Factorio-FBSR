@@ -6,7 +6,7 @@ import java.util.function.Consumer;
 
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.FPUtils;
-import com.demod.fbsr.ModsProfile;
+import com.demod.fbsr.Profile;
 import com.demod.fbsr.def.ImageDef;
 
 public class FPTileTransitionVariantLayout {
@@ -25,7 +25,7 @@ public class FPTileTransitionVariantLayout {
 	public final FPTileSpriteLayoutDefaults oTransitionDefaults;
 	public final FPTileSpriteLayoutDefaults innerCornerDefaults;
 
-	public FPTileTransitionVariantLayout(ModsProfile profile, LuaValue lua, Optional<String> overrideSpritesheet,
+	public FPTileTransitionVariantLayout(Profile profile, LuaValue lua, Optional<String> overrideSpritesheet,
 			FPTileSpriteLayoutDefaults parentDefaults) {
 		defaults = new FPTileSpriteLayoutDefaults(lua, "", false);
 		sideDefaults = new FPTileSpriteLayoutDefaults(lua, "side_", true);

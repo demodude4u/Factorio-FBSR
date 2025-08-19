@@ -5,11 +5,12 @@ import java.awt.Font;
 import java.awt.Graphics2D;
 import java.awt.geom.Rectangle2D;
 
+import com.demod.fbsr.FBSR;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.gui.GUIStyle;
 
 public class MapEntityError extends MapRenderable {
-	public static final Font FONT = GUIStyle.FONT_BP_BOLD.deriveFont(1f);
+	public static final Font FONT = FBSR.getGuiStyle().FONT_BP_BOLD.deriveFont(1f);
 
 	private final MapEntity entity;
 

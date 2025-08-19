@@ -1,7 +1,11 @@
 package com.demod.fbsr.entity;
 
+import com.demod.fbsr.EntityType;
+import com.demod.fbsr.FPUtils;
+
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -16,7 +20,9 @@ import com.demod.fbsr.fp.FPSpriteVariations;
 import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapPosition;
 import com.demod.fbsr.map.MapRenderable;
+import com.demod.fbsr.map.MapSprite;
 
+@EntityType("wall")
 public class WallRendering extends EntityWithOwnerRendering {
 
 	public static final String[] wallSpriteNameMapping = //
@@ -39,7 +45,8 @@ public class WallRendering extends EntityWithOwnerRendering {
 					"t_up",// WSEN
 			};
 	private List<FPSpriteVariations> protoPictures;
-	private FPSprite4Way protoWallDiodeRed;
+	private Optional<FPSpriteVariations> protoFilling;
+	private Optional<FPSprite4Way> protoWallDiodeRed;
 
 	@Override
 	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
@@ -52,24 +59,44 @@ public class WallRendering extends EntityWithOwnerRendering {
 		boolean southGate = map.isVerticalGate(Direction.SOUTH.offset(pos));
 		boolean westGate = map.isHorizontalGate(Direction.WEST.offset(pos));
 
+		boolean wallN = map.isWall(Direction.NORTH.offset(pos));
+		boolean wallE = map.isWall(Direction.EAST.offset(pos));
+		boolean wallS = map.isWall(Direction.SOUTH.offset(pos));
+		boolean wallW = map.isWall(Direction.WEST.offset(pos));
+		boolean wallNE = map.isWall(Direction.NORTHEAST.offset(pos));
+		boolean fill = wallE && wallN && wallNE;
+
 		int adjCode = 0;
-		adjCode |= ((map.isWall(Direction.NORTH.offset(pos)) || northGate ? 1 : 0) << 0);
-		adjCode |= ((map.isWall(Direction.EAST.offset(pos)) || eastGate ? 1 : 0) << 1);
-		adjCode |= ((map.isWall(Direction.SOUTH.offset(pos)) || southGate ? 1 : 0) << 2);
-		adjCode |= ((map.isWall(Direction.WEST.offset(pos)) || westGate ? 1 : 0) << 3);
+		adjCode |= ((wallN || northGate ? 1 : 0) << 0);
+		adjCode |= ((wallE || eastGate ? 1 : 0) << 1);
+		adjCode |= ((wallS || southGate ? 1 : 0) << 2);
+		adjCode |= ((wallW || westGate ? 1 : 0) << 3);
 
 		FPSpriteVariations wallSprites = protoPictures.get(adjCode);
 
-		int variation;
-		if (wallSprites.getVariationCount() > 1) {
-			variation = Math.abs(pos.getXCell() + pos.getYCell()) % (wallSprites.getVariationCount() / 2);
-		} else {
-			variation = 0;
+		if (fill && protoFilling.isPresent()) {
+			int variation;
+			FPSpriteVariations fillingSprites = protoFilling.get();
+			if (fillingSprites.getVariationCount() > 1) {
+				variation = Math.abs(pos.getXCell() + pos.getYCell()) % (fillingSprites.getVariationCount() / 2);
+			} else {
+				variation = 0;
+			}
+			fillingSprites.defineSprites(s -> register.accept(new MapSprite(s, Layer.OBJECT, entity.getPosition().addUnit(0.5, -1))), variation);
 		}
-		wallSprites.defineSprites(entity.spriteRegister(register, Layer.OBJECT), variation);
+
+		{
+			int variation;
+			if (wallSprites.getVariationCount() > 1) {
+				variation = Math.abs(pos.getXCell() + pos.getYCell()) % (wallSprites.getVariationCount() / 2);
+			} else {
+				variation = 0;
+			}
+			wallSprites.defineSprites(entity.spriteRegister(register, Layer.OBJECT), variation);
+		}
 
 		if (northGate || eastGate || southGate || westGate) {
-			protoWallDiodeRed.defineSprites(entity.spriteRegister(register, Layer.OBJECT), entity.getDirection());
+			protoWallDiodeRed.ifPresent(fp -> fp.defineSprites(entity.spriteRegister(register, Layer.OBJECT), entity.getDirection()));
 		}
 	}
 
@@ -85,7 +112,8 @@ public class WallRendering extends EntityWithOwnerRendering {
 		super.initAtlas(register);
 
 		protoPictures.forEach(fp -> fp.getDefs(register));
-		protoWallDiodeRed.getDefs(register);
+		protoFilling.ifPresent(fp -> fp.getDefs(register));
+		protoWallDiodeRed.ifPresent(fp -> fp.getDefs(register));
 	}
 
 	@Override
@@ -95,7 +123,15 @@ public class WallRendering extends EntityWithOwnerRendering {
 		LuaValue luaPictures = prototype.lua().get("pictures");
 		protoPictures = Arrays.stream(wallSpriteNameMapping).map(s -> new FPSpriteVariations(profile, luaPictures.get(s)))
 				.collect(Collectors.toList());
-		protoWallDiodeRed = new FPSprite4Way(profile, prototype.lua().get("wall_diode_red"));
+		
+		LuaValue luaFilling = luaPictures.get("filling");
+		if (!luaFilling.isnil()) {
+			protoFilling = Optional.of(new FPSpriteVariations(profile, luaFilling));
+		} else {
+			protoFilling = Optional.empty();
+		}
+		
+		protoWallDiodeRed = FPUtils.opt(profile, prototype.lua().get("wall_diode_red"), FPSprite4Way::new);
 	}
 
 	@Override

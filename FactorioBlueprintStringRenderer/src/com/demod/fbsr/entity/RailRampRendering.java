@@ -4,6 +4,7 @@ import java.util.List;
 
 import com.demod.fbsr.Dir16;
 import com.demod.fbsr.Direction;
+import com.demod.fbsr.EntityType;
 import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapPosition;
 import com.demod.fbsr.map.MapPosition3D;
@@ -11,6 +12,7 @@ import com.demod.fbsr.map.MapRect;
 import com.demod.fbsr.map.MapRect3D;
 import com.google.common.collect.ImmutableList;
 
+@EntityType("rail-ramp")
 public class RailRampRendering extends RailRendering {
 
 	public static class RampRailSpliner extends RailSpliner {

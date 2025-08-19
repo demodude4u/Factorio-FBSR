@@ -8,7 +8,7 @@ import java.util.function.Consumer;
 
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.FPUtils;
-import com.demod.fbsr.ModsProfile;
+import com.demod.fbsr.Profile;
 import com.demod.fbsr.def.SpriteDef;
 import com.google.common.collect.ImmutableList;
 
@@ -22,7 +22,7 @@ public class FPAnimation extends FPAnimationParameters {
 
 	private final List<List<SpriteDef>> defs;
 
-	public FPAnimation(ModsProfile profile, LuaValue lua) {
+	public FPAnimation(Profile profile, LuaValue lua) {
 		super(profile, lua);
 
 		layers = FPUtils.optList(profile, lua.get("layers"), FPAnimation::new);
@@ -32,9 +32,10 @@ public class FPAnimation extends FPAnimationParameters {
 		linesPerFile = lua.get("lines_per_file").optint(1);
 
 		defs = createDefs(profile);
+		FPUtils.verifyNotNull(lua.getDebugPath() + " defs", defs);
 	}
 
-	private List<List<SpriteDef>> createDefs(ModsProfile profile) {
+	private List<List<SpriteDef>> createDefs(Profile profile) {
 		if (layers.isPresent()) {
 			return ImmutableList.of();
 

@@ -5,6 +5,7 @@ import java.util.function.Consumer;
 import org.json.JSONObject;
 
 import com.demod.fbsr.EntityRendererFactory;
+import com.demod.fbsr.EntityType;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.WorldMap;
@@ -16,6 +17,7 @@ import com.demod.fbsr.legacy.LegacyBlueprintEntity;
 import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapRenderable;
 
+@EntityType(value = "simple-entity-with-force", modded = true)
 public class TextPlateRendering extends EntityRendererFactory {
 
 	public static class BSTextPlateEntity extends BSEntity {
@@ -41,7 +43,9 @@ public class TextPlateRendering extends EntityRendererFactory {
 	@Override
 	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
 		Consumer<SpriteDef> spriteRegister = entity.spriteRegister(register, protoRenderLayer);
-		protoPictures.defineSprites(spriteRegister, entity.<BSTextPlateEntity>fromBlueprint().variation - 1);
+		int variation = entity.<BSTextPlateEntity>fromBlueprint().variation - 1;
+		variation = Math.max(0, Math.min(variation, protoPictures.getVariationCount() - 1));
+		protoPictures.defineSprites(spriteRegister, variation);
 	}
 
 	@Override

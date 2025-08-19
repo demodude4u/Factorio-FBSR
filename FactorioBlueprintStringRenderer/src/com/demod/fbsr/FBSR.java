@@ -35,6 +35,7 @@ import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.zip.ZipOutputStream;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -42,8 +43,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.demod.dcba.CommandReporting;
-import com.demod.factorio.Config;
 import com.demod.factorio.DataTable;
+import com.demod.factorio.FactorioData;
 import com.demod.factorio.ItemToPlace;
 import com.demod.factorio.ModInfo;
 import com.demod.factorio.TotalRawCalculator;
@@ -52,6 +53,7 @@ import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.factorio.prototype.ItemPrototype;
 import com.demod.factorio.prototype.RecipePrototype;
 import com.demod.factorio.prototype.TilePrototype;
+import com.demod.fbsr.Profile.ProfileStatus;
 import com.demod.fbsr.WirePoints.WirePoint;
 import com.demod.fbsr.bs.BSBlueprint;
 import com.demod.fbsr.bs.BSEntity;
@@ -103,7 +105,11 @@ public class FBSR {
 
 	public static final double TILE_SIZE = 64.0;
 
-	private static volatile boolean initialized = false;
+	private static volatile boolean loaded = false;
+
+	private static FactorioManager factorioManager;
+	private static GUIStyle guiStyle;
+	private static IconManager iconManager;
 
 	private static final ExecutorService executor = Executors.newWorkStealingPool();
 
@@ -116,7 +122,9 @@ public class FBSR {
 		private List<MapEntity> mapEntities;
 		private List<MapTile> mapTiles;
 		private Map<Integer, MapEntity> mapEntityByNumber;
-		private Multiset<String> unknownNames;
+		private Multiset<String> unknownEntities;
+		private Multiset<String> unknownTiles;
+		private ModdingResolver resolver;
 
 		private WorldMap map;
 
@@ -155,17 +163,20 @@ public class FBSR {
 
 			long endMillis = System.currentTimeMillis();
 			LOGGER.info("\tRender Time {} ms", endMillis - startMillis);
-			return new RenderResult(request, image, endMillis - startMillis, worldRenderScale, unknownNames);
+			return new RenderResult(request, image, endMillis - startMillis, worldRenderScale, unknownEntities, unknownTiles);
 		}
 
 		private void parseBlueprint() {
 			mapEntities = new ArrayList<MapEntity>();
 			mapTiles = new ArrayList<MapTile>();
 			mapEntityByNumber = new HashMap<>();
-			unknownNames = LinkedHashMultiset.create();
+			unknownEntities = LinkedHashMultiset.create();
+			unknownTiles = LinkedHashMultiset.create();
+			
+			resolver = ModdingResolver.byBlueprintBiases(factorioManager, blueprint);
 
 			for (BSMetaEntity metaEntity : blueprint.entities) {
-				EntityRendererFactory factory = FactorioManager.lookupEntityFactoryForName(metaEntity.name);
+				EntityRendererFactory factory = resolver.resolveFactoryEntityName(metaEntity.name);
 				BSEntity entity;
 				try {
 					if (metaEntity.isLegacy()) {
@@ -182,19 +193,19 @@ public class FBSR {
 					reporting.addException(metaEntity.getParseException().get(),
 							entity.name + " " + entity.entityNumber);
 				}
-				MapEntity mapEntity = new MapEntity(entity, factory);
+				MapEntity mapEntity = new MapEntity(entity, factory, resolver);
 				mapEntities.add(mapEntity);
 				mapEntityByNumber.put(entity.entityNumber, mapEntity);
 				if (factory.isUnknown()) {
-					unknownNames.add(metaEntity.name);
+					unknownEntities.add(metaEntity.name);
 				}
 			}
 			for (BSTile tile : blueprint.tiles) {
-				TileRendererFactory factory = FactorioManager.lookupTileFactoryForName(tile.name);
-				MapTile mapTile = new MapTile(tile, factory);
+				TileRendererFactory factory = resolver.resolveFactoryTileName(tile.name);
+				MapTile mapTile = new MapTile(tile, factory, resolver);
 				mapTiles.add(mapTile);
 				if (factory.isUnknown()) {
-					unknownNames.add(tile.name);
+					unknownTiles.add(tile.name);
 				}
 			}
 
@@ -208,6 +219,7 @@ public class FBSR {
 			map = new WorldMap();
 
 			map.setAltMode(request.show.altMode);
+			map.setResolver(resolver);
 
 			map.setFoundation(mapTiles.stream().anyMatch(t -> t.getFactory().getPrototype().isFoundation()));
 
@@ -513,6 +525,18 @@ public class FBSR {
 		}
 	}
 
+	public static FactorioManager getFactorioManager() {
+		return factorioManager;
+	}
+
+	public static GUIStyle getGuiStyle() {
+		return guiStyle;
+	}
+
+	public static IconManager getIconManager() {
+		return iconManager;
+	}
+
 	private static void addToItemAmount(Map<BSItemWithQualityID, Double> items, BSItemWithQualityID item, double add) {
 		double amount = items.getOrDefault(item, 0.0);
 		amount += add;
@@ -521,9 +545,11 @@ public class FBSR {
 
 	public static Map<BSItemWithQualityID, Double> generateTotalItems(BSBlueprint blueprint) {
 
+		ModdingResolver resolver = ModdingResolver.byBlueprintBiases(factorioManager, blueprint);
+
 		Map<BSItemWithQualityID, Double> ret = new LinkedHashMap<>();
 		for (BSEntity entity : blueprint.entities) {
-			EntityRendererFactory entityFactory = FactorioManager.lookupEntityFactoryForName(entity.name);
+			EntityRendererFactory entityFactory = resolver.resolveFactoryEntityName(entity.name);
 			if (entityFactory.isUnknown()) {
 				addToItemAmount(ret, new BSItemWithQualityID(entity.name, entity.quality), 1);
 				continue;
@@ -545,7 +571,7 @@ public class FBSR {
 		}
 		for (BSTile tile : blueprint.tiles) {
 			String tileName = tile.name;
-			TileRendererFactory tileFactory = FactorioManager.lookupTileFactoryForName(tileName);
+			TileRendererFactory tileFactory = resolver.resolveFactoryTileName(tileName);
 			if (tileFactory.isUnknown()) {
 				addToItemAmount(ret, new BSItemWithQualityID(tile.name, Optional.empty()), 1);
 				continue;
@@ -565,7 +591,7 @@ public class FBSR {
 	}
 
 	public static Map<BSItemWithQualityID, Double> generateTotalRawItems(Map<BSItemWithQualityID, Double> totalItems) {
-		DataTable baseTable = FactorioManager.getBaseProfile().getData().getTable();
+		DataTable baseTable = factorioManager.getProfileVanilla().getFactorioData().getTable();
 		Map<String, RecipePrototype> recipes = baseTable.getRecipes();
 		Map<BSItemWithQualityID, Double> ret = new LinkedHashMap<>();
 		TotalRawCalculator calculator = new TotalRawCalculator(recipes);
@@ -588,43 +614,177 @@ public class FBSR {
 		return ret;
 	}
 
-	public static String getVersion() {
-		if (version == null) {
-			File fileInfo = new File(FactorioManager.getFolderDataRoot(), "info.json");
-
-			try {
-				if (FactorioManager.hasFactorioInstall()) {
-					Files.copy(new File(Config.get().getJSONObject("factorio_manager").getString("install"),
-							"base/info.json").toPath(), fileInfo.toPath(), StandardCopyOption.REPLACE_EXISTING);
-				}
-
-				ModInfo baseInfo;
-				try (FileInputStream fis = new FileInputStream(fileInfo)) {
-					baseInfo = new ModInfo(Utils.readJsonFromStream(fis));
-					version = baseInfo.getVersion();
-				}
-			} catch (JSONException | IOException e) {
-				e.printStackTrace();
-				System.exit(-1);
-			}
-		}
-		return version;
+	public static boolean isLoaded() {
+		return loaded;
 	}
 
-	public static synchronized void initialize() throws IOException {
-		if (initialized) {
-			return;
-		}
-		initialized = true;
+	public static synchronized boolean load() {
+		//Ignoring profiles that are not ready
+		List<Profile> allProfiles = Profile.listProfiles();
+		List<Profile> profiles = new ArrayList<>(allProfiles.stream().filter(p -> p.getStatus() == ProfileStatus.READY).collect(Collectors.toList()));
+		LOGGER.info("READY PROFILES: {}", profiles.stream().map(Profile::getName).collect(Collectors.joining(", ")));
 
-		FactorioManager.initializePrototypes();
-		GUIStyle.initialize();
-		FactorioManager.initializeFactories();
-		IconManager.initialize();
-
-		for (ModsProfile profile : FactorioManager.getProfiles()) {
-			profile.getAtlasPackage().initialize();
+		if (profiles.size() != allProfiles.size()) {
+			LOGGER.warn("NOT READY PROFILES: {}", 
+				allProfiles.stream().filter(p -> p.getStatus() != ProfileStatus.READY).map(Profile::getName).collect(Collectors.joining(", ")));
+			LOGGER.warn("Profiles that are not ready will be ignored.");
 		}
+
+		if (profiles.isEmpty()) {
+			System.out.println("No ready profiles found! Please ensure at least one profile is ready.");
+			return false;
+		}
+
+		return load(profiles);
+	}
+
+	public static synchronized boolean load(List<Profile> profiles) {
+		if (loaded) {
+			unload();
+		}
+		loaded = true;
+
+		factorioManager = new FactorioManager(profiles);
+		guiStyle = new GUIStyle();
+		iconManager = new IconManager(factorioManager);
+
+		for (Profile profile : profiles) {
+			profile.setFactorioManager(factorioManager);
+			profile.setGuiStyle(guiStyle);
+			profile.setIconManager(iconManager);
+		}
+
+		if (!factorioManager.initializePrototypes()) {
+			System.out.println("Failed to initialize prototypes.");
+			return false;
+		}
+
+		guiStyle.initialize(factorioManager.getProfileVanilla(), true);
+
+		for (Profile profile : profiles) {
+			RenderingRegistry registry = profile.getRenderingRegistry();
+			registry.loadConfig(profile.getAssetsRenderingConfiguration());
+		}
+
+		if (!factorioManager.initializeFactories()) {
+			System.out.println("Failed to initialize factories.");
+			return false;
+		}
+
+		iconManager.initialize();
+
+		profiles.stream().forEach(profile -> {
+			profile.getAtlasPackage().readFromZip(profile.getFileAssets(), profile.getAssetsAtlasManifest());
+		});
+
+		LOGGER.info("FBSR loaded -- Factorio {} -- {} Entities, {} Tiles", 
+				factorioManager.getProfileVanilla().getAssetsFactorioVersion(),
+				factorioManager.getEntityFactoryByNameMap().size(),
+				factorioManager.getTileFactoryByNameMap().size());
+
+		return true;
+	}
+
+	public static synchronized boolean unload() {
+		if (!loaded) {
+			return true;
+		}
+		loaded = false;
+
+		for (Profile profile : factorioManager.getProfiles()) {
+			profile.resetLoadedData();
+		}
+
+		factorioManager = null;
+		guiStyle = null;
+		iconManager = null;
+
+		System.gc();
+
+		System.out.println("FBSR unloaded.");
+		return true;
+	}
+
+	public static JSONObject populateAssets(Profile profile, JSONObject jsonRendering, ZipOutputStream zos) {
+
+		profile.resetLoadedData();
+
+		if (!FactorioManager.hasFactorioInstall()) {
+			System.out.println("No Factorio install found, cannot build data for profile: " + profile.getName());
+			return null;
+		}
+
+		List<Profile> profiles = new ArrayList<>();
+		profiles.add(profile);
+		
+		Profile profileVanilla;
+		if (!profile.isVanilla()) {
+			profileVanilla = Profile.vanilla();
+
+			if (!profileVanilla.hasAssets()) {
+				System.out.println("Vanilla profile must be built first, cannot build data for profile: " + profile.getName());
+				return null;
+			}
+
+			profileVanilla.resetLoadedData();
+
+			profiles.add(profileVanilla);
+		
+		} else {
+			profileVanilla = profile;
+		}
+
+		FactorioManager factorioManager = new FactorioManager(profiles);
+		GUIStyle guiStyle = new GUIStyle();
+		IconManager iconManager = new IconManager(factorioManager);
+
+		for (Profile p : profiles) {
+			p.setFactorioManager(factorioManager);
+			p.setGuiStyle(guiStyle);
+			p.setIconManager(iconManager);
+
+			if (p == profile) {
+				p.setFactorioData(new FactorioData(p.getFileDumpDataJson(), p.getDumpFactorioVersion()));
+				p.getRenderingRegistry().loadConfig(jsonRendering);
+			
+			} else {
+				p.setFactorioData(new FactorioData(p.getFileAssets()));
+				p.getRenderingRegistry().loadConfig(p.getAssetsRenderingConfiguration());
+			}
+		}
+
+		if (profile.isVanilla()) {
+			if (!GUIStyle.populateZipWithFonts(zos)) {
+                System.out.println("Failed to copy fonts to vanilla profile.");
+                return null;
+            }
+		}
+		
+		try {
+			if (!factorioManager.initializePrototypes()) {
+				return null;
+			}
+
+			guiStyle.initialize(factorioManager.getProfileVanilla(), false);
+
+			if (!factorioManager.initializeFactories()) {
+				return null;
+			}
+
+			iconManager.initialize();
+
+			JSONObject jsonAtlasManifest = profile.getAtlasPackage().populateZip(zos);
+			return jsonAtlasManifest;
+
+		} catch (JSONException | IOException e) {
+			e.printStackTrace();
+			return null;
+
+		} finally {
+			for (Profile p : profiles) {
+				p.resetLoadedData();
+			}
+		}		
 	}
 
 	private static void populateRailBlocking(WorldMap map, boolean elevated) {
@@ -914,7 +1074,7 @@ public class FBSR {
 		}
 	}
 
-	public static RenderDebugLayersResult renderDebugLayers(EntityRendererFactory factory, JSONObject jsonEntity)
+	public static RenderDebugLayersResult renderDebugLayers(EntityRendererFactory factory, JSONObject jsonEntity, ModdingResolver resolver)
 			throws Exception {
 
 		ListMultimap<Layer, MapRenderable> renderOrder = MultimapBuilder.enumKeys(Layer.class).arrayListValues()
@@ -922,7 +1082,7 @@ public class FBSR {
 		Consumer<MapRenderable> register = r -> renderOrder.put(r.getLayer(), r);
 
 		BSEntity bsEntity = factory.parseEntity(jsonEntity);
-		MapEntity entity = new MapEntity(bsEntity, factory);
+		MapEntity entity = new MapEntity(bsEntity, factory, resolver);
 
 		WorldMap map = new WorldMap();
 		map.setAltMode(true);
@@ -970,7 +1130,7 @@ public class FBSR {
 
 		MapText label = new MapText(null,
 				MapPosition.byUnit(frameBounds.getX() + 0.15, frameBounds.getY() + frameBounds.getHeight() / 2.0), 0,
-				GUIStyle.FONT_BP_BOLD.deriveFont(0.8f), Color.white, "", false);
+				factory.getProfile().getGuiStyle().FONT_BP_BOLD.deriveFont(0.8f), Color.white, "", false, resolver);
 
 		int i = 0;
 		for (MapRenderable renderable : renderables) {

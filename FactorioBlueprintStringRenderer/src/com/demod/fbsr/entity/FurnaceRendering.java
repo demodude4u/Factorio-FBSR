@@ -8,14 +8,16 @@ import java.util.stream.Collectors;
 
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.factorio.prototype.RecipePrototype;
+import com.demod.fbsr.EntityType;
 import com.demod.fbsr.FPUtils;
-import com.demod.fbsr.IconManager;
+import com.demod.fbsr.ModdingResolver;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.def.IconDef;
 import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapIcon;
 import com.demod.fbsr.map.MapRenderable;
 
+@EntityType("furnace")
 public class FurnaceRendering extends CraftingMachineRendering {
 
 	private List<String> protoCraftingCategories;
@@ -28,11 +30,14 @@ public class FurnaceRendering extends CraftingMachineRendering {
 				.flatMap(c -> c.getOutputs().stream().flatMap(o -> o.stream())).distinct().collect(Collectors.toList());
 
 		if (outputs.size() == 1 && map.isAltMode()) {
+
+			ModdingResolver resolver = entity.getResolver();
+			
 			List<RecipePrototype> recipes = prototype.getTable().getRecipesByInput(outputs.get(0)).stream()
 					.filter(r -> protoCraftingCategories.contains(r.getCategory())).collect(Collectors.toList());
 			if (recipes.size() == 1) {
 				RecipePrototype recipe = recipes.get(0);
-				Optional<IconDef> icon = IconManager.lookupRecipe(recipe.getName());
+				Optional<IconDef> icon = resolver.resolveIconRecipeName(recipe.getName());
 				if (icon.isEmpty()) {
 					String name;
 					if (recipe.lua().get("results") != LuaValue.NIL) {
@@ -40,14 +45,14 @@ public class FurnaceRendering extends CraftingMachineRendering {
 					} else {
 						name = recipe.lua().get("result").toString();
 					}
-					icon = IconManager.lookupItem(name);
+					icon = resolver.resolveIconItemName(name);
 					if (icon.isEmpty()) {
-						icon = IconManager.lookupFluid(name);
+						icon = resolver.resolveIconFluidName(name);
 					}
 				}
 				if (icon.isPresent()) {
 					register.accept(new MapIcon(entity.getPosition().addUnit(0, -0.3), icon.get(), 1.4,
-							OptionalDouble.of(0.1), false, Optional.empty()));
+							OptionalDouble.of(0.1), false, Optional.empty(), resolver));
 				}
 			}
 		}

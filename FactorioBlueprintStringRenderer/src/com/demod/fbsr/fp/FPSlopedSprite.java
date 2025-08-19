@@ -5,14 +5,14 @@ import java.util.function.Consumer;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.FPUtils;
-import com.demod.fbsr.ModsProfile;
+import com.demod.fbsr.Profile;
 import com.demod.fbsr.def.SpriteDef;
 
 public class FPSlopedSprite extends FPRotatedSprite {
     public final double slopeAngleBetweenFrames;
     public final boolean slopeBackEqualsFront;
 
-    public FPSlopedSprite(ModsProfile profile, LuaValue lua, double slopeAngleBetweenFrames, boolean slopeBackEqualsFront) {
+    public FPSlopedSprite(Profile profile, LuaValue lua, double slopeAngleBetweenFrames, boolean slopeBackEqualsFront) {
         super(profile, lua, (p, l) -> new FPSlopedSprite(p, l, slopeAngleBetweenFrames, slopeBackEqualsFront));
 
         this.slopeAngleBetweenFrames = slopeAngleBetweenFrames;

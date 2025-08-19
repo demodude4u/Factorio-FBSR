@@ -3,9 +3,11 @@ package com.demod.fbsr.entity;
 import com.demod.factorio.fakelua.LuaTable;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.Direction;
+import com.demod.fbsr.EntityType;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.map.MapEntity;
 
+@EntityType("reactor")
 public class ReactorRendering extends EntityWithOwnerRendering {
 	@Override
 	public void defineEntity(Bindings bind, LuaTable lua) {

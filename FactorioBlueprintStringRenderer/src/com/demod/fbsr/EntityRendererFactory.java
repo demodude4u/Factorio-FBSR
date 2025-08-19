@@ -2,6 +2,8 @@ package com.demod.fbsr;
 
 import java.awt.geom.Point2D;
 import java.lang.reflect.Constructor;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -9,11 +11,15 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.Set;
+import java.util.Map.Entry;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import org.json.JSONObject;
+import org.reflections.Reflections;
+import org.reflections.scanners.Scanners;
+import org.reflections.util.ConfigurationBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,6 +28,7 @@ import com.demod.factorio.FactorioData;
 import com.demod.factorio.fakelua.LuaTable;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.factorio.prototype.RecipePrototype;
+import com.demod.fbsr.Profile.ManifestModInfo;
 import com.demod.fbsr.WirePoints.WirePoint;
 import com.demod.fbsr.WorldMap.BeaconSource;
 import com.demod.fbsr.bs.BSEntity;
@@ -36,30 +43,13 @@ import com.demod.fbsr.map.MapIcon;
 import com.demod.fbsr.map.MapPosition;
 import com.demod.fbsr.map.MapRect3D;
 import com.demod.fbsr.map.MapRenderable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.Multiset;
 
 public abstract class EntityRendererFactory {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(EntityRendererFactory.class);
-
-	public static void initFactories(List<EntityRendererFactory> factories) {
-		for (EntityRendererFactory factory : factories) {
-			EntityPrototype prototype = factory.getPrototype();
-			try {
-				factory.initFromPrototype();
-				factory.wirePointsById = new LinkedHashMap<>();
-				factory.defineWirePoints(factory.wirePointsById::put, prototype.lua());
-				factory.drawBounds = factory.computeBounds();
-				factory.initAtlas(factory.getProfile().getAtlasPackage()::registerDef);
-			} catch (Exception e) {
-				LOGGER.error("ENTITY {} ({})", prototype.getName(), prototype.getType());
-				throw e;
-			}
-		}
-
-		LOGGER.info("Initialized {} entities.", factories.size());
-	}
 
 	protected MapRect3D computeBounds() {
 		return defaultComputeBounds();
@@ -98,39 +88,53 @@ public abstract class EntityRendererFactory {
 		return MapRect3D.byUnit(x1, y1, x2, y2, drawingBoxVerticalExtension);
 	}
 
-	public static void registerFactories(Consumer<EntityRendererFactory> register, ModsProfile profile, JSONObject json) {
-		DataTable table = profile.getData().getTable();
-		for (String groupName : json.keySet().stream().sorted().collect(Collectors.toList())) {
-			JSONObject jsonGroup = json.getJSONObject(groupName);
-			for (String entityName : jsonGroup.keySet().stream().sorted().collect(Collectors.toList())) {
-				Optional<EntityPrototype> entity = table.getEntity(entityName);
-				if (!entity.isPresent()) {
-					LOGGER.warn("MISSING ENTITY: {}", entityName);
+	private static final Map<String, Class<? extends EntityRendererFactory>> STANDARD_FACTORIES;
+	static {
+		STANDARD_FACTORIES = new HashMap<>();
+
+		Reflections reflections = new Reflections(new ConfigurationBuilder()
+				.forPackage("com.demod.fbsr.entity")
+				.addScanners(Scanners.SubTypes, Scanners.TypesAnnotated));
+
+		Set<Class<? extends EntityRendererFactory>> subTypes =
+			reflections.getSubTypesOf(EntityRendererFactory.class);
+
+		for (Class<? extends EntityRendererFactory> clazz : subTypes) {
+			EntityType annotation = clazz.getAnnotation(EntityType.class);
+			if (annotation != null) {
+				if (annotation.modded()) {
 					continue;
 				}
-				EntityPrototype prototype = entity.get();
-				String factoryName = jsonGroup.getString(entityName);
-				String factoryClassName = "com.demod.fbsr.entity." + factoryName;
-				try {
-					EntityRendererFactory factory = (EntityRendererFactory) Class.forName(factoryClassName)
-							.getConstructor().newInstance();
-					factory.setName(entityName);
-					factory.setGroupName(groupName);
-					factory.setProfile(profile);
-					factory.setPrototype(prototype);
-					register.accept(factory);
-				} catch (Exception e) {
-					prototype.debugPrint();
-					LOGGER.error("FACTORY CLASS: {}", factoryClassName, e);
-					System.exit(-1);
+				for (String type : annotation.value()) {
+					if (STANDARD_FACTORIES.containsKey(type)) {
+						LOGGER.error("Duplicate EntityRendererFactory for type {}: {} and {}", type,
+								STANDARD_FACTORIES.get(type).getSimpleName(), clazz.getSimpleName());
+						System.exit(-1);
+					}
+					STANDARD_FACTORIES.put(type, clazz);
 				}
 			}
 		}
 	}
 
+	public static Optional<Class<? extends EntityRendererFactory>> findFactoryClassByType(String type) {
+		return Optional.ofNullable(STANDARD_FACTORIES.get(type));
+	}
+
+	@SuppressWarnings("unchecked")
+	public static Optional<Class<? extends EntityRendererFactory>> findFactoryClassByName(String name) {
+		String factoryClassName = "com.demod.fbsr.entity." + name;
+		try {
+			return Optional.of((Class<? extends EntityRendererFactory>) Class.forName(factoryClassName));
+		} catch (ClassNotFoundException e) {
+			return Optional.empty();
+		}
+	}
+
 	protected String name = null;
-	protected String groupName = null;
-	protected ModsProfile profile = null;
+	protected Profile profile = null;
+	protected List<ManifestModInfo> mods = null;
+
 	protected EntityPrototype prototype = null;
 
 	protected boolean protoBeaconed;
@@ -152,7 +156,7 @@ public abstract class EntityRendererFactory {
 			return;
 		}
 
-		Optional<IconDef> optDef = IconManager.lookupQuality(quality.get());
+		Optional<IconDef> optDef = entity.getResolver().resolveIconQualityName(quality.get());
 		if (optDef.isEmpty()) {
 			return;
 		}
@@ -162,10 +166,11 @@ public abstract class EntityRendererFactory {
 		double size = Math.round(Math.min(bounds.getX2() - bounds.getX1(), bounds.getY2() - bounds.getY1())) > 1 ? 0.5
 				: 0.25;
 		register.accept(new MapIcon(MapPosition.byUnit(bounds.getX1() + size / 2.0, bounds.getY2() - size / 2.0), def,
-				size, OptionalDouble.empty(), false, Optional.empty()));
+				size, OptionalDouble.empty(), false, Optional.empty(), entity.getResolver()));
 	}
 
 	public void createModuleIcons(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
+		ModdingResolver resolver = entity.getResolver();
 
 		MapPosition position = entity.getPosition();
 		MapRect3D bounds = entity.getBounds();
@@ -177,10 +182,10 @@ public abstract class EntityRendererFactory {
 			double y = position.getY() + 0.7;
 
 			for (EntityModule module : renderModules) {
-				Optional<IconDef> image = IconManager.lookupItem(module.name);
+				Optional<IconDef> image = resolver.resolveIconItemName(module.name);
 				if (image.isPresent()) {
 					register.accept(new MapIcon(MapPosition.byUnit(x, y), image.get(), 0.5, OptionalDouble.of(0.05),
-							true, module.quality));
+							true, module.quality, resolver));
 					x += 0.7;
 				}
 			}
@@ -218,10 +223,10 @@ public abstract class EntityRendererFactory {
 				double y = position.getY() - 1.15;
 
 				for (EntityModule module : renderModules) {
-					Optional<IconDef> image = IconManager.lookupItem(module.name);
+					Optional<IconDef> image = resolver.resolveIconItemName(module.name);
 					if (image.isPresent()) {
 						register.accept(new MapIcon(MapPosition.byUnit(x, y), image.get(), 0.25,
-								OptionalDouble.of(0.025), true, module.quality));
+								OptionalDouble.of(0.025), true, module.quality, resolver));
 						x += 0.3;
 					}
 				}
@@ -240,7 +245,7 @@ public abstract class EntityRendererFactory {
 
 	}
 
-	public ModsProfile getProfile() {
+	public Profile getProfile() {
 		return profile;
 	}
 
@@ -248,12 +253,12 @@ public abstract class EntityRendererFactory {
 		return entity.getDirection().rotate(drawBounds).shift(entity.getPosition());
 	}
 
-	public String getGroupName() {
-		return groupName;
-	}
-
 	public String getName() {
 		return name;
+	}
+
+	public List<ManifestModInfo> getMods() {
+		return mods;
 	}
 
 	public EntityPrototype getPrototype() {
@@ -305,12 +310,12 @@ public abstract class EntityRendererFactory {
 		// default do nothing
 	}
 
-	public void setProfile(ModsProfile profile) {
+	public void setProfile(Profile profile) {
 		this.profile = profile;
 	}
 
-	public void setGroupName(String groupName) {
-		this.groupName = groupName;
+	public void setMods(List<ManifestModInfo> mods) {
+		this.mods = mods;
 	}
 
 	protected void setLogisticAcceptFilter(WorldMap map, MapPosition gridPos, Direction cellDir,
@@ -326,7 +331,7 @@ public abstract class EntityRendererFactory {
 		double xEnd = bounds.getX2();
 		double yEnd = bounds.getY2();
 
-		DataTable table = profile.getData().getTable();
+		DataTable table = profile.getFactorioData().getTable();
 
 		Set<String> inputs = recipe.getInputs().keySet().stream().filter(k -> table.getItem(k).isPresent())
 				.collect(Collectors.toSet());
@@ -368,6 +373,26 @@ public abstract class EntityRendererFactory {
 		protoBeaconed = (!prototype.lua().get("module_specification").isnil()
 				|| prototype.getName().equals("assembling-machine-1")
 				|| prototype.getName().equals("burner-mining-drill")) && !prototype.getName().equals("beacon");
+	}
+
+	private String[] cachedEntityTypeAnnotationValues = null;
+
+	/**
+	 * Checks if the given prototype's type matches the @EntityType annotation on the rendering class.
+	 * Returns true if they match, false otherwise. Returns false if annotation is missing.
+	 * The annotation value is cached for performance.
+	 */
+	public boolean isEntityTypeMatch(EntityPrototype proto) {
+		if (cachedEntityTypeAnnotationValues == null) {
+			EntityType annotation = getClass().getAnnotation(EntityType.class);
+			if (annotation == null) {
+				return false;
+			} else {
+				cachedEntityTypeAnnotationValues = annotation.value();
+			}
+		}
+		String actualType = proto.getType();
+		return Arrays.asList(cachedEntityTypeAnnotationValues).contains(actualType);
 	}
 
 }

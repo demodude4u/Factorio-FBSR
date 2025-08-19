@@ -12,8 +12,8 @@ import java.util.stream.Collectors;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.IconDefWithQuality;
-import com.demod.fbsr.IconManager;
 import com.demod.fbsr.Layer;
+import com.demod.fbsr.ModdingResolver;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.WorldMap.BeltBend;
 import com.demod.fbsr.bs.BSEntity;
@@ -51,15 +51,17 @@ public abstract class LoaderRendering extends TransportBeltConnectableRendering 
 		defineBeltSprites(s -> register.accept(new MapSprite(s, Layer.TRANSPORT_BELT, beltPos)),
 				entity.getDirection().cardinal(), BeltBend.NONE.ordinal(), getAlternatingFrame(beltPos));
 
-		boolean input = bsEntity.type.get().equals("input");
+		boolean input = bsEntity.type.orElse("input").equals("input");
 		Direction structDir = input ? entity.getDirection() : entity.getDirection().back();
 		FPSprite4Way proto = (input ? protoStructureDirectionIn : protoStructureDirectionOut);
 		proto.defineSprites(entity.spriteRegister(register, Layer.HIGHER_OBJECT_UNDER), structDir);
 
 		if (!bsEntity.filters.isEmpty() && map.isAltMode()) {
 
+			ModdingResolver resolver = entity.getResolver();
+
 			List<IconDefWithQuality> icons = bsEntity.filters.stream()
-					.flatMap(f -> IconManager.lookupFilter(f.type, f.name, f.quality).stream())
+					.flatMap(f -> resolver.resolveFilter(f.type, f.name, f.quality).stream())
 					.sorted(Comparator.comparing(iwq -> iwq.getDef().getPrototype())).limit(4)
 					.collect(Collectors.toList());
 
@@ -80,19 +82,19 @@ public abstract class LoaderRendering extends TransportBeltConnectableRendering 
 			for (int i = 0; i < icons.size(); i++) {
 				IconDefWithQuality icon = icons.get(i);
 				MapPosition iconPos = iconStartPos.addUnit((i % 2) * iconShift, (i / 2) * iconShift);
-				register.accept(icon.createMapIcon(iconPos, iconSize, OptionalDouble.of(iconBorder), false));
+				register.accept(icon.createMapIcon(iconPos, iconSize, OptionalDouble.of(iconBorder), false, resolver));
 			}
 		}
 	}
 
 	private MapPosition getBeltShift(MapEntity entity) {
-		boolean input = entity.<BSLoaderEntity>fromBlueprint().type.get().equals("input");
+		boolean input = entity.<BSLoaderEntity>fromBlueprint().type.orElse("input").equals("input");
 		Direction oppositeStructDir = input ? entity.getDirection().back() : entity.getDirection();
 		return MapPosition.byUnit(beltDistance * oppositeStructDir.getDx(), beltDistance * oppositeStructDir.getDy());
 	}
 
 	private MapPosition getContainerShift(MapEntity entity, double offset) {
-		boolean input = entity.<BSLoaderEntity>fromBlueprint().type.get().equals("input");
+		boolean input = entity.<BSLoaderEntity>fromBlueprint().type.orElse("input").equals("input");
 		Direction structDir = input ? entity.getDirection() : entity.getDirection().back();
 		double containerDistance = protoContainerDistance;
 		containerDistance += offset;
@@ -132,7 +134,7 @@ public abstract class LoaderRendering extends TransportBeltConnectableRendering 
 		MapPosition pos = entity.getPosition();
 		MapPosition beltShift = getBeltShift(entity);
 		MapPosition containerShift = getContainerShift(entity, -0.5);
-		boolean input = bsEntity.type.get().equals("input");
+		boolean input = bsEntity.type.orElse("input").equals("input");
 
 		if (input) {
 			MapPosition inPos = pos.add(beltShift);
@@ -203,8 +205,8 @@ public abstract class LoaderRendering extends TransportBeltConnectableRendering 
 	@Override
 	public void populateWorldMap(WorldMap map, MapEntity entity) {
 		super.populateWorldMap(map, entity);
-		
-		boolean input = entity.<BSLoaderEntity>fromBlueprint().type.get().equals("input");
+
+		boolean input = entity.<BSLoaderEntity>fromBlueprint().type.orElse("input").equals("input");
 		MapPosition beltShift = getBeltShift(entity);
 
 		MapPosition pos = entity.getPosition();

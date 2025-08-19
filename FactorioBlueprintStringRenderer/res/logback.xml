@@ -8,7 +8,7 @@
         <encoder>
         	<!--Switch between these two lines for more or less verbosity in the logging.-->
             <!--<pattern>%highlight(%-5level) %cyan(%date{HH:mm:ss.SSS, ${LOGGING_TIMEZONE}}) \(%file:%line\) [%white(%thread)] %blue(%marker) {%magenta(%mdc)} %green(%logger): %message%n%rootException</pattern>-->
-            <pattern>%highlight(%-5level) %cyan(%date{HH:mm:ss.SSS, ${LOGGING_TIMEZONE}}) \(%file:%line\): %message%n%rootException</pattern>
+            <pattern>%highlight(%-5level) %cyan(%date{HH:mm:ss.SSS, ${LOGGING_TIMEZONE}}) %magenta(%X{profile}) \(%file:%line\): %message%n%rootException</pattern>
         </encoder>
     </appender>
 

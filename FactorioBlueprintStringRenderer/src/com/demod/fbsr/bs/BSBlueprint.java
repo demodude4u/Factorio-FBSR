@@ -1,14 +1,25 @@
 package com.demod.fbsr.bs;
 
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import com.demod.factorio.Utils;
 import com.demod.fbsr.BSUtils;
+import com.demod.fbsr.EntityRendererFactory;
+import com.demod.fbsr.ModdingResolver;
+import com.demod.fbsr.Profile;
+import com.demod.fbsr.Profile.ManifestModInfo;
+import com.demod.fbsr.TileRendererFactory;
 import com.demod.fbsr.legacy.LegacyBlueprint;
 import com.demod.fbsr.map.MapVersion;
 import com.google.common.collect.ImmutableList;
@@ -71,5 +82,47 @@ public class BSBlueprint {
 				this.wires = ImmutableList.of();
 			}
 		}
+	}
+
+	public static class BlueprintModInfo {
+		public final List<String> spaceAgeMods;
+		public final List<String> mods;
+		
+		public BlueprintModInfo(List<String> spaceAgeMods, List<String> mods) {
+			this.spaceAgeMods = ImmutableList.copyOf(spaceAgeMods);
+			this.mods = ImmutableList.copyOf(mods);
+		}
+	}
+	public static final List<String> SPACE_AGE_MODS = ImmutableList.of("space-age", "elevated-rails", "quality");
+    public BlueprintModInfo loadModInfo(ModdingResolver resolver) {
+        Set<String> spaceAgeMods = new LinkedHashSet<>();
+        Set<String> mods = new LinkedHashSet<>();
+		Consumer<ManifestModInfo> addMod = mod -> {
+			if (SPACE_AGE_MODS.contains(mod.name)) {
+				spaceAgeMods.add(mod.title);
+			} else {
+				mods.add(mod.title);
+			}
+		};
+        entities.stream().map(e -> e.name).distinct().forEach(name -> {
+			EntityRendererFactory factory = resolver.resolveFactoryEntityName(name);
+			if (factory.isUnknown()) {
+				mods.add("Modded");
+			} else {
+				factory.getMods().forEach(addMod);
+			}
+		});
+		tiles.stream().map(t -> t.name).distinct().forEach(name -> {
+			TileRendererFactory factory = resolver.resolveFactoryTileName(name);
+			if (factory.isUnknown()) {
+				mods.add("Modded");
+			} else {
+				factory.getMods().forEach(addMod);
+			}
+		});
+		return new BlueprintModInfo(
+			spaceAgeMods.stream().sorted().collect(Collectors.toList()),
+			mods.stream().sorted().collect(Collectors.toList())
+		);
 	}
 }

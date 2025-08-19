@@ -1,10 +1,12 @@
 package com.demod.fbsr.entity;
 
+import com.demod.fbsr.EntityType;
 import com.demod.factorio.Utils;
 import com.demod.factorio.fakelua.LuaTable;
 import com.demod.factorio.fakelua.LuaValue;
 
-public abstract class TurretRendering extends EntityWithOwnerRendering {
+@EntityType("turret")
+public class TurretRendering extends EntityWithOwnerRendering {
 
 	private boolean checkState(LuaValue lua, String flag) {
 		if (lua.isnil()) {
@@ -37,7 +39,7 @@ public abstract class TurretRendering extends EntityWithOwnerRendering {
 		
 		LuaValue luaBaseVis = lua.get("graphics_set").get("base_visualisation");
 		LuaValue luaBaseVisAnimation = luaBaseVis.get("animation");
-		if (luaBaseVisAnimation.isnil()) {
+		if (luaBaseVisAnimation.isnil() && !luaBaseVis.isnil()) {
 			Utils.forEach(luaBaseVis.checktable(), l -> {
 				// TODO verify states is correctly used
 				LuaValue luaStates = l.get("enabled_states");

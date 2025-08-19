@@ -75,8 +75,8 @@ public class WirePoints {
 			return Optional.empty();
 		};
 		for (FPWireConnectionPoint point : points) {
-			dirOffsets.add(wireSelect.apply(point.wire).get());
-			dirShadowOffsets.add(wireSelect.apply(point.shadow).get());
+			dirOffsets.add(wireSelect.apply(point.wire).orElseGet(() -> new FPVector(0, 0)));
+			dirShadowOffsets.add(wireSelect.apply(point.shadow).orElseGet(() -> new FPVector(0, 0)));
 		}
 		return new WirePoints(color, dirOffsets, dirShadowOffsets, backEqualsFront);
 	}

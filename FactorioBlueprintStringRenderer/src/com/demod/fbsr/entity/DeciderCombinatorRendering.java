@@ -8,8 +8,9 @@ import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.function.Consumer;
 
+import com.demod.fbsr.EntityType;
 import com.demod.fbsr.IconDefWithQuality;
-import com.demod.fbsr.IconManager;
+import com.demod.fbsr.ModdingResolver;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.bs.entity.BSDeciderCombinatorEntity;
@@ -17,6 +18,7 @@ import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapPosition;
 import com.demod.fbsr.map.MapRenderable;
 
+@EntityType("decider-combinator")
 public class DeciderCombinatorRendering extends CombinatorRendering {
 
 	@Override
@@ -28,15 +30,17 @@ public class DeciderCombinatorRendering extends CombinatorRendering {
 
 		if (bsEntity.deciderConditions.isPresent()) {
 
+			ModdingResolver resolver = entity.getResolver();
+
 			List<IconDefWithQuality> inputIcons = new ArrayList<>();
 			bsEntity.deciderConditions.get().conditions.stream()
 					.flatMap(bs -> Arrays.asList(bs.firstSignal, bs.secondSignal).stream().flatMap(s -> s.stream()))
 					.limit(2)
-					.forEach(s -> IconManager.lookupSignalID(s.type, s.name, s.quality).ifPresent(inputIcons::add));
+					.forEach(s -> resolver.resolveSignalID(s.type, s.name, s.quality).ifPresent(inputIcons::add));
 
 			List<IconDefWithQuality> outputIcons = new ArrayList<>();
 			bsEntity.deciderConditions.get().outputs.stream().flatMap(bs -> bs.signal.stream()).limit(2)
-					.forEach(s -> IconManager.lookupSignalID(s.type, s.name, s.quality).ifPresent(outputIcons::add));
+					.forEach(s -> resolver.resolveSignalID(s.type, s.name, s.quality).ifPresent(outputIcons::add));
 
 			double iconStartY = entity.getDirection().isHorizontal() ? -0.5 : -0.25;
 
@@ -48,7 +52,7 @@ public class DeciderCombinatorRendering extends CombinatorRendering {
 					for (int i = 0; i < icons.size(); i++) {
 						IconDefWithQuality icon = icons.get(i);
 						MapPosition iconPos = rowPos.addUnit(i * 0.5, 0);
-						register.accept(icon.createMapIcon(iconPos, 0.4, OptionalDouble.of(0.05), false));
+						register.accept(icon.createMapIcon(iconPos, 0.4, OptionalDouble.of(0.05), false, resolver));
 					}
 				}
 			}

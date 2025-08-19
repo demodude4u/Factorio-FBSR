@@ -3,6 +3,7 @@ package com.demod.fbsr.entity;
 import java.util.List;
 
 import com.demod.fbsr.Direction;
+import com.demod.fbsr.EntityType;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.Dir16;
 import com.demod.fbsr.WorldMap;
@@ -11,6 +12,7 @@ import com.demod.fbsr.map.MapPosition;
 import com.demod.fbsr.map.MapPosition3D;
 import com.google.common.collect.ImmutableList;
 
+@EntityType("legacy-curved-rail")
 public class LegacyCurvedRailRendering extends RailRendering {
 
 	private class LegacyCurveRailSpliner extends RailSpliner {

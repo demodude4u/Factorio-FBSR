@@ -6,9 +6,10 @@ import java.util.OptionalDouble;
 import java.util.function.Consumer;
 
 import com.demod.fbsr.Direction;
+import com.demod.fbsr.EntityType;
 import com.demod.fbsr.FPUtils;
-import com.demod.fbsr.IconManager;
 import com.demod.fbsr.Layer;
+import com.demod.fbsr.ModdingResolver;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.WorldMap.BeltBend;
 import com.demod.fbsr.bs.BSEntity;
@@ -24,6 +25,7 @@ import com.demod.fbsr.map.MapPosition;
 import com.demod.fbsr.map.MapRenderable;
 import com.demod.fbsr.map.MapSprite;
 
+@EntityType("splitter")
 public class SplitterRendering extends TransportBeltConnectableRendering {
 	private static final int STRUCTURE_FRAME = 0;
 	private static final int STRUCTURE_PATCH_FRAME = 0;
@@ -78,8 +80,9 @@ public class SplitterRendering extends TransportBeltConnectableRendering {
 			if (bsEntity.filter.isPresent()) {
 				MapPosition iconPos = right ? rightPos : leftPos;
 				BSFilter filter = bsEntity.filter.get();
-				IconManager.lookupFilter(filter.type, filter.name, filter.quality)
-						.ifPresent(i -> register.accept(i.createMapIcon(iconPos, 0.5, OptionalDouble.of(0.1), false)));
+				ModdingResolver resolver = entity.getResolver();
+				resolver.resolveFilter(filter.type, filter.name, filter.quality)
+						.ifPresent(i -> register.accept(i.createMapIcon(iconPos, 0.5, OptionalDouble.of(0.1), false, resolver)));
 			} else {
 				register.accept(new MapBeltArrow(outputPos, dir));
 			}

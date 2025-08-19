@@ -10,7 +10,7 @@ import java.util.stream.Collectors;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.BlendMode;
 import com.demod.fbsr.FPUtils;
-import com.demod.fbsr.ModsProfile;
+import com.demod.fbsr.Profile;
 import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.def.SpriteDef;
 import com.demod.fbsr.map.MapRect;
@@ -23,7 +23,7 @@ public class FPTileMainPictures extends FPTileSpriteLayout {
 	private final int limitedCount;
 	private final List<SpriteDef> defs;
 
-	public FPTileMainPictures(ModsProfile profile, LuaValue lua, int limitCount) {
+	public FPTileMainPictures(Profile profile, LuaValue lua, int limitCount) {
 		super(lua);
 		size = lua.get("size").checkint();
 		probability = lua.get("probability").optdouble(1.0);
@@ -32,9 +32,10 @@ public class FPTileMainPictures extends FPTileSpriteLayout {
 		limitedCount = Math.min(limitCount, count);
 		List<SpriteDef> allDefs = createDefs(profile);
 		defs = allDefs.stream().limit(limitedCount).collect(Collectors.toList());
+		FPUtils.verifyNotNull(lua.getDebugPath() + " defs", defs);
 	}
 
-	private List<SpriteDef> createDefs(ModsProfile profile) {
+	private List<SpriteDef> createDefs(Profile profile) {
 		List<SpriteDef> defs = new ArrayList<>();
 
 		int sizePixels = (int) (size * 64 / scale);

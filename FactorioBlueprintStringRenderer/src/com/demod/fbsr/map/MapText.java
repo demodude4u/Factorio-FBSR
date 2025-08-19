@@ -6,6 +6,7 @@ import java.awt.Graphics2D;
 import java.awt.geom.AffineTransform;
 
 import com.demod.fbsr.Layer;
+import com.demod.fbsr.ModdingResolver;
 import com.demod.fbsr.RichText;
 
 public class MapText extends MapRenderable {
@@ -16,19 +17,25 @@ public class MapText extends MapRenderable {
 	private final int angle;
 	protected final Font font;
 	protected final Color color;
+	protected final ModdingResolver resolver;
+
 	private boolean centered;
+
 
 	protected RichText text;
 
 
-	public MapText(Layer layer, MapPosition position, int angle, Font font, Color color, String string, boolean centered) {
+	public MapText(Layer layer, MapPosition position, int angle, Font font, Color color, String string, boolean centered, ModdingResolver resolver) {
 		super(layer);
 		this.position = position;
 		this.angle = angle;
 		this.font = font;
 		this.color = color;
+		this.resolver = resolver;
+
 		this.centered = centered;
-		text = new RichText(string);
+
+		text = new RichText(string, resolver);
 	}
 
 	@Override
@@ -82,6 +89,6 @@ public class MapText extends MapRenderable {
 	}
 
 	public void setString(String string) {
-		this.text = new RichText(string);
+		this.text = new RichText(string, resolver);
 	}
 }

@@ -8,6 +8,7 @@ import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -18,6 +19,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import javax.xml.transform.TransformerFactory;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -26,6 +29,7 @@ import org.slf4j.LoggerFactory;
 import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
 import com.demod.factorio.prototype.TilePrototype;
+import com.demod.fbsr.Profile.ManifestModInfo;
 import com.demod.fbsr.bs.BSPosition;
 import com.demod.fbsr.bs.BSTile;
 import com.demod.fbsr.def.ImageDef;
@@ -491,41 +495,10 @@ public class TileRendererFactory {
 		renderProcess.initAtlas(register);
 	}
 
-	public static void initFactories(List<TileRendererFactory> factories) {
-		for (TileRendererFactory factory : factories) {
-			try {
-				ModsProfile profile = factory.getProfile();
-				factory.initFromPrototype(profile.getData().getTable());
-				factory.initAtlas(profile.getAtlasPackage()::registerDef);
-			} catch (Exception e) {
-				LOGGER.error("TILE {}", factory.getName());
-				throw e;
-			}
-		}
-		LOGGER.info("Initialized {} tiles.", factories.size());
-	}
-
-	public static void registerFactories(Consumer<TileRendererFactory> register, ModsProfile profile, JSONObject json) {
-		DataTable table = profile.getData().getTable();
-		for (String groupName : json.keySet().stream().sorted().collect(Collectors.toList())) {
-			JSONArray jsonGroup = json.getJSONArray(groupName);
-			for (int i = 0; i < jsonGroup.length(); i++) {
-				String tileName = jsonGroup.getString(i);
-				TilePrototype prototype = table.getTile(tileName).get();
-				TileRendererFactory factory = new TileRendererFactory();
-				factory.setName(tileName);
-				factory.setGroupName(groupName);
-				factory.setProfile(profile);
-				factory.setPrototype(prototype);
-				register.accept(factory);
-			}
-		}
-	}
-
 	protected String name;
-	protected String groupName;
-	protected ModsProfile profile;
+	protected Profile profile;
 	protected TilePrototype prototype;
+	protected List<ManifestModInfo	> mods;
 
 	private FPTileTransitionsVariants protoVariants;
 	private Optional<FPTileMainPictures> protoVariantsMainSize1;
@@ -539,12 +512,8 @@ public class TileRendererFactory {
 	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapTile tile) {
 	}
 
-	public ModsProfile getProfile() {
+	public Profile getProfile() {
 		return profile;
-	}
-
-	public String getGroupName() {
-		return groupName;
 	}
 
 	public String getName() {
@@ -555,13 +524,16 @@ public class TileRendererFactory {
 		return prototype;
 	}
 
+	public List<ManifestModInfo> getMods() {
+		return mods;
+	}
+
 	public void initFromPrototype(DataTable table) {
 		protoLayer = prototype.lua().get("layer").checkint();
 		protoVariants = new FPTileTransitionsVariants(profile, prototype.lua().get("variants"), 10);
 		protoVariantsMainSize1 = protoVariants.main.stream().filter(fp -> fp.size == 1).findFirst();
 		protoTransitionMergesWithTileID = FPUtils.optString(prototype.lua().get("transition_merges_with_tile"));
-		protoTransitionMergesWithTile = protoTransitionMergesWithTileID
-				.flatMap(k -> Optional.ofNullable(FactorioManager.lookupTileFactoryForName(k)));
+		protoTransitionMergesWithTile = protoTransitionMergesWithTileID.map(k -> resolveMergeTileID(k));
 
 		if (!protoVariants.main.isEmpty())
 			renderProcess = new TileRenderProcessMain();
@@ -574,6 +546,27 @@ public class TileRendererFactory {
 				.anyMatch(fp -> fp.flatMap(fp2 -> fp2.doubleSide).isPresent());
 	}
 
+	private TileRendererFactory resolveMergeTileID(String name) {
+		if (profile.getFactorioManager() == null) {
+			return new UnknownTileRendering(name);
+		}
+
+		List<Profile> profileOrder;
+		if (profile.isVanilla()) {
+			profileOrder = ImmutableList.of(profile);
+		} else {
+			profileOrder = ImmutableList.of(profile, profile.getFactorioManager().getProfileVanilla());
+		}
+		ModdingResolver resolver = ModdingResolver.byProfileOrder(profile.getFactorioManager(), profileOrder, false);
+		TileRendererFactory mergeTile = resolver.resolveFactoryTileName(name);
+		
+		if (mergeTile.isUnknown()) {
+			throw new IllegalStateException("Tile transition merge with tile not found: " + name);
+		}
+		
+		return mergeTile;
+	}
+
 	public boolean isUnknown() {
 		return false;
 	}
@@ -582,16 +575,16 @@ public class TileRendererFactory {
 	public void populateWorldMap(WorldMap map, MapTile tile) {
 	}
 
-	public void setProfile(ModsProfile profile) {
+	public void setProfile(Profile profile) {
 		this.profile = profile;
-	}
-
-	public void setGroupName(String groupName) {
-		this.groupName = groupName;
 	}
 
 	public void setName(String name) {
 		this.name = name;
+	}
+
+	public void setMods(List<ManifestModInfo> mods) {
+		this.mods = mods;
 	}
 
 	public void setPrototype(TilePrototype prototype) {

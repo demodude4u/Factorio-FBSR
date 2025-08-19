@@ -4,6 +4,7 @@ import java.util.Optional;
 import java.util.function.Consumer;
 
 import com.demod.factorio.fakelua.LuaTable;
+import com.demod.fbsr.EntityType;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.WorldMap;
@@ -14,6 +15,7 @@ import com.demod.fbsr.fp.FPWorkingVisualisations;
 import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapRenderable;
 
+@EntityType("mining-drill")
 public class MiningDrillRendering extends EntityWithOwnerRendering {
 	private static final int FRAME = 0;
 

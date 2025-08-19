@@ -1,7 +1,7 @@
 package com.demod.fbsr.fp;
 
 import com.demod.factorio.fakelua.LuaValue;
-import com.demod.fbsr.ModsProfile;
+import com.demod.fbsr.Profile;
 
 public class FPUtilitySprites {
 	public final FPSprite clock;
@@ -14,7 +14,7 @@ public class FPUtilitySprites {
 	public final FPSprite indicationLine;
 	public final FPSprite indicationArrow;
 
-	public FPUtilitySprites(ModsProfile profile, LuaValue lua) {
+	public FPUtilitySprites(Profile profile, LuaValue lua) {
 		clock = new FPSprite(profile, lua.get("clock"), false);
 		filterBlacklist = new FPSprite(profile, lua.get("filter_blacklist"), false);
 		questionmark = new FPSprite(profile, lua.get("questionmark"), false);

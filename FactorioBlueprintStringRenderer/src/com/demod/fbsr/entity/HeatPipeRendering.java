@@ -7,6 +7,7 @@ import java.util.stream.Collectors;
 
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.EntityRendererFactory;
+import com.demod.fbsr.EntityType;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.def.ImageDef;
@@ -14,6 +15,7 @@ import com.demod.fbsr.fp.FPSpriteVariations;
 import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapRenderable;
 
+@EntityType("heat-pipe")
 public class HeatPipeRendering extends EntityWithOwnerRendering {
 	private static final int VARIATION = 0;
 

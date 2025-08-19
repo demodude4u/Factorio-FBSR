@@ -1,0 +1,28 @@
+{
+    "discord": {
+        "enabled": false,
+        "bot_token": null,
+        "reporting_user_id": null,
+        "reporting_channel_id": null,
+        "hosting_channel_id": null
+    },
+    "webapi": {
+        "enabled": false,
+        "bind": "0.0.0.0",
+        "port": 8080,
+        "local_storage": null
+    },
+    "fbsr": {
+        "profiles": "profiles",
+        "build": "build",
+        "assets": "assets"
+    },
+    "factorio": {
+        "install": null,
+        "executable": null
+	},
+    "modportal": {
+        "username": null,
+        "password": null
+    }
+}

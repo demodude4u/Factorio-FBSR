@@ -1,9 +1,11 @@
 package com.demod.fbsr.entity;
 
 import com.demod.factorio.fakelua.LuaTable;
+import com.demod.fbsr.EntityType;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.map.MapEntity;
 
+@EntityType("heat-interface")
 public class HeatInterfaceRendering extends EntityWithOwnerRendering {
 
 	@Override
