@@ -330,21 +330,25 @@ public class CmdProfile {
 
         ListMultimap<String, String> filteredBy = ArrayListMultimap.create();
         interface MatchAny {
-            boolean filter(String mod, String value, List<String> patterns);
+            boolean filter(String mod, String value, List<String> patterns, boolean show);
         }
-        MatchAny matchesAny = (mod, value, patterns) -> {
+        MatchAny matchesAny = (mod, value, patterns, show) -> {
             boolean match = false;
             for (String pattern : patterns) {
                 if (pattern.equals("*") || value.equals(pattern)) {
                     match = true;
-                    filteredBy.put(mod, value);
+                    if (show) {
+                        filteredBy.put(mod, value);
+                    }
                     continue;
                 };
                 if (pattern.contains("*")) {
                     String regex = pattern.replace(".", "\\.").replace("*", ".*");
                     if (value.matches(regex)) {
                         match = true;
-                        filteredBy.put(mod, value);
+                        if (show) {
+                            filteredBy.put(mod, value);
+                        }
                     }
                 }
             }
@@ -352,24 +356,39 @@ public class CmdProfile {
         };
 
         if (modFilter != null && !modFilter.isEmpty()) {
-            mods.removeIf(mod -> !matchesAny.filter(mod, mod, modFilter));
+            mods.removeIf(mod -> !matchesAny.filter(mod, mod, modFilter, false));
         }
         if (profileFilter != null && !profileFilter.isEmpty()) {
             mods.removeIf(mod -> {
-                List<Profile> profiles = profileByMod.get(mod);
-                return profiles.stream().noneMatch(p -> matchesAny.filter(mod, p.getName(), profileFilter));
+                boolean match = false;
+                for (Profile profile : profileByMod.get(mod)) {
+                    if (matchesAny.filter(mod, profile.getName(), profileFilter, true)) {
+                        match = true;
+                    }
+                }
+                return !match;
             });
         }
         if (entityFilter != null && !entityFilter.isEmpty()) {
             mods.removeIf(mod -> {
-                List<String> entities = entityByMod.get(mod);
-                return entities.stream().noneMatch(e -> matchesAny.filter(mod, e, entityFilter));
+                boolean match = false;
+                for (String entity : entityByMod.get(mod)) {
+                    if (matchesAny.filter(mod, entity, entityFilter, true)) {
+                        match = true;
+                    }
+                }
+                return !match;
             });
         }
         if (tileFilter != null && !tileFilter.isEmpty()) {
             mods.removeIf(mod -> {
-                List<String> tiles = tileByMod.get(mod);
-                return tiles.stream().noneMatch(t -> matchesAny.filter(mod, t, tileFilter));
+                boolean match = false;
+                for (String tile : tileByMod.get(mod)) {
+                    if (matchesAny.filter(mod, tile, tileFilter, true)) {
+                        match = true;
+                    }
+                }
+                return !match;
             });
         }
 
@@ -391,7 +410,8 @@ public class CmdProfile {
             String entitiesStr = entityByMod.get(mod).stream().sorted().collect(Collectors.joining(", "));
             String tilesStr = tileByMod.get(mod).stream().sorted().collect(Collectors.joining(", "));
             String filteredByStr = filteredBy.get(mod).stream().sorted().collect(Collectors.joining(", "));
-
+            List<String> modFilteredBy = filteredBy.get(mod).stream().sorted().collect(Collectors.toList());
+            
             if (detailed) {
                 System.out.println();
                 System.out.println("<< " + mod + " " + versionsStr + " >> -- " + titlesStr);
@@ -411,7 +431,6 @@ public class CmdProfile {
             String modStr = mod.length() > 25 ? mod.substring(0, 25-3) + "..." : mod;
             titlesStr = titlesStr.length() > 30 ? titlesStr.substring(0, 30-3) + "..." : titlesStr;
             profilesStr = profilesStr.length() > 15 ? profilesStr.substring(0, 15-3) + "..." : profilesStr;
-            filteredByStr = filteredByStr.length() > 30 ? filteredByStr.substring(0, 30-3) + "..." : filteredByStr;
 
             if (firstTableEntry) {
                 tableMessage.add(String.format("%-25s | %-30s | %-8s | %-15s" + (filteredBy.isEmpty() ? "" : " | %-30s"), 
@@ -425,7 +444,15 @@ public class CmdProfile {
                     titlesStr,
                     versions.size() > 2 ? "*.*.*" : versionsStr,
                     profilesStr,
-                    filteredByStr));
+                    modFilteredBy.isEmpty() ? "" : modFilteredBy.get(0).length() > 30 ? modFilteredBy.get(0).substring(0, 30-3) + "..." : modFilteredBy.get(0)));
+            if (modFilteredBy.size() > 1) {
+                for (int i = 1; i < modFilteredBy.size(); i++) {
+                    String filteredByEntryStr = modFilteredBy.get(i);
+                    filteredByEntryStr = filteredByEntryStr.length() > 30 ? filteredByEntryStr.substring(0, 30-3) + "..." : filteredByEntryStr;
+                    tableMessage.add(String.format("%-25s | %-30s | %-8s | %-15s | %-30s",
+                            "", "", "", "", filteredByEntryStr));
+                }
+            }
         }
 
         if (modOrder.isEmpty()) {
