@@ -278,52 +278,35 @@ public class FBSRModDumperTask {
 		JSONArray jsonDependencies = jsonRelease.getJSONObject("info_json").getJSONArray("dependencies");
 
 		for (int i = 0; i < jsonDependencies.length(); i++) {
-			String dependency = jsonDependencies.getString(i).trim();
+			String[] split = jsonDependencies.getString(i).split("\\s+");
 			String depSymbol = "";
 			String depMod = null;
-
-			// Extract prefix and remove it from the dependency string
-			if (dependency.startsWith("!")) {
-				depSymbol = "!";
-				dependency = dependency.substring(1).trim();
-			} else if (dependency.startsWith("?")) {
-				depSymbol = "?";
-				dependency = dependency.substring(1).trim();
-			} else if (dependency.startsWith("(?)")) {
-				depSymbol = "(?)";
-				dependency = dependency.substring(3).trim();
-			} else if (dependency.startsWith("~")) {
-				depSymbol = "~";
-				dependency = dependency.substring(1).trim();
+//			String depCompare = "";
+//			String depVersion = "";
+			switch (split.length) {
+			case 1:
+				depMod = split[0];
+				break;
+			case 2:
+				depSymbol = split[0];
+				depMod = split[1];
+				break;
+			case 3:
+				depMod = split[0];
+//				depCompare = split[1];
+//				depVersion = split[2];
+				break;
+			case 4:
+				depSymbol = split[0];
+				depMod = split[1];
+//				depCompare = split[2];
+//				depVersion = split[3];
+				break;
 			}
-
-			// Extract mod name by removing version constraints
-			int versionIndex = dependency.indexOf(">=");
-			if (versionIndex == -1) {
-				versionIndex = dependency.indexOf("<=");
-			}
-			if (versionIndex == -1) {
-				versionIndex = dependency.indexOf("=");
-			}
-			if (versionIndex == -1) {
-				versionIndex = dependency.indexOf(">");
-			}
-			if (versionIndex == -1) {
-				versionIndex = dependency.indexOf("<");
-			}
-			if (versionIndex > 0) {
-				dependency = dependency.substring(0, versionIndex).trim();
-			}
-
-			depMod = dependency;
-
-			// Skip optional, hidden optional, or incompatible dependencies
-			if (depSymbol.equals("?") || depSymbol.equals("(?)") || depSymbol.equals("!")) {
+			if (!depSymbol.isBlank()) {
 				continue;
 			}
-
-			// Add dependency mod and recursively walk its dependencies
-			if (depMod != null && allMods.add(depMod) && !BUILTIN_MODS.contains(depMod)) {
+			if (allMods.add(depMod) && !BUILTIN_MODS.contains(depMod)) {
 				walkDependencies(allMods, depMod);
 			}
 		}
