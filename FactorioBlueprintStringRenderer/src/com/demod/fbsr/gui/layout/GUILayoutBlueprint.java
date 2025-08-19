@@ -113,11 +113,11 @@ public class GUILayoutBlueprint {
 		GUIPanel panel = new GUIPanel(bounds, guiStyle.FRAME_DARK_INNER, guiStyle.FRAME_OUTER);
 		renderTinted(panel);
 
-		boolean foundation = blueprint.tiles.stream().anyMatch(t -> {
+		boolean spaceFoundation = blueprint.tiles.stream().anyMatch(t -> {
 			Optional<TilePrototype> tile = resolver.resolveTileName(t.name);
-			return tile.isPresent() && tile.get().isFoundation();
+			return tile.isPresent() && tile.get().getName().equals("space-platform-foundation");
 		});
-		if (foundation) {
+		if (spaceFoundation) {
 			g.setColor(new Color(0, 0, 2, 220));
 			g.fillRect(bounds.x, bounds.y, bounds.width, bounds.height);
 		}

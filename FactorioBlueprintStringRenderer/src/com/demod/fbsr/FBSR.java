@@ -221,7 +221,7 @@ public class FBSR {
 			map.setAltMode(request.show.altMode);
 			map.setResolver(resolver);
 
-			map.setFoundation(mapTiles.stream().anyMatch(t -> t.getFactory().getPrototype().isFoundation()));
+			map.setSpaceFoundation(mapTiles.stream().anyMatch(t -> t.getFactory().getName().equals("space-platform-foundation")));
 
 			mapEntities.forEach(t -> {
 				try {
@@ -359,7 +359,7 @@ public class FBSR {
 
 		private void calculateBounds() {
 			boolean showGrid = !request.getGridLines().isEmpty();
-			boolean gridFoundationMode = map.isFoundation() && !request.show.gridNumbers;
+			boolean gridFoundationMode = map.isSpaceFoundation() && !request.show.gridNumbers;
 			boolean gridShowNumbers = !gridFoundationMode && request.show.gridNumbers;
 			boolean gridAboveBelts = request.show.gridAboveBelts;
 

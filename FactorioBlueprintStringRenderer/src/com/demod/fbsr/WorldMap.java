@@ -291,7 +291,7 @@ public class WorldMap {
 	private final Set<String> unknownTiles = new HashSet<>();
 
 	private boolean altMode = false;
-	private boolean foundation = false;
+	private boolean spaceFoundation = false;
 
 	private ModdingResolver resolver;
 
@@ -512,8 +512,8 @@ public class WorldMap {
 		return pipes.contains(kr, kc) && (pipes.get(kr, kc) & flag(facing)) > 0;
 	}
 
-	public boolean isFoundation() {
-		return foundation;
+	public boolean isSpaceFoundation() {
+		return spaceFoundation;
 	}
 
 	public boolean isVerticalGate(MapPosition pos) {
@@ -584,8 +584,8 @@ public class WorldMap {
 		pipes.put(pos.getXCell(), pos.getYCell(), flags);
 	}
 
-	public void setFoundation(boolean foundation) {
-		this.foundation = foundation;
+	public void setSpaceFoundation(boolean foundation) {
+		this.spaceFoundation = foundation;
 	}
 
 	public void setUndergroundBeltEnding(String name, MapPosition pos, Direction dir) {

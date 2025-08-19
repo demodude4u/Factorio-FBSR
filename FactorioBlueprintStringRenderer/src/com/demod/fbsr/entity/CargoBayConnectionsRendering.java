@@ -122,7 +122,7 @@ public abstract class CargoBayConnectionsRendering extends EntityWithOwnerRender
 
 		FPCargoBayConnectableGraphicsSet protoSelectedGraphicsSet;
 
-		if (map.isFoundation() && protoPlatformGraphicsSet.isPresent()) {
+		if (map.isSpaceFoundation() && protoPlatformGraphicsSet.isPresent()) {
 			protoSelectedGraphicsSet = protoPlatformGraphicsSet.get();
 		} else {
 			protoSelectedGraphicsSet = protoGraphicsSet;
