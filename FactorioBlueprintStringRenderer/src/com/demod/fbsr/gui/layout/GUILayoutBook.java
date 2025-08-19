@@ -383,7 +383,6 @@ public class GUILayoutBook {
 			request.setGridLines(Optional.empty());
 			request.setMaxScale(OptionalDouble.of(0.5));
 
-			// TODO fix race conditions, turned off parallel for now
 			Future<RenderResult> future = FBSR.renderBlueprintAsync(request);
 			try {
 				future.get();

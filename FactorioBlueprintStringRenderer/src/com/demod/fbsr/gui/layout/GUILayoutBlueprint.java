@@ -19,6 +19,7 @@ import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.OptionalInt;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -134,7 +135,12 @@ public class GUILayoutBlueprint {
 		request.setBackground(Optional.empty());
 		request.setDontClipSprites(false);
 
-		this.result = FBSR.renderBlueprint(request);
+		try {
+			this.result = FBSR.renderBlueprintAsync(request).get();
+		} catch (InterruptedException | ExecutionException e) {
+			reporting.addException(e);
+			return;
+		}
 
 		GUIImage image = new GUIImage(bounds, result.image, true);
 		image.render(g);

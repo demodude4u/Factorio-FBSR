@@ -6,6 +6,7 @@ import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import javax.imageio.ImageIO;
@@ -205,7 +206,15 @@ public class CmdRPC {
                     request = new RenderRequest(blueprintString.blueprint.get(), reporting);
                 }
 
-                RenderResult result = FBSR.renderBlueprint(request);
+                RenderResult result = null;
+                try {
+                    result = FBSR.renderBlueprintAsync(request).get();
+                } catch (InterruptedException | ExecutionException e) {
+                    ret.put("success", false);
+                    ret.put("message", "Internal failure: " + e.getMessage());
+                    reportAddResponse(reporting, ret);
+                    return ret;
+                }
                 
                 image = result.image;
 

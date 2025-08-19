@@ -129,7 +129,7 @@ public class WebAPIService extends AbstractIdleService {
 					for (BSBlueprint blueprint : blueprints) {
 						try {
 							RenderRequest request = new RenderRequest(blueprint, reporting);
-							RenderResult result = FBSR.renderBlueprint(request);
+							RenderResult result = FBSR.renderBlueprintAsync(request).get();
 							renderTimes.add(result.renderTime);
 
 							if (body.optBoolean("return-single-image")) {

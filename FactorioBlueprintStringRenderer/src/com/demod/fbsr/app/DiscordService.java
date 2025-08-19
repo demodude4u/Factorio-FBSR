@@ -717,7 +717,7 @@ public class DiscordService extends AbstractIdleService {
 		request.debug.pathRails = debugPathRails;
 		request.debug.entityPlacement = debugEntityPlacement;
 
-		RenderResult result = FBSR.renderBlueprint(request);
+		RenderResult result = FBSR.renderBlueprintAsync(request).get();
 
 		if (!result.unknownEntities.isEmpty()) {
 			event.getReporting()
@@ -984,7 +984,7 @@ public class DiscordService extends AbstractIdleService {
 		sw.append(label).append('`').append('\n');
 	}
 
-	private void handleShowEntityCommand(SlashCommandEvent event) {
+	private void handleShowEntityCommand(SlashCommandEvent event) throws InterruptedException, ExecutionException {
 		String entityName = event.getParamString("entity");
 		boolean debug = event.optParamBoolean("debug").orElse(false);
 		Optional<String> modFilter = event.optParamString("mod");
@@ -1068,7 +1068,7 @@ public class DiscordService extends AbstractIdleService {
 		request.setDontClipSprites(true);
 		request.debug.entityPlacement = debug;
 
-		RenderResult result = FBSR.renderBlueprint(request);
+		RenderResult result = FBSR.renderBlueprintAsync(request).get();
 
 		ImageShrinkResult shrinkResult = shrinkImageToFitUploadLimit(result.image);
 		String imageFilename = WebUtils.formatBlueprintFilename(Optional.of(entityName), shrinkResult.extension);
@@ -1554,7 +1554,7 @@ public class DiscordService extends AbstractIdleService {
 				BSBlueprint blueprint = blueprintString.blueprint.get();
 
 				RenderRequest request = new RenderRequest(blueprint, reporting);
-				RenderResult result = FBSR.renderBlueprint(request);
+				RenderResult result = FBSR.renderBlueprintAsync(request).get();
 
 				reporting.addField(new Field("Render Time", result.renderTime + " ms", true));
 
@@ -1628,7 +1628,7 @@ public class DiscordService extends AbstractIdleService {
 				BSBlueprint blueprint = blueprintString.blueprintBook.get().getAllBlueprints().get(index);
 
 				RenderRequest request = new RenderRequest(blueprint, reporting);
-				RenderResult result = FBSR.renderBlueprint(request);
+				RenderResult result = FBSR.renderBlueprintAsync(request).get();
 
 				reporting.addField(new Field("Render Time", result.renderTime + " ms", true));
 
