@@ -276,6 +276,24 @@ public abstract class EntityRendering extends EntityRendererFactory {
 			}
 		}
 
+		public void energySource(LuaValue lua) {
+			if (!lua.isnil()) {
+				LuaValue luaType = lua.get("type");
+				if (!luaType.isnil()) {
+					switch (luaType.checkjstring()) {
+						case "electric":
+						case "burner":
+						case "heat":
+						case "void":
+						default:
+							break;
+						case "fluid":
+							fluidBox(lua.get("fluid_box"));
+					}
+				}
+			}
+		}
+
 		public void layeredSprite(LuaValue lua) {
 			BindAction<FPLayeredSprite> ret = new BindAction<FPLayeredSprite>() {
 				@Override

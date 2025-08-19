@@ -155,6 +155,8 @@ public class InserterRendering extends EntityWithOwnerRendering {
 	public void defineEntity(Bindings bind, LuaTable lua) {
 		super.defineEntity(bind, lua);
 
+		bind.energySource(lua.get("energy_source"));
+
 		bind.circuitConnector4Way(lua.get("circuit_connector"));
 	}
 
