@@ -37,8 +37,10 @@ Commands:
   profile-enable           Enable a profile
   profile-explore          Open file manager for the specified profile
   profile-default-vanilla  Generate default vanilla profile
+  mod-query                List mods based on filters
   profile-status           Get the status of a profile
   profile-factorio         Run Factorio with the specified profile
+  profile-test-book        Generate blueprint book with test blueprints
   profile-test-entity      Render test image of an entity
   profile-test             Render test blueprints
   profile-update-mods      Update mod versions
@@ -227,8 +229,8 @@ Modify FBSR configuration
 ## `cfg-factorio` — Modify Factorio configuration
 
 ```
-Usage:   cfg-factorio [-install=<PATH> | -find-install] [-executable=<PATH> |
-                      -auto-find-exec]
+Usage:   cfg-factorio [-install=<PATH> | -find-install | -no-install]
+                      [-executable=<PATH> | -auto-find-exec]
 Modify Factorio configuration
       -auto-find-exec      Automatically find the Factorio executable in the
                              installation folder
@@ -236,6 +238,7 @@ Modify Factorio configuration
       -find-install        Automatically find Factorio installation in common
                              directories
       -install=<PATH>      Path to Factorio installation
+      -no-install          Clear the Factorio installation path
 
 ```
 ## `cfg-modportal` — Modify Mod Portal configuration
@@ -273,14 +276,14 @@ Show current configuration
 ## `build` — Build all steps
 
 ```
-Usage:   build [-f] [-fa] [-fd] (<PROFILE>... | -a)
+Usage:   build [-f] [-force-assets] [-force-dump] (<PROFILE>... | -a)
 Build all steps
-      <PROFILE>...         Name of the profile
-  -a, -all                 Apply to all profiles
-  -f, -force               Force regeneration of all steps, even if they
-                             already exist
-      -fa, -force-assets   Force regeneration of assets
-      -fd, -force-dump     Force regeneration of factorio dump
+      <PROFILE>...    Name of the profile
+  -a, -all            Apply to all profiles
+  -f, -force          Force regeneration of all steps, even if they already
+                        exist
+      -force-assets   Force regeneration of assets
+      -force-dump     Force regeneration of factorio dump
 
 ```
 ## `build-download` — Download mods
@@ -394,11 +397,12 @@ Enable a profile
 ## `profile-explore` — Open file manager for the specified profile
 
 ```
-Usage:   profile-explore [-b | -a] <PROFILE>
+Usage:   profile-explore (-p | -b | -a) <PROFILE>
 Open file manager for the specified profile
       <PROFILE>   Name of the profile
-  -a, -assets     Open the assets zip instead of the profile folder
-  -b, -build      Open the build folder instead of the profile folder
+  -a, -assets     Open the assets zip
+  -b, -build      Open the build folder
+  -p, -profile    Open the profile folder
 
 ```
 ## `profile-default-vanilla` — Generate default vanilla profile
@@ -408,6 +412,19 @@ Usage:   profile-default-vanilla [-f]
 Generate default vanilla profile
   -f, -force   Force regeneration of the default vanilla profile, even if it
                  already exists
+
+```
+## `mod-query` — List mods based on filters
+
+```
+Usage:   mod-query [-d] [-e[=<arg2>...]]... [-m[=<arg0>...]]... [-p
+                   [=<arg1>...]]... [-t[=<arg3>...]]...
+List mods based on filters
+  -d, -detailed              Show mod details
+  -e, -entity[=<arg2>...]    Filter by entity
+  -m, -mod[=<arg0>...]       Filter by mod
+  -p, -profile[=<arg1>...]   Filter by profile
+  -t, -tile[=<arg3>...]      Filter by tile
 
 ```
 ## `profile-status` — Get the status of a profile
@@ -427,6 +444,15 @@ Get the status of a profile
 Usage:   profile-factorio <PROFILE>
 Run Factorio with the specified profile
       <PROFILE>   Name of the profile
+
+```
+## `profile-test-book` — Generate blueprint book with test blueprints
+
+```
+Usage:   profile-test-book (<PROFILE>... | -a)
+Generate blueprint book with test blueprints
+      <PROFILE>...   Name of the profile
+  -a, -all           Apply to all profiles
 
 ```
 ## `profile-test-entity` — Render test image of an entity
