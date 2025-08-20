@@ -202,6 +202,8 @@ public class GUILayoutBook {
 	private List<String> spaceAgeMods;
 	private List<String> mods;
 
+	private volatile String lockKey = null;
+
 	private void drawFrame(Graphics2D g, GUIBox bounds) {
 		g.setComposite(tint);
 
@@ -359,7 +361,6 @@ public class GUILayoutBook {
 	}
 
 	public BufferedImage generateDiscordImage() {
-
 		double renderScale = 0.5;
 		double uiScale = 1;
 
@@ -383,7 +384,7 @@ public class GUILayoutBook {
 			request.setGridLines(Optional.empty());
 			request.setMaxScale(OptionalDouble.of(0.5));
 
-			Future<RenderResult> future = FBSR.renderBlueprintAsync(request);
+			Future<RenderResult> future = FBSR.renderBlueprintQueued(request, lockKey);
 			try {
 				future.get();
 			} catch (InterruptedException | ExecutionException e) {
@@ -473,6 +474,10 @@ public class GUILayoutBook {
 
 	public void setReporting(CommandReporting reporting) {
 		this.reporting = reporting;
+	}
+
+	public void setLockKey(String lockKey) {
+		this.lockKey = lockKey;
 	}
 
 	private void renderTinted(Graphics2D g, GUIPart part) {

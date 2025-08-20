@@ -30,6 +30,8 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 import javax.imageio.ImageIO;
 
@@ -399,6 +401,7 @@ public class DiscordService extends AbstractIdleService {
 			GUILayoutBlueprint layout = new GUILayoutBlueprint();
 			layout.setBlueprint(blueprint);
 			layout.setReporting(reporting);
+			layout.setLockKey(event.getMessageChannel().getId());
 			image = layout.generateDiscordImage();
 			unknownNames.addAll(layout.getResult().unknownEntities);
 			unknownNames.addAll(layout.getResult().unknownTiles);
@@ -432,6 +435,7 @@ public class DiscordService extends AbstractIdleService {
 			GUILayoutBook layout = new GUILayoutBook();
 			layout.setBook(book);
 			layout.setReporting(reporting);
+			layout.setLockKey(event.getMessageChannel().getId());
 			image = layout.generateDiscordImage();
 			layout.getResults().stream().forEach(r -> unknownNames.addAll(r.unknownEntities));
 			layout.getResults().stream().forEach(r -> unknownNames.addAll(r.unknownTiles));
@@ -717,7 +721,7 @@ public class DiscordService extends AbstractIdleService {
 		request.debug.pathRails = debugPathRails;
 		request.debug.entityPlacement = debugEntityPlacement;
 
-		RenderResult result = FBSR.renderBlueprintAsync(request).get();
+		RenderResult result = FBSR.renderBlueprintQueued(request, event.getMessageChannel().getId()).get();
 
 		if (!result.unknownEntities.isEmpty()) {
 			event.getReporting()
@@ -1068,7 +1072,7 @@ public class DiscordService extends AbstractIdleService {
 		request.setDontClipSprites(true);
 		request.debug.entityPlacement = debug;
 
-		RenderResult result = FBSR.renderBlueprintAsync(request).get();
+		RenderResult result = FBSR.renderBlueprint(request);
 
 		ImageShrinkResult shrinkResult = shrinkImageToFitUploadLimit(result.image);
 		String imageFilename = WebUtils.formatBlueprintFilename(Optional.of(entityName), shrinkResult.extension);
@@ -1232,6 +1236,7 @@ public class DiscordService extends AbstractIdleService {
 			GUILayoutBlueprint layout = new GUILayoutBlueprint();
 			layout.setBlueprint(blueprint);
 			layout.setReporting(reporting);
+			layout.setLockKey(event.getChannelId());
 			image = layout.generateDiscordImage();
 			renderTimes.add(layout.getResult().renderTime);
 
@@ -1254,6 +1259,7 @@ public class DiscordService extends AbstractIdleService {
 			GUILayoutBook layout = new GUILayoutBook();
 			layout.setBook(book);
 			layout.setReporting(reporting);
+			layout.setLockKey(event.getChannelId());
 			image = layout.generateDiscordImage();
 			renderTimes.add(layout.getResults().stream().mapToLong(r -> r.renderTime).sum());
 
@@ -1386,9 +1392,26 @@ public class DiscordService extends AbstractIdleService {
 		List<List<ItemComponent>> actionRows = new ArrayList<>();
 		List<ItemComponent> actionButtonRow = new ArrayList<>();
 
-		Future<Message> futBlueprintStringUpload = useDiscordForFileHosting(
-				WebUtils.formatBlueprintFilename(blueprintString.findFirstLabel(), "txt"),
-				blueprintString.getRaw().get());
+		String blueprintFilename = WebUtils.formatBlueprintFilename(blueprintString.findFirstLabel(), "txt");
+		String blueprintRaw = blueprintString.getRaw().get();
+		byte[] blueprintBytes = blueprintRaw.getBytes(StandardCharsets.UTF_8);
+
+		Future<Message> futBlueprintStringUpload;
+		if (blueprintBytes.length > MAX_FILE_SIZE) {
+			String entryName = blueprintFilename;
+			blueprintFilename = blueprintFilename.substring(0, blueprintFilename.length()-4) + ".zip";
+			try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
+					ZipOutputStream zos = new ZipOutputStream(baos)) {
+				ZipEntry entry = new ZipEntry(entryName);
+				zos.putNextEntry(entry);
+				zos.write(blueprintBytes);
+				zos.closeEntry();
+				zos.finish();
+				futBlueprintStringUpload = useDiscordForFileHosting(blueprintFilename, baos.toByteArray());
+			}
+		} else {
+			futBlueprintStringUpload = useDiscordForFileHosting(blueprintFilename, blueprintRaw);
+		}
 
 		if (blueprintString.blueprint.isPresent()) {
 			BSBlueprint blueprint = blueprintString.blueprint.get();
@@ -1398,6 +1421,7 @@ public class DiscordService extends AbstractIdleService {
 			GUILayoutBlueprint layout = new GUILayoutBlueprint();
 			layout.setBlueprint(blueprint);
 			layout.setReporting(reporting);
+			layout.setLockKey(event.getChannel().getId());
 			image = layout.generateDiscordImage();
 			renderTimes.add(layout.getResult().renderTime);
 
@@ -1421,6 +1445,7 @@ public class DiscordService extends AbstractIdleService {
 			GUILayoutBook layout = new GUILayoutBook();
 			layout.setBook(book);
 			layout.setReporting(reporting);
+			layout.setLockKey(event.getChannel().getId());
 			image = layout.generateDiscordImage();
 			renderTimes.add(layout.getResults().stream().mapToLong(r -> r.renderTime).sum());
 
@@ -1554,7 +1579,7 @@ public class DiscordService extends AbstractIdleService {
 				BSBlueprint blueprint = blueprintString.blueprint.get();
 
 				RenderRequest request = new RenderRequest(blueprint, reporting);
-				RenderResult result = FBSR.renderBlueprintAsync(request).get();
+				RenderResult result = FBSR.renderBlueprintQueued(request, event.getChannelId()).get();
 
 				reporting.addField(new Field("Render Time", result.renderTime + " ms", true));
 
@@ -1628,7 +1653,7 @@ public class DiscordService extends AbstractIdleService {
 				BSBlueprint blueprint = blueprintString.blueprintBook.get().getAllBlueprints().get(index);
 
 				RenderRequest request = new RenderRequest(blueprint, reporting);
-				RenderResult result = FBSR.renderBlueprintAsync(request).get();
+				RenderResult result = FBSR.renderBlueprintQueued(request, event.getChannelId()).get();
 
 				reporting.addField(new Field("Render Time", result.renderTime + " ms", true));
 

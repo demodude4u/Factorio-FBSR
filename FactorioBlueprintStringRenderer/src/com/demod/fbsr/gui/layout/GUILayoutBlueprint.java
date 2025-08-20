@@ -86,6 +86,8 @@ public class GUILayoutBlueprint {
 
 	private Graphics2D g;
 
+	private volatile String lockKey = null;
+
 	private void drawFrame(GUIBox bounds) {
 		int titleHeight = 50;
 		int infoPaneWidth = 76 + itemColumns * itemCellSize;
@@ -136,7 +138,7 @@ public class GUILayoutBlueprint {
 		request.setDontClipSprites(false);
 
 		try {
-			this.result = FBSR.renderBlueprintAsync(request).get();
+			this.result = FBSR.renderBlueprintQueued(request, lockKey).get();
 		} catch (InterruptedException | ExecutionException e) {
 			reporting.addException(e);
 			return;
@@ -405,7 +407,6 @@ public class GUILayoutBlueprint {
 	}
 
 	public BufferedImage generateDiscordImage() {
-
 		DataTable baseTable = factorioManager.getProfileVanilla().getFactorioData().getTable();
 		boolean baseDataOnly = blueprint.entities.stream().allMatch(e -> baseTable.getEntity(e.name).isPresent())
 				&& blueprint.tiles.stream().allMatch(t -> baseTable.getTile(t.name).isPresent());
@@ -501,6 +502,10 @@ public class GUILayoutBlueprint {
 
 	public void setReporting(CommandReporting reporting) {
 		this.reporting = reporting;
+	}
+
+	public void setLockKey(String lockKey) {
+		this.lockKey = lockKey;
 	}
 
 }

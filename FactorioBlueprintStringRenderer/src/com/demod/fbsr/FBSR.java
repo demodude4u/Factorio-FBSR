@@ -29,6 +29,8 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -113,6 +115,59 @@ public class FBSR {
 
 	private static final ExecutorService executor = Executors.newWorkStealingPool();
 
+	private static final int MAX_CONCURRENT_PER_LOCK = 2;
+
+	private static final Map<String, LockRenderQueue> renderQueues = new ConcurrentHashMap<>();
+
+	private static class LockRenderQueue {
+		int active = 0;
+		ArrayDeque<RenderTask> queue = new ArrayDeque<>();
+	}
+
+	private static class RenderTask implements Runnable {
+		private final String lockKey;
+		private final RenderRequest request;
+		private final CompletableFuture<RenderResult> future;
+
+		RenderTask(String lockKey, RenderRequest request, CompletableFuture<RenderResult> future) {
+			this.lockKey = lockKey;
+			this.request = request;
+			this.future = future;
+		}
+
+		@Override
+		public void run() {
+			try {
+				RenderResult result = new ImageRenderer(request).call();
+				future.complete(result);
+			} catch (Throwable t) {
+				future.completeExceptionally(t);
+			} finally {
+				onComplete();
+			}
+		}
+
+		private void onComplete() {
+			LockRenderQueue lrq = renderQueues.get(lockKey);
+			if (lrq == null) {
+				return;
+			}
+			RenderTask next = null;
+			synchronized (lrq) {
+				lrq.active--;
+				if (!lrq.queue.isEmpty()) {
+					next = lrq.queue.poll();
+					lrq.active++;
+				} else if (lrq.active == 0) {
+					renderQueues.remove(lockKey, lrq);
+				}
+			}
+			if (next != null) {
+				executor.submit(next);
+			}
+		}
+	}
+
 	private static class ImageRenderer implements Callable<RenderResult> {
 		private final RenderRequest request;
 
@@ -151,13 +206,16 @@ public class FBSR {
 
 			parseBlueprint();
 
+			LOGGER.info("\t{} Entities, {} Tiles", mapEntities.size(), mapTiles.size());
+
 			populateMap();
 
 			createRenderers();
 
 			calculateBounds();
 
-			LOGGER.info("\t{}x{} ({})", imageWidth, imageHeight, worldRenderScale);
+			LOGGER.info("\tGrid {}x{}", screenBounds.width, screenBounds.height);
+			LOGGER.info("\tPixels {}x{} ({})", imageWidth, imageHeight, worldRenderScale);
 
 			renderImage();
 
@@ -998,9 +1056,28 @@ public class FBSR {
 	public static RenderResult renderBlueprint(RenderRequest request) {
 		return new ImageRenderer(request).call();
 	}
-
+	
 	public static Future<RenderResult> renderBlueprintAsync(RenderRequest request) {
 		return executor.submit(new ImageRenderer(request));
+	}
+
+	public static Future<RenderResult> renderBlueprintQueued(RenderRequest request, String lockKey) {
+		if (lockKey == null) {
+			return executor.submit(new ImageRenderer(request));
+		}
+		
+		CompletableFuture<RenderResult> future = new CompletableFuture<>();
+		RenderTask task = new RenderTask(lockKey, request, future);
+		LockRenderQueue lrq = renderQueues.computeIfAbsent(lockKey, k -> new LockRenderQueue());
+		synchronized (lrq) {
+			if (lrq.active < MAX_CONCURRENT_PER_LOCK) {
+				lrq.active++;
+				executor.submit(task);
+			} else {
+				lrq.queue.add(task);
+			}
+		}
+		return future;
 	}
 
 	private static MapRect3D calculateGridBounds(List<MapEntity> mapEntities, List<MapTile> mapTiles, Optional<BSPosition> snapToGrid) {

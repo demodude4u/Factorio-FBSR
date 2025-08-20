@@ -64,7 +64,7 @@ public class MapItemLogistics extends MapRenderable {
 		});
 	}
 
-	private Color getItemLogisticColor(String itemName) {
+	private synchronized Color getItemLogisticColor(String itemName) {
 		return itemColorCache.computeIfAbsent(itemName, k -> {
 			Optional<IconDef> icon = map.getResolver().resolveIconItemName(k);
 			if (!icon.isPresent()) {
