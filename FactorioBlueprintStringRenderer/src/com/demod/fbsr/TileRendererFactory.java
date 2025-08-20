@@ -348,7 +348,7 @@ public class TileRendererFactory {
 		}
 	}
 
-	public static void createAllRenderers(Consumer<MapRenderable> register, List<MapTile> tiles) {
+	public static void createAllRenderers(Consumer<MapRenderable> register, List<MapTile> allTiles) {
 
 		// TODO how do I decide which edge factory for matching layers? (example,
 		// hazard-concrete-left/right)
@@ -361,17 +361,17 @@ public class TileRendererFactory {
 		LinkedHashMap<Integer, Table<Integer, Integer, TileCell>> tileMaps = new LinkedHashMap<>();
 
 		// XXX should I also do render order (left to right, top to bottom)?
-		List<MapTile> tileOrder = tiles.stream().filter(t -> !t.getFactory().isUnknown())
+		List<MapTile> tileOrder = allTiles.stream().filter(t -> !t.getFactory().isUnknown())
 				.sorted(Comparator.comparing(t -> t.getFactory().protoLayer)).collect(Collectors.toList());
 
 		// <layer, <row, col, cell>>
 		LinkedHashMap<Integer, Table<Integer, Integer, TileEdgeCell>> tileEdgeMaps = new LinkedHashMap<>();
 
-		tiles.stream().mapToInt(t -> t.getFactory().protoLayer).distinct().forEach(i -> {
+		tileOrder.stream().mapToInt(t -> t.getFactory().protoLayer).distinct().forEach(i -> {
 			tileMaps.put(i, HashBasedTable.create());
 			tileEdgeMaps.put(i, HashBasedTable.create());
 		});
-		tiles.stream().flatMap(t -> t.getFactory().protoTransitionMergesWithTile.stream()).mapToInt(t -> t.protoLayer)
+		tileOrder.stream().flatMap(t -> t.getFactory().protoTransitionMergesWithTile.stream()).mapToInt(t -> t.protoLayer)
 				.distinct().forEach(i -> {
 					tileMaps.put(i, HashBasedTable.create());
 					tileEdgeMaps.put(i, HashBasedTable.create());
