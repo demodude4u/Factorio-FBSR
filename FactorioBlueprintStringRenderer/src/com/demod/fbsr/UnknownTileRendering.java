@@ -4,6 +4,8 @@ import java.awt.Color;
 import java.awt.Font;
 import java.util.function.Consumer;
 
+import com.demod.factorio.DataTable;
+import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.gui.GUIStyle;
 import com.demod.fbsr.map.MapPosition;
 import com.demod.fbsr.map.MapRenderable;
@@ -38,11 +40,15 @@ public class UnknownTileRendering extends TileRendererFactory {
 	}
 
 	@Override
-	public void populateWorldMap(WorldMap map, MapTile tile) {
+	public boolean isUnknown() {
+		return true;
 	}
 
 	@Override
-	public boolean isUnknown() {
-		return true;
+	public void initFromPrototype(DataTable table) {
+	}
+
+	@Override
+	public void initAtlas(Consumer<ImageDef> register) {
 	}
 }

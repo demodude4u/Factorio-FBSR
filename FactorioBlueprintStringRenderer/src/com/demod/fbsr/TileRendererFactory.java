@@ -571,10 +571,6 @@ public class TileRendererFactory {
 		return false;
 	}
 
-	// TODO fix UNKNOWN so we don't need this
-	public void populateWorldMap(WorldMap map, MapTile tile) {
-	}
-
 	public void setProfile(Profile profile) {
 		this.profile = profile;
 	}

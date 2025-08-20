@@ -231,14 +231,6 @@ public class FBSR {
 							t.getFactory().getClass().getSimpleName() + ", " + t.fromBlueprint().name);
 				}
 			});
-			mapTiles.forEach(t -> {
-				try {
-					t.getFactory().populateWorldMap(map, t);
-				} catch (Exception e) {
-					reporting.addException(e,
-							t.getFactory().getClass().getSimpleName() + ", " + t.fromBlueprint().name);
-				}
-			});
 
 			mapEntities.forEach(t -> {
 				try {
