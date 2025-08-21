@@ -9,6 +9,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -261,6 +262,7 @@ public class WorldMap {
 	// Column: Y
 	private final Table<Integer, Integer, BeltCell> belts = HashBasedTable.create();
 	private final Table<Integer, Integer, Integer> pipes = HashBasedTable.create();
+	private final Table<Integer, Integer, Integer> pipePieceAdjCodes = HashBasedTable.create();
 	private final Table<Integer, Integer, Integer> heatPipes = HashBasedTable.create();
 	private final Table<Integer, Integer, Object> walls = HashBasedTable.create();
 	private final Table<Integer, Integer, Boolean> gates = HashBasedTable.create();
@@ -404,6 +406,15 @@ public class WorldMap {
 			logisticGrid.put(kr, kc, ret = new LogisticGridCell());
 		}
 		return ret;
+	}
+
+	public OptionalInt getPipePieceAdjCode(MapPosition pos) {
+		int kr = pos.getXCell();
+		int kc = pos.getYCell();
+		if (pipePieceAdjCodes.contains(kr, kc)) {
+			return OptionalInt.of(pipePieceAdjCodes.get(kr, kc));
+		}
+		return OptionalInt.empty();
 	}
 
 	// public RailNode getOrCreateRailNode(MapPosition pos, boolean elevated) {
@@ -582,6 +593,10 @@ public class WorldMap {
 			flags |= currentFlags;
 		}
 		pipes.put(pos.getXCell(), pos.getYCell(), flags);
+	}
+
+	public void setPipePieceAdjCode(MapPosition pos, int adjCode) {
+		pipePieceAdjCodes.put(pos.getXCell(), pos.getYCell(), adjCode);
 	}
 
 	public void setSpaceFoundation(boolean foundation) {

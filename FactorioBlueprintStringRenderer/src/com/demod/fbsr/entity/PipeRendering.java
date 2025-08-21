@@ -2,6 +2,7 @@ package com.demod.fbsr.entity;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.OptionalInt;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -14,10 +15,16 @@ import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.fp.FPSprite;
 import com.demod.fbsr.map.MapEntity;
+import com.demod.fbsr.map.MapPosition;
 import com.demod.fbsr.map.MapRenderable;
 
 @EntityType("pipe")
 public class PipeRendering extends EntityWithOwnerRendering {
+
+	public static final int ADJCODE_STRAIGHT_HORIZONTAL = 0b1010;
+	public static final int ADJCODE_STRAIGHT_VERTICAL = 0b0101;
+	public static final int ADJCODE_STRAIGHT_HORIZONTAL_WINDOW = 16;
+	public static final int ADJCODE_STRAIGHT_VERTICAL_WINDOW = 17;
 
 	public static final String[] pipeSpriteNameMapping = //
 			new String[/* bits WSEN */] { //
@@ -37,6 +44,8 @@ public class PipeRendering extends EntityWithOwnerRendering {
 					"t_left", // WS.N
 					"t_down", // WSE.
 					"cross",// WSEN
+					"straight_horizontal_window", // Special 16
+					"straight_vertical_window", // Special 17
 			};
 
 	private List<FPSprite> protoPipeSprites;
@@ -45,11 +54,29 @@ public class PipeRendering extends EntityWithOwnerRendering {
 	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
 		super.createRenderers(register, map, entity);
 
-		int adjCode = 0;
-		adjCode |= ((pipeFacingMeFrom(Direction.NORTH, map, entity) ? 1 : 0) << 0);
-		adjCode |= ((pipeFacingMeFrom(Direction.EAST, map, entity) ? 1 : 0) << 1);
-		adjCode |= ((pipeFacingMeFrom(Direction.SOUTH, map, entity) ? 1 : 0) << 2);
-		adjCode |= ((pipeFacingMeFrom(Direction.WEST, map, entity) ? 1 : 0) << 3);
+		MapPosition pos = entity.getPosition();
+
+		int adjCode = map.getPipePieceAdjCode(pos).getAsInt();
+
+		boolean sh = adjCode == ADJCODE_STRAIGHT_HORIZONTAL;
+		boolean sv = adjCode == ADJCODE_STRAIGHT_VERTICAL;
+		if (sh || sv) {
+			boolean window = true;
+			Direction checkDir = sh ? Direction.EAST : Direction.SOUTH;
+			int checkStraightAdjCode = sh ? ADJCODE_STRAIGHT_HORIZONTAL : ADJCODE_STRAIGHT_VERTICAL;
+			MapPosition fwdPos = checkDir.offset(pos);
+			MapPosition revPos = checkDir.back().offset(pos);
+			OptionalInt fwdAdjCode = map.getPipePieceAdjCode(fwdPos);
+			OptionalInt revAdjCode = map.getPipePieceAdjCode(revPos);
+			if ((fwdAdjCode.isPresent() && fwdAdjCode.getAsInt() == checkStraightAdjCode) &&
+					(revAdjCode.isPresent() && revAdjCode.getAsInt() == checkStraightAdjCode)) {
+				int sum = pos.getXCell() + pos.getYCell();
+				window = Math.floorMod(sum, 2) != 0;
+			}
+			if (window) {
+				adjCode = sh ? ADJCODE_STRAIGHT_HORIZONTAL_WINDOW : ADJCODE_STRAIGHT_VERTICAL_WINDOW;
+			}
+		}
 
 		protoPipeSprites.get(adjCode).defineSprites(entity.spriteRegister(register, Layer.OBJECT));
 	}
@@ -79,5 +106,17 @@ public class PipeRendering extends EntityWithOwnerRendering {
 		super.populateWorldMap(map, entity);
 		
 		map.setPipe(entity.getPosition());
+	}
+
+	@Override
+	public void populateLogistics(WorldMap map, MapEntity entity) {
+		super.populateLogistics(map, entity);
+
+		int adjCode = 0;
+		adjCode |= ((pipeFacingMeFrom(Direction.NORTH, map, entity) ? 1 : 0) << 0);
+		adjCode |= ((pipeFacingMeFrom(Direction.EAST, map, entity) ? 1 : 0) << 1);
+		adjCode |= ((pipeFacingMeFrom(Direction.SOUTH, map, entity) ? 1 : 0) << 2);
+		adjCode |= ((pipeFacingMeFrom(Direction.WEST, map, entity) ? 1 : 0) << 3);
+		map.setPipePieceAdjCode(entity.getPosition(), adjCode);
 	}
 }
