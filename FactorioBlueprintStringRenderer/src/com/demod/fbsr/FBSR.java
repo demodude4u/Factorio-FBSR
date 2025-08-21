@@ -214,7 +214,7 @@ public class FBSR {
 
 			calculateBounds();
 
-			LOGGER.info("\tGrid {}x{}", screenBounds.width, screenBounds.height);
+			LOGGER.info(String.format("\tGrid %.2f x %.2f", screenBounds.width, screenBounds.height));
 			LOGGER.info("\tPixels {}x{} ({})", imageWidth, imageHeight, worldRenderScale);
 
 			renderImage();
