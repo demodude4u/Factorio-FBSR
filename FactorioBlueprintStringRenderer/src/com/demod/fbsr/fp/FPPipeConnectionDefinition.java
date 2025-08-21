@@ -13,6 +13,7 @@ public class FPPipeConnectionDefinition {
 	public final Optional<Direction> direction;
 	public final Optional<FPVector> position;
 	public final Optional<List<FPVector>> positions;
+	public final List<String> enableWorkingVisualisations;
 
 	private final boolean input;
 	private final boolean output;
@@ -23,6 +24,8 @@ public class FPPipeConnectionDefinition {
 		direction = FPUtils.optDirection(lua.get("direction"));
 		position = FPUtils.opt(lua.get("position"), FPVector::new);
 		positions = FPUtils.optList(lua.get("positions"), FPVector::new);
+		enableWorkingVisualisations = FPUtils.list(lua.get("enable_working_visualisations"), l -> l.tojstring());
+
 
 		input = flowDirection.equals("input") || flowDirection.equals("input-output");
 		output = flowDirection.equals("output") || flowDirection.equals("input-output");

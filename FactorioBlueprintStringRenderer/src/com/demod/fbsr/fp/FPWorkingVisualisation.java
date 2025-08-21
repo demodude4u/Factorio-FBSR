@@ -13,6 +13,7 @@ import com.demod.fbsr.def.SpriteDef;
 import com.google.common.collect.ImmutableList;
 
 public class FPWorkingVisualisation {
+	public final Optional<String> name;
 	public final boolean alwaysDraw;
 	public final Optional<FPAnimation> animation;
 	public final Optional<FPAnimation> northAnimation;
@@ -21,6 +22,7 @@ public class FPWorkingVisualisation {
 	public final Optional<FPAnimation> westAnimation;
 
 	public FPWorkingVisualisation(Profile profile, LuaValue lua) {
+		name = FPUtils.optString(lua.get("name"));
 		alwaysDraw = lua.get("always_draw").optboolean(false);
 
 		animation = FPUtils.opt(profile, lua.get("animation"), FPAnimation::new);
