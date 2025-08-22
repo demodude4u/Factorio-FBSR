@@ -25,6 +25,9 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.demod.dcba.CommandReporting;
 import com.demod.fbsr.FBSR;
 import com.demod.fbsr.FactorioManager;
@@ -33,6 +36,7 @@ import com.demod.fbsr.RenderRequest;
 import com.demod.fbsr.RenderResult;
 import com.demod.fbsr.RichText;
 import com.demod.fbsr.RichText.TagToken;
+import com.demod.fbsr.app.DiscordService;
 import com.demod.fbsr.bs.BSBlueprint;
 import com.demod.fbsr.bs.BSBlueprint.BlueprintModInfo;
 import com.demod.fbsr.bs.BSBlueprintBook;
@@ -52,6 +56,7 @@ import com.google.common.collect.ArrayTable;
 import com.google.common.collect.Table;
 
 public class GUILayoutBook {
+	private static final Logger LOGGER = LoggerFactory.getLogger(GUILayoutBook.class);
 
 	public static class ImageBlock {
 		public final int rows;
@@ -407,6 +412,8 @@ public class GUILayoutBook {
 			BSBlueprint blueprint = result.request.getBlueprint();
 			blocks.add(new ImageBlock(rows, cols, blueprint.label, blueprint.icons, result.image));
 		}
+
+		LOGGER.info("Compiling blueprint book image...");
 
 		packBounds = packBlocks(blocks, DISCORD_IMAGE_RATIO);
 

@@ -204,6 +204,7 @@ public class DiscordService extends AbstractIdleService {
 					scaledImage = image;
 				}
 
+				LOGGER.info("\tSaving Image... {}x{}", scaledImage.getWidth(), scaledImage.getHeight());
 				if (!scaled) {
 					ImageIO.write(scaledImage, "PNG", baos);
 					if (baos.size() <= MAX_FILE_SIZE) {
@@ -233,6 +234,7 @@ public class DiscordService extends AbstractIdleService {
 				} else {
 					scale *= 0.9;
 				}
+				LOGGER.info("\tScaling image down to {}%", (int)(scale * 100));
 			}
 
 		} catch (IOException e) {
@@ -361,7 +363,7 @@ public class DiscordService extends AbstractIdleService {
 				attachmentUrls, reporting, event.getChannel().getId());
 		request.ignoreNoBlueprints = true;
 		request.onParseSuccess = bs -> {
-			createLoadingMessage.accept(bs.blueprint.isPresent() ? "Loading blueprint..." : "Loading book...");
+			createLoadingMessage.accept(bs.blueprint.isPresent() ? "-# Loading blueprint..." : "-# Loading book...");
 		};
 
 		BlueprintPreviewResponse response = requestBlueprintPreview(request);
@@ -611,6 +613,9 @@ public class DiscordService extends AbstractIdleService {
 
 			if (layout.getResult().renderScale < 0.501) {
 				try {
+					if (!futBlueprintStringUpload.isDone()) {
+						LOGGER.info("\tWaiting on blueprint string upload...");
+					}
 					actionButtonRow.add(Button.secondary("reply-zoom|" + futBlueprintStringUpload.get().getId(), "Zoom In")
 							.withEmoji(EMOJI_SEARCH));
 				} catch (InterruptedException | ExecutionException e) {
@@ -654,6 +659,9 @@ public class DiscordService extends AbstractIdleService {
 				List<ItemComponent> selectMenus = new ArrayList<>();
 				String id;
 				try {
+					if (!futBlueprintStringUpload.isDone()) {
+						LOGGER.info("\tWaiting on blueprint string upload...");
+					}
 					id = futBlueprintStringUpload.get().getId();
 				} catch (InterruptedException | ExecutionException e) {
 					reporting.addException(e);
@@ -737,6 +745,9 @@ public class DiscordService extends AbstractIdleService {
 
 		Message bsMessage;
 		try {
+			if (!futBlueprintStringUpload.isDone()) {
+				LOGGER.info("\tWaiting on blueprint string upload...");
+			}
 			bsMessage = futBlueprintStringUpload.get();
 		} catch (InterruptedException | ExecutionException e) {
 			reporting.addException(e);
@@ -790,6 +801,7 @@ public class DiscordService extends AbstractIdleService {
 		} else {
 			ImageShrinkResult shrinkResult = shrinkImageToFitUploadLimit(image);
 			String imageFilename = WebUtils.formatBlueprintFilename(label, shrinkResult.extension);
+			LOGGER.info("\tImage size: {} bytes", String.format("%,d", shrinkResult.data.length));
 			return BlueprintPreviewResponse.image(imageFilename, shrinkResult.data, actionRows, moreActionRows);
 		}	
 	}
