@@ -5,7 +5,13 @@ import java.awt.Color;
 import java.awt.Font;
 import java.awt.Graphics2D;
 import java.awt.Stroke;
+import java.awt.geom.AffineTransform;
 import java.awt.geom.Ellipse2D;
+import java.awt.Shape;
+import java.awt.geom.Rectangle2D;
+import java.awt.LinearGradientPaint;
+import java.awt.Paint;
+import java.awt.MultipleGradientPaint.CycleMethod;
 
 import com.demod.fbsr.FBSR;
 import com.demod.fbsr.Layer;
@@ -17,26 +23,51 @@ public class MapUnknownEntityMarker extends MapRenderable {
 
 	private final MapPosition position;
 	private final Color color;
+	private final Color stripeColor; // secondary color for stripes
 
-	public MapUnknownEntityMarker(MapPosition position, Color color) {
+	public MapUnknownEntityMarker(MapPosition position, Color color, Color stripeColor) {
 		super(Layer.ENTITY_INFO_ICON_ABOVE);
 		this.position = position;
 		this.color = color;
+		this.stripeColor = stripeColor;
 	}
 
 	@Override
 	public void render(Graphics2D g) {
 		double x = position.getX();
 		double y = position.getY();
-		g.setColor(color.darker());
+		AffineTransform pat = g.getTransform();
+		try {
+			g.translate(x, y);
+			drawNormalized(g, color, stripeColor);
+		} finally {
+			g.setTransform(pat);
+		}
+	}
+
+	public static void drawNormalized(Graphics2D g, Color color, Color secondaryColor) {
 		Stroke ps = g.getStroke();
-		g.setStroke(STROKE);
-		Ellipse2D.Double shape = new Ellipse2D.Double(x - 0.5, y - 0.5, 1, 1);
+		Paint pp = g.getPaint();
+
+		Ellipse2D.Double shape = new Ellipse2D.Double(-0.5, -0.5, 1, 1);
+
+		float pitch = 0.1f;
+		float[] fractions = new float[] { 0f, 0.49f, 0.5f, 1f };
+		Color[] colors = new Color[] { color, color, secondaryColor, secondaryColor };
+		LinearGradientPaint lgp = new LinearGradientPaint(
+				0f, 0f, pitch * 0.5f, pitch,
+				fractions, colors,
+				CycleMethod.REFLECT);
+
+		g.setPaint(lgp);
 		g.fill(shape);
+
+		g.setPaint(pp);
 		g.setColor(color.brighter().brighter());
+		g.setStroke(STROKE);
 		g.draw(shape);
 		g.setFont(FONT);
-		g.drawString("?", (float) x - 0.175f, (float) y + 0.3f);
+		g.drawString("?", -0.175f, 0.3f);
 		g.setStroke(ps);
 	}
 }

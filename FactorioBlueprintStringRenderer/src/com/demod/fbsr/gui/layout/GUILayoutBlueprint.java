@@ -52,6 +52,7 @@ import com.demod.fbsr.gui.part.GUILabel;
 import com.demod.fbsr.gui.part.GUIPanel;
 import com.demod.fbsr.gui.part.GUIPart;
 import com.demod.fbsr.gui.part.GUIRichText;
+import com.demod.fbsr.map.MapUnknownEntityMarker;
 import com.google.common.collect.ImmutableMap;
 
 public class GUILayoutBlueprint {
@@ -272,8 +273,17 @@ public class GUILayoutBlueprint {
 							}
 							
 						} else {
-							g.setColor(RenderUtils.getUnknownColor(item.name).brighter());
-							g.fillOval(iconBounds.x, iconBounds.y, iconBounds.width, iconBounds.height);
+							AffineTransform pat = g.getTransform();
+							try {
+								g.translate(iconBounds.x, iconBounds.y);
+								g.scale(iconBounds.width, iconBounds.height);
+								g.translate(0.5, 0.5);
+								Color color = RenderUtils.getUnknownColor(item.name);
+								Color secondaryColor = RenderUtils.getUnknownSecondaryColor(item.name);
+								MapUnknownEntityMarker.drawNormalized(g, color, secondaryColor);
+							} finally {
+								g.setTransform(pat);
+							}
 						}
 
 						String fmtQty = RenderUtils.fmtItemQuantity(quantity);

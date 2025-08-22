@@ -65,6 +65,16 @@ public final class RenderUtils {
 		return RenderUtils.withAlpha(Color.getHSBColor(random.nextFloat(), 0.6f, 0.4f), 128);
 	}
 
+	public static Color getUnknownSecondaryColor(String name) {
+		Random random = new Random(name.hashCode());
+		float baseHue = random.nextFloat();
+		float shift = (random.nextFloat() - 0.5f) / 0.5f;
+		float gap = 0.1f;
+		float range = 0.25f;
+		float hue = baseHue + Math.signum(shift) * (gap + range * Math.abs(shift));
+		return RenderUtils.withAlpha(Color.getHSBColor(hue, 0.6f, 0.4f), 128);
+	}
+
 	public static float getUnknownTextOffset(String name) {
 		Random random = new Random(name.hashCode());
 		return random.nextFloat();

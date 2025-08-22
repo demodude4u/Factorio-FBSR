@@ -28,6 +28,7 @@ import com.demod.fbsr.map.MapUnknownEntityMarker;
 
 public class UnknownEntityRendering extends EntityRendererFactory {
 	private final Color color;
+	private final Color secondaryColor;
 	private final float offset;
 
 	private Profile profile;
@@ -36,6 +37,7 @@ public class UnknownEntityRendering extends EntityRendererFactory {
 		this.profile = profile;
 		this.name = name;
 		color = RenderUtils.getUnknownColor(name);
+		secondaryColor = RenderUtils.getUnknownSecondaryColor(name);
 		offset = RenderUtils.getUnknownTextOffset(name);
 
 		JSONObject json = new JSONObject();
@@ -51,7 +53,7 @@ public class UnknownEntityRendering extends EntityRendererFactory {
 	@Override
 	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
 		MapPosition pos = entity.getPosition();
-		register.accept(new MapUnknownEntityMarker(pos, color));
+		register.accept(new MapUnknownEntityMarker(pos, color, secondaryColor));
 		if (map.addUnknownEntity(name)) {
 			Font FONT = profile.getGuiStyle().FONT_BP_BOLD.deriveFont(0.4f);
 			register.accept(
