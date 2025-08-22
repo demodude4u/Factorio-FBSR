@@ -62,6 +62,7 @@ import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.FBSR;
 import com.demod.fbsr.FBSR.RenderDebugLayersResult;
 import com.demod.fbsr.Profile.ManifestModInfo;
+import com.demod.fbsr.app.DiscordService.BlueprintPreviewResponse.ResponseType;
 import com.demod.fbsr.FactorioManager;
 import com.demod.fbsr.ModdingResolver;
 import com.demod.fbsr.Profile;
@@ -324,11 +325,192 @@ public class DiscordService extends AbstractIdleService {
 			throws IOException, InterruptedException, ExecutionException {
 
 		String content = event.getCommandString();
+		Optional<Attachment> attachment = event.optParamAttachment("file");
+		CommandReporting reporting = event.getReporting();
+
+		BlueprintPreviewRequest request = new BlueprintPreviewRequest(content,
+				attachment.map(a -> ImmutableList.of(a.getUrl())).orElse(ImmutableList.of()), reporting,
+				event.getMessageChannel().getId());
+		BlueprintPreviewResponse response = requestBlueprintPreview(request);
+
+		if (response.type == ResponseType.EMBED) {
+			event.replyEmbed(response.embed, response.actionRows);
+		} else if (response.type == ResponseType.IMAGE) {
+			event.replyFile(response.imageBytes, response.imageFilename, response.actionRows);
+		}
+		if (response.type != ResponseType.NONE && !response.moreActionRows.isEmpty()) {
+			event.replyEmbed(new EmbedBuilder().appendDescription("-# More Actions...").build(), response.moreActionRows);
+		}
+	}
+
+	public void onPrivateMessageReceived(MessageReceivedEvent event, CommandReporting reporting)
+			throws InterruptedException, ExecutionException, IOException {
+
+		String content = event.getMessage().getContentStripped();
+		List<String> attachmentUrls = new ArrayList<>();
+		for (Attachment attachment : event.getMessage().getAttachments()) {
+			attachmentUrls.add(attachment.getUrl());
+		}
+
+		List<Message> loadingMessage = new ArrayList<>();
+		Consumer<String> createLoadingMessage = (msg) -> {
+			loadingMessage.add(event.getMessage().reply(msg).complete());
+		};
+
+		BlueprintPreviewRequest request = new BlueprintPreviewRequest(content,
+				attachmentUrls, reporting, event.getChannel().getId());
+		request.ignoreNoBlueprints = true;
+		request.onParseSuccess = bs -> {
+			createLoadingMessage.accept(bs.blueprint.isPresent() ? "Loading blueprint..." : "Loading book...");
+		};
+
+		BlueprintPreviewResponse response = requestBlueprintPreview(request);
+
+		MessageCreateAction reply = null;
+		if (response.type == ResponseType.EMBED) {
+			reply = event.getMessage().replyEmbeds(response.embed);
+		} else if (response.type == ResponseType.IMAGE) {
+			reply = event.getMessage().replyFiles(FileUpload.fromData(response.imageBytes, response.imageFilename));
+		}
+
+		if (response.type != ResponseType.NONE) {
+			for (List<ItemComponent> actionRow : response.actionRows) {
+				reply.addActionRow(actionRow);
+			}
+
+			Message message = reply.complete();
+			reporting.addReply(message);
+			
+			if (!response.moreActionRows.isEmpty()) {
+				MessageCreateAction reply2 = message.replyEmbeds(new EmbedBuilder().appendDescription("-# More Actions...").build());
+				for (List<ItemComponent> actionRow : response.moreActionRows) {
+					reply2.addActionRow(actionRow);
+				}
+				reporting.addReply(reply2.complete());
+			}
+		}
+
+		loadingMessage.forEach(m -> m.delete().queue());
+	}
+
+	public void onBlueprintContextInteraction(MessageContextInteractionEvent event, CommandReporting reporting)
+			throws InterruptedException, ExecutionException, IOException {
+
+		ContextTarget targetType = event.getTargetType();
+		if (targetType == ContextTarget.USER) {
+			return;
+		}
+
+		InteractionHook hook = event.deferReply(true).complete();
+
+		Message target = event.getTarget();
+
+		String content = target.getContentRaw();
+		List<String> attachmentUrls = new ArrayList<>();
+		for (Attachment attachment : target.getAttachments()) {
+			attachmentUrls.add(attachment.getUrl());
+		}
+
+		BlueprintPreviewRequest request = new BlueprintPreviewRequest(content,
+				attachmentUrls, reporting, event.getChannel().getId());
+		request.ignoreNoBlueprints = true;
+
+		BlueprintPreviewResponse response = requestBlueprintPreview(request);
+
+		MessageCreateAction reply = null;
+		if (response.type == ResponseType.EMBED) {
+			reply = target.replyEmbeds(response.embed);
+		} else if (response.type == ResponseType.IMAGE) {
+			reply = target.replyFiles(FileUpload.fromData(response.imageBytes, response.imageFilename));
+		}
+
+		if (response.type != ResponseType.NONE) {
+			for (List<ItemComponent> actionRow : response.actionRows) {
+				reply.addActionRow(actionRow);
+			}
+
+			Message message = reply.complete();
+			reporting.addReply(message);
+			
+			if (!response.moreActionRows.isEmpty()) {
+				MessageCreateAction reply2 = message.replyEmbeds(new EmbedBuilder().appendDescription("-# More Actions...").build());
+				for (List<ItemComponent> actionRow : response.moreActionRows) {
+					reply2.addActionRow(actionRow);
+				}
+				reporting.addReply(reply2.complete());
+			}
+		}
+
+		hook.deleteOriginal().queue();
+	}
+
+	public static class BlueprintPreviewRequest {
+		public final String content;
+		public final List<String> attachmentUrls;
+		public final CommandReporting reporting;
+		public final String lockKey;
+
+		public boolean ignoreNoBlueprints;
+		public Consumer<BSBlueprintString> onParseSuccess = bs -> {};
+
+		public BlueprintPreviewRequest(String content, List<String> attachmentUrls, CommandReporting reporting, String lockKey) {
+			this.content = content;
+			this.attachmentUrls = attachmentUrls;
+			this.reporting = reporting;
+			this.lockKey = lockKey;
+		}
+	}
+
+	public static class BlueprintPreviewResponse {
+		public static enum ResponseType {
+			EMBED, IMAGE, NONE
+		}
+		public final ResponseType type;
+		public final MessageEmbed embed;
+		public final String imageFilename;
+		public final byte[] imageBytes;
+		public final List<List<ItemComponent>> actionRows;
+		public final List<List<ItemComponent>> moreActionRows;
+
+		private BlueprintPreviewResponse(ResponseType type, MessageEmbed embed, String imageFilename, byte[] imageBytes,
+				List<List<ItemComponent>> actionRows, List<List<ItemComponent>> moreActionRows) {
+			this.type = type;
+			this.embed = embed;
+			this.imageFilename = imageFilename;
+			this.imageBytes = imageBytes;
+			this.actionRows = actionRows;
+			this.moreActionRows = moreActionRows;
+		}
+
+		public static BlueprintPreviewResponse none() {
+			return new BlueprintPreviewResponse(ResponseType.NONE, null, null, null, null, null);
+		}
+
+		public static BlueprintPreviewResponse embed(MessageEmbed embed, List<List<ItemComponent>> actionRows, List<List<ItemComponent>> moreActionRows) {
+			return new BlueprintPreviewResponse(ResponseType.EMBED, embed, null, null, actionRows, moreActionRows);
+		}
+
+		public static BlueprintPreviewResponse image(String imageFilename, byte[] imageBytes,
+				List<List<ItemComponent>> actionRows, List<List<ItemComponent>> moreActionRows) {
+			return new BlueprintPreviewResponse(ResponseType.IMAGE, null, imageFilename, imageBytes, actionRows, moreActionRows);
+		}
+
+		public static BlueprintPreviewResponse message(String message, Color color) {
+			return embed(new EmbedBuilder()
+					.setColor(color)
+					.setDescription(message)
+					.build(), ImmutableList.of(), ImmutableList.of());
+		}
+	}
+
+	public BlueprintPreviewResponse requestBlueprintPreview(BlueprintPreviewRequest request) {
+		CommandReporting reporting = request.reporting;
+
+		String content = request.content;
 		boolean shortContent = content.length() < 40;
 
-		Optional<Attachment> attachment = event.optParamAttachment("file");
-		if (attachment.isPresent()) {
-			content += " " + attachment.get().getUrl();
+		for (String attachmentUrl : request.attachmentUrls) {
+			content += " " + attachmentUrl;
 		}
 
 		List<FindBlueprintResult> searchResults = BlueprintFinder.search(content);
@@ -337,39 +519,32 @@ public class DiscordService extends AbstractIdleService {
 				.collect(Collectors.toList());
 
 		if (blueprintStringResults.size() > 1) {
-			event.replyEmbed(new EmbedBuilder()//
-					.setColor(Color.yellow)//
-					.setDescription("Multiple blueprint strings found! Please specify only one.")//
-					.build());
-			return;
+			return BlueprintPreviewResponse.message("Multiple blueprint strings found! Please specify only one.", Color.yellow);
 		}
 
 		if (blueprintStringResults.isEmpty()) {
+			if (request.ignoreNoBlueprints) {
+				return BlueprintPreviewResponse.none();
+			}
+
 			List<Exception> failures = searchResults.stream().flatMap(f -> f.failureCause.stream())
 					.collect(Collectors.toList());
 
 			if (failures.isEmpty()) {
 				if (shortContent) {
-					event.replyEmbed(new EmbedBuilder()//
-							.setDescription("Specify a blueprint string and I will create an image for you! Please try again.")//
-							.build());
-				
+					return BlueprintPreviewResponse.message("Specify a blueprint string and I will create an image for you! Please try again.", Color.gray);
 				} else {
-					event.replyEmbed(new EmbedBuilder()//
-							.setColor(Color.yellow)//
-							.setDescription("Blueprint string not found! Make sure it is fully copied and try again.")//
-							.build());
+					return BlueprintPreviewResponse.message("Blueprint string not found! Make sure it is fully copied and try again.", Color.yellow);
 				}
-
 			} else {
-				event.replyEmbed(createFailuresEmbed(failures));
+				return BlueprintPreviewResponse.embed(createFailuresEmbed(failures), ImmutableList.of(), ImmutableList.of());
 			}
-			return;
 		}
 
 		FindBlueprintResult searchResult = blueprintStringResults.get(0);
 		BSBlueprintString blueprintString = searchResult.blueprintString.get();
-		CommandReporting reporting = event.getReporting();
+
+		request.onParseSuccess.accept(blueprintString);
 
 		FactorioManager factorioManager = FBSR.getFactorioManager();
 
@@ -381,12 +556,35 @@ public class DiscordService extends AbstractIdleService {
 		Optional<String> label = null;
 		BufferedImage image = null;
 
-		List<List<ItemComponent>> actionRows = new ArrayList<>();
+		List<List<ItemComponent>> allActionRows = new ArrayList<>();
 		List<ItemComponent> actionButtonRow = new ArrayList<>();
+		allActionRows.add(actionButtonRow);
 
-		Future<Message> futBlueprintStringUpload = useDiscordForFileHosting(
-				WebUtils.formatBlueprintFilename(blueprintString.findFirstLabel(), "txt"),
-				blueprintString.getRaw().get());
+		Future<Message> futBlueprintStringUpload;
+		try {
+			String blueprintFilename = WebUtils.formatBlueprintFilename(blueprintString.findFirstLabel(), "txt");
+			String blueprintRaw = blueprintString.getRaw().get();
+			byte[] blueprintBytes = blueprintRaw.getBytes(StandardCharsets.UTF_8);
+
+			if (blueprintBytes.length > MAX_FILE_SIZE) {
+				String entryName = blueprintFilename;
+				blueprintFilename = blueprintFilename.substring(0, blueprintFilename.length()-4) + ".zip";
+				try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
+						ZipOutputStream zos = new ZipOutputStream(baos)) {
+					ZipEntry entry = new ZipEntry(entryName);
+					zos.putNextEntry(entry);
+					zos.write(blueprintBytes);
+					zos.closeEntry();
+					zos.finish();
+					futBlueprintStringUpload = useDiscordForFileHosting(blueprintFilename, baos.toByteArray());
+				}
+			} else {
+				futBlueprintStringUpload = useDiscordForFileHosting(blueprintFilename, blueprintRaw);
+			}
+		} catch (IOException e) {
+			reporting.addException(e);
+			return BlueprintPreviewResponse.message("Internal failure: " + e.getMessage(), Color.red);
+		}
 
 		boolean spaceAge = false;
 		boolean modded = false;
@@ -401,7 +599,7 @@ public class DiscordService extends AbstractIdleService {
 			GUILayoutBlueprint layout = new GUILayoutBlueprint();
 			layout.setBlueprint(blueprint);
 			layout.setReporting(reporting);
-			layout.setLockKey(event.getMessageChannel().getId());
+			layout.setLockKey(request.lockKey);
 			image = layout.generateDiscordImage();
 			unknownNames.addAll(layout.getResult().unknownEntities);
 			unknownNames.addAll(layout.getResult().unknownTiles);
@@ -412,8 +610,13 @@ public class DiscordService extends AbstractIdleService {
 			modded = !modInfo.mods.isEmpty();
 
 			if (layout.getResult().renderScale < 0.501) {
-				actionButtonRow.add(Button.secondary("reply-zoom|" + futBlueprintStringUpload.get().getId(), "Zoom In")
-						.withEmoji(EMOJI_SEARCH));
+				try {
+					actionButtonRow.add(Button.secondary("reply-zoom|" + futBlueprintStringUpload.get().getId(), "Zoom In")
+							.withEmoji(EMOJI_SEARCH));
+				} catch (InterruptedException | ExecutionException e) {
+					reporting.addException(e);
+					return BlueprintPreviewResponse.message("Internal failure: " + e.getMessage(), Color.red);
+				}
 			}
 
 			label = blueprint.label;
@@ -425,17 +628,13 @@ public class DiscordService extends AbstractIdleService {
 			reporting.addField(new Field("Blueprint Version", book.version.toString(), true));
 
 			if (blueprints.isEmpty()) {
-				event.replyEmbed(new EmbedBuilder()//
-						.setColor(Color.red)//
-						.setDescription("Blueprint Book has no renderable blueprints!")//
-						.build());
-				return;
+				return BlueprintPreviewResponse.message("Blueprint Book has no renderable blueprints!", Color.red);
 			}
 
 			GUILayoutBook layout = new GUILayoutBook();
 			layout.setBook(book);
 			layout.setReporting(reporting);
-			layout.setLockKey(event.getMessageChannel().getId());
+			layout.setLockKey(request.lockKey);
 			image = layout.generateDiscordImage();
 			layout.getResults().stream().forEach(r -> unknownNames.addAll(r.unknownEntities));
 			layout.getResults().stream().forEach(r -> unknownNames.addAll(r.unknownTiles));
@@ -451,22 +650,37 @@ public class DiscordService extends AbstractIdleService {
 				modded = modded || !modInfo.mods.isEmpty();
 			}
 
-			StringSelectMenu.Builder menuBuilder = StringSelectMenu.create("reply-book-blueprint");
-			boolean emptyMenu = true;
-			for (int i = 0; i < blueprints.size(); i++) {
-				if (i < 25) {
-					BSBlueprint blueprint = blueprints.get(i);
-					String optionLabel = blueprint.label.orElse("Untitled Blueprint " + (i + 1));
-					if (optionLabel.length() > 100) {
-						optionLabel = optionLabel.substring(0, 97) + "...";
-					}
-					menuBuilder.addOption(optionLabel, futBlueprintStringUpload.get().getId() + "|" + i);
-					emptyMenu = false;
+			{
+				List<ItemComponent> selectMenus = new ArrayList<>();
+				String id;
+				try {
+					id = futBlueprintStringUpload.get().getId();
+				} catch (InterruptedException | ExecutionException e) {
+					reporting.addException(e);
+					return BlueprintPreviewResponse.message("Internal failure: " + e.getMessage(), Color.red);
 				}
-				// TODO figure out how to handle more than 25 blueprint options
-			}
-			if (!emptyMenu) {
-				actionRows.add(ImmutableList.of(menuBuilder.build()));
+				int i = 0;
+				int page = 1;
+				while (i < blueprints.size()) {
+					StringSelectMenu.Builder menuBuilder = StringSelectMenu.create("reply-book-blueprint-" + page++);
+					int j = 0;
+					int start = i;
+					while (j < 25 && i < blueprints.size()) {
+						BSBlueprint blueprint = blueprints.get(i);
+						String optionLabel = blueprint.label.orElse("Untitled Blueprint " + (i + 1));
+						menuBuilder.addOption(optionLabel, id + "|" + i);
+						i++;
+						j++;
+					}
+					if (j > 0) {
+						menuBuilder.setPlaceholder("Blueprint " + (start + 1) + " to " + i);
+						selectMenus.add(menuBuilder.build());
+					}
+				}
+				int menusPerRow = 1;
+				for (int m = 0; m < selectMenus.size(); m += menusPerRow) {
+					allActionRows.add(selectMenus.subList(m, Math.min(m + menusPerRow, selectMenus.size())));
+				}
 			}
 
 			label = book.label;
@@ -521,7 +735,15 @@ public class DiscordService extends AbstractIdleService {
 			emoji = EMOJI_UPGRADEPLANNER;
 		}
 
-		String actionId = "reply-blueprint|" + futBlueprintStringUpload.get().getId()
+		Message bsMessage;
+		try {
+			bsMessage = futBlueprintStringUpload.get();
+		} catch (InterruptedException | ExecutionException e) {
+			reporting.addException(e);
+			return BlueprintPreviewResponse.message("Internal failure: " + e.getMessage(), Color.red);
+		}
+
+		String actionId = "reply-blueprint|" + bsMessage.getId()
 				+ blueprintString.findFirstLabel().map(s -> "|" + s).orElse("");
 		if (actionId.length() > 100) {
 			actionId = actionId.substring(0, 100);// XXX need a better solution
@@ -532,7 +754,7 @@ public class DiscordService extends AbstractIdleService {
 		}
 
 		reporting.addField(
-				new Field("Blueprint", futBlueprintStringUpload.get().getAttachments().get(0).getUrl(), false));
+				new Field("Blueprint", bsMessage.getAttachments().get(0).getUrl(), false));
 
 		if (!unknownNames.isEmpty()) {
 			String unknownNamesMsg = unknownNames.entrySet().stream().map(e -> e.getElement() + ": " + e.getCount())
@@ -540,8 +762,8 @@ public class DiscordService extends AbstractIdleService {
 			if (unknownNamesMsg.length() > 1000) {
 				unknownNamesMsg = unknownNamesMsg.substring(0, 1000) + "...";
 			}
-			event.getReporting().addField(new Field("Unknown Names", unknownNamesMsg, false));
-			event.getReporting().setLevel(Level.DEBUG);
+			reporting.addField(new Field("Unknown Names", unknownNamesMsg, false));
+			reporting.setLevel(Level.DEBUG);
 		}
 
 		if (!renderTimes.isEmpty()) {
@@ -554,18 +776,22 @@ public class DiscordService extends AbstractIdleService {
 			reporting.addField(new Field("Render Time", renderTimesStr, true));
 		}
 
-		if (!actionButtonRow.isEmpty()) {
-			actionRows.add(actionButtonRow);
+		List<List<ItemComponent>> actionRows = allActionRows.subList(0, Math.min(5, allActionRows.size()));
+		List<List<ItemComponent>> moreActionRows = allActionRows.size() > 5
+				? allActionRows.subList(5, Math.min(10, allActionRows.size()))
+				: ImmutableList.of();
+		if (allActionRows.size() > 10) {
+			reporting.addWarning("More than 10 action rows are available, but only the first 10 are shown!");
 		}
 
 		if (embed.isPresent()) {
-			event.replyEmbed(embed.get(), actionRows);
+			return BlueprintPreviewResponse.embed(embed.get(), actionRows, moreActionRows);
+		
 		} else {
-
 			ImageShrinkResult shrinkResult = shrinkImageToFitUploadLimit(image);
 			String imageFilename = WebUtils.formatBlueprintFilename(label, shrinkResult.extension);
-			event.replyFile(shrinkResult.data, imageFilename, actionRows);
-		}
+			return BlueprintPreviewResponse.image(imageFilename, shrinkResult.data, actionRows, moreActionRows);
+		}	
 	}
 
 	private MessageEmbed createFailuresEmbed(List<Exception> failureExceptions) {
@@ -1185,364 +1411,6 @@ public class DiscordService extends AbstractIdleService {
 		event.reply(choices);
 	}
 
-	public void onBlueprintContextInteraction(MessageContextInteractionEvent event, CommandReporting reporting)
-			throws InterruptedException, ExecutionException, IOException {
-
-		ContextTarget targetType = event.getTargetType();
-		if (targetType == ContextTarget.USER) {
-			return;
-		}
-
-		InteractionHook hook = event.deferReply(true).complete();
-
-		Message target = event.getTarget();
-
-		String content = target.getContentRaw();
-
-		for (Attachment attachment : target.getAttachments()) {
-			content += " " + attachment.getUrl();
-		}
-
-		List<FindBlueprintResult> searchResults = BlueprintFinder.search(content);
-		searchResults.forEach(f -> f.failureCause.ifPresent(e -> reporting.addException(e)));
-		Optional<BSBlueprintString> optBlueprintString = searchResults.stream().flatMap(f -> f.blueprintString.stream())
-				.findFirst();
-
-		if (optBlueprintString.isEmpty()) {
-			reporting.addWarning("Blueprint string not found.");
-			hook.deleteOriginal().queue();
-			return;
-		}
-
-		BSBlueprintString blueprintString = optBlueprintString.get();
-
-		List<Long> renderTimes = new ArrayList<>();
-
-		Optional<MessageEmbed> embed = Optional.empty();
-
-		Optional<String> label = null;
-		BufferedImage image = null;
-
-		List<List<ItemComponent>> actionRows = new ArrayList<>();
-		List<ItemComponent> actionButtonRow = new ArrayList<>();
-
-		Future<Message> futBlueprintStringUpload = useDiscordForFileHosting(
-				WebUtils.formatBlueprintFilename(blueprintString.findFirstLabel(), "txt"),
-				blueprintString.getRaw().get());
-
-		if (blueprintString.blueprint.isPresent()) {
-			BSBlueprint blueprint = blueprintString.blueprint.get();
-
-			GUILayoutBlueprint layout = new GUILayoutBlueprint();
-			layout.setBlueprint(blueprint);
-			layout.setReporting(reporting);
-			layout.setLockKey(event.getChannelId());
-			image = layout.generateDiscordImage();
-			renderTimes.add(layout.getResult().renderTime);
-
-			if (layout.getResult().renderScale < 0.501) {
-				actionButtonRow.add(Button.secondary("reply-zoom|" + futBlueprintStringUpload.get().getId(), "Zoom In")
-						.withEmoji(EMOJI_SEARCH));
-			}
-
-			label = blueprint.label;
-
-		} else if (blueprintString.blueprintBook.isPresent()) {
-			BSBlueprintBook book = blueprintString.blueprintBook.get();
-
-			if (book.blueprints.isEmpty()) {
-				reporting.addWarning("Blueprint book is empty.");
-				hook.deleteOriginal().queue();
-				return;
-			}
-
-			GUILayoutBook layout = new GUILayoutBook();
-			layout.setBook(book);
-			layout.setReporting(reporting);
-			layout.setLockKey(event.getChannelId());
-			image = layout.generateDiscordImage();
-			renderTimes.add(layout.getResults().stream().mapToLong(r -> r.renderTime).sum());
-
-			List<BSBlueprint> blueprints = book.getAllBlueprints();
-			StringSelectMenu.Builder menuBuilder = StringSelectMenu.create("reply-book-blueprint");
-			for (int i = 0; i < blueprints.size(); i++) {
-				if (i < 25) {
-					BSBlueprint blueprint = blueprints.get(i);
-					menuBuilder.addOption(blueprint.label.orElse("Untitled Blueprint " + (i + 1)),
-							futBlueprintStringUpload.get().getId() + "|" + i);
-				}
-				// TODO figure out how to handle more than 25 blueprint options
-			}
-			actionRows.add(ImmutableList.of(menuBuilder.build()));
-			// TODO each blueprint renders and upload
-
-			label = book.label;
-
-		} else if (blueprintString.deconstructionPlanner.isPresent()) {
-			EmbedBuilder builder = new EmbedBuilder();
-			BSDeconstructionPlanner planner = blueprintString.deconstructionPlanner.get();
-			builder.setColor(Color.darkGray);
-			builder.setDescription("Blueprint string is a deconstruction planner.");
-			if (planner.label.isPresent()) {
-				builder.addField(new Field("Label", planner.label.get(), false));
-			}
-			if (planner.description.isPresent()) {
-				builder.addField(new Field("Description", planner.description.get(), false));
-			}
-			embed = Optional.of(builder.build());
-			// TODO more details from deconstruction planner
-
-		} else if (blueprintString.upgradePlanner.isPresent()) {
-			EmbedBuilder builder = new EmbedBuilder();
-			BSUpgradePlanner planner = blueprintString.upgradePlanner.get();
-			builder.setColor(Color.darkGray);
-			builder.setDescription("Blueprint string is an upgrade planner.");
-			if (planner.label.isPresent()) {
-				builder.addField(new Field("Label", planner.label.get(), false));
-			}
-			if (planner.description.isPresent()) {
-				builder.addField(new Field("Description", planner.description.get(), false));
-			}
-			embed = Optional.of(builder.build());
-			// TODO more details from upgrade planner
-		}
-
-		Emoji emoji = EMOJI_BLUEPRINT;
-		if (blueprintString.blueprintBook.isPresent()) {
-			emoji = EMOJI_BLUEPRINTBOOK;
-		} else if (blueprintString.deconstructionPlanner.isPresent()) {
-			emoji = EMOJI_DECONSTRUCTIONPLANNER;
-		} else if (blueprintString.upgradePlanner.isPresent()) {
-			emoji = EMOJI_UPGRADEPLANNER;
-		}
-
-		String actionId = "reply-blueprint|" + futBlueprintStringUpload.get().getId()
-				+ blueprintString.findFirstLabel().map(s -> "|" + s).orElse("");
-		if (actionId.length() > 100) {
-			actionId = actionId.substring(0, 100);// XXX need a better solution
-		}
-		actionButtonRow.add(Button.secondary(actionId, "Download").withEmoji(emoji));
-
-		if (!renderTimes.isEmpty()) {
-			String renderTimesStr = renderTimes.stream().mapToLong(l1 -> l1).sum() + " ms" + (renderTimes.size() > 1
-					? (" [" + renderTimes.stream().map(Object::toString).collect(Collectors.joining(", ")) + "]")
-					: "");
-			if (renderTimesStr.length() > 256) {
-				renderTimesStr = renderTimesStr.substring(0, 256) + "...";
-			}
-			reporting.addField(new Field("Render Time", renderTimesStr, true));
-		}
-
-		if (!actionButtonRow.isEmpty()) {
-			actionRows.add(actionButtonRow);
-		}
-
-		MessageCreateAction reply;
-		if (embed.isPresent()) {
-			reply = target.replyEmbeds(embed.get());
-		} else {
-			ImageShrinkResult shrinkResult = shrinkImageToFitUploadLimit(image);
-			String imageFilename = WebUtils.formatBlueprintFilename(label, shrinkResult.extension);
-			reply = target.replyFiles(FileUpload.fromData(shrinkResult.data, imageFilename));
-		}
-
-		for (List<ItemComponent> actionRow : actionRows) {
-			if (!actionRow.isEmpty()) {
-				reply.addActionRow(actionRow);
-			}
-		}
-
-		Message message = reply.complete();
-		reporting.addReply(message);
-		hook.deleteOriginal().queue();
-	}
-
-	public void onPrivateMessageReceived(MessageReceivedEvent event, CommandReporting reporting)
-			throws InterruptedException, ExecutionException, IOException {
-
-		List<Message> loadingMessage = new ArrayList<>();
-		Consumer<String> createLoadingMessage = (msg) -> {
-			loadingMessage.add(event.getMessage().reply(msg).complete());
-		};
-
-		String content = event.getMessage().getContentStripped();
-		for (Attachment attachment : event.getMessage().getAttachments()) {
-			content += " " + attachment.getUrl();
-		}
-
-		List<FindBlueprintResult> searchResults = BlueprintFinder.search(content);
-		searchResults.forEach(f -> f.failureCause.ifPresent(e -> reporting.addException(e)));
-		Optional<BSBlueprintString> optBlueprintString = searchResults.stream().flatMap(f -> f.blueprintString.stream())
-				.findFirst();
-
-		if (optBlueprintString.isEmpty()) {
-			reporting.suppress();
-			return;
-		}
-
-		BSBlueprintString blueprintString = optBlueprintString.get();
-
-		List<Long> renderTimes = new ArrayList<>();
-
-		Optional<MessageEmbed> embed = Optional.empty();
-
-		Optional<String> label = null;
-		BufferedImage image = null;
-
-		List<List<ItemComponent>> actionRows = new ArrayList<>();
-		List<ItemComponent> actionButtonRow = new ArrayList<>();
-
-		String blueprintFilename = WebUtils.formatBlueprintFilename(blueprintString.findFirstLabel(), "txt");
-		String blueprintRaw = blueprintString.getRaw().get();
-		byte[] blueprintBytes = blueprintRaw.getBytes(StandardCharsets.UTF_8);
-
-		Future<Message> futBlueprintStringUpload;
-		if (blueprintBytes.length > MAX_FILE_SIZE) {
-			String entryName = blueprintFilename;
-			blueprintFilename = blueprintFilename.substring(0, blueprintFilename.length()-4) + ".zip";
-			try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
-					ZipOutputStream zos = new ZipOutputStream(baos)) {
-				ZipEntry entry = new ZipEntry(entryName);
-				zos.putNextEntry(entry);
-				zos.write(blueprintBytes);
-				zos.closeEntry();
-				zos.finish();
-				futBlueprintStringUpload = useDiscordForFileHosting(blueprintFilename, baos.toByteArray());
-			}
-		} else {
-			futBlueprintStringUpload = useDiscordForFileHosting(blueprintFilename, blueprintRaw);
-		}
-
-		if (blueprintString.blueprint.isPresent()) {
-			BSBlueprint blueprint = blueprintString.blueprint.get();
-
-			createLoadingMessage.accept("Loading blueprint...");
-
-			GUILayoutBlueprint layout = new GUILayoutBlueprint();
-			layout.setBlueprint(blueprint);
-			layout.setReporting(reporting);
-			layout.setLockKey(event.getChannel().getId());
-			image = layout.generateDiscordImage();
-			renderTimes.add(layout.getResult().renderTime);
-
-			if (layout.getResult().renderScale < 0.501) {
-				actionButtonRow.add(Button.secondary("reply-zoom|" + futBlueprintStringUpload.get().getId(), "Zoom In")
-						.withEmoji(EMOJI_SEARCH));
-			}
-
-			label = blueprint.label;
-
-		} else if (blueprintString.blueprintBook.isPresent()) {
-			BSBlueprintBook book = blueprintString.blueprintBook.get();
-
-			if (book.blueprints.isEmpty()) {
-				reporting.suppress();
-				return;
-			}
-
-			createLoadingMessage.accept("Loading book...");
-
-			GUILayoutBook layout = new GUILayoutBook();
-			layout.setBook(book);
-			layout.setReporting(reporting);
-			layout.setLockKey(event.getChannel().getId());
-			image = layout.generateDiscordImage();
-			renderTimes.add(layout.getResults().stream().mapToLong(r -> r.renderTime).sum());
-
-			List<BSBlueprint> blueprints = book.getAllBlueprints();
-			StringSelectMenu.Builder menuBuilder = StringSelectMenu.create("reply-book-blueprint");
-			for (int i = 0; i < blueprints.size(); i++) {
-				if (i < 25) {
-					BSBlueprint blueprint = blueprints.get(i);
-					menuBuilder.addOption(blueprint.label.orElse("Untitled Blueprint " + (i + 1)),
-							futBlueprintStringUpload.get().getId() + "|" + i);
-				}
-				// TODO figure out how to handle more than 25 blueprint options
-			}
-			actionRows.add(ImmutableList.of(menuBuilder.build()));
-			// TODO each blueprint renders and upload
-
-			label = book.label;
-
-		} else if (blueprintString.deconstructionPlanner.isPresent()) {
-			EmbedBuilder builder = new EmbedBuilder();
-			BSDeconstructionPlanner planner = blueprintString.deconstructionPlanner.get();
-			builder.setColor(Color.darkGray);
-			builder.setDescription("Blueprint string is a deconstruction planner.");
-			if (planner.label.isPresent()) {
-				builder.addField(new Field("Label", planner.label.get(), false));
-			}
-			if (planner.description.isPresent()) {
-				builder.addField(new Field("Description", planner.description.get(), false));
-			}
-			embed = Optional.of(builder.build());
-			// TODO more details from deconstruction planner
-
-		} else if (blueprintString.upgradePlanner.isPresent()) {
-			EmbedBuilder builder = new EmbedBuilder();
-			BSUpgradePlanner planner = blueprintString.upgradePlanner.get();
-			builder.setColor(Color.darkGray);
-			builder.setDescription("Blueprint string is an upgrade planner.");
-			if (planner.label.isPresent()) {
-				builder.addField(new Field("Label", planner.label.get(), false));
-			}
-			if (planner.description.isPresent()) {
-				builder.addField(new Field("Description", planner.description.get(), false));
-			}
-			embed = Optional.of(builder.build());
-			// TODO more details from upgrade planner
-		}
-
-		Emoji emoji = EMOJI_BLUEPRINT;
-		if (blueprintString.blueprintBook.isPresent()) {
-			emoji = EMOJI_BLUEPRINTBOOK;
-		} else if (blueprintString.deconstructionPlanner.isPresent()) {
-			emoji = EMOJI_DECONSTRUCTIONPLANNER;
-		} else if (blueprintString.upgradePlanner.isPresent()) {
-			emoji = EMOJI_UPGRADEPLANNER;
-		}
-
-		String actionId = "reply-blueprint|" + futBlueprintStringUpload.get().getId()
-				+ blueprintString.findFirstLabel().map(s -> "|" + s).orElse("");
-		if (actionId.length() > 100) {
-			actionId = actionId.substring(0, 100);// XXX need a better solution
-		}
-		actionButtonRow.add(Button.secondary(actionId, "Download").withEmoji(emoji));
-
-		if (!renderTimes.isEmpty()) {
-			String renderTimesStr = renderTimes.stream().mapToLong(l1 -> l1).sum() + " ms" + (renderTimes.size() > 1
-					? (" [" + renderTimes.stream().map(Object::toString).collect(Collectors.joining(", ")) + "]")
-					: "");
-			if (renderTimesStr.length() > 256) {
-				renderTimesStr = renderTimesStr.substring(0, 256) + "...";
-			}
-			reporting.addField(new Field("Render Time", renderTimesStr, true));
-		}
-
-		if (!actionButtonRow.isEmpty()) {
-			actionRows.add(actionButtonRow);
-		}
-
-		MessageCreateAction reply;
-		if (embed.isPresent()) {
-			reply = event.getMessage().replyEmbeds(embed.get());
-		} else {
-			ImageShrinkResult shrinkResult = shrinkImageToFitUploadLimit(image);
-			String imageFilename = WebUtils.formatBlueprintFilename(label, shrinkResult.extension);
-			reply = event.getMessage().replyFiles(FileUpload.fromData(shrinkResult.data, imageFilename));
-		}
-
-		for (List<ItemComponent> actionRow : actionRows) {
-			if (!actionRow.isEmpty()) {
-				reply.addActionRow(actionRow);
-			}
-		}
-
-		Message message = reply.complete();
-		reporting.addReply(message);
-		loadingMessage.forEach(m -> m.delete().queue());
-	}
-
 	public void onButtonInteraction(ButtonInteractionEvent event, CommandReporting reporting)
 			throws IOException, InterruptedException, ExecutionException {
 		String raw = event.getComponentId();
@@ -1633,7 +1501,7 @@ public class DiscordService extends AbstractIdleService {
 
 		String replyContent = null;
 
-		if (command.equals("reply-book-blueprint")) {
+		if (command.startsWith("reply-book-blueprint")) {
 			String raw = event.getValues().get(0);
 
 			String cacheKey = command + "|" + raw;
