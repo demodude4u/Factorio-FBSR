@@ -280,6 +280,7 @@ public class WorldMap {
 
 	// TODO a more generalized approach
 	private final Table<Integer, Integer, MapEntity> nixieTubes = HashBasedTable.create();
+	private final Table<Integer, Integer, MapEntity> elevatedPipes = HashBasedTable.create();
 
 	// Row: X*2
 	// Column: Y*2
@@ -523,6 +524,10 @@ public class WorldMap {
 		return pipes.contains(kr, kc) && (pipes.get(kr, kc) & flag(facing)) > 0;
 	}
 
+	public boolean isElevatedPipe(MapPosition pos) {
+		return elevatedPipes.contains(pos.getXCell(), pos.getYCell());
+	}
+
 	public boolean isSpaceFoundation() {
 		return spaceFoundation;
 	}
@@ -577,6 +582,10 @@ public class WorldMap {
 
 	public void setNixieTube(MapPosition pos, MapEntity entity) {
 		nixieTubes.put(pos.getXCell(), pos.getYCell(), entity);
+	}
+
+	public void setElevatedPipe(MapPosition pos, MapEntity entity) {
+		elevatedPipes.put(pos.getXCell(), pos.getYCell(), entity);
 	}
 
 	public void setPipe(MapPosition pos, Direction... facings) {
