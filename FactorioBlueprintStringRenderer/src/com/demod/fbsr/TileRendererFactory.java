@@ -35,6 +35,7 @@ import com.demod.fbsr.bs.BSTile;
 import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.def.LayeredSpriteDef;
 import com.demod.fbsr.def.MaterialDef;
+import com.demod.fbsr.fp.FPColor;
 import com.demod.fbsr.fp.FPMaterialTextureParameters;
 import com.demod.fbsr.fp.FPTileMainPictures;
 import com.demod.fbsr.fp.FPTileSpriteLayoutVariant;
@@ -47,6 +48,7 @@ import com.demod.fbsr.map.MapPosition;
 import com.demod.fbsr.map.MapRenderable;
 import com.demod.fbsr.map.MapSprite;
 import com.demod.fbsr.map.MapTile;
+import com.demod.fbsr.map.MapTintOverrideSprite;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ImmutableList;
@@ -224,8 +226,13 @@ public class TileRendererFactory {
 			rand.setSeed(getRandomSeed(cell.row, cell.col, cell.layer, 0));
 			int frame = rand.nextInt(main.getLimitedCount());
 
-			register.accept(new MapSprite(new LayeredSpriteDef(main.defineImage(frame), Layer.DECALS),
-					cell.tile.position.createPoint()));
+			if (protoTint.isPresent()) {
+				register.accept(new MapTintOverrideSprite(new LayeredSpriteDef(main.defineImage(frame), Layer.DECALS),
+						cell.tile.position.createPoint(), protoTint.get().createColor()));
+			} else {
+				register.accept(new MapSprite(new LayeredSpriteDef(main.defineImage(frame), Layer.DECALS),
+						cell.tile.position.createPoint()));
+			}
 		}
 
 		@Override
@@ -248,8 +255,14 @@ public class TileRendererFactory {
 
 						int frame = rand.nextInt(variant.count);
 
-						register.accept(
-								new MapSprite(variant.defineImage(param.variant, frame), Layer.DECALS, cell.pos));
+						if (protoTint.isPresent()) {
+							register.accept(
+									new MapTintOverrideSprite(new LayeredSpriteDef(variant.defineImage(param.variant, frame), Layer.DECALS),
+											cell.pos, protoTint.get().createColor()));
+						} else {
+							register.accept(
+									new MapSprite(variant.defineImage(param.variant, frame), Layer.DECALS, cell.pos));
+						}
 					}
 				}
 			}
@@ -263,8 +276,13 @@ public class TileRendererFactory {
 
 						int frame = rand.nextInt(variant.count);
 
-						register.accept(
-								new MapSprite(variant.defineImage(param.variant, frame), Layer.UNDER_TILES, cell.pos));
+						if (protoTint.isPresent()) {
+							register.accept(new MapTintOverrideSprite(new LayeredSpriteDef(variant.defineImage(param.variant, frame), Layer.UNDER_TILES),
+									cell.pos, protoTint.get().createColor()));
+						} else {
+							register.accept(
+									new MapSprite(variant.defineImage(param.variant, frame), Layer.UNDER_TILES, cell.pos));
+						}
 					}
 				}
 			}
@@ -293,7 +311,7 @@ public class TileRendererFactory {
 			int frame = rand.nextInt(material.getLimitedCount());
 
 			register.accept(new MapMaterialTile(material.defineMaterial(frame), cell.row % th, cell.col % tw,
-					tile.position.createPoint()));
+					tile.position.createPoint(), protoTint.map(FPColor::createColor)));
 		}
 
 		@Override
@@ -327,7 +345,7 @@ public class TileRendererFactory {
 
 					register.accept(new MapMaterialMaskedTile(materialDef,
 							variantMask.defineImage(param.variant, frame.getAsInt()), cell.row % th, cell.col % tw,
-							cell.pos));
+							cell.pos, protoTint.map(FPColor::createColor)));
 
 				}
 
@@ -338,8 +356,13 @@ public class TileRendererFactory {
 						frame = OptionalInt.of(rand.nextInt(variantOverlay.count));
 					}
 
-					register.accept(new MapSprite(variantOverlay.defineImage(param.variant, frame.getAsInt()),
-							Layer.DECALS, cell.pos));
+					if (protoTint.isPresent()) {
+						register.accept(new MapTintOverrideSprite(variantOverlay.defineImage(param.variant, frame.getAsInt()),
+								Layer.DECALS, cell.pos, protoTint.get().createColor()));
+					} else {
+						register.accept(new MapSprite(variantOverlay.defineImage(param.variant, frame.getAsInt()),
+								Layer.DECALS, cell.pos));
+					}
 				}
 			}
 
@@ -512,6 +535,7 @@ public class TileRendererFactory {
 	private Optional<String> protoTransitionMergesWithTileID;
 	private Optional<TileRendererFactory> protoTransitionMergesWithTile;
 	private boolean protoDoubleSided;
+	private Optional<FPColor> protoTint;
 
 	private TileRenderProcess renderProcess = null;
 
@@ -550,6 +574,8 @@ public class TileRendererFactory {
 		protoDoubleSided = protoVariants.transition.stream()
 				.flatMap(fp -> ImmutableList.of(fp.layout.background, fp.layout.mask, fp.layout.overlay).stream())
 				.anyMatch(fp -> fp.flatMap(fp2 -> fp2.doubleSide).isPresent());
+
+		protoTint = FPUtils.opt(prototype.lua().get("tint"), FPColor::new);
 	}
 
 	private TileRendererFactory resolveMergeTileID(String name) {
