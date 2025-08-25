@@ -230,6 +230,10 @@ public class TileRendererFactory {
 
 		@Override
 		public void tileEdge(Random rand, Consumer<MapRenderable> register, TileEdgeCell cell) {
+			if (protoVariants.emptyTransitions) {
+				return;
+			}
+
 			FPTileTransitions transitions = protoVariants.transition.get();
 
 			rand.setSeed(getRandomSeed(cell.row, cell.col, cell.layer, cell.adjCode));
@@ -269,8 +273,10 @@ public class TileRendererFactory {
 		@Override
 		public void initAtlas(Consumer<ImageDef> register) {
 			protoVariantsMainSize1.ifPresent(fp -> fp.getDefs(register));
-			protoVariants.transition.get().layout.overlay.ifPresent(fp -> fp.getDefs(register));
-			protoVariants.transition.get().layout.background.ifPresent(fp -> fp.getDefs(register));
+			if (!protoVariants.emptyTransitions) {
+				protoVariants.transition.get().layout.overlay.ifPresent(fp -> fp.getDefs(register));
+				protoVariants.transition.get().layout.background.ifPresent(fp -> fp.getDefs(register));
+			}
 		}
 	}
 
