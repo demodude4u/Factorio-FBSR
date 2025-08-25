@@ -309,12 +309,12 @@ public class TileRendererFactory {
 
 			FPTileTransitions transitions = protoVariants.transition.get();
 			Optional<FPTileTransitionVariantLayout> optOverlay = transitions.layout.overlay;
-			FPTileTransitionVariantLayout mask = transitions.layout.mask.get();
+			Optional<FPTileTransitionVariantLayout> mask = transitions.layout.mask;
 
 			rand.setSeed(getRandomSeed(cell.row, cell.col, cell.layer, cell.adjCode));
 
 			for (TileEdgeRuleParam param : cell.params) {
-				Optional<FPTileSpriteLayoutVariant> optVariantMask = param.getSelector().apply(mask);
+				Optional<FPTileSpriteLayoutVariant> optVariantMask = mask.flatMap(m -> param.getSelector().apply(m));
 				Optional<FPTileSpriteLayoutVariant> optVariantOverlay = optOverlay
 						.flatMap(o -> param.getSelector().apply(o));
 
