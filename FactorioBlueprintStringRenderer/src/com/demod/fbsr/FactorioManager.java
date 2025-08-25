@@ -126,7 +126,15 @@ public class FactorioManager {
 			.expireAfterAccess(1, TimeUnit.HOURS).build();
 
 	public FactorioManager(List<Profile> profiles) {
-		this.profiles = profiles;
+		List<Profile> reordered = new ArrayList<>(profiles);
+		int vanillaIndex = IntStream.range(0, reordered.size())
+				.filter(i -> reordered.get(i).isVanilla())
+				.findFirst()
+				.orElse(-1);
+		if (vanillaIndex > 0) {
+			reordered.add(0, reordered.remove(vanillaIndex));
+		}
+		this.profiles = reordered;
 	}
 
 	public ListMultimap<String, AchievementPrototype> getAchievementByNameMap() {
