@@ -69,70 +69,64 @@ public class AtlasPackage {
 	private List<ImageDef> defs = new ArrayList<>();
 	private List<Atlas> atlases = new ArrayList<>();
 
-    private static final int MAX_PARALLEL_LOADS = Runtime.getRuntime().availableProcessors() * 2;
-	private final Semaphore loadingSemaphore = new Semaphore(MAX_PARALLEL_LOADS);
-	private static final int CLEANUP_INTERVAL = 1000;
-
 	public JSONObject populateZip(ZipOutputStream zos) throws IOException {
 		for (ImageDef def : defs) {
 			def.getAtlasRef().reset();
 		}
 
-		Map<String, ImageSheetLoader> loaders = new LinkedHashMap<>();
-		for (ImageDef def : defs) {
-			loaders.put(def.getPath(), def.getLoader());
-		}
+		System.gc();
 
-		LoadingCache<String, BufferedImage> imageSheets = CacheBuilder.newBuilder()
-				.softValues()
-				.maximumSize(MAX_PARALLEL_LOADS * 100)
-				.removalListener(notification -> {
-					if (notification.getValue() instanceof BufferedImage) {
-						((BufferedImage) notification.getValue()).flush();
-					}
-				})
-				.build(new CacheLoader<String, BufferedImage>() {
-					@Override
-					public BufferedImage load(String key) throws Exception {
-						return loaders.get(key).apply(key);
-					}
-				});
+		class DefGroup {
+			String key;
+			ImageSheetLoader loader;
+			List<ImageDef> defs;
+			int maxPixels;
+		}
+		
+		List<DefGroup> defGroups = defs.stream().collect(Collectors.groupingBy(def -> def.getPath()))
+				.entrySet().stream().map(e -> {
+					DefGroup g = new DefGroup();
+					g.key = e.getKey();
+					g.loader = e.getValue().get(0).getLoader();
+					g.defs = new ArrayList<>(e.getValue());
+					return g;
+				}).collect(Collectors.toList());
+		LOGGER.info("Def Groups: {}", defGroups.size());
+		LOGGER.info("Def Count: {}", defs.size());
 
 		LOGGER.info("Trimming Images...");
 		AtomicInteger processedCount = new AtomicInteger(0);
-		defs.parallelStream().forEach(def -> {
-			if (def.isTrimmable()) {
-				try {
-					loadingSemaphore.acquire();
-					BufferedImage imageSheet;
-					try {
-						imageSheet = imageSheets.get(def.getPath());
-						Rectangle trimmed = trimEmptyRect(imageSheet, def.getSource());
-						def.setTrimmed(trimmed);
-					} finally {
-						loadingSemaphore.release();
-						if (processedCount.incrementAndGet() % CLEANUP_INTERVAL == 0) {
-							// imageSheets.cleanUp();
-							// imageSheets.invalidateAll();
-							LOGGER.info("Trimming Images... {}/{}", processedCount.get(), defs.size());
-						}
-					}
-				} catch (InterruptedException e) {
-					Thread.currentThread().interrupt();
-					throw new RuntimeException("Interrupted while processing images", e);
-				} catch (ExecutionException e) {
-					e.printStackTrace();
-					System.exit(-1);
-				}
-			} else {
-				def.setTrimmed(def.getSource());
+		int updateInterval = 1000;
+		defGroups.parallelStream().forEach(g -> {
+			List<ImageDef> group = g.defs;
+			if (group.stream().noneMatch(ImageDef::isTrimmable)) {
+				group.forEach(def -> def.setTrimmed(def.getSource()));
+				return;
 			}
+
+			BufferedImage imageSheet = g.loader.apply(g.key);
+
+			group.parallelStream().forEach(def -> {
+				if (!def.isTrimmable()) {
+					def.setTrimmed(def.getSource());
+					return;
+				}
+				
+				def.setTrimmed(trimEmptyRect(imageSheet, def.getSource()));
+				if ((processedCount.incrementAndGet() % updateInterval) == 0) {
+					LOGGER.info("Trimming Images... {}/{}", processedCount.get(), defs.size());
+				}
+			});
 		});
 
 		LOGGER.info("Atlas Packing...");
-		defs.sort(Comparator.<ImageDef, Integer>comparing(i -> {
-			Rectangle r = i.getTrimmed();
-			return r.width * r.height;
+		for (DefGroup g : defGroups) {
+			g.defs.sort(Comparator.<ImageDef, Integer>comparing(d -> d.getTrimmed().width * d.getTrimmed().height).reversed());
+			Rectangle trimmed = g.defs.get(0).getTrimmed();
+			g.maxPixels = trimmed.width * trimmed.height;
+		}
+		defGroups.sort(Comparator.<DefGroup, Integer>comparing(g -> {
+			return g.maxPixels;
 		}).reversed());
 
 		Map<String, AtlasRef> locationCheck = new HashMap<>();
@@ -148,123 +142,114 @@ public class AtlasPackage {
 		atlases.add(Atlas.init(this, atlases.size(), ATLAS_SIZE, ATLAS_SIZE));
 		Atlas iconsAtlas = null;
 		int imageCount = 0;
-		for (ImageDef def : defs) {
-			imageCount++;
+		for (DefGroup group : defGroups) {
+			BufferedImage imageSheet = group.loader.apply(group.key);
 
-			if (def.getAtlasRef().isValid()) {
-				continue;// Shared ref
-			}
-
-			Rectangle source = def.getSource();
-			Rectangle trimmed = def.getTrimmed();
-			progressPixels += trimmed.width * trimmed.height;
-
-			String locationKey = def.getPath() + "|" + source.x + "|" + source.y + "|" + source.width + "|"
-					+ source.height;
-
-			AtlasRef cached = locationCheck.get(locationKey);
-			if (cached != null) {
-				def.getAtlasRef().set(cached.getAtlas(), cached.getRect(), cached.getTrim());
-				continue;
-			}
-
-			BufferedImage imageSheet;
-			try {
-				imageSheet = imageSheets.get(def.getPath());
-			} catch (ExecutionException e) {
-				e.printStackTrace();
-				System.exit(-1);
-				return null;
-			}
-			String md5key = computeMD5(imageSheet, trimmed);
-			cached = md5Check.get(md5key);
-			if (cached != null) {
-				def.getAtlasRef().set(cached.getAtlas(), cached.getRect(), cached.getTrim());
-				locationCheck.put(locationKey, def.getAtlasRef());
-				continue;
-			}
-
-			Rectangle rect = new Rectangle(trimmed.width, trimmed.height);
-			boolean icon = (rect.width <= IconManager.ICON_SIZE)  && (rect.height <= IconManager.ICON_SIZE);
-
-			Atlas atlas;
-			if (icon) {
-				if (iconsAtlas == null || (iconsAtlas.getIconCount() >= iconsAtlas.getIconMaxCount())) {
-					iconsAtlas = Atlas.initIcons(this, atlases.size(), ATLAS_ICONS_SIZE, ATLAS_ICONS_SIZE, IconManager.ICON_SIZE);
-					LOGGER.info("Icons Atlas {} -  {}/{} ({}%)", atlases.size(), imageCount, defs.size(),
-							(100 * progressPixels) / totalPixels);
-					atlases.add(iconsAtlas);
+			for (ImageDef def : group.defs) {
+				imageCount++;
+	
+				if (def.getAtlasRef().isValid()) {
+					continue;// Shared ref
 				}
-				atlas = iconsAtlas;
-				int iconCount = atlas.getIconCount();
-				int iconColumns = atlas.getIconColumns();
-				int iconSize = atlas.getIconSize();
-				rect.x = (iconCount % iconColumns) * iconSize;
-				rect.y = (iconCount / iconColumns) * iconSize;
-				copyToAtlas(imageSheet, def, atlas, rect);
-				atlas.setIconCount(iconCount + 1);
+	
+				Rectangle source = def.getSource();
+				Rectangle trimmed = def.getTrimmed();
+				progressPixels += trimmed.width * trimmed.height;
+	
+				String locationKey = def.getPath() + "|" + source.x + "|" + source.y + "|" + source.width + "|"
+						+ source.height;
+	
+				AtlasRef cached = locationCheck.get(locationKey);
+				if (cached != null) {
+					def.getAtlasRef().set(cached.getAtlas(), cached.getRect(), cached.getTrim());
+					continue;
+				}
 
-			} else {
-				nextImage: while (true) {
-					nextAtlas: for (int id = atlases.size() - 1; id >= 0; id--) {
-						atlas = atlases.get(id);
-						if (atlas.isIconMode()) {
-							continue;
-						}
-
-						List<Dimension> failedPackingSizes = atlas.getFailedPackingSizes();
-						for (Dimension size : failedPackingSizes) {
-							if (rect.width >= size.width && rect.height >= size.height) {
-								continue nextAtlas;
-							}
-						}
-
-						Quadtree occupied = atlas.getOccupied();
-						for (rect.y = 0; rect.y < ATLAS_SIZE - rect.height; rect.y++) {
-							int nextY = ATLAS_SIZE;
-							for (rect.x = 0; rect.x < ATLAS_SIZE - rect.width; rect.x++) {
-								Rectangle collision = occupied.insertIfNoCollision(rect);
-								if (collision != null) {
-									rect.x = collision.x + collision.width - 1;
-									nextY = Math.min(nextY, collision.y + collision.height);
-								} else {
-									copyToAtlas(imageSheet, def, atlas, rect);
-									break nextImage;
-								}
-							}
-							rect.y = nextY - 1;
-						}
-
-						{
-							boolean replaced = false;
-							for (Dimension size : failedPackingSizes) {
-								if (rect.width <= size.width && rect.height <= size.height) {
-									size.setSize(rect.width, rect.height);
-									replaced = true;
-									break;
-								}
-							}
-							if (!replaced) {
-								failedPackingSizes.add(new Dimension(rect.width, rect.height));
-							}
-						}
+				String md5key = computeMD5(imageSheet, trimmed);
+				cached = md5Check.get(md5key);
+				if (cached != null) {
+					def.getAtlasRef().set(cached.getAtlas(), cached.getRect(), cached.getTrim());
+					locationCheck.put(locationKey, def.getAtlasRef());
+					continue;
+				}
+	
+				Rectangle rect = new Rectangle(trimmed.width, trimmed.height);
+				boolean icon = (rect.width <= IconManager.ICON_SIZE)  && (rect.height <= IconManager.ICON_SIZE);
+	
+				Atlas atlas;
+				if (icon) {
+					if (iconsAtlas == null || (iconsAtlas.getIconCount() >= iconsAtlas.getIconMaxCount())) {
+						iconsAtlas = Atlas.initIcons(this, atlases.size(), ATLAS_ICONS_SIZE, ATLAS_ICONS_SIZE, IconManager.ICON_SIZE);
+						LOGGER.info("Icons Atlas {} -  {}/{} ({}%)", atlases.size(), imageCount, defs.size(),
+								(100 * progressPixels) / totalPixels);
+						atlases.add(iconsAtlas);
 					}
-					LOGGER.info("Atlas {} -  {}/{} ({}%)", atlases.size(), imageCount, defs.size(),
-							(100 * progressPixels) / totalPixels);
-					atlases.add(Atlas.init(this, atlases.size(), ATLAS_SIZE, ATLAS_SIZE));
+					atlas = iconsAtlas;
+					int iconCount = atlas.getIconCount();
+					int iconColumns = atlas.getIconColumns();
+					int iconSize = atlas.getIconSize();
+					rect.x = (iconCount % iconColumns) * iconSize;
+					rect.y = (iconCount / iconColumns) * iconSize;
+					copyToAtlas(imageSheet, def, atlas, rect);
+					atlas.setIconCount(iconCount + 1);
+	
+				} else {
+					nextImage: while (true) {
+						nextAtlas: for (int id = atlases.size() - 1; id >= 0; id--) {
+							atlas = atlases.get(id);
+							if (atlas.isIconMode()) {
+								continue;
+							}
+	
+							List<Dimension> failedPackingSizes = atlas.getFailedPackingSizes();
+							for (Dimension size : failedPackingSizes) {
+								if (rect.width >= size.width && rect.height >= size.height) {
+									continue nextAtlas;
+								}
+							}
+	
+							Quadtree occupied = atlas.getOccupied();
+							for (rect.y = 0; rect.y < ATLAS_SIZE - rect.height; rect.y++) {
+								int nextY = ATLAS_SIZE;
+								for (rect.x = 0; rect.x < ATLAS_SIZE - rect.width; rect.x++) {
+									Rectangle collision = occupied.insertIfNoCollision(rect);
+									if (collision != null) {
+										rect.x = collision.x + collision.width - 1;
+										nextY = Math.min(nextY, collision.y + collision.height);
+									} else {
+										copyToAtlas(imageSheet, def, atlas, rect);
+										break nextImage;
+									}
+								}
+								rect.y = nextY - 1;
+							}
+	
+							{
+								boolean replaced = false;
+								for (Dimension size : failedPackingSizes) {
+									if (rect.width <= size.width && rect.height <= size.height) {
+										size.setSize(rect.width, rect.height);
+										replaced = true;
+										break;
+									}
+								}
+								if (!replaced) {
+									failedPackingSizes.add(new Dimension(rect.width, rect.height));
+								}
+							}
+						}
+						LOGGER.info("Atlas {} -  {}/{} ({}%)", atlases.size(), imageCount, defs.size(),
+								(100 * progressPixels) / totalPixels);
+						atlases.add(Atlas.init(this, atlases.size(), ATLAS_SIZE, ATLAS_SIZE));
+					}
 				}
+	
+				Point trim = new Point(trimmed.x - source.x, trimmed.y - source.y);
+				def.getAtlasRef().set(atlas, rect, trim);
+				locationCheck.put(locationKey, def.getAtlasRef());
+				md5Check.put(md5key, def.getAtlasRef());
 			}
-
-			Point trim = new Point(trimmed.x - source.x, trimmed.y - source.y);
-			def.getAtlasRef().set(atlas, rect, trim);
-			locationCheck.put(locationKey, def.getAtlasRef());
-			md5Check.put(md5key, def.getAtlasRef());
 		}
-
-		LOGGER.info("Freeing Image Sheets...");
-		imageSheets.invalidateAll();
-		imageSheets.cleanUp();
-
 
 		JSONObject jsonManifest = new JSONObject();
 		JSONArray jsonEntries = new JSONArray();
