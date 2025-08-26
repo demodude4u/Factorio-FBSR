@@ -527,7 +527,8 @@ public class TileRendererFactory {
 	protected String name;
 	protected Profile profile;
 	protected TilePrototype prototype;
-	protected List<ManifestModInfo	> mods;
+	protected List<ManifestModInfo> mods;
+	protected boolean unknownModded = false;
 
 	private FPTileTransitionsVariants protoVariants;
 	private Optional<FPTileMainPictures> protoVariantsMainSize1;
@@ -613,6 +614,14 @@ public class TileRendererFactory {
 
 	public void setMods(List<ManifestModInfo> mods) {
 		this.mods = mods;
+	}
+
+	public void setUnknownModded(boolean unknownModded) {
+		this.unknownModded = unknownModded;
+	}
+
+	public boolean isUnknownModded() {
+		return unknownModded;
 	}
 
 	public void setPrototype(TilePrototype prototype) {

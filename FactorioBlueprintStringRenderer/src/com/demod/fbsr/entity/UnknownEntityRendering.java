@@ -44,6 +44,8 @@ public class UnknownEntityRendering extends EntityRendererFactory {
 		json.put("name", name);
 		json.put("type", "unknown");
 		setPrototype(new EntityPrototype(new LuaTable(json)));
+
+		unknownModded = true;
 	}
 
 	@Override

@@ -106,7 +106,7 @@ public class BSBlueprint {
 		};
         entities.stream().map(e -> e.name).distinct().forEach(name -> {
 			EntityRendererFactory factory = resolver.resolveFactoryEntityName(name);
-			if (factory.isUnknown()) {
+			if (factory.isUnknown() || factory.isUnknownModded()) {
 				mods.add("Modded");
 			} else {
 				factory.getMods().forEach(addMod);
@@ -114,7 +114,7 @@ public class BSBlueprint {
 		});
 		tiles.stream().map(t -> t.name).distinct().forEach(name -> {
 			TileRendererFactory factory = resolver.resolveFactoryTileName(name);
-			if (factory.isUnknown()) {
+			if (factory.isUnknown() || factory.isUnknownModded()) {
 				mods.add("Modded");
 			} else {
 				factory.getMods().forEach(addMod);

@@ -90,6 +90,8 @@ import com.google.common.collect.ImmutableSet;
 public class Profile {
 	private static final Logger LOGGER = LoggerFactory.getLogger(Profile.class);
 
+    public static final String MODDED_KEY = "__MODDED__";
+
     public static final String ASSETS_ZIP_VERSION_TXT = "version.txt";
     public static final String ASSETS_ZIP_PROFILE_JSON = "profile.json";
     public static final String ASSETS_ZIP_DUMP_JSON = "dump.json";
@@ -772,6 +774,10 @@ public class Profile {
                                         overrideMods.add(mod);
                                     }
                                 });
+                            } else if (jsonOverride.has("modded") && jsonOverride.getBoolean("modded")) {
+                                if (!overrideMods.contains(MODDED_KEY)) {
+                                    overrideMods.add(MODDED_KEY);
+                                }
                             }
                             if (jsonOverride.has("mods-append")) {
                                 JSONArray jsonModsAppend = jsonOverride.getJSONArray("mods-append");
@@ -781,6 +787,7 @@ public class Profile {
                                     }
                                 });
                             }
+                            
                         }
 
                         if (!factoryClass.isPresent()) {
@@ -892,10 +899,15 @@ public class Profile {
                             }
 
                             JSONObject jsonOverride = jsonProfileTileOverrides.getJSONObject(t.getName());
+                            
                             if (jsonOverride.has("mods")) {
                                 JSONArray jsonMods = jsonOverride.getJSONArray("mods");
                                 overrideMods = Optional.of(jsonMods.toList().stream()
                                         .map(Object::toString).collect(Collectors.toList()));
+
+                            } else if (jsonOverride.has("modded") && jsonOverride.getBoolean("modded")) {
+                                overrideMods = Optional.of(ImmutableList.of(MODDED_KEY));
+
                             } else {
                                 overrideMods = Optional.empty();
                             }
