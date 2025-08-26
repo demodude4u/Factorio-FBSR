@@ -602,7 +602,15 @@ public class DiscordService extends AbstractIdleService {
 			layout.setBlueprint(blueprint);
 			layout.setReporting(reporting);
 			layout.setLockKey(request.lockKey);
-			image = layout.generateDiscordImage();
+
+			try {
+				image = layout.generateDiscordImage();
+			} catch (Exception e) {
+				reporting.addException(e);
+				return BlueprintPreviewResponse.message("Internal failure: " + e.getMessage(), Color.red);
+			}
+			LOGGER.info("Image Generated");
+
 			unknownNames.addAll(layout.getResult().unknownEntities);
 			unknownNames.addAll(layout.getResult().unknownTiles);
 			renderTimes.add(layout.getResult().renderTime);
@@ -640,7 +648,15 @@ public class DiscordService extends AbstractIdleService {
 			layout.setBook(book);
 			layout.setReporting(reporting);
 			layout.setLockKey(request.lockKey);
-			image = layout.generateDiscordImage();
+
+			try {
+				image = layout.generateDiscordImage();
+			} catch (Exception e) {
+				reporting.addException(e);
+				return BlueprintPreviewResponse.message("Internal failure: " + e.getMessage(), Color.red);
+			}
+			LOGGER.info("Image Generated");
+
 			layout.getResults().stream().forEach(r -> unknownNames.addAll(r.unknownEntities));
 			layout.getResults().stream().forEach(r -> unknownNames.addAll(r.unknownTiles));
 			renderTimes.add(layout.getResults().stream().mapToLong(r -> r.renderTime).sum());
