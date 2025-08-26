@@ -107,15 +107,16 @@ public class AtlasPackage {
 			BufferedImage imageSheet = g.loader.apply(g.key);
 
 			group.parallelStream().forEach(def -> {
+				if ((processedCount.incrementAndGet() % updateInterval) == 0) {
+					LOGGER.info("Trimming Images... {}/{}", processedCount.get(), defs.size());
+				}
+				
 				if (!def.isTrimmable()) {
 					def.setTrimmed(def.getSource());
 					return;
 				}
 				
 				def.setTrimmed(trimEmptyRect(imageSheet, def.getSource()));
-				if ((processedCount.incrementAndGet() % updateInterval) == 0) {
-					LOGGER.info("Trimming Images... {}/{}", processedCount.get(), defs.size());
-				}
 			});
 		});
 
