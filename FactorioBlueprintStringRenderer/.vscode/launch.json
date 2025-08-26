@@ -9,7 +9,8 @@
             "name": "FBSR CLI",
             "request": "launch",
             "mainClass": "com.demod.fbsr.FBSRMain",
-            "projectName": "FactorioBlueprintStringRenderer"
+            "projectName": "FactorioBlueprintStringRenderer",
+            "vmArgs": "-Xmx8g"
         },
         {
             "type": "java",
@@ -17,7 +18,8 @@
             "request": "launch",
             "mainClass": "com.demod.fbsr.FBSRMain",
             "projectName": "FactorioBlueprintStringRenderer",
-            "args": "bot-run"
+            "args": "bot-run",
+            "vmArgs": "-Xmx8g"
         }
     ]
 }
