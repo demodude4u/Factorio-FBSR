@@ -108,8 +108,13 @@ public class RenderingRegistry {
 					factory.setProfile(profile);
 
 					List<ManifestModInfo> mods = new ArrayList<>();
+					AtomicBoolean unknownModded = new AtomicBoolean(false);
 					Utils.forEach(jsonEntity.getJSONArray("mods"), mod -> {
-						if (!modLookup.containsKey(mod.toString())) {
+						if (mod.equals(Profile.MODDED_KEY)) {
+							unknownModded.set(true);
+							return;
+
+						} else if (!modLookup.containsKey(mod.toString())) {
 							System.out.println("Mod \"" + mod.toString() + "\" not found in profile " + profile.getName());
 							failed.set(true);
 							return;
@@ -117,6 +122,7 @@ public class RenderingRegistry {
 						mods.add(modLookup.get(mod.toString()));
 					});
 					factory.setMods(mods);
+					factory.setUnknownModded(unknownModded.get());
 
 					entityFactories.add(factory);
 					entityFactoryByName.put(factory.getName(), factory);
@@ -143,10 +149,15 @@ public class RenderingRegistry {
 					
 					factory.setName(tileName);
 					factory.setProfile(profile);
-
+ 
 					List<ManifestModInfo> mods = new ArrayList<>();
+					AtomicBoolean unknownModded = new AtomicBoolean(false);
 					Utils.forEach(jsonTile.getJSONArray("mods"), mod -> {
-						if (!modLookup.containsKey(mod.toString())) {
+						if (mod.equals(Profile.MODDED_KEY)) {
+							unknownModded.set(true);
+							return;
+
+						} else if (!modLookup.containsKey(mod.toString())) {
 							System.out.println("Mod \"" + mod.toString() + "\" not found in profile " + profile.getName());
 							failed.set(true);
 							return;
@@ -154,6 +165,7 @@ public class RenderingRegistry {
 						mods.add(modLookup.get(mod.toString()));
 					});
 					factory.setMods(mods);
+					factory.setUnknownModded(unknownModded.get());
 
 					tileFactories.add(factory);
 					tileFactoryByName.put(factory.getName(), factory);

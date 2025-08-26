@@ -72,6 +72,9 @@ public class FBSRApps {
 			manager.startAsync().awaitHealthy();
 		} catch (IllegalStateException e) {
 			System.out.println(e.getMessage());
+			LOGGER.info("Failed to start services, stopping all services...");
+			manager.stopAsync().awaitStopped();
+			LOGGER.info("All services stopped.");
 			return false;
 		}
 		Runtime.getRuntime().addShutdownHook(new Thread(() -> manager.stopAsync().awaitStopped()));

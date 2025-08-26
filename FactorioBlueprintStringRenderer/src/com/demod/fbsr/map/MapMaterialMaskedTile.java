@@ -1,17 +1,21 @@
 package com.demod.fbsr.map;
 
+import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
+import java.util.Optional;
 
 import com.demod.fbsr.Atlas;
 import com.demod.fbsr.Atlas.AtlasRef;
 import com.demod.fbsr.composite.MaskedTextureComposite;
+import com.demod.fbsr.composite.TintMaskedTextureComposite;
 import com.demod.fbsr.def.MaterialDef;
 import com.demod.fbsr.def.SpriteDef;
+import com.demod.fbsr.fp.FPColor;
 import com.demod.fbsr.Layer;
 
 public class MapMaterialMaskedTile extends MapRenderable implements MapBounded {
@@ -22,11 +26,13 @@ public class MapMaterialMaskedTile extends MapRenderable implements MapBounded {
 
 	private final MapRect bounds;
 	private final SpriteDef mask;
+	private final Optional<Color> tint;
 
-	public MapMaterialMaskedTile(MaterialDef material, SpriteDef mask, int row, int col, MapPosition pos) {
+	public MapMaterialMaskedTile(MaterialDef material, SpriteDef mask, int row, int col, MapPosition pos, Optional<Color> tint) {
 		super(Layer.DECALS);
 		this.material = material;
 		this.mask = mask;
+		this.tint = tint;
 
 		int rows = material.getRows();
 		int cols = material.getCols();
@@ -79,7 +85,11 @@ public class MapMaterialMaskedTile extends MapRenderable implements MapBounded {
 				null);
 
 		Atlas materialAtlas = material.getAtlasRef().getAtlas();
-		g.setComposite(new MaskedTextureComposite());
+		if (tint.isPresent()) {
+			g.setComposite(new TintMaskedTextureComposite(tint.get()));
+		} else {
+			g.setComposite(new MaskedTextureComposite());
+		}
 		g.drawImage(materialAtlas.getImage(), //
 				0, //
 				0, //

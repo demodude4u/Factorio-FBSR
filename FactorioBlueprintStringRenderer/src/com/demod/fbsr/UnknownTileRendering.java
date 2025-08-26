@@ -23,6 +23,7 @@ public class UnknownTileRendering extends TileRendererFactory {
 		this.name = name;
 		color = RenderUtils.getUnknownColor(name);
 		offset = RenderUtils.getUnknownTextOffset(name);
+		unknownModded = true;
 	}
 
 	@Override
