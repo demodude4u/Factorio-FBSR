@@ -89,6 +89,7 @@ public class GUILayoutBook implements AutoCloseable {
 
 	public static final double DISCORD_IMAGE_RATIO = GUILayoutBlueprint.DISCORD_IMAGE_SIZE.width
 			/ GUILayoutBlueprint.DISCORD_IMAGE_SIZE.height;
+	public static final int MAX_PIXELS = 6144 * 6144;
 
 	private volatile boolean disposed = false;
 
@@ -246,21 +247,22 @@ public class GUILayoutBook implements AutoCloseable {
 		GUIPanel panel = new GUIPanel(bounds, guiStyle.FRAME_DARK_INNER, guiStyle.FRAME_OUTER);
 		renderTinted(g, panel);
 
-		AffineTransform xform = g.getTransform();
-		double renderScaleX = xform.getScaleX();
-		double renderScaleY = xform.getScaleY();
+		double cellOffsetX = -20;
+		double cellOffsetY = -20;
+		// double cellWidth = (BP_CELL_SIZE.width + 20);
+		// double cellHeight = (BP_CELL_SIZE.height + 20);
+		double cellWidth = (bounds.width - 20) / packBounds.width;
+		double cellHeight = (bounds.height - 20) / packBounds.height;
+		double imageScale = (cellWidth - 20) / BP_CELL_SIZE.width;
 
-		double cellOffsetX = -20 / renderScaleX;
-		double cellOffsetY = -20 / renderScaleY;
-		double cellWidth = (BP_CELL_SIZE.width + 20) / renderScaleX;
-		double cellHeight = (BP_CELL_SIZE.height + 20) / renderScaleY;
-
-		int centerShiftX = (int) (20 / renderScaleX);
-		int centerShiftY = (int) (20 / renderScaleY);
+		int centerShiftX = 20;
+		int centerShiftY = 20;
 
 		g.setFont(guiStyle.FONT_BP_REGULAR.deriveFont(12f));
 		g.setColor(Color.gray);
 		Shape prevClip = g.getClip();
+
+		AffineTransform pat = g.getTransform();
 
 		for (ImageBlock block : blocks) {
 			int x = (int) (bounds.x + bounds.width / 2
@@ -274,8 +276,12 @@ public class GUILayoutBook implements AutoCloseable {
 			int centerX = x + w / 2 + centerShiftX;
 			int centerY = y + h / 2 + centerShiftY;
 
-			GUIImage image = new GUIImage(new GUIBox(centerX, centerY, 0, 0), block.image, true);
-			image.render(g);
+			// GUIImage image = new GUIImage(new GUIBox(centerX, centerY, 0, 0), block.image, true);
+			// image.render(g);
+			g.translate(centerX, centerY);
+			g.scale(imageScale, imageScale);
+			g.drawImage(block.image, -block.image.getWidth() / 2, -block.image.getHeight() / 2, null);
+			g.setTransform(pat);
 
 			StringBuilder labelText = new StringBuilder();
 
@@ -377,7 +383,6 @@ public class GUILayoutBook implements AutoCloseable {
 
 	public BufferedImage generateDiscordImage() {
 		double renderScale = 0.5;
-		double uiScale = 1;
 
 		// Render Images
 		blocks = new ArrayList<>();
@@ -429,17 +434,22 @@ public class GUILayoutBook implements AutoCloseable {
 
 		int imageWidth = BP_CELL_SIZE.width * packBounds.width;
 		int imageHeight = BP_CELL_SIZE.height * packBounds.height;
-
+		
 		// Pipe gaps between cells
-		imageWidth += (packBounds.width + 1) * 20 * uiScale;
-		imageHeight += (packBounds.height + 1) * 20 * uiScale;
+		imageWidth += (packBounds.width + 1) * 20;
+		imageHeight += (packBounds.height + 1) * 20;
 		// Framing
-		imageWidth += 48 * uiScale;
-		imageHeight += 78 * uiScale;
+		imageWidth += 48;
+		imageHeight += 78;
 
+		if ((imageWidth * imageHeight) > MAX_PIXELS) {
+			double shrinkFactor = Math.sqrt((double) (imageWidth * imageHeight) / (double) MAX_PIXELS);
+			imageWidth = (int)(imageWidth / shrinkFactor);
+			imageHeight = (int)(imageHeight / shrinkFactor);
+		}
 		BufferedImage ret = new BufferedImage(imageWidth, imageHeight, BufferedImage.TYPE_INT_ARGB);
 
-		GUIBox bounds = new GUIBox(0, 0, (int) (ret.getWidth() / uiScale), (int) (ret.getHeight() / uiScale));
+		GUIBox bounds = new GUIBox(0, 0, ret.getWidth(), ret.getHeight());
 
 		Graphics2D g = ret.createGraphics();
 
@@ -450,7 +460,6 @@ public class GUILayoutBook implements AutoCloseable {
 			g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
 			g.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
 			g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
-			g.scale(uiScale, uiScale);
 
 			pc = g.getComposite();
 			Set<String> mods = new LinkedHashSet<>();
