@@ -737,24 +737,32 @@ public class DiscordService extends AbstractIdleService {
 		}
 
 		Emoji emoji = EMOJI_BLUEPRINT;
+		String bsLabel = "Blueprint";
 		if (blueprintString.blueprint.isPresent()) {
 			if (modded) {
 				emoji = EMOJI_BLUEPRINT_MODDED;
+				bsLabel = "Modded Blueprint";
 			} else if (spaceAge) {
 				emoji = EMOJI_BLUEPRINT_SPACEAGE;
+				bsLabel = "Space Age Blueprint";
 			}
 		} else if (blueprintString.blueprintBook.isPresent()) {
 			if (modded) {
 				emoji = EMOJI_BLUEPRINTBOOK_MODDED;
+				bsLabel = "Modded Blueprint Book";
 			} else if (spaceAge) {
 				emoji = EMOJI_BLUEPRINTBOOK_SPACEAGE;
+				bsLabel = "Space Age Blueprint Book";
 			} else {
 				emoji = EMOJI_BLUEPRINTBOOK;
+				bsLabel = "Blueprint Book";
 			}
 		} else if (blueprintString.deconstructionPlanner.isPresent()) {
 			emoji = EMOJI_DECONSTRUCTIONPLANNER;
+			bsLabel = "Deconstruction Planner";
 		} else if (blueprintString.upgradePlanner.isPresent()) {
 			emoji = EMOJI_UPGRADEPLANNER;
+			bsLabel = "Upgrade Planner";
 		}
 
 		Message bsMessage;
@@ -779,7 +787,7 @@ public class DiscordService extends AbstractIdleService {
 		}
 
 		reporting.addField(
-				new Field("Blueprint", bsMessage.getAttachments().get(0).getUrl(), false));
+				new Field(bsLabel, bsMessage.getAttachments().get(0).getUrl(), false));
 
 		if (!unknownNames.isEmpty()) {
 			String unknownNamesMsg = unknownNames.entrySet().stream().map(e -> e.getElement() + ": " + e.getCount())
