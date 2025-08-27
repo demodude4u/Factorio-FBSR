@@ -899,7 +899,7 @@ public class Profile {
                             }
 
                             JSONObject jsonOverride = jsonProfileTileOverrides.getJSONObject(t.getName());
-                            
+
                             if (jsonOverride.has("mods")) {
                                 JSONArray jsonMods = jsonOverride.getJSONArray("mods");
                                 overrideMods = Optional.of(jsonMods.toList().stream()
@@ -1973,29 +1973,31 @@ public class Profile {
                 BufferedImage image = null;
 
                 if (blueprintString.blueprintBook.isPresent()) {
-                    GUILayoutBook layout = new GUILayoutBook();
-                    layout.setBook(blueprintString.blueprintBook.get());
-                    layout.setReporting(reporting);
-                    image = layout.generateDiscordImage();
-
-                    for (RenderResult result : layout.getResults()) {
-                        result.request.getBlueprint().entities.forEach(e -> {
-                            report.accept(" - " + e.name);
-                            entitiesRemaining.remove(e.name);
-                        });
-                        result.request.getBlueprint().tiles.forEach(t -> {
-                            report.accept(" - " + t.name);
-                            tilesRemaining.remove(t.name);
-                        });
-                        result.unknownEntities.forEach(e -> {
-                            report.accept("(UNKNOWN) - " + e);
-                            unknownEntities.add(e);
-                        });
-                        result.unknownTiles.forEach(t -> {
-                            report.accept("(UNKNOWN) - " + t);
-                            unknownTiles.add(t);
-                        });
+                    try (GUILayoutBook layout = new GUILayoutBook()) {
+                        layout.setBook(blueprintString.blueprintBook.get());
+                        layout.setReporting(reporting);
+                        image = layout.generateDiscordImage();
+                        
+                        for (RenderResult result : layout.getResults()) {
+                            result.request.getBlueprint().entities.forEach(e -> {
+                                report.accept(" - " + e.name);
+                                entitiesRemaining.remove(e.name);
+                            });
+                            result.request.getBlueprint().tiles.forEach(t -> {
+                                report.accept(" - " + t.name);
+                                tilesRemaining.remove(t.name);
+                            });
+                            result.unknownEntities.forEach(e -> {
+                                report.accept("(UNKNOWN) - " + e);
+                                unknownEntities.add(e);
+                            });
+                            result.unknownTiles.forEach(t -> {
+                                report.accept("(UNKNOWN) - " + t);
+                                unknownTiles.add(t);
+                            });
+                        }
                     }
+
 
                 } else if (blueprintString.blueprint.isPresent()) {
                     GUILayoutBlueprint layout = new GUILayoutBlueprint();

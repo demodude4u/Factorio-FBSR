@@ -644,22 +644,20 @@ public class DiscordService extends AbstractIdleService {
 				return BlueprintPreviewResponse.message("Blueprint Book has no renderable blueprints!", Color.red);
 			}
 
-			GUILayoutBook layout = new GUILayoutBook();
-			layout.setBook(book);
-			layout.setReporting(reporting);
-			layout.setLockKey(request.lockKey);
-
-			try {
+			try (GUILayoutBook layout = new GUILayoutBook()) {
+				layout.setBook(book);
+				layout.setReporting(reporting);
+				layout.setLockKey(request.lockKey);
 				image = layout.generateDiscordImage();
-			} catch (Exception e) {
-				reporting.addException(e);
+				layout.getResults().stream().forEach(r -> unknownNames.addAll(r.unknownEntities));
+				layout.getResults().stream().forEach(r -> unknownNames.addAll(r.unknownTiles));
+				renderTimes.add(layout.getResults().stream().mapToLong(r -> r.renderTime).sum());
+			} catch (Throwable e) {
+				reporting.addException(e instanceof Exception ? (Exception)e : new Exception(e));
 				return BlueprintPreviewResponse.message("Internal failure: " + e.getMessage(), Color.red);
 			}
 			LOGGER.info("Image Generated");
 
-			layout.getResults().stream().forEach(r -> unknownNames.addAll(r.unknownEntities));
-			layout.getResults().stream().forEach(r -> unknownNames.addAll(r.unknownTiles));
-			renderTimes.add(layout.getResults().stream().mapToLong(r -> r.renderTime).sum());
 
 			List<ModdingResolver> resolvers = blueprints.stream()
 					.map(b -> ModdingResolver.byBlueprintBiases(factorioManager, b))

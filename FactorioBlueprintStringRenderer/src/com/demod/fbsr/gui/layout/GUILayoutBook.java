@@ -21,6 +21,7 @@ import java.util.OptionalInt;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.Semaphore;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -55,8 +56,11 @@ import com.demod.fbsr.gui.part.GUIRichText;
 import com.google.common.collect.ArrayTable;
 import com.google.common.collect.Table;
 
-public class GUILayoutBook {
+public class GUILayoutBook implements AutoCloseable {
 	private static final Logger LOGGER = LoggerFactory.getLogger(GUILayoutBook.class);
+
+	//Only allow one instance of GUILayoutBook at a time (memory safety)
+	private static final Semaphore EXCLUSIVE_LOCK = new Semaphore(1);
 
 	public static class ImageBlock {
 		public final int rows;
@@ -85,6 +89,12 @@ public class GUILayoutBook {
 
 	public static final double DISCORD_IMAGE_RATIO = GUILayoutBlueprint.DISCORD_IMAGE_SIZE.width
 			/ GUILayoutBlueprint.DISCORD_IMAGE_SIZE.height;
+
+	private volatile boolean disposed = false;
+
+	public GUILayoutBook() {
+		EXCLUSIVE_LOCK.acquireUninterruptibly();
+	}
 
 	private static Rectangle computeBoundingBox(List<ImageBlock> blocks) {
 		if (blocks.isEmpty())
@@ -493,4 +503,11 @@ public class GUILayoutBook {
 		g.setComposite(pc);
 	}
 
+	@Override
+	public synchronized void close() throws Exception {
+		if (!disposed) {
+			disposed = true;
+			EXCLUSIVE_LOCK.release();
+		}
+	}
 }
