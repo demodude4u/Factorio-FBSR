@@ -179,6 +179,7 @@ public class FBSR {
 		private Map<Integer, MapEntity> mapEntityByNumber;
 		private Multiset<String> unknownEntities;
 		private Multiset<String> unknownTiles;
+		private Multiset<String> unknownQualities;
 		private ModdingResolver resolver;
 
 		private WorldMap map;
@@ -221,7 +222,7 @@ public class FBSR {
 
 			long endMillis = System.currentTimeMillis();
 			LOGGER.info("\tRender Time {} ms", endMillis - startMillis);
-			return new RenderResult(request, image, endMillis - startMillis, worldRenderScale, unknownEntities, unknownTiles);
+			return new RenderResult(request, image, endMillis - startMillis, worldRenderScale, unknownEntities, unknownTiles, unknownQualities);
 		}
 
 		private void parseBlueprint() {
@@ -230,7 +231,8 @@ public class FBSR {
 			mapEntityByNumber = new HashMap<>();
 			unknownEntities = LinkedHashMultiset.create();
 			unknownTiles = LinkedHashMultiset.create();
-			
+			unknownQualities = LinkedHashMultiset.create();
+
 			resolver = ModdingResolver.byBlueprintBiases(factorioManager, blueprint);
 
 			for (BSMetaEntity metaEntity : blueprint.entities) {
@@ -256,6 +258,10 @@ public class FBSR {
 				mapEntityByNumber.put(entity.entityNumber, mapEntity);
 				if (factory.isUnknown()) {
 					unknownEntities.add(metaEntity.name);
+				}
+
+				if (metaEntity.quality.isPresent() && resolver.resolveIconQualityName(metaEntity.quality.get()).isEmpty()) {
+					unknownQualities.add(metaEntity.quality.get());
 				}
 			}
 			for (BSTile tile : blueprint.tiles) {

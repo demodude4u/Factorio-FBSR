@@ -613,6 +613,7 @@ public class DiscordService extends AbstractIdleService {
 
 			unknownNames.addAll(layout.getResult().unknownEntities);
 			unknownNames.addAll(layout.getResult().unknownTiles);
+			unknownNames.addAll(layout.getResult().unknownQualities);
 			renderTimes.add(layout.getResult().renderTime);
 
 			BlueprintModInfo modInfo = blueprint.loadModInfo(resolver);
@@ -651,6 +652,7 @@ public class DiscordService extends AbstractIdleService {
 				image = layout.generateDiscordImage();
 				layout.getResults().stream().forEach(r -> unknownNames.addAll(r.unknownEntities));
 				layout.getResults().stream().forEach(r -> unknownNames.addAll(r.unknownTiles));
+				layout.getResults().stream().forEach(r -> unknownNames.addAll(r.unknownQualities));
 				renderTimes.add(layout.getResults().stream().mapToLong(r -> r.renderTime).sum());
 			} catch (Throwable e) {
 				reporting.addException(e instanceof Exception ? (Exception)e : new Exception(e));
