@@ -2,6 +2,9 @@ package com.demod.fbsr.entity;
 
 import com.demod.fbsr.EntityType;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 
@@ -12,6 +15,7 @@ import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.WorldMap.BeltBend;
 import com.demod.fbsr.WorldMap.BeltCell;
 import com.demod.fbsr.bs.BSEntity;
+import com.demod.fbsr.bs.control.BSTransportBeltControlBehavior;
 import com.demod.fbsr.bs.entity.BSTransportBeltEntity;
 import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.fp.FPAnimationVariations;
@@ -73,15 +77,6 @@ public class TransportBeltRendering extends TransportBeltConnectableRendering {
 			defineBeltStartingSprites(entity.spriteRegister(register, Layer.TRANSPORT_BELT_ENDINGS, backDir.offset()),
 					backDir.cardinal(), frame);
 		}
-
-		// TODO switch this over to the wire connector logic
-		if (bsEntity.controlBehavior.isPresent()) {
-			int index = transportBeltConnectorFrameMappingIndex[entity.getDirection().cardinal()][bend.ordinal()];
-			protoConnectorFrameShadow.defineSprites(entity.spriteRegister(register, Layer.HIGHER_OBJECT_UNDER), index,
-					CONTROL_FRAME);
-			protoConnectorFrameMain.defineSprites(entity.spriteRegister(register, Layer.HIGHER_OBJECT_UNDER), index,
-					CONTROL_FRAME);
-		}
 	}
 
 	@Override
@@ -131,6 +126,40 @@ public class TransportBeltRendering extends TransportBeltConnectableRendering {
 			setLogisticMove(map, pos, dir.backRight(), dir);
 			break;
 		}
+
+		BSTransportBeltEntity bsEntity = entity.<BSTransportBeltEntity>fromBlueprint();
+		boolean readAllBelts = bsEntity.controlBehavior.map(c -> c.circuitReadHandContents.orElse(false) 
+				&& c.circuitContentsReadMode.orElse(0) == BSTransportBeltControlBehavior.CIRCUIT_HAND_READ_MODE_ENTIRE_BELT_HOLD).orElse(false);
+		
+		if (readAllBelts) {
+			paintBeltReaders(map, entity);
+		}
+	}
+
+	private void paintBeltReaders(WorldMap map, MapEntity origin) {
+		Deque<MapEntity> connectedBelts = new ArrayDeque<>();
+		connectedBelts.add(origin);
+		while (!connectedBelts.isEmpty()) {
+			MapEntity belt = connectedBelts.poll();
+
+			MapPosition pos = belt.getPosition();
+			Direction dir = belt.getDirection();
+			
+			{
+				MapPosition checkPos = dir.offset(pos);
+				Optional<BeltCell> checkBelt = map.getBelt(checkPos);
+				if (checkBelt.isPresent()) {
+					BeltBend checkBend = map.getBeltBend(checkPos, checkBelt.get());
+					if (dir.back().equals(checkBend.reverse(dir))) {
+						connectedBelts.add(checkBelt.get());
+					}
+				}
+			}
+			{
+				BeltBend beltBend = map.getBeltBend(pos).get();
+			}
+
+		}
 	}
 
 	@Override
@@ -138,6 +167,22 @@ public class TransportBeltRendering extends TransportBeltConnectableRendering {
 		super.populateWorldMap(map, entity);
 		
 		map.setBelt(entity.getPosition(), entity.getDirection(), true, true);
+	}
+
+	@Override
+	public double initWireConnector(Consumer<MapRenderable> register, MapEntity entity, List<MapEntity> wired, WorldMap map) {
+		double ret = super.initWireConnector(register, entity, wired, map);
+
+		BSTransportBeltEntity bsEntity = entity.<BSTransportBeltEntity>fromBlueprint();
+		MapPosition pos = entity.getPosition();
+		BeltBend bend = map.getBeltBend(pos).get();
+		int index = transportBeltConnectorFrameMappingIndex[entity.getDirection().cardinal()][bend.ordinal()];
+		protoConnectorFrameShadow.defineSprites(entity.spriteRegister(register, Layer.HIGHER_OBJECT_UNDER), index,
+				CONTROL_FRAME);
+		protoConnectorFrameMain.defineSprites(entity.spriteRegister(register, Layer.HIGHER_OBJECT_UNDER), index,
+				CONTROL_FRAME);
+
+		return ret;
 	}
 
 }

@@ -12,6 +12,10 @@ import com.demod.fbsr.bs.BSDisplayPanelParameter;
 import com.demod.fbsr.bs.BSSignalID;
 
 public class BSTransportBeltControlBehavior {
+	public static final int CIRCUIT_HAND_READ_MODE_PULSE = 0;
+	public static final int CIRCUIT_HAND_READ_MODE_HOLD = 1;
+	public static final int CIRCUIT_HAND_READ_MODE_ENTIRE_BELT_HOLD = 2;
+
 	public final Optional<Boolean> circuitEnabled;
 	public final Optional<BSCircuitCondition> circuitCondition;
 	public final Optional<Boolean> connectToLogisticNetwork;

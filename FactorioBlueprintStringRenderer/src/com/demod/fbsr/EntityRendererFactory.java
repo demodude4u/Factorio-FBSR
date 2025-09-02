@@ -283,7 +283,7 @@ public abstract class EntityRendererFactory {
 	public abstract void initAtlas(Consumer<ImageDef> register);
 
 	// Returns orientation if applicable
-	public double initWireConnector(Consumer<MapRenderable> register, MapEntity entity, List<MapEntity> wired) {
+	public double initWireConnector(Consumer<MapRenderable> register, MapEntity entity, List<MapEntity> wired, WorldMap map) {
 		return 0;
 	}
 

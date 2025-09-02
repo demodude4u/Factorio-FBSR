@@ -20,9 +20,11 @@ import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapPosition;
 import com.demod.fbsr.map.MapRail;
 import com.demod.fbsr.map.MapRect;
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.LinkedHashMultimap;
+import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Table;
 import com.google.common.collect.Table.Cell;
@@ -81,6 +83,8 @@ public class WorldMap {
 		private final boolean bendable;
 		private final boolean bendOthers;
 
+		private boolean beltReader = false;
+
 		public BeltCell(Direction facing, boolean bendable, boolean bendOthers) {
 			this.facing = facing;
 			this.bendable = bendable;
@@ -97,6 +101,14 @@ public class WorldMap {
 
 		public boolean isBendable() {
 			return bendable;
+		}
+
+		public boolean isBeltReader() {
+			return beltReader;
+		}
+
+		public void setBeltReader(boolean beltReader) {
+			this.beltReader = beltReader;
 		}
 	}
 
@@ -290,6 +302,8 @@ public class WorldMap {
 
 	private final List<MapRail> rails = new ArrayList<>();
 
+	private final ListMultimap<MapEntity, MapEntity> wired = ArrayListMultimap.create();
+
 	private final Set<String> unknownEntities = new HashSet<>();
 	private final Set<String> unknownTiles = new HashSet<>();
 
@@ -416,6 +430,10 @@ public class WorldMap {
 			return OptionalInt.of(pipePieceAdjCodes.get(kr, kc));
 		}
 		return OptionalInt.empty();
+	}
+
+	public List<MapEntity> getWiredTo(MapEntity entity) {
+		return wired.get(entity);
 	}
 
 	// public RailNode getOrCreateRailNode(MapPosition pos, boolean elevated) {
@@ -622,6 +640,11 @@ public class WorldMap {
 
 	public void setWall(MapPosition pos) {
 		walls.put(pos.getXCell(), pos.getYCell(), pos);
+	}
+
+	public void setWired(MapEntity left, MapEntity right) {
+		wired.put(left, right);
+		wired.put(right, left);
 	}
 
 	public void setRail(MapRail rail) {

@@ -49,6 +49,23 @@ public class MapEntity {
 		modules = findModules();
 	}
 
+	@Override
+	public int hashCode() {
+		return Integer.hashCode(entity.entityNumber);
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (obj == null || getClass() != obj.getClass()) {
+			return false;
+		}
+		MapEntity other = (MapEntity) obj;
+		return entity.entityNumber == other.entity.entityNumber;
+	}
+
 	private List<EntityModule> findModules() {
 		List<EntityModule> modules = new ArrayList<>();
 

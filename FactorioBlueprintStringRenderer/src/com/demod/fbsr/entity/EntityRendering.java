@@ -825,7 +825,7 @@ public abstract class EntityRendering extends EntityRendererFactory {
 	}
 
 	@Override
-	public double initWireConnector(Consumer<MapRenderable> register, MapEntity entity, List<MapEntity> wired) {
+	public double initWireConnector(Consumer<MapRenderable> register, MapEntity entity, List<MapEntity> wired, WorldMap map) {
 
 		if (circuitConnectors.isPresent() && !wired.isEmpty()) {
 			FPCircuitConnectorDefinition circuitConnector = RenderUtils.pickDirectional(circuitConnectors.get(),

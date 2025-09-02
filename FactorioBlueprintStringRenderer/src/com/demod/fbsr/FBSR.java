@@ -287,6 +287,14 @@ public class FBSR {
 
 			map.setSpaceFoundation(mapTiles.stream().anyMatch(t -> t.getFactory().getName().equals("space-platform-foundation")));
 
+			for (BSWire wire : blueprint.wires) {
+				MapEntity first = mapEntityByNumber.get(wire.firstEntityNumber);
+				MapEntity second = mapEntityByNumber.get(wire.secondEntityNumber);
+				if (first != null && second != null) {
+					map.setWired(first, second);
+				}
+			}
+
 			mapEntities.forEach(t -> {
 				try {
 					t.getFactory().populateWorldMap(map, t);
@@ -372,7 +380,7 @@ public class FBSR {
 					}
 				}).mapToObj(mapEntityByNumber::get).collect(Collectors.toList());
 
-				double orientation = mapEntity.getFactory().initWireConnector(register, mapEntity, wired);
+				double orientation = mapEntity.getFactory().initWireConnector(register, mapEntity, wired, map);
 				connectorOrientations.put(entityNumber, orientation);
 			}
 
@@ -1164,7 +1172,7 @@ public class FBSR {
 
 		factory.populateWorldMap(map, entity);
 		factory.populateLogistics(map, entity);
-		factory.initWireConnector(register, entity, ImmutableList.of());
+		factory.initWireConnector(register, entity, ImmutableList.of(), map);
 		factory.createRenderers(register, map, entity);
 
 		List<MapRenderable> renderables = renderOrder.values().stream().collect(Collectors.toList());

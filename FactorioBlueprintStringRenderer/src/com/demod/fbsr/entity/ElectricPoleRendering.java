@@ -92,8 +92,8 @@ public class ElectricPoleRendering extends EntityWithOwnerRendering {
 	}
 
 	@Override
-	public double initWireConnector(Consumer<MapRenderable> register, MapEntity entity, List<MapEntity> wired) {
-		super.initWireConnector(register, entity, wired);
+	public double initWireConnector(Consumer<MapRenderable> register, MapEntity entity, List<MapEntity> wired, WorldMap map) {
+		super.initWireConnector(register, entity, wired, map);
 
 		MapPosition p1 = entity.getPosition();
 		List<MapPosition> points = wired.stream().map(t -> {
