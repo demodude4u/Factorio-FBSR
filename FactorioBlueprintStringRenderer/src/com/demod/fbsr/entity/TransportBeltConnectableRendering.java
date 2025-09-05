@@ -58,15 +58,6 @@ public abstract class TransportBeltConnectableRendering extends EntityWithOwnerR
 					15, // West
 			};
 
-	// XXX I'm not using horizontal or vertical frames
-	public static final int[][] transportBeltConnectorFrameMappingIndex = //
-			new int[/* Cardinal */][/* Bend */] { //
-					{ 6, 0, 5 }, // North
-					{ 5, 0, 3 }, // East
-					{ 3, 0, 4 }, // South
-					{ 4, 0, 6 }, // West
-			};
-
 	private boolean protoHasBeltAnimationSet;
 	private FPRotatedAnimation protoBeltAnimationSet;
 	private int[][] protoBeltIndices;

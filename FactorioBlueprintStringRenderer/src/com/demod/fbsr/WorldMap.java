@@ -79,28 +79,42 @@ public class WorldMap {
 	}
 
 	public static class BeltCell {
+		private final MapPosition pos;
 		private final Direction facing;
 		private final boolean bendable;
 		private final boolean bendOthers;
 
 		private boolean beltReader = false;
 
-		public BeltCell(Direction facing, boolean bendable, boolean bendOthers) {
+		public BeltCell(MapPosition pos, Direction facing, boolean bendable, boolean bendOthers) {
+			this.pos = pos;
 			this.facing = facing;
 			this.bendable = bendable;
 			this.bendOthers = bendOthers;
+		}
+
+		public boolean isBendable() {
+			return bendable;
 		}
 
 		public boolean canBendOthers() {
 			return bendOthers;
 		}
 
-		public Direction getFacing() {
-			return facing;
+		public Optional<BeltCell> nextReadAllBelts() {
+			return Optional.empty();
+		}
+		
+		public Optional<BeltCell> prevReadAllBelts() {
+			return Optional.empty();
 		}
 
-		public boolean isBendable() {
-			return bendable;
+		public MapPosition getPos() {
+			return pos;
+		}
+
+		public Direction getFacing() {
+			return facing;
 		}
 
 		public boolean isBeltReader() {
@@ -339,7 +353,7 @@ public class WorldMap {
 	}
 
 	public BeltBend getBeltBend(MapPosition pos, BeltCell belt) {
-		if (!belt.bendable) {
+		if (!belt.isBendable()) {
 			return BeltBend.NONE;
 		}
 
@@ -512,7 +526,7 @@ public class WorldMap {
 			return false;
 		}
 		BeltCell adjBelt = optAdjBelt.get();
-		return adjBelt.bendOthers && (dir.back() == adjBelt.facing);
+		return adjBelt.canBendOthers() && (dir.back() == adjBelt.getFacing());
 	}
 
 	public boolean isCargoBayConnectable(MapPosition pos) {
@@ -574,8 +588,12 @@ public class WorldMap {
 		list.add(new BeaconSource(kr, kc, beacon, distributionEffectivity));
 	}
 
-	public void setBelt(MapPosition pos, Direction facing, boolean bendable, boolean bendOthers) {
-		belts.put(pos.getXCell(), pos.getYCell(), new BeltCell(facing, bendable, bendOthers));
+	public void setBelt(MapPosition pos, Direction dir, boolean bendable, boolean bendOthers) {
+		setBelt(new BeltCell(pos, dir, bendable, bendOthers));
+	}
+
+	public void setBelt(BeltCell beltCell) {
+		belts.put(beltCell.getPos().getXCell(), beltCell.getPos().getYCell(), beltCell);
 	}
 
 	public void setCargoBayConnectable(MapPosition pos, MapEntity entity) {

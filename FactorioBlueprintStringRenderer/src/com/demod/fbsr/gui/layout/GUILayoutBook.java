@@ -55,6 +55,7 @@ import com.demod.fbsr.gui.part.GUIPart;
 import com.demod.fbsr.gui.part.GUIRichText;
 import com.google.common.collect.ArrayTable;
 import com.google.common.collect.Table;
+import com.demod.fbsr.Quadtree;
 
 public class GUILayoutBook implements AutoCloseable {
 	private static final Logger LOGGER = LoggerFactory.getLogger(GUILayoutBook.class);
@@ -123,19 +124,6 @@ public class GUILayoutBook implements AutoCloseable {
 		return new Rectangle(minX, minY, maxX - minX, maxY - minY);
 	}
 
-	private static boolean overlapsAny(List<ImageBlock> blocks, int i, int x, int y) {
-		Rectangle current = blocks.get(i).location;
-		Rectangle testRect = new Rectangle(x, y, current.width, current.height);
-
-		for (int j = 0; j < i; j++) {
-			Rectangle placed = blocks.get(j).location;
-			if (testRect.intersects(placed)) {
-				return true;
-			}
-		}
-		return false;
-	}
-
 	public static Rectangle packBlocks(List<ImageBlock> blocks, double targetRatio) {
 		// Compute total area and largest rectangle dimensions
 		int totalArea = 0;
@@ -179,19 +167,25 @@ public class GUILayoutBook implements AutoCloseable {
 	}
 
 	/**
-	 * Attempts to place all rectangles in the given width and height. O(n²)
-	 * approach: - For each rectangle, try every (x, y) position until a valid
-	 * non-overlapping spot is found. - If no spot is found, return false.
+	 * Attempts to place all rectangles in the given width and height using a Quadtree
+	 * for fast collision detection (similar to AtlasPackage).
 	 */
 	private static boolean tryPlaceRectangles(List<ImageBlock> blocks, int width, int height) {
+		Quadtree occupied = new Quadtree(0, new Rectangle(0, 0, width, height));
+
 		for (int i = 0; i < blocks.size(); i++) {
 			Rectangle r = blocks.get(i).location;
 			boolean placed = false;
-			for (int y = 0; y <= height - r.height && !placed; y++) {
-				for (int x = 0; x <= width - r.width && !placed; x++) {
-					if (!overlapsAny(blocks, i, x, y)) {
-						r.setLocation(x, y);
+
+			// Use strict < bounds to ensure intersection with quadtree bounds is positive
+			for (int y = 0; y < height - r.height && !placed; y++) {
+				for (int x = 0; x < width - r.width && !placed; x++) {
+					r.setLocation(x, y);
+					Rectangle collision = occupied.insertIfNoCollision(r);
+					if (collision == null) {
 						placed = true;
+					} else {
+						x = Math.max(x, collision.x + collision.width - 1);
 					}
 				}
 			}

@@ -115,6 +115,10 @@ public class MapEntity {
 		return s -> register.accept(new MapSprite(s, position));
 	}
 
+	public Consumer<LayeredSpriteDef> spriteRegister(Consumer<MapRenderable> register, MapPosition offset) {
+		return s -> register.accept(new MapSprite(s, position.add(offset)));
+	}
+
 	public Consumer<SpriteDef> spriteRegister(Consumer<MapRenderable> register, Layer layer) {
 		return s -> register.accept(new MapSprite(s, layer, position));
 	}

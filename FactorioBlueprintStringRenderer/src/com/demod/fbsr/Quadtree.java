@@ -4,7 +4,7 @@ import java.awt.Rectangle;
 import java.util.ArrayList;
 import java.util.List;
 
-class Quadtree {
+public class Quadtree {
 	private static final int MAX_OBJECTS = 10; // Max rectangles before splitting
 	private static final int MAX_LEVELS = 5; // Max depth of recursion
 

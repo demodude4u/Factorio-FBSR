@@ -158,6 +158,7 @@ public class FPRotatedAnimation extends FPAnimationParameters {
 		consumer.accept(defs.get(index).get(frame));
 	}
 
+
 	public List<SpriteDef> defineSprites(double orientation, int frame) {
 		int index = getIndex(orientation);
 		return defineSprites(index, frame);
