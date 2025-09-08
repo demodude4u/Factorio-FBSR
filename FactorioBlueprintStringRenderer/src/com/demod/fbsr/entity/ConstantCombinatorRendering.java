@@ -13,8 +13,9 @@ import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.IconDefWithQuality;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.ModdingResolver;
+import com.demod.fbsr.WirePoint;
+import com.demod.fbsr.WirePoint.WireColor;
 import com.demod.fbsr.WirePoints;
-import com.demod.fbsr.WirePoints.WireColor;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.bs.BSFilter;
@@ -26,6 +27,8 @@ import com.demod.fbsr.map.MapRenderable;
 
 @EntityType("constant-combinator")
 public class ConstantCombinatorRendering extends EntityWithOwnerRendering {
+
+	private List<FPWireConnectionPoint> protoConnectionPoints;
 
 	@Override
 	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
@@ -78,12 +81,22 @@ public class ConstantCombinatorRendering extends EntityWithOwnerRendering {
 	}
 
 	@Override
-	public void defineWirePoints(BiConsumer<Integer, WirePoints> consumer, LuaTable lua) {
-		List<FPWireConnectionPoint> protoConnectionPoints = FPUtils.list(lua.get("circuit_wire_connection_points"),
-				FPWireConnectionPoint::new);
+	public void initFromPrototype() {
+		super.initFromPrototype();
 
-		consumer.accept(1, WirePoints.fromWireConnectionPoints(protoConnectionPoints, WireColor.RED, true));
-		consumer.accept(2, WirePoints.fromWireConnectionPoints(protoConnectionPoints, WireColor.GREEN, true));
+		protoConnectionPoints = FPUtils.list(prototype.lua().get("circuit_wire_connection_points"),
+				FPWireConnectionPoint::new);
+	}
+
+	@Override
+	public void createWireConnector(Consumer<MapRenderable> register, BiConsumer<Integer, WirePoint> registerWirePoint,
+			MapEntity entity, List<MapEntity> wired, WorldMap map) {
+		super.createWireConnector(register, registerWirePoint, entity, wired, map);
+
+		int index = entity.getDirection().cardinal();
+		FPWireConnectionPoint cp = protoConnectionPoints.get(index);
+		registerWirePoint.accept(1, WirePoint.fromConnectionPoint(WireColor.RED, cp, entity));
+		registerWirePoint.accept(2, WirePoint.fromConnectionPoint(WireColor.GREEN, cp, entity));
 	}
 
 	// TODO what am I doing with the custom entity?

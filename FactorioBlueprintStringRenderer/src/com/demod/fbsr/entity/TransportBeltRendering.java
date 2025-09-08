@@ -7,12 +7,18 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import com.demod.factorio.fakelua.LuaTable;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.Layer;
+import com.demod.fbsr.WirePoint;
+import com.demod.fbsr.WirePoint.WireColor;
+import com.demod.fbsr.WirePoints;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.WorldMap.BeltBend;
 import com.demod.fbsr.WorldMap.BeltCell;
@@ -24,6 +30,8 @@ import com.demod.fbsr.def.LayeredSpriteDef;
 import com.demod.fbsr.def.SpriteDef;
 import com.demod.fbsr.fp.FPAnimationVariations;
 import com.demod.fbsr.fp.FPBeltReaderLayer;
+import com.demod.fbsr.fp.FPCircuitConnectorDefinition;
+import com.demod.fbsr.fp.FPWireConnectionPoint;
 import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapPosition;
 import com.demod.fbsr.map.MapRenderable;
@@ -90,6 +98,7 @@ public class TransportBeltRendering extends TransportBeltConnectableRendering {
 	private FPAnimationVariations protoConnectorFrameMain;
 	private FPAnimationVariations protoConnectorFrameShadow;
 	private List<FPBeltReaderLayer> protoBeltReader;
+	private List<FPCircuitConnectorDefinition> protoCircuitConnectors;
 
 	@Override
 	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
@@ -213,6 +222,8 @@ public class TransportBeltRendering extends TransportBeltConnectableRendering {
 		protoConnectorFrameShadow = new FPAnimationVariations(profile, connectorLua.get("frame_shadow"));
 
 		protoBeltReader = FPUtils.list(profile, prototype.lua().get("belt_animation_set").get("belt_reader"), FPBeltReaderLayer::new);
+
+		protoCircuitConnectors = FPUtils.list(profile, prototype.lua().get("circuit_connector"), FPCircuitConnectorDefinition::new);
 	}
 
 	@Override
@@ -321,8 +332,9 @@ public class TransportBeltRendering extends TransportBeltConnectableRendering {
 	}
 
 	@Override
-	public double initWireConnector(Consumer<MapRenderable> register, MapEntity entity, List<MapEntity> wired, WorldMap map) {
-		double ret = super.initWireConnector(register, entity, wired, map);
+	public void createWireConnector(Consumer<MapRenderable> register, BiConsumer<Integer, WirePoint> registerWirePoint,
+			MapEntity entity, List<MapEntity> wired, WorldMap map) {
+		super.createWireConnector(register, registerWirePoint, entity, wired, map);
 
 		BSTransportBeltEntity bsEntity = entity.<BSTransportBeltEntity>fromBlueprint();
 		MapPosition pos = entity.getPosition();
@@ -365,7 +377,22 @@ public class TransportBeltRendering extends TransportBeltConnectableRendering {
 		protoConnectorFrameMain.defineSprites(entity.spriteRegister(register, Layer.HIGHER_OBJECT_UNDER), index,
 				CONTROL_FRAME);
 
-		return ret;
-	}
 
+		if (protoCircuitConnectors.size() > 0) {
+			FPCircuitConnectorDefinition circuitConnector = protoCircuitConnectors.get(index);
+			Consumer<SpriteDef> entityRegister = entity.spriteRegister(register, Layer.OBJECT);
+			circuitConnector.sprites.ifPresent(sprites -> {
+				sprites.connectorMain.ifPresent(fp -> fp.defineSprites(entityRegister));
+				sprites.connectorShadow.ifPresent(fp -> fp.defineSprites(entityRegister));
+				sprites.wirePins.ifPresent(fp -> fp.defineSprites(entityRegister));
+				sprites.wirePinsShadow.ifPresent(fp -> fp.defineSprites(entityRegister));
+			});
+			
+			if (circuitConnector.points.isPresent() && wired.size() > 0) {
+				FPWireConnectionPoint cp = circuitConnector.points.get();
+				registerWirePoint.accept(1, WirePoint.fromConnectionPoint(WireColor.RED, cp, entity));
+				registerWirePoint.accept(2, WirePoint.fromConnectionPoint(WireColor.GREEN, cp, entity));
+			}
+		}
+	}
 }

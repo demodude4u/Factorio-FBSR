@@ -15,46 +15,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 
 public class WirePoints {
-	public static enum WireColor {
-		COPPER(new Color(0xffa87c14)), //
-		RED(Color.red.darker()), //
-		GREEN(Color.green.darker()),//
-		;
-
-		private final Color color;
-
-		private WireColor(Color color) {
-			this.color = color;
-		}
-
-		public Color getColor() {
-			return color;
-		}
-	}
-
-	public static class WirePoint {
-		private final WireColor color;
-		private final MapPosition position;
-		private final MapPosition shadow;
-
-		public WirePoint(WireColor color, MapPosition position, MapPosition shadow) {
-			this.color = color;
-			this.position = position;
-			this.shadow = shadow;
-		}
-
-		public WireColor getColor() {
-			return color;
-		}
-
-		public MapPosition getPosition() {
-			return position;
-		}
-
-		public MapPosition getShadow() {
-			return shadow;
-		}
-	}
 
 	public static final Set<Integer> VALID_SIZES = ImmutableSet.of(1, 4, 8, 16);
 

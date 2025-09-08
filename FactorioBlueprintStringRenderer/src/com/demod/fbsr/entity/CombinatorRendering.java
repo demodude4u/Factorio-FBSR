@@ -12,8 +12,9 @@ import com.demod.factorio.fakelua.LuaTable;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.Layer;
+import com.demod.fbsr.WirePoint;
+import com.demod.fbsr.WirePoint.WireColor;
 import com.demod.fbsr.WirePoints;
-import com.demod.fbsr.WirePoints.WireColor;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.def.SpriteDef;
@@ -25,6 +26,8 @@ import com.demod.fbsr.map.MapRenderable;
 public abstract class CombinatorRendering extends EntityWithOwnerRendering {
 
 	private Map<String, FPSprite4Way> protoOperationSprites;
+	private List<FPWireConnectionPoint> protoInputConnectionPoints;
+	private List<FPWireConnectionPoint> protoOutputConnectionPoints;
 
 	@Override
 	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
@@ -51,16 +54,17 @@ public abstract class CombinatorRendering extends EntityWithOwnerRendering {
 	public abstract void defineOperations(Map<String, String> operations);
 
 	@Override
-	public void defineWirePoints(BiConsumer<Integer, WirePoints> consumer, LuaTable lua) {
-		List<FPWireConnectionPoint> protoInputConnectionPoints = FPUtils.list(lua.get("input_connection_points"),
-				FPWireConnectionPoint::new);
-		List<FPWireConnectionPoint> protoOutputConnectionPoints = FPUtils.list(lua.get("output_connection_points"),
-				FPWireConnectionPoint::new);
+	public void createWireConnector(Consumer<MapRenderable> register, BiConsumer<Integer, WirePoint> registerWirePoint,
+			MapEntity entity, List<MapEntity> wired, WorldMap map) {
+		super.createWireConnector(register, registerWirePoint, entity, wired, map);
 
-		consumer.accept(1, WirePoints.fromWireConnectionPoints(protoInputConnectionPoints, WireColor.RED, false));
-		consumer.accept(2, WirePoints.fromWireConnectionPoints(protoInputConnectionPoints, WireColor.GREEN, false));
-		consumer.accept(3, WirePoints.fromWireConnectionPoints(protoOutputConnectionPoints, WireColor.RED, false));
-		consumer.accept(4, WirePoints.fromWireConnectionPoints(protoOutputConnectionPoints, WireColor.GREEN, false));
+		int index = entity.getDirection().cardinal();
+		FPWireConnectionPoint input = protoInputConnectionPoints.get(index);
+		FPWireConnectionPoint output = protoOutputConnectionPoints.get(index);
+		registerWirePoint.accept(1, WirePoint.fromConnectionPoint(WireColor.RED, input, entity));
+		registerWirePoint.accept(2, WirePoint.fromConnectionPoint(WireColor.GREEN, input, entity));
+		registerWirePoint.accept(3, WirePoint.fromConnectionPoint(WireColor.RED, output, entity));
+		registerWirePoint.accept(4, WirePoint.fromConnectionPoint(WireColor.GREEN, output, entity));
 	}
 
 	public abstract Optional<String> getOperation(MapEntity entity);
@@ -85,6 +89,11 @@ public abstract class CombinatorRendering extends EntityWithOwnerRendering {
 				protoOperationSprites.put(entry.getKey(), new FPSprite4Way(profile, luaOperation));
 			}
 		}
+
+		protoInputConnectionPoints = FPUtils.list(prototype.lua().get("input_connection_points"),
+				FPWireConnectionPoint::new);
+		protoOutputConnectionPoints = FPUtils.list(prototype.lua().get("output_connection_points"),
+				FPWireConnectionPoint::new);
 	}
 
 }

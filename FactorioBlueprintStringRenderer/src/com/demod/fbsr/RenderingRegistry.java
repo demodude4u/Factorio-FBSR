@@ -222,8 +222,6 @@ public class RenderingRegistry {
 
 		for (EntityRendererFactory factory : entityFactories) {
 			factory.initFromPrototype();
-			factory.wirePointsById = new LinkedHashMap<>();
-			factory.defineWirePoints(factory.wirePointsById::put, factory.prototype.lua());
 			factory.drawBounds = factory.computeBounds();
 			factory.initAtlas(profile.getAtlasPackage()::registerDef);
 		}

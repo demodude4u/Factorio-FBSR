@@ -11,8 +11,10 @@ import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.EntityType;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.Layer;
+import com.demod.fbsr.RenderUtils;
+import com.demod.fbsr.WirePoint;
+import com.demod.fbsr.WirePoint.WireColor;
 import com.demod.fbsr.WirePoints;
-import com.demod.fbsr.WirePoints.WireColor;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.fp.FPRotatedSprite;
@@ -25,6 +27,7 @@ import com.demod.fbsr.map.MapRenderable;
 public class ElectricPoleRendering extends EntityWithOwnerRendering {
 
 	private FPRotatedSprite protoPictures;
+	private List<FPWireConnectionPoint> protoConnectionPoints;
 
 	public double computePrincipalOrientation(List<MapPosition> points) {
 		if (points.isEmpty()) {
@@ -65,18 +68,6 @@ public class ElectricPoleRendering extends EntityWithOwnerRendering {
 	}
 
 	@Override
-	public void defineWirePoints(BiConsumer<Integer, WirePoints> consumer, LuaTable lua) {
-		super.defineWirePoints(consumer, lua);
-		
-		List<FPWireConnectionPoint> protoConnectionPoints = FPUtils.list(lua.get("connection_points"),
-				FPWireConnectionPoint::new);
-
-		consumer.accept(1, WirePoints.fromWireConnectionPoints(protoConnectionPoints, WireColor.RED, true));
-		consumer.accept(2, WirePoints.fromWireConnectionPoints(protoConnectionPoints, WireColor.GREEN, true));
-		consumer.accept(5, WirePoints.fromWireConnectionPoints(protoConnectionPoints, WireColor.COPPER, true));
-	}
-
-	@Override
 	public void initAtlas(Consumer<ImageDef> register) {
 		super.initAtlas(register);
 
@@ -88,12 +79,18 @@ public class ElectricPoleRendering extends EntityWithOwnerRendering {
 		super.initFromPrototype();
 
 		// XXX strange that I have to force back_equals_front to be true
-		protoPictures = new FPRotatedSprite(profile, prototype.lua().get("pictures"), Optional.of(true));
+		protoPictures = new FPRotatedSprite(profile, prototype.lua().get("pictures"), Optional.of(true));	
+		protoConnectionPoints = FPUtils.list(prototype.lua().get("connection_points"), FPWireConnectionPoint::new);
+
+		if (protoPictures.directionCount != protoConnectionPoints.size()) {
+			throw new IllegalStateException("Mismatched direction count (" + protoPictures.directionCount + ") and connection point count (" + protoConnectionPoints.size() + ") for " + name);
+		}
 	}
 
 	@Override
-	public double initWireConnector(Consumer<MapRenderable> register, MapEntity entity, List<MapEntity> wired, WorldMap map) {
-		super.initWireConnector(register, entity, wired, map);
+	public void createWireConnector(Consumer<MapRenderable> register, BiConsumer<Integer, WirePoint> registerWirePoint,
+			MapEntity entity, List<MapEntity> wired, WorldMap map) {
+		super.createWireConnector(register, registerWirePoint, entity, wired, map);
 
 		MapPosition p1 = entity.getPosition();
 		List<MapPosition> points = wired.stream().map(t -> {
@@ -101,9 +98,12 @@ public class ElectricPoleRendering extends EntityWithOwnerRendering {
 			return p2.sub(p1);
 		}).collect(Collectors.toList());
 		double orientation = computePrincipalOrientation(points);
+		int index = protoPictures.getIndex(orientation);
 
-		protoPictures.defineSprites(entity.spriteRegister(register, Layer.HIGHER_OBJECT_ABOVE), orientation);
-
-		return orientation;
+		protoPictures.defineSprites(entity.spriteRegister(register, Layer.HIGHER_OBJECT_ABOVE), index);
+		FPWireConnectionPoint cp = protoConnectionPoints.get(index);
+		registerWirePoint.accept(1, WirePoint.fromConnectionPoint(WireColor.RED, cp, entity));
+		registerWirePoint.accept(2, WirePoint.fromConnectionPoint(WireColor.GREEN, cp, entity));
+		registerWirePoint.accept(5, WirePoint.fromConnectionPoint(WireColor.COPPER, cp, entity));
 	}
 }
