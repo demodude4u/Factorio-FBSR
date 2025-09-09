@@ -7,7 +7,6 @@ import java.util.function.Consumer;
 import com.demod.factorio.fakelua.LuaTable;
 import com.demod.fbsr.EntityType;
 import com.demod.fbsr.WirePoint;
-import com.demod.fbsr.WirePoints;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.WirePoint.WireColor;
 import com.demod.fbsr.fp.FPWireConnectionPoint;
@@ -42,6 +41,10 @@ public class PowerSwitchRendering extends EntityWithOwnerRendering {
 	public void createWireConnector(Consumer<MapRenderable> register, BiConsumer<Integer, WirePoint> registerWirePoint,
 			MapEntity entity, List<MapEntity> wired, WorldMap map) {
 		super.createWireConnector(register, registerWirePoint, entity, wired, map);
+
+		if (wired.isEmpty()) {
+			return;
+		}
 
 		registerWirePoint.accept(1, WirePoint.fromConnectionPoint(WireColor.RED, protoCircuitPoint, entity));
 		registerWirePoint.accept(2, WirePoint.fromConnectionPoint(WireColor.GREEN, protoCircuitPoint, entity));

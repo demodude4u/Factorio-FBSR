@@ -14,7 +14,6 @@ import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.WirePoint;
 import com.demod.fbsr.WirePoint.WireColor;
-import com.demod.fbsr.WirePoints;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.def.SpriteDef;
@@ -57,6 +56,10 @@ public abstract class CombinatorRendering extends EntityWithOwnerRendering {
 	public void createWireConnector(Consumer<MapRenderable> register, BiConsumer<Integer, WirePoint> registerWirePoint,
 			MapEntity entity, List<MapEntity> wired, WorldMap map) {
 		super.createWireConnector(register, registerWirePoint, entity, wired, map);
+
+		if (wired.isEmpty()) {
+			return;
+		}
 
 		int index = entity.getDirection().cardinal();
 		FPWireConnectionPoint input = protoInputConnectionPoints.get(index);

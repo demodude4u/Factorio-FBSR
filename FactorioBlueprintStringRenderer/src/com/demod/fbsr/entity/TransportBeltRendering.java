@@ -18,7 +18,6 @@ import com.demod.fbsr.Direction;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.WirePoint;
 import com.demod.fbsr.WirePoint.WireColor;
-import com.demod.fbsr.WirePoints;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.WorldMap.BeltBend;
 import com.demod.fbsr.WorldMap.BeltCell;
@@ -40,64 +39,8 @@ import com.demod.fbsr.map.MapRenderable;
 public class TransportBeltRendering extends TransportBeltConnectableRendering {
 	private static final int CONTROL_FRAME = 0;
 
-	// absolute frames
-	public static final int BELT_READER_RAIL_N = 0;
-	public static final int BELT_READER_RAIL_E = 1;
-	public static final int BELT_READER_RAIL_S = 2;
-	public static final int BELT_READER_RAIL_W = 3;
-	public static final int BELT_READER_BAR_N = 4;
-	public static final int BELT_READER_BAR_E = 5;
-	public static final int BELT_READER_BAR_S = 6;
-	public static final int BELT_READER_BAR_W = 7;
-	public static final int BELT_READER_CURVE_NE = 8;
-	public static final int BELT_READER_CURVE_SE = 9;
-	public static final int BELT_READER_CURVE_SW = 10;
-	public static final int BELT_READER_CURVE_NW = 11;
-	public static final int BELT_READER_END_S = 12;
-	public static final int BELT_READER_END_W = 13;
-	public static final int BELT_READER_END_N = 14;
-	public static final int BELT_READER_END_E = 15;
-
-	public static final int CONNECTOR_X = 0;
-	public static final int CONNECTOR_H = 1;
-	public static final int CONNECTOR_V = 2;
-	public static final int CONNECTOR_SE = 3;
-	public static final int CONNECTOR_SW = 4;
-	public static final int CONNECTOR_NE = 5;
-	public static final int CONNECTOR_NW = 6;
-	
-	public static final int[] beltReaderRailLeft = { // cardinal
-		BELT_READER_RAIL_W, BELT_READER_RAIL_N, BELT_READER_RAIL_E, BELT_READER_RAIL_S
-	};
-	public static final int[] beltReaderRailRight = { // cardinal
-		BELT_READER_RAIL_E, BELT_READER_RAIL_S, BELT_READER_RAIL_W, BELT_READER_RAIL_N
-	};
-	public static final int[] beltReaderBarLeft = { // cardinal
-		BELT_READER_BAR_W, BELT_READER_BAR_N, BELT_READER_BAR_E, BELT_READER_BAR_S
-	};
-	public static final int[] beltReaderBarRight = { // cardinal
-		BELT_READER_BAR_E, BELT_READER_BAR_S, BELT_READER_BAR_W, BELT_READER_BAR_N
-	};
-	public static final int[][] beltReaderCurve = { // cardinal, bend
-		{ BELT_READER_CURVE_NW, -1, BELT_READER_CURVE_NE }, // North
-		{ BELT_READER_CURVE_NE, -1, BELT_READER_CURVE_SE }, // East
-		{ BELT_READER_CURVE_SE, -1, BELT_READER_CURVE_SW }, // South
-		{ BELT_READER_CURVE_SW, -1, BELT_READER_CURVE_NW }, // West
-	};
-	public static final int[] beltReaderEnd = { // cardinal
-		BELT_READER_END_N, BELT_READER_END_E, BELT_READER_END_S, BELT_READER_END_W
-	};
-
-	public static final int[][] connectorCurve = { // cardinal, bend
-		{ CONNECTOR_NW, -1, CONNECTOR_NE }, // North
-		{ CONNECTOR_NE, -1, CONNECTOR_SE }, // East
-		{ CONNECTOR_SE, -1, CONNECTOR_SW }, // South
-		{ CONNECTOR_SW, -1, CONNECTOR_NW }, // West
-	};
-
 	private FPAnimationVariations protoConnectorFrameMain;
 	private FPAnimationVariations protoConnectorFrameShadow;
-	private List<FPBeltReaderLayer> protoBeltReader;
 	private List<FPCircuitConnectorDefinition> protoCircuitConnectors;
 
 	@Override
@@ -188,15 +131,6 @@ public class TransportBeltRendering extends TransportBeltConnectableRendering {
 		}
 	}
 
-	private void defineBeltReaderSprites(Consumer<LayeredSpriteDef> consumer, int absoluteFrame) {
-		int index = absoluteFrame / 4;
-		int frame = absoluteFrame % 4;
-		for (FPBeltReaderLayer br : protoBeltReader) {
-			br.sprites.defineSprites(s -> consumer.accept(new LayeredSpriteDef(s, br.renderLayer)), 
-					index, frame);
-		}
-	}
-
 	@Override
 	public Class<? extends BSEntity> getEntityClass() {
 		return BSTransportBeltEntity.class;
@@ -208,9 +142,6 @@ public class TransportBeltRendering extends TransportBeltConnectableRendering {
 
 		protoConnectorFrameMain.getDefs(register, CONTROL_FRAME);
 		protoConnectorFrameShadow.getDefs(register, CONTROL_FRAME);
-		protoBeltReader.forEach(br -> 
-				IntStream.range(0, br.sprites.frameCount)
-						.forEach(i -> br.sprites.getDefs(register, i)));
 	}
 
 	@Override
@@ -220,8 +151,6 @@ public class TransportBeltRendering extends TransportBeltConnectableRendering {
 		LuaValue connectorLua = prototype.lua().get("connector_frame_sprites");
 		protoConnectorFrameMain = new FPAnimationVariations(profile, connectorLua.get("frame_main"));
 		protoConnectorFrameShadow = new FPAnimationVariations(profile, connectorLua.get("frame_shadow"));
-
-		protoBeltReader = FPUtils.list(profile, prototype.lua().get("belt_animation_set").get("belt_reader"), FPBeltReaderLayer::new);
 
 		protoCircuitConnectors = FPUtils.list(profile, prototype.lua().get("circuit_connector"), FPCircuitConnectorDefinition::new);
 	}
@@ -257,58 +186,7 @@ public class TransportBeltRendering extends TransportBeltConnectableRendering {
 				&& c.circuitContentsReadMode.orElse(0) == BSTransportBeltControlBehavior.CIRCUIT_HAND_READ_MODE_ENTIRE_BELT_HOLD).orElse(false);
 		
 		if (readAllBelts) {
-			paintBeltReaders(map, entity);
-		}
-	}
-
-	private void paintBeltReaders(WorldMap map, MapEntity origin) {
-		class BeltCellAndPosition {
-			BeltCell cell;
-			MapPosition position;
-
-			BeltCellAndPosition(BeltCell cell, MapPosition position) {
-				this.cell = cell;
-				this.position = position;
-			}
-		}
-
-		MapPosition startPos = origin.getPosition();
-		Optional<BeltCell> startBelt = map.getBelt(startPos);
-		if (startBelt.isEmpty()) {
-			return;
-		}
-
-		startBelt.get().setBeltReader(true);
-
-		Optional<BeltCell> belt = startBelt;
-		while (true) {// Forward
-			Optional<BeltCell> checkBelt = belt.get().prevReadAllBelts();
-			if (checkBelt.isEmpty()) {
-				break;
-			}
-			if (checkBelt.get().isBeltReader()) {
-				break;
-			}
-			if (!checkBelt.get().nextReadAllBelts().equals(belt)) {
-				break;
-			}
-			checkBelt.get().setBeltReader(true);
-			belt = checkBelt;
-		}
-		belt = startBelt;
-		while (true) {// Backward
-			Optional<BeltCell> checkBelt = belt.get().nextReadAllBelts();
-			if (checkBelt.isEmpty()) {
-				break;
-			}
-			if (checkBelt.get().isBeltReader()) {
-				break;
-			}
-			if (!checkBelt.get().prevReadAllBelts().equals(belt)) {
-				break;
-			}
-			checkBelt.get().setBeltReader(true);
-			belt = checkBelt;
+			map.setBeltReaderSource(pos);
 		}
 	}
 
@@ -335,6 +213,10 @@ public class TransportBeltRendering extends TransportBeltConnectableRendering {
 	public void createWireConnector(Consumer<MapRenderable> register, BiConsumer<Integer, WirePoint> registerWirePoint,
 			MapEntity entity, List<MapEntity> wired, WorldMap map) {
 		super.createWireConnector(register, registerWirePoint, entity, wired, map);
+
+		if (wired.isEmpty()) {
+			return;
+		}
 
 		BSTransportBeltEntity bsEntity = entity.<BSTransportBeltEntity>fromBlueprint();
 		MapPosition pos = entity.getPosition();
@@ -377,7 +259,6 @@ public class TransportBeltRendering extends TransportBeltConnectableRendering {
 		protoConnectorFrameMain.defineSprites(entity.spriteRegister(register, Layer.HIGHER_OBJECT_UNDER), index,
 				CONTROL_FRAME);
 
-
 		if (protoCircuitConnectors.size() > 0) {
 			FPCircuitConnectorDefinition circuitConnector = protoCircuitConnectors.get(index);
 			Consumer<SpriteDef> entityRegister = entity.spriteRegister(register, Layer.OBJECT);
@@ -388,7 +269,7 @@ public class TransportBeltRendering extends TransportBeltConnectableRendering {
 				sprites.wirePinsShadow.ifPresent(fp -> fp.defineSprites(entityRegister));
 			});
 			
-			if (circuitConnector.points.isPresent() && wired.size() > 0) {
+			if (circuitConnector.points.isPresent()) {
 				FPWireConnectionPoint cp = circuitConnector.points.get();
 				registerWirePoint.accept(1, WirePoint.fromConnectionPoint(WireColor.RED, cp, entity));
 				registerWirePoint.accept(2, WirePoint.fromConnectionPoint(WireColor.GREEN, cp, entity));

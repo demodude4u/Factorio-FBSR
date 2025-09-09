@@ -180,6 +180,10 @@ public class FPRotatedSprite extends FPSpriteParameters {
 	}
 
 	public int getIndex(double orientation) {
+		if (layers.isPresent()) {
+			return layers.get().get(0).getIndex(orientation);
+		}
+
 		if (counterclockwise) {
 			orientation = 1 - orientation;
 		}
@@ -200,6 +204,13 @@ public class FPRotatedSprite extends FPSpriteParameters {
 			index = 0;
 		}
 		return index;
+	}
+
+	public int getDirectionCount() {
+		if (layers.isPresent()) {
+			return layers.get().get(0).getDirectionCount();
+		}
+		return directionCount;
 	}
 
 	public int getLimitedDirectionCount() {

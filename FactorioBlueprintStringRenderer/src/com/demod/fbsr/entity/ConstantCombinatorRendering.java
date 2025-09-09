@@ -15,7 +15,6 @@ import com.demod.fbsr.Layer;
 import com.demod.fbsr.ModdingResolver;
 import com.demod.fbsr.WirePoint;
 import com.demod.fbsr.WirePoint.WireColor;
-import com.demod.fbsr.WirePoints;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.bs.BSFilter;
@@ -92,6 +91,10 @@ public class ConstantCombinatorRendering extends EntityWithOwnerRendering {
 	public void createWireConnector(Consumer<MapRenderable> register, BiConsumer<Integer, WirePoint> registerWirePoint,
 			MapEntity entity, List<MapEntity> wired, WorldMap map) {
 		super.createWireConnector(register, registerWirePoint, entity, wired, map);
+
+		if (wired.isEmpty()) {
+			return;
+		}
 
 		int index = entity.getDirection().cardinal();
 		FPWireConnectionPoint cp = protoConnectionPoints.get(index);

@@ -14,7 +14,6 @@ import com.demod.fbsr.Layer;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.WirePoint;
 import com.demod.fbsr.WirePoint.WireColor;
-import com.demod.fbsr.WirePoints;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.fp.FPRotatedSprite;
@@ -82,8 +81,8 @@ public class ElectricPoleRendering extends EntityWithOwnerRendering {
 		protoPictures = new FPRotatedSprite(profile, prototype.lua().get("pictures"), Optional.of(true));	
 		protoConnectionPoints = FPUtils.list(prototype.lua().get("connection_points"), FPWireConnectionPoint::new);
 
-		if (protoPictures.directionCount != protoConnectionPoints.size()) {
-			throw new IllegalStateException("Mismatched direction count (" + protoPictures.directionCount + ") and connection point count (" + protoConnectionPoints.size() + ") for " + name);
+		if (protoPictures.getDirectionCount() != protoConnectionPoints.size()) {
+			throw new IllegalStateException("Mismatched direction count (" + protoPictures.getDirectionCount() + ") and connection point count (" + protoConnectionPoints.size() + ") for " + name);
 		}
 	}
 
@@ -91,6 +90,10 @@ public class ElectricPoleRendering extends EntityWithOwnerRendering {
 	public void createWireConnector(Consumer<MapRenderable> register, BiConsumer<Integer, WirePoint> registerWirePoint,
 			MapEntity entity, List<MapEntity> wired, WorldMap map) {
 		super.createWireConnector(register, registerWirePoint, entity, wired, map);
+
+		if (wired.isEmpty()) {
+			return;
+		}
 
 		MapPosition p1 = entity.getPosition();
 		List<MapPosition> points = wired.stream().map(t -> {

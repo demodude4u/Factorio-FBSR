@@ -79,12 +79,12 @@ public class WorldMap {
 	}
 
 	public static class BeltCell {
-		private final MapPosition pos;
-		private final Direction facing;
-		private final boolean bendable;
-		private final boolean bendOthers;
+		protected final MapPosition pos;
+		protected  final Direction facing;
+		protected  final boolean bendable;
+		protected  final boolean bendOthers;
 
-		private boolean beltReader = false;
+		protected boolean beltReader = false;
 
 		public BeltCell(MapPosition pos, Direction facing, boolean bendable, boolean bendOthers) {
 			this.pos = pos;
@@ -293,6 +293,7 @@ public class WorldMap {
 	private final Table<Integer, Integer, Object> walls = HashBasedTable.create();
 	private final Table<Integer, Integer, Boolean> gates = HashBasedTable.create();
 	private final Table<Integer, Integer, Entry<String, Direction>> undergroundBeltEndings = HashBasedTable.create();
+	private final Table<Integer, Integer, MapPosition> undergroundBeltLinks = HashBasedTable.create();
 	private final Table<Integer, Integer, List<BeaconSource>> beaconed = HashBasedTable.create();
 	private final Table<Integer, Integer, MapEntity> cargoBayConnectables = HashBasedTable.create();
 	private final Table<Integer, Integer, List<Boolean>> fusionConnections = HashBasedTable.create();
@@ -315,6 +316,7 @@ public class WorldMap {
 	// private final List<Entry<RailEdge, RailEdge>> railEdges = new ArrayList<>();
 
 	private final List<MapRail> rails = new ArrayList<>();
+	private final List<MapPosition> beltReaderSources = new ArrayList<>();
 
 	private final ListMultimap<MapEntity, MapEntity> wired = ArrayListMultimap.create();
 
@@ -715,5 +717,22 @@ public class WorldMap {
 
 	public List<MapRail> getRails() {
 		return rails;
+	}
+
+	public void linkUndergroundBelts(MapPosition inputPos, MapPosition outputPos) {
+		undergroundBeltLinks.put(inputPos.getXCell(), inputPos.getYCell(), outputPos);
+		undergroundBeltLinks.put(outputPos.getXCell(), outputPos.getYCell(), inputPos);
+	}
+
+	public Optional<MapPosition> getLinkedUndergroundBelt(MapPosition pos) {
+		return Optional.ofNullable(undergroundBeltLinks.get(pos.getXCell(), pos.getYCell()));
+	}
+
+	public void setBeltReaderSource(MapPosition pos) {
+		beltReaderSources.add(pos);
+	}
+
+	public List<MapPosition> getBeltReaderSources() {
+		return beltReaderSources;
 	}
 }
