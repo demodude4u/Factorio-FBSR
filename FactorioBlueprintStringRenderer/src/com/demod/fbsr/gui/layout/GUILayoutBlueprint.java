@@ -52,6 +52,7 @@ import com.demod.fbsr.gui.part.GUILabel;
 import com.demod.fbsr.gui.part.GUIPanel;
 import com.demod.fbsr.gui.part.GUIPart;
 import com.demod.fbsr.gui.part.GUIRichText;
+import com.demod.fbsr.gui.part.GUIRichTextArea;
 import com.demod.fbsr.map.MapUnknownEntityMarker;
 import com.google.common.collect.ImmutableMap;
 
@@ -140,8 +141,6 @@ public class GUILayoutBlueprint {
 	private void drawImagePane(GUIBox bounds) {
 		bounds = bounds.shrink(0, 12, 24, 24);
 
-		// TODO description bar along top
-
 		GUIPanel panel = new GUIPanel(bounds, guiStyle.FRAME_DARK_INNER, guiStyle.FRAME_OUTER);
 		renderTinted(panel);
 
@@ -176,7 +175,6 @@ public class GUILayoutBlueprint {
 
 		GUIImage image = new GUIImage(bounds, result.image, true);
 		image.render(g);
-
 		
 		GUIBox boundsCell;
 		Font fontMod;
@@ -188,9 +186,9 @@ public class GUILayoutBlueprint {
 			fontMod = guiStyle.FONT_BP_BOLD.deriveFont(15f);
 		}
 
-		FontMetrics fm = g.getFontMetrics(fontMod);
+		FontMetrics fmMod = g.getFontMetrics(fontMod);
 		for (String mod : spaceAgeMods) {
-			int minWidth = fm.stringWidth(mod) + 16;
+			int minWidth = fmMod.stringWidth(mod) + 16;
 			GUIBox boundsLabel = (minWidth > boundsCell.width) ? boundsCell.expandLeft(minWidth - boundsCell.width)
 					: boundsCell;
 			guiStyle.CIRCLE_WHITE.render(g, boundsLabel);
@@ -199,13 +197,34 @@ public class GUILayoutBlueprint {
 			boundsCell = boundsCell.indexed(1, 0);
 		}
 		for (String mod : mods) {
-			int minWidth = fm.stringWidth(mod) + 16;
+			int minWidth = fmMod.stringWidth(mod) + 16;
 			GUIBox boundsLabel = (minWidth > boundsCell.width) ? boundsCell.expandLeft(minWidth - boundsCell.width)
 					: boundsCell;
 			guiStyle.CIRCLE_YELLOW.render(g, boundsLabel);
 			GUILabel label = new GUILabel(boundsLabel, mod, fontMod, Color.black, GUIAlign.CENTER);
 			label.render(g);
 			boundsCell = boundsCell.indexed(1, 0);
+		}
+
+		String description = blueprint.description.orElse("").trim();
+		if (!description.isBlank()) {
+			Font fontDesc = guiStyle.FONT_BP_REGULAR.deriveFont(12f);
+			FontMetrics fmDesc = g.getFontMetrics(fontDesc);
+			int ascent = fmDesc.getAscent();
+			int descent = fmDesc.getDescent();
+			int lineHeight = ascent + descent;
+			GUIBox boundsDescPanel = bounds.cutBottom(lineHeight * 3 + 8);
+			GUIBox boundsDesc = boundsDescPanel.shrink(0, 6, 0, 6);
+			GUIRichTextArea textArea = new GUIRichTextArea(boundsDesc, description, guiStyle.FONT_BP_REGULAR.deriveFont(12f), Color.gray, GUIAlign.CENTER_LEFT, resolver);
+			int lineCount = textArea.getLineCount(g);
+			if (lineCount < 3) {
+				boundsDescPanel = bounds.cutBottom(lineHeight * lineCount + 8);
+				boundsDesc = boundsDescPanel.shrink(0, 6, 0, 6);
+				textArea.box = boundsDesc;
+			}
+			GUIPanel panelDesc = new GUIPanel(boundsDescPanel, guiStyle.CIRCLE_TRANSLUCENT_BLACK);
+			renderTinted(panelDesc);
+			textArea.render(g);
 		}
 	}
 
