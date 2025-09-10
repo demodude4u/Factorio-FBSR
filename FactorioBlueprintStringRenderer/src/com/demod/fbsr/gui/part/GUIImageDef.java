@@ -11,7 +11,7 @@ import com.demod.fbsr.gui.GUIBox;
 
 public class GUIImageDef extends GUIPart {
 
-	public final ImageDef def;
+	public ImageDef def;
 
 	public GUIImageDef(GUIBox box, ImageDef def) {
 		super(box);

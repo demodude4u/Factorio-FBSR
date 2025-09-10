@@ -8,9 +8,9 @@ import com.demod.fbsr.gui.GUIBox;
 
 public class GUIImage extends GUIPart {
 
-	public final BufferedImage image;
-	private final double scale;
-	private final boolean preScaled;
+	public BufferedImage image;
+	private double scale;
+	private boolean preScaled;
 
 	public GUIImage(GUIBox box, BufferedImage image, boolean preScaled) {
 		this(box, image, 1.0, preScaled);

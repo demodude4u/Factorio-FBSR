@@ -10,10 +10,10 @@ import com.demod.fbsr.gui.GUIBox;
 import com.demod.fbsr.gui.GUIAlign;
 
 public class GUIRichText extends GUIPart {
-	public final RichText text;
-	public final Font font;
-	public final Color color;
-	public final GUIAlign align;
+	public RichText text;
+	public Font font;
+	public Color color;
+	public GUIAlign align;
 
 	public GUIRichText(GUIBox box, String text, Font font, Color color, GUIAlign align, ModdingResolver resolver) {
 		super(box);

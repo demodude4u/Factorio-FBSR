@@ -9,9 +9,9 @@ import com.demod.fbsr.gui.feature.GUIStaticFeature;
 
 public class GUIPanel extends GUIPart {
 
-	public final Optional<GUISliceFeature> outer;
-	public final Optional<GUISliceFeature> inner;
-	public final Optional<GUIStaticFeature> stat;
+	public Optional<GUISliceFeature> outer;
+	public Optional<GUISliceFeature> inner;
+	public Optional<GUIStaticFeature> stat;
 
 	public GUIPanel(GUIBox box, GUISliceFeature inner) {
 		super(box);

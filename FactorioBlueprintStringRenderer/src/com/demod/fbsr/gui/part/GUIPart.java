@@ -6,7 +6,7 @@ import com.demod.fbsr.gui.GUIBox;
 
 public abstract class GUIPart {
 
-	public final GUIBox box;
+	public GUIBox box;
 
 	public GUIPart(GUIBox box) {
 		this.box = box;

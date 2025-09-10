@@ -57,6 +57,10 @@ public class GUIBox {
 		return new GUIBox(x + width * col, y + height * row, width, height);
 	}
 
+	public GUIBox shift(int dx, int dy) {
+		return new GUIBox(x + dx, y + dy, width, height);
+	}
+
 	public GUIBox shrink(GUISpacing s) {
 		return new GUIBox(x + s.left, y + s.top, width - s.left - s.right, height - s.top - s.bottom);
 	}

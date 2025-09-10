@@ -80,6 +80,6 @@ public class MapVersion implements Comparable<MapVersion> {
 
 	@Override
 	public String toString() {
-		return "(" + main + "." + major + "." + minor + ")";
+		return main + "." + major + "." + minor;
 	}
 }
