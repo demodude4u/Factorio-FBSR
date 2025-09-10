@@ -655,8 +655,8 @@ public class Profile {
             
             List<Profile> profiles = new ArrayList<>();
             profiles.add(this);
-            Set<String> ignoredEntities = new HashSet<>();
-            Set<String> ignoredTiles = new HashSet<>();
+            Set<String> vanillaEntities = new HashSet<>();
+            Set<String> vanillaTiles = new HashSet<>();
             if (!profileVanilla.equals(this)) {
                 if (!profileVanilla.hasAssets()) {
                     System.out.println("Vanilla profile does not have generated assets.");
@@ -669,8 +669,8 @@ public class Profile {
                 }
 
                 profiles.add(profileVanilla);
-                ignoredEntities.addAll(jsonRenderingVanilla.getJSONObject("entities").keySet());
-                ignoredTiles.addAll(jsonRenderingVanilla.getJSONObject("tiles").keySet());
+                vanillaEntities.addAll(jsonRenderingVanilla.getJSONObject("entities").keySet());
+                vanillaTiles.addAll(jsonRenderingVanilla.getJSONObject("tiles").keySet());
             }
 
             JSONObject jsonProfile = readJsonFile(fileProfileConfig);
@@ -731,10 +731,6 @@ public class Profile {
                         return isBlueprintable(e);
                     })
                     .sorted(Comparator.comparing(e -> e.getName())).forEach(e -> {
-                        if (ignoredEntities.contains(e.getName())) {
-                            return;
-                        }
-
                         Optional<Class<? extends EntityRendererFactory>> factoryClass = EntityRendererFactory.findFactoryClassByType(e.getType());
 
                         List<String> overrideMods = new ArrayList<>();
@@ -859,6 +855,11 @@ public class Profile {
                                 .filter(mod -> !mod.equals("base") && !mod.equals("core"))
                                 .collect(Collectors.toList());
 
+                        boolean pureVanilla = mods.isEmpty() && vanillaEntities.contains(e.getName());
+                        if (!isVanilla() && pureVanilla) {
+                            return;
+                        }
+
                         if (mods.isEmpty() && !isVanilla()) {
                             System.out.println("Entity " + e.getName() + " (" + factoryClass.get().getSimpleName() + ") has no mods associated with it in a non-vanilla profile!");
                             failure.set(true);
@@ -888,10 +889,6 @@ public class Profile {
                         return isBlueprintable(t);
                     })
                     .sorted(Comparator.comparing(t -> t.getName())).forEach(t -> {
-                        if (ignoredTiles.contains(t.getName())) {
-                            return;
-                        }
-
                         Optional<Collection<String>> overrideMods;
                         if (jsonProfileTileOverrides.has(t.getName())) {
                             if (jsonProfileTileOverrides.isNull(t.getName())) {
@@ -971,6 +968,10 @@ public class Profile {
                                 .filter(mod -> !mod.equals("base") && !mod.equals("core"))
                                 .collect(Collectors.toList());
 
+                        boolean pureVanilla = mods.isEmpty() && vanillaTiles.contains(t.getName());
+                        if (!isVanilla() && pureVanilla) {
+                            return;
+                        }
 
                         if (mods.isEmpty() && !isVanilla()) {
                             System.out.println("Tile " + t.getName() + " has no mods associated with it in a non-vanilla profile!");

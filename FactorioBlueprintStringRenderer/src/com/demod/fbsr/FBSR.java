@@ -235,7 +235,11 @@ public class FBSR {
 			unknownTiles = LinkedHashMultiset.create();
 			unknownQualities = LinkedHashMultiset.create();
 
-			resolver = ModdingResolver.byBlueprintBiases(factorioManager, blueprint);
+			if (request.hasResolverOverride()) {
+				resolver = request.getResolverOverride();
+			} else {
+				resolver = ModdingResolver.byBlueprintBiases(factorioManager, blueprint);
+			}
 
 			for (BSMetaEntity metaEntity : blueprint.entities) {
 				EntityRendererFactory factory = resolver.resolveFactoryEntityName(metaEntity.name);

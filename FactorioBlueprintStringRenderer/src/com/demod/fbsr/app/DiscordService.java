@@ -1285,13 +1285,23 @@ public class DiscordService extends AbstractIdleService {
 				for (EntityRendererFactory factory : registry.getEntityFactories()) {
 					if (factory.getName().equals(entityName)) {
 						for (ManifestModInfo mod : factory.getMods()) {
+							possibleMatches.put(mod.name, profile);
 							possibleMatches.put(mod.title, profile);
 						}
 					}
 				}
 			}
 
-			List<Profile> profiles = new ArrayList<>(possibleMatches.get(modFilter.get()));
+			List<Profile> profiles = new ArrayList<>();
+			for (String match : possibleMatches.keySet()) {
+				if (match.contains(modFilter.get())) {
+					for (Profile profile : possibleMatches.get(match)) {
+						if (!profiles.contains(profile)) {
+							profiles.add(profile);
+						}
+					}
+				}
+			}
 
 			if (profiles.isEmpty() && possibleMatches.isEmpty()) {
 				event.reply("I could not find a way to display `" + entityName + "`");
@@ -1308,6 +1318,10 @@ public class DiscordService extends AbstractIdleService {
 			}
 
 			if (!profiles.stream().anyMatch(p -> p.isVanilla())) {
+				profiles.add(factorioManager.getProfileVanilla());
+			} else {
+				//Place at end of list
+				profiles.remove(factorioManager.getProfileVanilla());
 				profiles.add(factorioManager.getProfileVanilla());
 			}
 
@@ -1329,6 +1343,7 @@ public class DiscordService extends AbstractIdleService {
 		}
 
 		RenderRequest request = new RenderRequest(blueprint, event.getReporting());
+		request.setResolverOverride(resolver);
 		request.setBackground(Optional.empty());
 		request.setGridLines(Optional.empty());
 		request.setDontClipSprites(true);
@@ -1405,12 +1420,25 @@ public class DiscordService extends AbstractIdleService {
 
 		List<String> names = new ArrayList<>();
 		List<String> matches = new ArrayList<>();
+		FactorioManager factorioManager = FBSR.getFactorioManager();
 		
 		if (param.equals("entity")) {
-			FBSR.getFactorioManager().getEntityFactoryByNameMap().keySet().stream().forEach(names::add);
-		
+			names.addAll(factorioManager.getEntityFactoryByNameMap().keySet());
+
 		} else if (param.equals("mod")) {
-			FBSR.getFactorioManager().getProfileByModNameMap().keySet().stream().forEach(names::add);
+			for (Profile profile : factorioManager.getProfiles()) {
+				RenderingRegistry registry = profile.getRenderingRegistry();
+				for (EntityRendererFactory factory : registry.getEntityFactories()) {
+					for (ManifestModInfo mod : factory.getMods()) {
+						if (!names.contains(mod.name)) {
+							names.add(mod.name);
+						}
+						if (!names.contains(mod.title)) {
+							names.add(mod.title);
+						}
+					}
+				}
+			}
 		}
 
 		names.sort(Comparator.comparingInt(String::length).thenComparing(String::compareToIgnoreCase));

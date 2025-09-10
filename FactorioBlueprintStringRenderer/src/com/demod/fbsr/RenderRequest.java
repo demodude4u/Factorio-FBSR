@@ -29,6 +29,7 @@ public class RenderRequest {
 
 	private BSBlueprint blueprint;
 	private CommandReporting reporting;
+	private Optional<ModdingResolver> resolverOverride = Optional.empty();
 
 	private OptionalInt maxWidth = OptionalInt.empty();
 	private OptionalInt maxHeight = OptionalInt.empty();
@@ -121,6 +122,18 @@ public class RenderRequest {
 
 	public boolean dontClipSprites() {
 		return dontClipSprites;
+	}
+
+	public boolean hasResolverOverride() {
+		return resolverOverride.isPresent();
+	}
+
+	public ModdingResolver getResolverOverride() {
+		return resolverOverride.get();
+	}
+
+	public void setResolverOverride(ModdingResolver resolver) {
+		this.resolverOverride = Optional.ofNullable(resolver);
 	}
 
 	public void setBackground(Optional<Color> background) {
