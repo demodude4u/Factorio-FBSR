@@ -52,6 +52,7 @@ import com.demod.fbsr.gui.part.GUILabel;
 import com.demod.fbsr.gui.part.GUIPanel;
 import com.demod.fbsr.gui.part.GUIPart;
 import com.demod.fbsr.gui.part.GUIRichText;
+import com.demod.fbsr.gui.part.GUIRichTextArea;
 import com.demod.fbsr.map.MapUnknownEntityMarker;
 import com.google.common.collect.ImmutableMap;
 
@@ -100,18 +101,45 @@ public class GUILayoutBlueprint {
 		drawInfoPane(bounds.shrinkTop(titleHeight).cutLeft(infoPaneWidth));
 		drawImagePane(bounds.shrinkTop(titleHeight).shrinkLeft(infoPaneWidth));
 
-		GUIBox creditBounds = bounds.cutRight(190).cutBottom(24).expandTop(8).cutTop(16).cutLeft(160);
-		GUIPanel creditPanel = new GUIPanel(creditBounds, guiStyle.FRAME_TAB);
-		renderTinted(creditPanel);
-		GUILabel lblCredit = new GUILabel(creditBounds, "BlueprintBot " + FBSR.getFactorioManager().getProfileVanilla().getFactorioData().getVersion(),
-				guiStyle.FONT_BP_BOLD.deriveFont(16f), Color.GRAY, GUIAlign.TOP_CENTER);
+		String versionText;
+		if (!mods.isEmpty()) {
+			versionText = "Modded Factorio " + blueprint.version;
+		} else if (!spaceAgeMods.isEmpty()) {
+			versionText = "Factorio Space Age " + blueprint.version;
+		} else {
+			versionText = "Factorio " + blueprint.version;
+		}
+		Font versionFont = guiStyle.FONT_BP_BOLD.deriveFont(16f);
+		FontMetrics fm = g.getFontMetrics(versionFont);
+		int versionWidth = fm.stringWidth(versionText) + 24;
+		GUIBox versionBounds = bounds.cutRight(versionWidth + 30).cutBottom(24).expandTop(8).cutTop(16).cutLeft(versionWidth);
+		GUIPanel versionPanel = new GUIPanel(versionBounds, guiStyle.FRAME_TAB);
+		renderTinted(versionPanel);
+		GUILabel lblVersion = new GUILabel(versionBounds, versionText, versionFont, Color.GRAY, GUIAlign.TOP_CENTER);
+		renderTinted(lblVersion);
+
+		GUIBox creditBounds = bounds.cutLeft(90).cutBottom(24).shrinkBottom(2).shrinkLeft(24);
+		String creditText = "BlueprintBot " + FBSR.getFactorioManager().getProfileVanilla().getFactorioData().getVersion();
+		Font creditFont = guiStyle.FONT_BP_REGULAR.deriveFont(10f);
+		GUILabel lblCredit = new GUILabel(creditBounds, creditText, creditFont, Color.black, GUIAlign.CENTER_LEFT);
+		lblCredit.color = new Color(43, 41, 41);
+		lblCredit.box = creditBounds.shift(-1, 0);
+		renderTinted(lblCredit);
+		lblCredit.box = creditBounds.shift(1, 0);
+		renderTinted(lblCredit);
+		lblCredit.color = new Color(30, 30, 30);
+		lblCredit.box = creditBounds.shift(0, -1);
+		renderTinted(lblCredit);
+		lblCredit.color = new Color(96, 94, 94);
+		lblCredit.box = creditBounds.shift(0, 1);
+		renderTinted(lblCredit);
+		lblCredit.color = new Color(51, 48, 48);
+		lblCredit.box = creditBounds;
 		renderTinted(lblCredit);
 	}
 
 	private void drawImagePane(GUIBox bounds) {
 		bounds = bounds.shrink(0, 12, 24, 24);
-
-		// TODO description bar along top
 
 		GUIPanel panel = new GUIPanel(bounds, guiStyle.FRAME_DARK_INNER, guiStyle.FRAME_OUTER);
 		renderTinted(panel);
@@ -147,7 +175,6 @@ public class GUILayoutBlueprint {
 
 		GUIImage image = new GUIImage(bounds, result.image, true);
 		image.render(g);
-
 		
 		GUIBox boundsCell;
 		Font fontMod;
@@ -159,9 +186,9 @@ public class GUILayoutBlueprint {
 			fontMod = guiStyle.FONT_BP_BOLD.deriveFont(15f);
 		}
 
-		FontMetrics fm = g.getFontMetrics(fontMod);
+		FontMetrics fmMod = g.getFontMetrics(fontMod);
 		for (String mod : spaceAgeMods) {
-			int minWidth = fm.stringWidth(mod) + 16;
+			int minWidth = fmMod.stringWidth(mod) + 16;
 			GUIBox boundsLabel = (minWidth > boundsCell.width) ? boundsCell.expandLeft(minWidth - boundsCell.width)
 					: boundsCell;
 			guiStyle.CIRCLE_WHITE.render(g, boundsLabel);
@@ -170,13 +197,34 @@ public class GUILayoutBlueprint {
 			boundsCell = boundsCell.indexed(1, 0);
 		}
 		for (String mod : mods) {
-			int minWidth = fm.stringWidth(mod) + 16;
+			int minWidth = fmMod.stringWidth(mod) + 16;
 			GUIBox boundsLabel = (minWidth > boundsCell.width) ? boundsCell.expandLeft(minWidth - boundsCell.width)
 					: boundsCell;
 			guiStyle.CIRCLE_YELLOW.render(g, boundsLabel);
 			GUILabel label = new GUILabel(boundsLabel, mod, fontMod, Color.black, GUIAlign.CENTER);
 			label.render(g);
 			boundsCell = boundsCell.indexed(1, 0);
+		}
+
+		String description = blueprint.description.orElse("").trim();
+		if (!description.isBlank()) {
+			Font fontDesc = guiStyle.FONT_BP_REGULAR.deriveFont(12f);
+			FontMetrics fmDesc = g.getFontMetrics(fontDesc);
+			int ascent = fmDesc.getAscent();
+			int descent = fmDesc.getDescent();
+			int lineHeight = ascent + descent;
+			GUIBox boundsDescPanel = bounds.cutBottom(lineHeight * 3 + 8);
+			GUIBox boundsDesc = boundsDescPanel.shrink(0, 6, 0, 6);
+			GUIRichTextArea textArea = new GUIRichTextArea(boundsDesc, description, guiStyle.FONT_BP_REGULAR.deriveFont(12f), Color.gray, GUIAlign.CENTER_LEFT, resolver);
+			int lineCount = textArea.getLineCount(g);
+			if (lineCount < 3) {
+				boundsDescPanel = bounds.cutBottom(lineHeight * lineCount + 8);
+				boundsDesc = boundsDescPanel.shrink(0, 6, 0, 6);
+				textArea.box = boundsDesc;
+			}
+			GUIPanel panelDesc = new GUIPanel(boundsDescPanel, guiStyle.CIRCLE_TRANSLUCENT_BLACK);
+			renderTinted(panelDesc);
+			textArea.render(g);
 		}
 	}
 
@@ -378,11 +426,6 @@ public class GUILayoutBlueprint {
 				}
 			});
 			cutY += subPanelHeight;
-		}
-
-		// TODO Grid Settings
-		{
-
 		}
 
 		GUIPanel frontPanel = new GUIPanel(bounds.cutTop(cutY), guiStyle.FRAME_LIGHT_INNER);

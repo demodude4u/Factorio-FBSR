@@ -42,6 +42,7 @@ public final class GUIStyle {
 	public GUISliceFeature FRAME_WHITE_DARK_INNER;
 	public GUISliceFeature FRAME_LIGHT_INNER;
 	public GUISliceFeature FRAME_LIGHT_OUTER;
+	public GUISliceFeature CIRCLE_TRANSLUCENT_BLACK;
 	public GUISliceFeature CIRCLE_WHITE;
 	public GUISliceFeature CIRCLE_YELLOW;
 	public GUISliceFeature FRAME_TAB;
@@ -112,6 +113,7 @@ public final class GUIStyle {
 		FRAME_WHITE_DARK_INNER = GUISliceFeature.inner(profile, filename, new GUIBox(313, 48, 17, 17), new GUISpacing(8, 8, 8, 8));
 		FRAME_LIGHT_INNER = GUISliceFeature.inner(profile, filename, new GUIBox(68, 0, 17, 17), new GUISpacing(8, 8, 8, 8));
 		FRAME_LIGHT_OUTER = GUISliceFeature.outer(profile, filename, new GUIBox(85, 0, 17, 17), new GUISpacing(8, 8, 8, 8));
+		CIRCLE_TRANSLUCENT_BLACK = GUISliceFeature.inner(profile, filename, new GUIBox(0, 1201, 17, 17), new GUISpacing(8, 8, 8, 8));
 		CIRCLE_WHITE = GUISliceFeature.inner(profile, filename, new GUIBox(128, 96, 28, 28), new GUISpacing(14, 14, 13, 13));
 		CIRCLE_YELLOW = GUISliceFeature.inner(profile, filename, new GUIBox(156, 96, 28, 28), new GUISpacing(14, 14, 13, 13));
 		FRAME_TAB = GUISliceFeature.inner(profile, filename, new GUIBox(448, 103, 17, 17), new GUISpacing(16, 8, 0, 8));

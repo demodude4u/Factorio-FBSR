@@ -56,7 +56,8 @@ import com.demod.factorio.prototype.ItemPrototype;
 import com.demod.factorio.prototype.RecipePrototype;
 import com.demod.factorio.prototype.TilePrototype;
 import com.demod.fbsr.Profile.ProfileStatus;
-import com.demod.fbsr.WirePoints.WirePoint;
+import com.demod.fbsr.WirePoint.WireColor;
+import com.demod.fbsr.WorldMap.BeltCell;
 import com.demod.fbsr.bs.BSBlueprint;
 import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.bs.BSItemStack;
@@ -85,6 +86,7 @@ import com.demod.fbsr.map.MapText;
 import com.demod.fbsr.map.MapTile;
 import com.demod.fbsr.map.MapWire;
 import com.demod.fbsr.map.MapWireShadow;
+import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.ListMultimap;
@@ -287,6 +289,14 @@ public class FBSR {
 
 			map.setSpaceFoundation(mapTiles.stream().anyMatch(t -> t.getFactory().getName().equals("space-platform-foundation")));
 
+			for (BSWire wire : blueprint.wires) {
+				MapEntity first = mapEntityByNumber.get(wire.firstEntityNumber);
+				MapEntity second = mapEntityByNumber.get(wire.secondEntityNumber);
+				if (first != null && second != null) {
+					map.setWired(first, second);
+				}
+			}
+
 			mapEntities.forEach(t -> {
 				try {
 					t.getFactory().populateWorldMap(map, t);
@@ -304,6 +314,8 @@ public class FBSR {
 							t.getFactory().getClass().getSimpleName() + ", " + t.fromBlueprint().name);
 				}
 			});
+
+			populateBeltReaders(map);
 
 			populateReverseLogistics(map);
 			populateTransitLogistics(map, request.show.pathInputs, request.show.pathOutputs);
@@ -359,7 +371,7 @@ public class FBSR {
 				});
 			}
 
-			Map<Integer, Double> connectorOrientations = new HashMap<>();
+			Table<Integer, Integer, WirePoint> connectorPoints = HashBasedTable.create();
 			for (MapEntity mapEntity : mapEntities) {
 				int entityNumber = mapEntity.fromBlueprint().entityNumber;
 				List<MapEntity> wired = blueprint.wires.stream().flatMapToInt(w -> {
@@ -372,8 +384,9 @@ public class FBSR {
 					}
 				}).mapToObj(mapEntityByNumber::get).collect(Collectors.toList());
 
-				double orientation = mapEntity.getFactory().initWireConnector(register, mapEntity, wired);
-				connectorOrientations.put(entityNumber, orientation);
+				mapEntity.getFactory().createWireConnector(register, (id, wp) -> {
+					connectorPoints.put(entityNumber, id, wp);
+				}, mapEntity, wired, map);
 			}
 
 			for (BSWire wire : blueprint.wires) {
@@ -381,21 +394,16 @@ public class FBSR {
 					MapEntity first = mapEntityByNumber.get(wire.firstEntityNumber);
 					MapEntity second = mapEntityByNumber.get(wire.secondEntityNumber);
 
-					double orientation1 = connectorOrientations.get(wire.firstEntityNumber);
-					double orientation2 = connectorOrientations.get(wire.secondEntityNumber);
+					WirePoint firstPoint = connectorPoints.get(wire.firstEntityNumber, wire.firstWireConnectorId);
+					WirePoint secondPoint = connectorPoints.get(wire.secondEntityNumber, wire.secondWireConnectorId);
 
-					Optional<WirePoint> firstPoint = first.getFactory().createWirePoint(register, first.getPosition(),
-							orientation1, wire.firstWireConnectorId);
-					Optional<WirePoint> secondPoint = second.getFactory().createWirePoint(register,
-							second.getPosition(), orientation2, wire.secondWireConnectorId);
-
-					if (!firstPoint.isPresent() || !secondPoint.isPresent()) {
+					if (firstPoint == null || secondPoint == null) {
 						continue;// Probably something modded
 					}
 
-					register.accept(new MapWire(firstPoint.get().getPosition(), secondPoint.get().getPosition(),
-							firstPoint.get().getColor().getColor()));
-					register.accept(new MapWireShadow(firstPoint.get().getShadow(), secondPoint.get().getShadow()));
+					register.accept(new MapWire(firstPoint.getPosition(), secondPoint.getPosition(),
+							firstPoint.getColor().getColor()));
+					register.accept(new MapWireShadow(firstPoint.getShadow(), secondPoint.getShadow()));
 				} catch (Exception e) {
 					reporting.addException(e, "Wire " + wire.firstEntityNumber + ", " + wire.firstWireConnectorId + ", "
 							+ wire.secondEntityNumber + ", " + wire.secondWireConnectorId);
@@ -843,6 +851,48 @@ public class FBSR {
 		}		
 	}
 
+	private static void populateBeltReaders(WorldMap map) {
+		for (MapPosition source : map.getBeltReaderSources()) {
+			Optional<BeltCell> startBelt = map.getBelt(source);
+			if (startBelt.isEmpty()) {
+				return;
+			}
+
+			startBelt.get().setBeltReader(true);
+
+			Optional<BeltCell> belt = startBelt;
+			while (true) {// Forward
+				Optional<BeltCell> checkBelt = belt.get().prevReadAllBelts();
+				if (checkBelt.isEmpty()) {
+					break;
+				}
+				if (checkBelt.get().isBeltReader()) {
+					break;
+				}
+				if (!checkBelt.get().nextReadAllBelts().equals(belt)) {
+					break;
+				}
+				checkBelt.get().setBeltReader(true);
+				belt = checkBelt;
+			}
+			belt = startBelt;
+			while (true) {// Backward
+				Optional<BeltCell> checkBelt = belt.get().nextReadAllBelts();
+				if (checkBelt.isEmpty()) {
+					break;
+				}
+				if (checkBelt.get().isBeltReader()) {
+					break;
+				}
+				if (!checkBelt.get().prevReadAllBelts().equals(belt)) {
+					break;
+				}
+				checkBelt.get().setBeltReader(true);
+				belt = checkBelt;
+			}
+		}
+	}
+
 	private static void populateRailBlocking(WorldMap map, boolean elevated) {
 		// TODO fix rail logistics, redesign nodes as a virtual structure of the rails
 
@@ -1164,7 +1214,7 @@ public class FBSR {
 
 		factory.populateWorldMap(map, entity);
 		factory.populateLogistics(map, entity);
-		factory.initWireConnector(register, entity, ImmutableList.of());
+		factory.createWireConnector(register, (id, wp) -> {}, entity, ImmutableList.of(), map);
 		factory.createRenderers(register, map, entity);
 
 		List<MapRenderable> renderables = renderOrder.values().stream().collect(Collectors.toList());

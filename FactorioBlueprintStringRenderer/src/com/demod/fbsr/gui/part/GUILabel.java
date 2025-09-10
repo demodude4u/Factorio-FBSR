@@ -9,10 +9,10 @@ import com.demod.fbsr.gui.GUIBox;
 
 public class GUILabel extends GUIPart {
 
-	public final String text;
-	public final Font font;
-	public final Color color;
-	public final GUIAlign align;
+	public String text;
+	public Font font;
+	public Color color;
+	public GUIAlign align;
 
 	public GUILabel(GUIBox box, String text, Font font, Color color, GUIAlign align) {
 		super(box);

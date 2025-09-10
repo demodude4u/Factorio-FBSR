@@ -20,9 +20,11 @@ import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapPosition;
 import com.demod.fbsr.map.MapRail;
 import com.demod.fbsr.map.MapRect;
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.LinkedHashMultimap;
+import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Table;
 import com.google.common.collect.Table.Cell;
@@ -77,26 +79,50 @@ public class WorldMap {
 	}
 
 	public static class BeltCell {
-		private final Direction facing;
-		private final boolean bendable;
-		private final boolean bendOthers;
+		protected final MapPosition pos;
+		protected  final Direction facing;
+		protected  final boolean bendable;
+		protected  final boolean bendOthers;
 
-		public BeltCell(Direction facing, boolean bendable, boolean bendOthers) {
+		protected boolean beltReader = false;
+
+		public BeltCell(MapPosition pos, Direction facing, boolean bendable, boolean bendOthers) {
+			this.pos = pos;
 			this.facing = facing;
 			this.bendable = bendable;
 			this.bendOthers = bendOthers;
+		}
+
+		public boolean isBendable() {
+			return bendable;
 		}
 
 		public boolean canBendOthers() {
 			return bendOthers;
 		}
 
+		public Optional<BeltCell> nextReadAllBelts() {
+			return Optional.empty();
+		}
+		
+		public Optional<BeltCell> prevReadAllBelts() {
+			return Optional.empty();
+		}
+
+		public MapPosition getPos() {
+			return pos;
+		}
+
 		public Direction getFacing() {
 			return facing;
 		}
 
-		public boolean isBendable() {
-			return bendable;
+		public boolean isBeltReader() {
+			return beltReader;
+		}
+
+		public void setBeltReader(boolean beltReader) {
+			this.beltReader = beltReader;
 		}
 	}
 
@@ -267,6 +293,7 @@ public class WorldMap {
 	private final Table<Integer, Integer, Object> walls = HashBasedTable.create();
 	private final Table<Integer, Integer, Boolean> gates = HashBasedTable.create();
 	private final Table<Integer, Integer, Entry<String, Direction>> undergroundBeltEndings = HashBasedTable.create();
+	private final Table<Integer, Integer, MapPosition> undergroundBeltLinks = HashBasedTable.create();
 	private final Table<Integer, Integer, List<BeaconSource>> beaconed = HashBasedTable.create();
 	private final Table<Integer, Integer, MapEntity> cargoBayConnectables = HashBasedTable.create();
 	private final Table<Integer, Integer, List<Boolean>> fusionConnections = HashBasedTable.create();
@@ -289,6 +316,9 @@ public class WorldMap {
 	// private final List<Entry<RailEdge, RailEdge>> railEdges = new ArrayList<>();
 
 	private final List<MapRail> rails = new ArrayList<>();
+	private final List<MapPosition> beltReaderSources = new ArrayList<>();
+
+	private final ListMultimap<MapEntity, MapEntity> wired = ArrayListMultimap.create();
 
 	private final Set<String> unknownEntities = new HashSet<>();
 	private final Set<String> unknownTiles = new HashSet<>();
@@ -325,7 +355,7 @@ public class WorldMap {
 	}
 
 	public BeltBend getBeltBend(MapPosition pos, BeltCell belt) {
-		if (!belt.bendable) {
+		if (!belt.isBendable()) {
 			return BeltBend.NONE;
 		}
 
@@ -418,6 +448,10 @@ public class WorldMap {
 		return OptionalInt.empty();
 	}
 
+	public List<MapEntity> getWiredTo(MapEntity entity) {
+		return wired.get(entity);
+	}
+
 	// public RailNode getOrCreateRailNode(MapPosition pos, boolean elevated) {
 	// 	int kr = pos.getXCell();
 	// 	int kc = pos.getYCell();
@@ -494,7 +528,7 @@ public class WorldMap {
 			return false;
 		}
 		BeltCell adjBelt = optAdjBelt.get();
-		return adjBelt.bendOthers && (dir.back() == adjBelt.facing);
+		return adjBelt.canBendOthers() && (dir.back() == adjBelt.getFacing());
 	}
 
 	public boolean isCargoBayConnectable(MapPosition pos) {
@@ -556,8 +590,12 @@ public class WorldMap {
 		list.add(new BeaconSource(kr, kc, beacon, distributionEffectivity));
 	}
 
-	public void setBelt(MapPosition pos, Direction facing, boolean bendable, boolean bendOthers) {
-		belts.put(pos.getXCell(), pos.getYCell(), new BeltCell(facing, bendable, bendOthers));
+	public void setBelt(MapPosition pos, Direction dir, boolean bendable, boolean bendOthers) {
+		setBelt(new BeltCell(pos, dir, bendable, bendOthers));
+	}
+
+	public void setBelt(BeltCell beltCell) {
+		belts.put(beltCell.getPos().getXCell(), beltCell.getPos().getYCell(), beltCell);
 	}
 
 	public void setCargoBayConnectable(MapPosition pos, MapEntity entity) {
@@ -624,6 +662,11 @@ public class WorldMap {
 		walls.put(pos.getXCell(), pos.getYCell(), pos);
 	}
 
+	public void setWired(MapEntity left, MapEntity right) {
+		wired.put(left, right);
+		wired.put(right, left);
+	}
+
 	public void setRail(MapRail rail) {
 		MapPosition pos = rail.getPos();
 		RailDef def = rail.getDef();
@@ -674,5 +717,22 @@ public class WorldMap {
 
 	public List<MapRail> getRails() {
 		return rails;
+	}
+
+	public void linkUndergroundBelts(MapPosition inputPos, MapPosition outputPos) {
+		undergroundBeltLinks.put(inputPos.getXCell(), inputPos.getYCell(), outputPos);
+		undergroundBeltLinks.put(outputPos.getXCell(), outputPos.getYCell(), inputPos);
+	}
+
+	public Optional<MapPosition> getLinkedUndergroundBelt(MapPosition pos) {
+		return Optional.ofNullable(undergroundBeltLinks.get(pos.getXCell(), pos.getYCell()));
+	}
+
+	public void setBeltReaderSource(MapPosition pos) {
+		beltReaderSources.add(pos);
+	}
+
+	public List<MapPosition> getBeltReaderSources() {
+		return beltReaderSources;
 	}
 }

@@ -15,9 +15,9 @@ import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.RenderUtils;
-import com.demod.fbsr.WirePoints;
-import com.demod.fbsr.WirePoints.WireColor;
+import com.demod.fbsr.WirePoint;
 import com.demod.fbsr.WorldMap;
+import com.demod.fbsr.WirePoint.WireColor;
 import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.def.LayeredSpriteDef;
 import com.demod.fbsr.def.SpriteDef;
@@ -773,18 +773,6 @@ public abstract class EntityRendering extends EntityRendererFactory {
 	public abstract void defineEntity(Bindings bind, LuaTable lua);
 
 	@Override
-	public void defineWirePoints(BiConsumer<Integer, WirePoints> consumer, LuaTable lua) {
-		if (circuitConnectors.isPresent()) {
-			List<FPWireConnectionPoint> points = circuitConnectors.get().stream().flatMap(cc -> cc.points.stream())
-					.collect(Collectors.toList());
-			if (points.size() > 0) {
-				consumer.accept(1, WirePoints.fromWireConnectionPoints(points, WireColor.RED, false));
-				consumer.accept(2, WirePoints.fromWireConnectionPoints(points, WireColor.GREEN, false));
-			}
-		}
-	}
-
-	@Override
 	public void initAtlas(Consumer<ImageDef> register) {
 
 		for (BindAction<?> bindAction : bindings) {
@@ -825,12 +813,12 @@ public abstract class EntityRendering extends EntityRendererFactory {
 	}
 
 	@Override
-	public double initWireConnector(Consumer<MapRenderable> register, MapEntity entity, List<MapEntity> wired) {
-
+	public void createWireConnector(Consumer<MapRenderable> register, BiConsumer<Integer, WirePoint> registerWirePoint, MapEntity entity, List<MapEntity> wired, WorldMap map) {
 		if (circuitConnectors.isPresent() && !wired.isEmpty()) {
 			FPCircuitConnectorDefinition circuitConnector = RenderUtils.pickDirectional(circuitConnectors.get(),
 					entity);
 
+			MapPosition pos = entity.getPosition();
 			Consumer<SpriteDef> entityRegister = entity.spriteRegister(register, Layer.OBJECT);
 
 			circuitConnector.sprites.ifPresent(sprites -> {
@@ -839,9 +827,18 @@ public abstract class EntityRendering extends EntityRendererFactory {
 				sprites.wirePins.ifPresent(fp -> fp.defineSprites(entityRegister));
 				sprites.wirePinsShadow.ifPresent(fp -> fp.defineSprites(entityRegister));
 			});
-		}
 
-		return entity.fromBlueprint().directionRaw / 16.0;
+			if (circuitConnector.points.isPresent()) {
+				FPWireConnectionPoint cp = circuitConnector.points.get();
+				if (cp.wire.red.isPresent()) {
+					registerWirePoint.accept(1, WirePoint.fromConnectionPoint(WireColor.RED, cp, entity));
+				}
+				if (cp.wire.green.isPresent()) {
+					registerWirePoint.accept(2, WirePoint.fromConnectionPoint(WireColor.GREEN, cp, entity));
+				}
+				//Should copper default to 5?
+			}
+		}
 	}
 
 	@Override

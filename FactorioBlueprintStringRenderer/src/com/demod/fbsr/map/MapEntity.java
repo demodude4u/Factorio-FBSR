@@ -49,6 +49,23 @@ public class MapEntity {
 		modules = findModules();
 	}
 
+	@Override
+	public int hashCode() {
+		return Integer.hashCode(entity.entityNumber);
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (obj == null || getClass() != obj.getClass()) {
+			return false;
+		}
+		MapEntity other = (MapEntity) obj;
+		return entity.entityNumber == other.entity.entityNumber;
+	}
+
 	private List<EntityModule> findModules() {
 		List<EntityModule> modules = new ArrayList<>();
 
@@ -96,6 +113,10 @@ public class MapEntity {
 
 	public Consumer<LayeredSpriteDef> spriteRegister(Consumer<MapRenderable> register) {
 		return s -> register.accept(new MapSprite(s, position));
+	}
+
+	public Consumer<LayeredSpriteDef> spriteRegister(Consumer<MapRenderable> register, MapPosition offset) {
+		return s -> register.accept(new MapSprite(s, position.add(offset)));
 	}
 
 	public Consumer<SpriteDef> spriteRegister(Consumer<MapRenderable> register, Layer layer) {

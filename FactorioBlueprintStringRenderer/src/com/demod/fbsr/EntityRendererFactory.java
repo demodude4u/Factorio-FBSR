@@ -29,7 +29,6 @@ import com.demod.factorio.fakelua.LuaTable;
 import com.demod.factorio.prototype.EntityPrototype;
 import com.demod.factorio.prototype.RecipePrototype;
 import com.demod.fbsr.Profile.ManifestModInfo;
-import com.demod.fbsr.WirePoints.WirePoint;
 import com.demod.fbsr.WorldMap.BeaconSource;
 import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.def.IconDef;
@@ -140,7 +139,6 @@ public abstract class EntityRendererFactory {
 
 	protected boolean protoBeaconed;
 	protected MapRect3D drawBounds;
-	protected Map<Integer, WirePoints> wirePointsById;
 
 	private Class<? extends BSEntity> entityClass;
 	private Constructor<? extends BSEntity> entityConstructorByJSON;
@@ -237,15 +235,6 @@ public abstract class EntityRendererFactory {
 
 	public abstract void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity);
 
-	public Optional<WirePoint> createWirePoint(Consumer<MapRenderable> register, MapPosition position,
-			double orientation, int connectionId) {
-		return Optional.ofNullable(wirePointsById.get(connectionId)).map(wp -> wp.getPoint(position, orientation));
-	}
-
-	public void defineWirePoints(BiConsumer<Integer, WirePoints> consumer, LuaTable lua) {
-
-	}
-
 	public Profile getProfile() {
 		return profile;
 	}
@@ -282,9 +271,12 @@ public abstract class EntityRendererFactory {
 
 	public abstract void initAtlas(Consumer<ImageDef> register);
 
-	// Returns orientation if applicable
-	public double initWireConnector(Consumer<MapRenderable> register, MapEntity entity, List<MapEntity> wired) {
-		return 0;
+	public void createWireConnector(Consumer<MapRenderable> register, BiConsumer<Integer, WirePoint> registerWirePoint, MapEntity entity, List<MapEntity> wired, WorldMap map) {
+		// default do nothing
+	}
+
+	public Optional<WirePoint> getWirePoint(MapEntity entity, int connectionId, WorldMap map) {
+		return Optional.empty();
 	}
 
 	public boolean isUnknown() {

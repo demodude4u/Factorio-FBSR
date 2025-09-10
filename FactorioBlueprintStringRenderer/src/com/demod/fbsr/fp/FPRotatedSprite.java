@@ -160,10 +160,15 @@ public class FPRotatedSprite extends FPSpriteParameters {
 		consumer.accept(defs.get(index));
 	}
 
-	public List<SpriteDef> defineSprites(double orientation) {
-		List<SpriteDef> ret = new ArrayList<>();
-		defineSprites(ret::add, orientation);
-		return ret;
+	public void defineSprites(Consumer<? super SpriteDef> consumer, int index) {
+		if (layers.isPresent()) {
+			for (FPRotatedSprite layer : layers.get()) {
+				layer.defineSprites(consumer, index);
+			}
+			return;
+		}
+
+		consumer.accept(defs.get(index));
 	}
 
 	public void getDefs(Consumer<ImageDef> register) {
@@ -174,7 +179,11 @@ public class FPRotatedSprite extends FPSpriteParameters {
 		defs.forEach(register);
 	}
 
-	private int getIndex(double orientation) {
+	public int getIndex(double orientation) {
+		if (layers.isPresent()) {
+			return layers.get().get(0).getIndex(orientation);
+		}
+
 		if (counterclockwise) {
 			orientation = 1 - orientation;
 		}
@@ -195,6 +204,13 @@ public class FPRotatedSprite extends FPSpriteParameters {
 			index = 0;
 		}
 		return index;
+	}
+
+	public int getDirectionCount() {
+		if (layers.isPresent()) {
+			return layers.get().get(0).getDirectionCount();
+		}
+		return directionCount;
 	}
 
 	public int getLimitedDirectionCount() {

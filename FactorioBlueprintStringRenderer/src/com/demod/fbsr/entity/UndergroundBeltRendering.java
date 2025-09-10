@@ -1,12 +1,19 @@
 package com.demod.fbsr.entity;
 
+import java.awt.BasicStroke;
+import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.geom.Line2D;
+import java.util.Optional;
 import java.util.function.Consumer;
 
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.Layer;
+import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.WorldMap.BeltBend;
+import com.demod.fbsr.WorldMap.BeltCell;
 import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.bs.entity.BSUndergroundBeltEntity;
 import com.demod.fbsr.def.ImageDef;
@@ -49,6 +56,34 @@ public class UndergroundBeltRendering extends TransportBeltConnectableRendering 
 			}
 		}
 		protoStructSprite.defineSprites(entity.spriteRegister(register, Layer.OBJECT), structDir);
+
+		MapPosition pos = entity.getPosition();
+		Direction dir = entity.getDirection();
+		BeltCell belt = map.getBelt(pos).get();
+		if (belt.isBeltReader()) {
+			{
+				Direction sideDir = dir.left();
+				int beltReaderframe;
+				Optional<BeltCell> sideBelt = map.getBelt(sideDir.offset(pos));
+				if (sideBelt.isPresent() && (sideBelt.get().getFacing() == sideDir.back())) {
+					beltReaderframe = beltReaderBarLeft[dir.cardinal()];
+				} else {
+					beltReaderframe = beltReaderRailLeft[dir.cardinal()];
+				}
+				defineBeltReaderSprites(entity.spriteRegister(register), beltReaderframe);
+			}
+			{
+				Direction sideDir = dir.right();
+				int beltReaderframe;
+				Optional<BeltCell> sideBelt = map.getBelt(sideDir.offset(pos));
+				if (sideBelt.isPresent() && (sideBelt.get().getFacing() == sideDir.back())) {
+					beltReaderframe = beltReaderBarRight[dir.cardinal()];
+				} else {
+					beltReaderframe = beltReaderRailRight[dir.cardinal()];
+				}
+				defineBeltReaderSprites(entity.spriteRegister(register), beltReaderframe);
+			}
+		}
 	}
 
 	@Override
@@ -80,6 +115,20 @@ public class UndergroundBeltRendering extends TransportBeltConnectableRendering 
 	}
 
 	@Override
+	public void populateWorldMap(WorldMap map, MapEntity entity) {
+		super.populateWorldMap(map, entity);
+		
+		BSUndergroundBeltEntity bsEntity = entity.<BSUndergroundBeltEntity>fromBlueprint();
+		boolean input = bsEntity.type.orElse("input").equals("input");
+
+		MapPosition pos = entity.getPosition();
+		map.setBelt(new UndergroundBeltCell(map, pos, entity.getDirection(), input));
+		if (!input) {
+			map.setUndergroundBeltEnding(entity.fromBlueprint().name, pos, entity.getDirection());
+		}
+	}
+
+	@Override
 	public void populateLogistics(WorldMap map, MapEntity entity) {
 		super.populateLogistics(map, entity);
 
@@ -108,25 +157,49 @@ public class UndergroundBeltRendering extends TransportBeltConnectableRendering 
 				if (map.isMatchingUndergroundBeltEnding(entity.fromBlueprint().name, targetPos, dir)) {
 					addLogisticWarp(map, pos, dir.frontLeft(), targetPos, dir.backLeft());
 					addLogisticWarp(map, pos, dir.frontRight(), targetPos, dir.backRight());
+					map.linkUndergroundBelts(pos, targetPos);
 					break;
 				}
 			}
 		}
 	}
 
-	@Override
-	public void populateWorldMap(WorldMap map, MapEntity entity) {
-		super.populateWorldMap(map, entity);
-		
-		BSUndergroundBeltEntity bsEntity = entity.<BSUndergroundBeltEntity>fromBlueprint();
-		boolean input = bsEntity.type.orElse("input").equals("input");
+	private static class UndergroundBeltCell extends BeltCell {
+		private final WorldMap map;
+		private final boolean input;
 
-		MapPosition pos = entity.getPosition();
-		if (input) {
-			map.setBelt(pos, entity.getDirection(), false, false);
-		} else {
-			map.setBelt(pos, entity.getDirection(), false, true);
-			map.setUndergroundBeltEnding(entity.fromBlueprint().name, pos, entity.getDirection());
+		public UndergroundBeltCell(WorldMap map, MapPosition pos, Direction facing, boolean input) {
+			super(pos, facing, false, !input);
+			this.map = map;
+			this.input = input;
+		}
+
+		@Override
+		public Optional<BeltCell> nextReadAllBelts() {
+			if (input) {
+				Optional<MapPosition> linked = map.getLinkedUndergroundBelt(pos);
+				if (!linked.isPresent()) {
+					return Optional.empty();
+				}
+				return map.getBelt(linked.get());
+			} else {
+				MapPosition nextPos = facing.offset(pos);
+				return map.getBelt(nextPos);
+			}
+		}
+
+		@Override
+		public Optional<BeltCell> prevReadAllBelts() {
+			if (!input) {
+				Optional<MapPosition> linked = map.getLinkedUndergroundBelt(pos);
+				if (!linked.isPresent()) {
+					return Optional.empty();
+				}
+				return map.getBelt(linked.get());
+			} else {
+				MapPosition nextPos = facing.back().offset(pos);
+				return map.getBelt(nextPos);
+			}
 		}
 	}
 }
