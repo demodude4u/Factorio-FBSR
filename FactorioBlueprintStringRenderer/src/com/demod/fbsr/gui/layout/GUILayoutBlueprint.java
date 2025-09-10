@@ -4,9 +4,12 @@ import java.awt.Color;
 import java.awt.Composite;
 import java.awt.Font;
 import java.awt.FontMetrics;
+import java.awt.GradientPaint;
 import java.awt.Graphics2D;
+import java.awt.Paint;
 import java.awt.RenderingHints;
 import java.awt.geom.AffineTransform;
+import java.awt.geom.Point2D;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -151,6 +154,15 @@ public class GUILayoutBlueprint {
 		if (spaceFoundation) {
 			g.setColor(new Color(0, 0, 2, 220));
 			g.fillRect(bounds.x, bounds.y, bounds.width, bounds.height);
+		} else {
+			Paint pp = g.getPaint();
+			g.setPaint(new GradientPaint(
+					new Point2D.Double(bounds.x, bounds.y), 
+					new Color(0, 0, 0, 0), 
+					new Point2D.Double(bounds.x, bounds.y + bounds.height), 
+					new Color(0, 0, 0, 32)));
+			g.fillRect(bounds.x, bounds.y, bounds.width, bounds.height);
+			g.setPaint(pp);
 		}
 
 		AffineTransform xform = g.getTransform();

@@ -2,14 +2,17 @@ package com.demod.fbsr.gui.layout;
 
 import java.awt.Color;
 import java.awt.Graphics2D;
+import java.awt.Paint;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.Shape;
 import java.awt.geom.AffineTransform;
+import java.awt.geom.Point2D;
 import java.awt.image.BufferedImage;
 import java.awt.Composite;
 import java.awt.Font;
 import java.awt.FontMetrics;
+import java.awt.GradientPaint;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -270,6 +273,15 @@ public class GUILayoutBook implements AutoCloseable {
 
 		GUIPanel panel = new GUIPanel(bounds, guiStyle.FRAME_DARK_INNER, guiStyle.FRAME_OUTER);
 		renderTinted(g, panel);
+
+		Paint pp = g.getPaint();
+		g.setPaint(new GradientPaint(
+				new Point2D.Double(bounds.x, bounds.y), 
+				new Color(0, 0, 0, 0), 
+				new Point2D.Double(bounds.x, bounds.y + bounds.height), 
+				new Color(0, 0, 0, 32)));
+		g.fillRect(bounds.x, bounds.y, bounds.width, bounds.height);
+		g.setPaint(pp);
 
 		double cellOffsetX = -20;
 		double cellOffsetY = -20;
