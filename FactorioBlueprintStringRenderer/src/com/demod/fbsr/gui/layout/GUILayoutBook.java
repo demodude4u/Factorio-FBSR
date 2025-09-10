@@ -53,6 +53,7 @@ import com.demod.fbsr.gui.part.GUILabel;
 import com.demod.fbsr.gui.part.GUIPanel;
 import com.demod.fbsr.gui.part.GUIPart;
 import com.demod.fbsr.gui.part.GUIRichText;
+import com.demod.fbsr.gui.part.GUIRichTextArea;
 import com.google.common.collect.ArrayTable;
 import com.google.common.collect.Table;
 import com.demod.fbsr.Quadtree;
@@ -376,6 +377,27 @@ public class GUILayoutBook implements AutoCloseable {
 			GUILabel label = new GUILabel(boundsLabel, mod, fontMod, Color.black, GUIAlign.CENTER);
 			label.render(g);
 			boundsCell = boundsCell.indexed(1, 0);
+		}
+		
+		String description = book.description.orElse("").trim();
+		if (!description.isBlank()) {
+			Font fontDesc = guiStyle.FONT_BP_REGULAR.deriveFont(12f);
+			FontMetrics fmDesc = g.getFontMetrics(fontDesc);
+			int ascent = fmDesc.getAscent();
+			int descent = fmDesc.getDescent();
+			int lineHeight = ascent + descent;
+			GUIBox boundsDescPanel = bounds.cutBottom(lineHeight * 3 + 8);
+			GUIBox boundsDesc = boundsDescPanel.shrink(0, 6, 0, 6);
+			GUIRichTextArea textArea = new GUIRichTextArea(boundsDesc, description, guiStyle.FONT_BP_REGULAR.deriveFont(12f), Color.gray, GUIAlign.CENTER_LEFT, resolver);
+			int lineCount = textArea.getLineCount(g);
+			if (lineCount < 3) {
+				boundsDescPanel = bounds.cutBottom(lineHeight * lineCount + 8);
+				boundsDesc = boundsDescPanel.shrink(0, 6, 0, 6);
+				textArea.box = boundsDesc;
+			}
+			GUIPanel panelDesc = new GUIPanel(boundsDescPanel, guiStyle.CIRCLE_TRANSLUCENT_BLACK);
+			renderTinted(g, panelDesc);
+			textArea.render(g);
 		}
 	}
 
