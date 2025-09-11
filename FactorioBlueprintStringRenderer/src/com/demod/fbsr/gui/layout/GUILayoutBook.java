@@ -386,12 +386,12 @@ public class GUILayoutBook implements AutoCloseable {
 			int ascent = fmDesc.getAscent();
 			int descent = fmDesc.getDescent();
 			int lineHeight = ascent + descent;
-			GUIBox boundsDescPanel = bounds.cutBottom(lineHeight * 3 + 8);
+			GUIBox boundsDescPanel = bounds.cutBottom(lineHeight * 20 + 8).maxWidth(750);
 			GUIBox boundsDesc = boundsDescPanel.shrink(0, 6, 0, 6);
 			GUIRichTextArea textArea = new GUIRichTextArea(boundsDesc, description, guiStyle.FONT_BP_REGULAR.deriveFont(12f), Color.gray, GUIAlign.CENTER_LEFT, resolver);
 			int lineCount = textArea.getLineCount(g);
-			if (lineCount < 3) {
-				boundsDescPanel = bounds.cutBottom(lineHeight * lineCount + 8);
+			if (lineCount < 20) {
+				boundsDescPanel = bounds.cutBottom(lineHeight * lineCount + 8).maxWidth(750);
 				boundsDesc = boundsDescPanel.shrink(0, 6, 0, 6);
 				textArea.box = boundsDesc;
 			}

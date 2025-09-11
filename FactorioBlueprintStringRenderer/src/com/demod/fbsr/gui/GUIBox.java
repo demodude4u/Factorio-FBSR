@@ -84,4 +84,32 @@ public class GUIBox {
 	public GUIBox shrinkTop(int top) {
 		return new GUIBox(x, y + top, width, height - top);
 	}
+
+	public GUIBox maxWidth(int maxWidth) {
+		int w = width;
+		if (w > maxWidth) {
+			w = maxWidth;
+		}
+		return new GUIBox(x, y, w, height);
+	}
+
+	public GUIBox maxHeight(int maxHeight) {
+		int h = height;
+		if (h > maxHeight) {
+			h = maxHeight;
+		}
+		return new GUIBox(x, y, width, h);
+	}
+
+	public GUIBox max(int maxWidth, int maxHeight) {
+		int w = width;
+		int h = height;
+		if (w > maxWidth) {
+			w = maxWidth;
+		}
+		if (h > maxHeight) {
+			h = maxHeight;
+		}
+		return new GUIBox(x, y, w, h);
+	}
 }

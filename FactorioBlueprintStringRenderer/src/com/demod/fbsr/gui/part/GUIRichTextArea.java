@@ -41,15 +41,14 @@ public class GUIRichTextArea extends GUIPart {
 			int lineHeight = ascent + descent;
 
 			List<Line> lines = wrapLines(g, box.width);
+			int limitedLineCount = Math.min(lines.size(), box.height / lineHeight);
 
-			double blockHeight = lines.size() * (double) lineHeight;
+			double blockHeight = limitedLineCount * (double) lineHeight;
 			int startBaseline = box.y + ascent + (int) ((box.height - blockHeight) * align.getVerticalFactor());
 			int bottomLimit = box.y + box.height;
 
-			for (int i = 0; i < lines.size(); i++) {
+			for (int i = 0; i < limitedLineCount; i++) {
 				int baseline = startBaseline + i * lineHeight;
-				if (baseline > bottomLimit)
-					break; // truncate lines that would render past the bottom of the box
 
 				Line line = lines.get(i);
 				int x = box.x + (int) ((box.width - line.width) * align.getHorizontalFactor());
