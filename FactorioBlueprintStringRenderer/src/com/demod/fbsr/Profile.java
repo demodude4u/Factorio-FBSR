@@ -100,7 +100,7 @@ public class Profile {
     public static final String ASSETS_ZIP_ATLAS_MANIFEST_JSON = "atlas-manifest.json";
 
     public static final Set<String> BUILTIN_MODS = Set.of(
-            "base", "space-age", "quality", "elevated-rails");
+            "core", "base", "space-age", "quality", "elevated-rails");
     public static final Map<String, String> BUILTIN_TITLES = Map.of(
         "base", "Base",
         "quality", "Quality",
@@ -792,73 +792,74 @@ public class Profile {
                             return;
                         }
 
-                        List<String> preMods = new ArrayList<>();
+                        List<String> modsFoundInAssets = new ArrayList<>();
+                        try {
+                            EntityRendererFactory factory = factoryClass.get().getConstructor().newInstance();
+                            factory.setProfile(this);
+                            factory.setPrototype(e);
+                            factory.initFromPrototype();
+                            factory.initAtlas(def -> {
+                                String modName = def.getModName();
+                                if (!modsFoundInAssets.contains(modName)) {
+                                    modsFoundInAssets.add(modName);
+                                }
+                            });
+
+                            IconLayer.fromPrototype(factory.prototype.lua()).forEach(layer -> {
+                                String modName = layer.getModName();
+                                if (!modsFoundInAssets.contains(modName)) {
+                                    modsFoundInAssets.add(modName);
+                                }
+                            });
+
+                            factory.prototype.getTable().getItem(e.getName()).ifPresent(p -> {
+                                IconLayer.fromPrototype(p.lua()).forEach(layer -> {
+                                    String modName = layer.getModName();
+                                    if (!modsFoundInAssets.contains(modName)) {
+                                        modsFoundInAssets.add(modName);
+                                    }
+                                });
+                            });
+                        } catch (Exception ex) {
+                            System.out.println("Failed to initialize entity renderer factory for " + e.getName() + ": " + factoryClass.get().getSimpleName());
+                            ex.printStackTrace();
+                            failure.set(true);
+                            return;
+                        }
+                        boolean pureVanilla = vanillaEntities.contains(e.getName()) &&
+                                modsFoundInAssets.stream().allMatch(BUILTIN_MODS::contains);
+                        if (!isVanilla() && pureVanilla) {
+                            return;
+                        }
+
+                        List<String> modsBeforeRedirects = new ArrayList<>();
                         if (!overrideMods.isEmpty()) {
                             for (String modName : overrideMods) {
-                                if (!preMods.contains(modName)) {
-                                    preMods.add(modName);
+                                if (!modsBeforeRedirects.contains(modName)) {
+                                    modsBeforeRedirects.add(modName);
                                 }
                             }
-
                         } else {
-                            try {
-                                EntityRendererFactory factory = factoryClass.get().getConstructor().newInstance();
-                                factory.setProfile(this);
-                                factory.setPrototype(e);
-                                factory.initFromPrototype();
-                                factory.initAtlas(def -> {
-                                    String modName = def.getModName();
-                                    if (!preMods.contains(modName)) {
-                                        preMods.add(modName);
-                                    }
-                                });
-
-                                IconLayer.fromPrototype(factory.prototype.lua()).forEach(layer -> {
-                                    String modName = layer.getModName();
-                                    if (!preMods.contains(modName)) {
-                                        preMods.add(modName);
-                                    }
-                                });
-
-                                factory.prototype.getTable().getItem(e.getName()).ifPresent(p -> {
-                                    IconLayer.fromPrototype(p.lua()).forEach(layer -> {
-                                        String modName = layer.getModName();
-                                        if (!preMods.contains(modName)) {
-                                            preMods.add(modName);
-                                        }
-                                    });
-                                });
-
-                            } catch (Exception ex) {
-                                System.out.println("Failed to initialize entity renderer factory for " + e.getName() + ": " + factoryClass.get().getSimpleName());
-                                ex.printStackTrace();
-                                failure.set(true);
-                                return;
-                            }
+                            modsBeforeRedirects.addAll(modsFoundInAssets);
                         }
-
                         if (!overrideModAppends.isEmpty()) {
                             for (String modName : overrideModAppends) {
-                                if (!preMods.contains(modName)) {
-                                    preMods.add(modName);
+                                if (!modsBeforeRedirects.contains(modName)) {
+                                    modsBeforeRedirects.add(modName);
                                 }
                             }
                         }
 
-                        List<String> mods = preMods.stream()
+                        List<String> mods = modsBeforeRedirects.stream()
                                 .map(mod -> {
                                     if (modRedirects.containsKey(mod)) {
                                         return modRedirects.get(mod);
                                     }
                                     return mod;
                                 })
+                                .distinct()
                                 .filter(mod -> !mod.equals("base") && !mod.equals("core"))
                                 .collect(Collectors.toList());
-
-                        boolean pureVanilla = mods.isEmpty() && vanillaEntities.contains(e.getName());
-                        if (!isVanilla() && pureVanilla) {
-                            return;
-                        }
 
                         if (mods.isEmpty() && !isVanilla()) {
                             System.out.println("Entity " + e.getName() + " (" + factoryClass.get().getSimpleName() + ") has no mods associated with it in a non-vanilla profile!");
@@ -913,65 +914,68 @@ public class Profile {
                             overrideMods = Optional.empty();
                         }
 
-                        List<String> preMods = new ArrayList<>();
-                        if (overrideMods.isPresent()) {
-                            for (String modName : overrideMods.get()) {
-                                if (!preMods.contains(modName)) {
-                                    preMods.add(modName);
+                        List<String> modsFoundInAssets = new ArrayList<>();
+                        try {
+                            TileRendererFactory factory = new TileRendererFactory();
+                            factory.setProfile(this);
+                            factory.setPrototype(t);
+                            factory.initFromPrototype(table);
+                            factory.initAtlas(def -> {
+                                String modName = def.getModName();
+                                if (!modsFoundInAssets.contains(modName)) {
+                                    modsFoundInAssets.add(modName);
                                 }
-                            }
+                            });
 
-                        } else {
-                            try {
-                                TileRendererFactory factory = new TileRendererFactory();
-                                factory.setProfile(this);
-                                factory.setPrototype(t);
-                                factory.initFromPrototype(table);
-                                factory.initAtlas(def -> {
-                                    String modName = def.getModName();
-                                    if (!preMods.contains(modName)) {
-                                        preMods.add(modName);
-                                    }
-                                });
+                            IconLayer.fromPrototype(factory.prototype.lua()).forEach(layer -> {
+                                String modName = layer.getModName();
+                                if (!modsFoundInAssets.contains(modName)) {
+                                    modsFoundInAssets.add(modName);
+                                }
+                            });
 
-                                IconLayer.fromPrototype(factory.prototype.lua()).forEach(layer -> {
+                            factory.prototype.getTable().getItem(t.getName()).ifPresent(p -> {
+                                IconLayer.fromPrototype(p.lua()).forEach(layer -> {
                                     String modName = layer.getModName();
-                                    if (!preMods.contains(modName)) {
-                                        preMods.add(modName);
+                                    if (!modsFoundInAssets.contains(modName)) {
+                                        modsFoundInAssets.add(modName);
                                     }
                                 });
+                            });
 
-                                factory.prototype.getTable().getItem(t.getName()).ifPresent(p -> {
-                                    IconLayer.fromPrototype(p.lua()).forEach(layer -> {
-                                        String modName = layer.getModName();
-                                        if (!preMods.contains(modName)) {
-                                            preMods.add(modName);
-                                        }
-                                    });
-                                });
-
-                            } catch (Exception ex) {
-                                System.out.println("Failed to initialize tile renderer factory for " + t.getName() + ": " + t.getType());
-                                ex.printStackTrace();
-                                failure.set(true);
-                                return;
-                            }
+                        } catch (Exception ex) {
+                            System.out.println("Failed to initialize tile renderer factory for " + t.getName() + ": " + t.getType());
+                            ex.printStackTrace();
+                            failure.set(true);
+                            return;
+                        }
+                        boolean pureVanilla = vanillaTiles.contains(t.getName()) &&
+                                modsFoundInAssets.stream().allMatch(BUILTIN_MODS::contains);
+                        if (!isVanilla() && pureVanilla) {
+                            return;
                         }
 
-                        List<String> mods = preMods.stream()
+                        List<String> modsBeforeRedirects = new ArrayList<>();
+                        if (overrideMods.isPresent()) {
+                            for (String modName : overrideMods.get()) {
+                                if (!modsBeforeRedirects.contains(modName)) {
+                                    modsBeforeRedirects.add(modName);
+                                }
+                            }
+                        } else {
+                            modsBeforeRedirects.addAll(modsFoundInAssets);
+                        }
+
+                        List<String> mods = modsBeforeRedirects.stream()
                                 .map(mod -> {
                                     if (modRedirects.containsKey(mod)) {
                                         return modRedirects.get(mod);
                                     }
                                     return mod;
                                 })
+                                .distinct()
                                 .filter(mod -> !mod.equals("base") && !mod.equals("core"))
                                 .collect(Collectors.toList());
-
-                        boolean pureVanilla = mods.isEmpty() && vanillaTiles.contains(t.getName());
-                        if (!isVanilla() && pureVanilla) {
-                            return;
-                        }
 
                         if (mods.isEmpty() && !isVanilla()) {
                             System.out.println("Tile " + t.getName() + " has no mods associated with it in a non-vanilla profile!");
@@ -1449,6 +1453,9 @@ public class Profile {
             modCheck.add(modName);
         }
         for (String mod : BUILTIN_MODS) {
+            if (mod.equals("core")) {
+                continue;
+            }
             if (!modCheck.contains(mod)) {
                 JSONObject jsonMod = new JSONObject();
                 jsonMod.put("name", mod);
