@@ -286,8 +286,6 @@ public class GUILayoutBook implements AutoCloseable {
 		g.setPaint(pp);
 
 		GUIBox gridBounds = bounds.shrink(10, 10, 10, 10);
-		g.setColor(Color.magenta);
-		g.drawRect(gridBounds.x, gridBounds.y, gridBounds.width, gridBounds.height);
 		
 		// Use floating-point division to avoid integer truncation
 		double cellWidth = (double) gridBounds.width / (double) packBounds.width;
@@ -295,7 +293,6 @@ public class GUILayoutBook implements AutoCloseable {
 
 		g.setFont(guiStyle.FONT_BP_REGULAR.deriveFont(12f));
 		g.setColor(Color.gray);
-		Shape prevClip = g.getClip();
 
 		AffineTransform pat = g.getTransform();
 
@@ -304,12 +301,6 @@ public class GUILayoutBook implements AutoCloseable {
 			int y = gridBounds.y + (int) (cellHeight * block.location.y);
 			int w = gridBounds.x + (int) (cellWidth * (block.location.x + block.location.width)) - x;
 			int h = gridBounds.y + (int) (cellHeight * (block.location.y + block.location.height)) - y;
-			g.setClip(prevClip);
-			g.setColor(Color.red);
-			g.drawRect(x, y, w, h);
-			g.drawLine(x, y, x + w, y + h);
-			g.drawLine(x + w, y, x, y + h);
-			g.setClip(new Rectangle(x, y, w, h));
 
 			double imageScale = Math.min(1, Math.min(
 					w / (double) block.image.getWidth(),
@@ -339,8 +330,6 @@ public class GUILayoutBook implements AutoCloseable {
 				label.draw(g, x + 7, y + 17);
 			}
 		}
-
-		g.setClip(prevClip);
 
 		Table<Integer, Integer, Integer> groupings = ArrayTable.create(
 				IntStream.rangeClosed(packBounds.y, packBounds.y + packBounds.height).mapToObj(i -> (Integer) i)
