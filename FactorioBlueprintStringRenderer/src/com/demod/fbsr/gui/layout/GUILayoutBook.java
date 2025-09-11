@@ -285,7 +285,7 @@ public class GUILayoutBook implements AutoCloseable {
 		g.fillRect(bounds.x, bounds.y, bounds.width, bounds.height);
 		g.setPaint(pp);
 
-		GUIBox gridBounds = bounds.shrink(10, 10, 10, 10);
+		GUIBox gridBounds = bounds.shrink(10, 10, 10, 10).shift(0, -3);
 		
 		// Use floating-point division to avoid integer truncation
 		double cellWidth = (double) gridBounds.width / (double) packBounds.width;
