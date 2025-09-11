@@ -28,10 +28,10 @@ public class Quadtree {
 		int y = bounds.y;
 
 		nodes = new Quadtree[4];
-		nodes[0] = new Quadtree(level + 1, new Rectangle(x + subWidth, y, subWidth, subHeight)); // Top-right
+		nodes[0] = new Quadtree(level + 1, new Rectangle(x + subWidth, y, bounds.width - subWidth, subHeight)); // Top-right
 		nodes[1] = new Quadtree(level + 1, new Rectangle(x, y, subWidth, subHeight)); // Top-left
-		nodes[2] = new Quadtree(level + 1, new Rectangle(x, y + subHeight, subWidth, subHeight)); // Bottom-left
-		nodes[3] = new Quadtree(level + 1, new Rectangle(x + subWidth, y + subHeight, subWidth, subHeight)); // Bottom-right
+		nodes[2] = new Quadtree(level + 1, new Rectangle(x, y + subHeight, subWidth, bounds.height - subHeight)); // Bottom-left
+		nodes[3] = new Quadtree(level + 1, new Rectangle(x + subWidth, y + subHeight, bounds.width - subWidth, bounds.height - subHeight)); // Bottom-right
 
 		for (Rectangle rect : objects) {
 			for (Quadtree node : nodes) {
@@ -69,6 +69,22 @@ public class Quadtree {
 		}
 
 		return null;
+	}
+
+	public List<Rectangle> getLocalObjects() {
+		return objects;
+	}
+
+	public Quadtree[] getLocalNodes() {
+		return nodes;
+	}
+
+	public int getLevel() {
+		return level;
+	}
+
+	public Rectangle getBounds() {
+		return bounds;
 	}
 
 }
