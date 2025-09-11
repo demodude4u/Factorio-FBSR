@@ -49,6 +49,7 @@ import com.demod.fbsr.composite.TintComposite;
 import com.demod.fbsr.gui.GUIAlign;
 import com.demod.fbsr.gui.GUIBox;
 import com.demod.fbsr.gui.GUISize;
+import com.demod.fbsr.gui.GUISpacing;
 import com.demod.fbsr.gui.GUIStyle;
 import com.demod.fbsr.gui.feature.GUIPipeFeature;
 import com.demod.fbsr.gui.part.GUIImage;
@@ -181,14 +182,15 @@ public class GUILayoutBook implements AutoCloseable {
 			Rectangle r = blocks.get(i).location;
 			boolean placed = false;
 
-			// Use strict < bounds to ensure intersection with quadtree bounds is positive
-			for (int y = 0; y < height - r.height && !placed; y++) {
-				for (int x = 0; x < width - r.width && !placed; x++) {
+			// Allow placement flush with right/bottom edges
+			for (int y = 0; y <= height - r.height && !placed; y++) {
+				for (int x = 0; x <= width - r.width && !placed; x++) {
 					r.setLocation(x, y);
-					Rectangle collision = occupied.insertIfNoCollision(r);
+					Rectangle collision = occupied.insertIfNoCollision(new Rectangle(r));
 					if (collision == null) {
 						placed = true;
 					} else {
+						// Skip past the colliding rectangle without adding an extra gap
 						x = Math.max(x, collision.x + collision.width - 1);
 					}
 				}
@@ -283,16 +285,13 @@ public class GUILayoutBook implements AutoCloseable {
 		g.fillRect(bounds.x, bounds.y, bounds.width, bounds.height);
 		g.setPaint(pp);
 
-		double cellOffsetX = -20;
-		double cellOffsetY = -20;
-		// double cellWidth = (BP_CELL_SIZE.width + 20);
-		// double cellHeight = (BP_CELL_SIZE.height + 20);
-		double cellWidth = (bounds.width - 20) / packBounds.width;
-		double cellHeight = (bounds.height - 20) / packBounds.height;
-		double imageScale = (cellWidth - 20) / BP_CELL_SIZE.width;
-
-		int centerShiftX = 20;
-		int centerShiftY = 20;
+		GUIBox gridBounds = bounds.shrink(10, 10, 10, 10);
+		g.setColor(Color.magenta);
+		g.drawRect(gridBounds.x, gridBounds.y, gridBounds.width, gridBounds.height);
+		
+		// Use floating-point division to avoid integer truncation
+		double cellWidth = (double) gridBounds.width / (double) packBounds.width;
+		double cellHeight = (double) gridBounds.height / (double) packBounds.height;
 
 		g.setFont(guiStyle.FONT_BP_REGULAR.deriveFont(12f));
 		g.setColor(Color.gray);
@@ -301,20 +300,22 @@ public class GUILayoutBook implements AutoCloseable {
 		AffineTransform pat = g.getTransform();
 
 		for (ImageBlock block : blocks) {
-			int x = (int) (bounds.x + bounds.width / 2
-					+ (-packBounds.width / 2.0 - packBounds.x + block.location.x) * cellWidth + cellOffsetX);
-			int y = (int) (bounds.y + bounds.height / 2
-					+ (-packBounds.height / 2.0 - packBounds.y + block.location.y) * cellHeight + cellOffsetY);
-			int w = (int) (block.location.width * cellWidth);
-			int h = (int) (block.location.height * cellHeight);
+			int x = gridBounds.x + (int) (cellWidth * block.location.x);
+			int y = gridBounds.y + (int) (cellHeight * block.location.y);
+			int w = gridBounds.x + (int) (cellWidth * (block.location.x + block.location.width)) - x;
+			int h = gridBounds.y + (int) (cellHeight * (block.location.y + block.location.height)) - y;
+			g.setClip(prevClip);
+			g.setColor(Color.red);
+			g.drawRect(x, y, w, h);
+			g.drawLine(x, y, x + w, y + h);
+			g.drawLine(x + w, y, x, y + h);
 			g.setClip(new Rectangle(x, y, w, h));
- 
-			int centerX = x + w / 2 + centerShiftX;
-			int centerY = y + h / 2 + centerShiftY;
 
-			// GUIImage image = new GUIImage(new GUIBox(centerX, centerY, 0, 0), block.image, true);
-			// image.render(g);
-			g.translate(centerX, centerY);
+			double imageScale = Math.min(1, Math.min(
+					w / (double) block.image.getWidth(),
+					h / (double) block.image.getHeight()));
+
+			g.translate(x + w / 2, y + h / 2);
 			g.scale(imageScale, imageScale);
 			g.drawImage(block.image, -block.image.getWidth() / 2, -block.image.getHeight() / 2, null);
 			g.setTransform(pat);
@@ -335,7 +336,7 @@ public class GUILayoutBook implements AutoCloseable {
 
 			if (labelText.length() > 0) {
 				RichText label = new RichText(labelText.toString(), resolver);
-				label.draw(g, x + 25, y + 35);
+				label.draw(g, x + 7, y + 17);
 			}
 		}
 
@@ -355,10 +356,8 @@ public class GUILayoutBook implements AutoCloseable {
 			}
 		}
 
-		int pipeX = (int) (bounds.x + bounds.width / 2 + (-packBounds.width / 2.0) * cellWidth) - 4;
-		int pipeY = (int) (bounds.y + bounds.height / 2 + (-packBounds.height / 2.0) * cellHeight) - 4;
 		g.setComposite(tint);
-		guiStyle.PIPE.renderDynamicGrid(g, pipeX, pipeY, cellWidth, cellHeight, packBounds, groupings);
+		guiStyle.PIPE.renderDynamicGrid(g, gridBounds.x - 4, gridBounds.y - 4, cellWidth, cellHeight, packBounds, groupings);
 		g.setComposite(pc);
 
 		GUIBox boundsCell;
