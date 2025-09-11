@@ -183,12 +183,14 @@ public class GUILayoutBook implements AutoCloseable {
 			boolean placed = false;
 
 			// Allow placement flush with right/bottom edges
-			for (int y = 0; y <= height - r.height && !placed; y++) {
-				for (int x = 0; x <= width - r.width && !placed; x++) {
+			placement: for (int y = 0; y <= height - r.height; y++) {
+				for (int x = 0; x <= width - r.width; x++) {
 					r.setLocation(x, y);
+
 					Rectangle collision = occupied.insertIfNoCollision(new Rectangle(r));
 					if (collision == null) {
 						placed = true;
+						break placement;
 					} else {
 						// Skip past the colliding rectangle without adding an extra gap
 						x = Math.max(x, collision.x + collision.width - 1);
