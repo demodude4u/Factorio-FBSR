@@ -1061,7 +1061,7 @@ public class DiscordService extends AbstractIdleService {
 					.sorted()
 					.collect(Collectors.joining("\n"));
 
-			String response = "```ldif\n" + responseContent + "```";
+			String response = "```\n" + responseContent + "```";
 			if (response.length() < 2000) {
 				event.reply(response);
 			} else {
@@ -1112,7 +1112,7 @@ public class DiscordService extends AbstractIdleService {
 					.sorted()
 					.collect(Collectors.joining("\n"));
 
-			String response = "```ldif\n" + responseContent + "```";
+			String response = "```\n" + responseContent + "```";
 			if (response.length() < 2000) {
 				event.reply(response);
 			} else {
