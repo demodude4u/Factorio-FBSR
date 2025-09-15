@@ -45,6 +45,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Multiset;
 import com.google.common.collect.SetMultimap;
 
 import picocli.CommandLine.ArgGroup;
@@ -462,6 +463,75 @@ public class CmdProfile {
 
         System.out.println();
         tableMessage.forEach(System.out::println);
+    }
+
+    @Command(name = "overlap-report", description = "Detect name overlaps for entities and tiles across all profiles")
+    public static void overlapReport() {
+        if (!Profile.vanilla().hasAssets()) {
+            System.out.println("Vanilla profile does not have assets generated. Cannot run overlap report.");
+            return;
+        }
+
+        ListMultimap<String, EntityRendererFactory> factoryByEntity = ArrayListMultimap.create();
+        ListMultimap<String, TileRendererFactory> factoryByTile = ArrayListMultimap.create();
+
+        Set<String> vanillaEntities = new HashSet<>();
+        Set<String> vanillaTiles = new HashSet<>();
+
+        for (Profile profile : Profile.listProfiles()) {
+            if (!profile.getRenderingRegistry().loadConfig(profile.getAssetsRenderingConfiguration())) {
+                System.out.println("Failed to load rendering configuration for profile: " + profile.getName());
+                return;
+            }
+
+            if (profile.isVanilla()) {
+                vanillaEntities.addAll(profile.getRenderingRegistry().getEntityFactories().stream().map(EntityRendererFactory::getName).collect(Collectors.toSet()));
+                vanillaTiles.addAll(profile.getRenderingRegistry().getTileFactories().stream().map(TileRendererFactory::getName).collect(Collectors.toSet()));
+            }
+
+            for (EntityRendererFactory factory : profile.getRenderingRegistry().getEntityFactories()) {
+                factoryByEntity.put(factory.getName(), factory);
+            }
+            for (TileRendererFactory factory : profile.getRenderingRegistry().getTileFactories()) {
+                factoryByTile.put(factory.getName(), factory);
+            }
+        }
+
+        System.out.println("=== Vanilla Entities ===");
+        factoryByEntity.asMap().entrySet().stream()
+                .filter(e -> e.getValue().size() > 1)
+                .filter(e -> vanillaEntities.contains(e.getKey()))
+                .filter(e -> e.getValue().stream().flatMap(f -> f.getMods().stream()).map(m -> m.name).distinct().count() > 1)
+                .sorted(Map.Entry.comparingByKey())
+                .forEach(e -> System.out.println(" - " + e.getKey() + ": " + e.getValue().stream().flatMap(f -> f.getMods().stream()).map(m -> m.name).distinct().sorted().collect(Collectors.joining(", "))));
+        System.out.println();
+
+        System.out.println("=== Vanilla Tiles ===");
+        factoryByTile.asMap().entrySet().stream()
+                .filter(e -> e.getValue().size() > 1)
+                .filter(e -> vanillaTiles.contains(e.getKey()))
+                .filter(e -> e.getValue().stream().flatMap(f -> f.getMods().stream()).map(m -> m.name).distinct().count() > 1)
+                .sorted(Map.Entry.comparingByKey())
+                .forEach(e -> System.out.println(" - " + e.getKey() + ": " + e.getValue().stream().flatMap(f -> f.getMods().stream()).map(m -> m.name).distinct().sorted().collect(Collectors.joining(", "))));
+        System.out.println();
+
+        System.out.println("=== Other Entities ===");
+        factoryByEntity.asMap().entrySet().stream()
+                .filter(e -> e.getValue().size() > 1)
+                .filter(e -> !vanillaEntities.contains(e.getKey()))
+                .filter(e -> e.getValue().stream().flatMap(f -> f.getMods().stream()).map(m -> m.name).distinct().count() > 1)
+                .sorted(Map.Entry.comparingByKey())
+                .forEach(e -> System.out.println(" - " + e.getKey() + ": " + e.getValue().stream().flatMap(f -> f.getMods().stream()).map(m -> m.name).distinct().sorted().collect(Collectors.joining(", "))));
+        System.out.println();
+
+        System.out.println("=== Other Tiles ===");
+        factoryByTile.asMap().entrySet().stream()
+                .filter(e -> e.getValue().size() > 1)
+                .filter(e -> !vanillaTiles.contains(e.getKey()))
+                .filter(e -> e.getValue().stream().flatMap(f -> f.getMods().stream()).map(m -> m.name).distinct().count() > 1)
+                .sorted(Map.Entry.comparingByKey())
+                .forEach(e -> System.out.println(" - " + e.getKey() + ": " + e.getValue().stream().flatMap(f -> f.getMods().stream()).map(m -> m.name).distinct().sorted().collect(Collectors.joining(", "))));
+        System.out.println();
     }
 
     @Command(name = "profile-disable", description = "Disable a profile")
