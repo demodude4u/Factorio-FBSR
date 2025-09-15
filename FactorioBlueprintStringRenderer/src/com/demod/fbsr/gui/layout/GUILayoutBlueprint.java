@@ -219,6 +219,10 @@ public class GUILayoutBlueprint {
 		}
 
 		String description = blueprint.description.orElse("").trim();
+		description = Arrays.stream(description.split("\\R"))
+			.map(String::strip)
+			.filter(s -> !s.isEmpty())
+			.collect(Collectors.joining("\n"));
 		if (!description.isBlank()) {
 			Font fontDesc = guiStyle.FONT_BP_REGULAR.deriveFont(12f);
 			FontMetrics fmDesc = g.getFontMetrics(fontDesc);
