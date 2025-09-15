@@ -116,10 +116,18 @@ public class CmdRPC {
 
             } else if (blueprintString.blueprintBook.isPresent()) {
                 type = "book";
-                GUILayoutBook layout = new GUILayoutBook();
-                layout.setBook(blueprintString.blueprintBook.get());
-                layout.setReporting(reporting);
-                image = layout.generateDiscordImage();
+                try (GUILayoutBook layout = new GUILayoutBook()) {
+                    layout.setBook(blueprintString.blueprintBook.get());
+                    layout.setReporting(reporting);
+                    image = layout.generateDiscordImage();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    ret.put("success", false);
+                    ret.put("message", "Error while rendering book");
+                    ret.put("reason", e.getMessage());
+                    reportAddResponse(reporting, ret);
+                    return ret;
+                }
 
             } else {
                 ret.put("success", false);
