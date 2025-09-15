@@ -12,5 +12,6 @@ public class OffshorePumpRendering extends EntityWithOwnerRendering {
 		bind.animation4Way(lua.get("graphics_set").get("animation"));
 		bind.circuitConnector4Way(lua.get("circuit_connector"));
 		bind.fluidBox(lua.get("fluid_box"));
+		bind.energySource(lua.get("energy_source"));
 	}
 }

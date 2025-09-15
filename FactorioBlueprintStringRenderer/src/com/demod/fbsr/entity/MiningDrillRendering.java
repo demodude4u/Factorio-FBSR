@@ -50,6 +50,7 @@ public class MiningDrillRendering extends EntityWithOwnerRendering {
 		bind.circuitConnector4Way(lua.get("circuit_connector"));
 		bind.fluidBox(lua.get("input_fluid_box"));
 		bind.fluidBox(lua.get("output_fluid_box"));
+		bind.energySource(lua.get("energy_source"));
 	}
 
 	@Override

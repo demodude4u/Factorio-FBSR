@@ -139,6 +139,7 @@ public class AgriculturalTowerRendering extends EntityWithOwnerRendering {
 		super.defineEntity(bind, lua);
 
 		bind.circuitConnector(lua.get("circuit_connector"));
+		bind.energySource(lua.get("energy_source"));
 	}
 
 	@Override

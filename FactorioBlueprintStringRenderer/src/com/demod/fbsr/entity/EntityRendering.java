@@ -35,6 +35,8 @@ import com.demod.fbsr.fp.FPAnimation4Way;
 import com.demod.fbsr.fp.FPAnimationVariations;
 import com.demod.fbsr.fp.FPCircuitConnectorDefinition;
 import com.demod.fbsr.fp.FPFluidBox;
+import com.demod.fbsr.fp.FPHeatBuffer;
+import com.demod.fbsr.fp.FPHeatConnection;
 import com.demod.fbsr.fp.FPLayeredSprite;
 import com.demod.fbsr.fp.FPPipeConnectionDefinition;
 import com.demod.fbsr.fp.FPRotatedAnimation;
@@ -276,6 +278,12 @@ public abstract class EntityRendering extends EntityRendererFactory {
 			}
 		}
 
+		public void heatBuffer(LuaValue lua) {
+			if (!lua.isnil()) {
+				EntityRendering.this.heatBuffers.add(new FPHeatBuffer(profile, lua));
+			}
+		}
+
 		public void energySource(LuaValue lua) {
 			if (!lua.isnil()) {
 				LuaValue luaType = lua.get("type");
@@ -284,11 +292,14 @@ public abstract class EntityRendering extends EntityRendererFactory {
 						case "electric":
 						case "burner":
 						case "heat":
+							heatBuffer(lua);
+							break;
 						case "void":
 						default:
 							break;
 						case "fluid":
 							fluidBox(lua.get("fluid_box"));
+							break;
 					}
 				}
 			}
@@ -734,6 +745,7 @@ public abstract class EntityRendering extends EntityRendererFactory {
 	private List<BindAction<?>> bindings;
 	private Optional<List<FPCircuitConnectorDefinition>> circuitConnectors = Optional.empty();
 	private List<FPFluidBox> fluidBoxes;
+	private List<FPHeatBuffer> heatBuffers;
 
 	@Override
 	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
@@ -768,6 +780,23 @@ public abstract class EntityRendering extends EntityRendererFactory {
 				}
 			}
 		}
+
+		for (FPHeatBuffer heatBuffer : heatBuffers) {
+			if (heatBuffer.pipeCovers.isPresent()) {
+				for (FPHeatConnection conn : heatBuffer.connections) {
+					Direction connDir = conn.direction;
+					MapPosition connPos = MapPosition.convert(conn.position);
+
+					Direction facing = connDir.rotate(dir);
+					MapPosition point = facing.offset(dir.rotate(connPos).add(entity.getPosition()), 1);
+					Consumer<SpriteDef> pointRegister = s -> register.accept(new MapSprite(s, Layer.OBJECT, point));
+
+					if (heatBuffer.pipeCovers.isPresent() && !map.isPipe(point, facing)) {
+						heatBuffer.pipeCovers.get().defineSprites(pointRegister, facing);
+					}
+				}
+			}
+		}
 	}
 
 	public abstract void defineEntity(Bindings bind, LuaTable lua);
@@ -781,14 +810,15 @@ public abstract class EntityRendering extends EntityRendererFactory {
 
 		for (FPFluidBox fluidBox : fluidBoxes) {
 			if (fluidBox.pipeCovers.isPresent() || fluidBox.pipePicture.isPresent()) {
-				for (FPPipeConnectionDefinition conn : fluidBox.pipeConnections) {
-					if (!conn.connectionType.equals("normal")) {
-						continue;
-					}
+				if (fluidBox.pipeConnections.stream().anyMatch(c -> c.connectionType.equals("normal"))) {
 					fluidBox.pipePicture.ifPresent(fp -> fp.getDefs(register));
 					fluidBox.pipeCovers.ifPresent(fp -> fp.getDefs(register));
 				}
 			}
+		}
+
+		for (FPHeatBuffer heatBuffer : heatBuffers) {
+			heatBuffer.pipeCovers.ifPresent(fp -> fp.getDefs(register));
 		}
 
 		if (circuitConnectors.isPresent()) {
@@ -807,6 +837,7 @@ public abstract class EntityRendering extends EntityRendererFactory {
 	public void initFromPrototype() {
 		List<BindAction<?>> bindings = new ArrayList<>();
 		fluidBoxes = new ArrayList<>();
+		heatBuffers = new ArrayList<>();
 		Bindings fluent = new Bindings(bindings);
 		defineEntity(fluent, prototype.lua());
 		this.bindings = bindings;
@@ -844,6 +875,7 @@ public abstract class EntityRendering extends EntityRendererFactory {
 	@Override
 	public void populateWorldMap(WorldMap map, MapEntity entity) {
 		Direction dir = entity.getDirection();
+		
 		for (FPFluidBox fluidBox : fluidBoxes) {
 			for (FPPipeConnectionDefinition conn : fluidBox.pipeConnections) {
 				if (conn.direction.isPresent() && conn.position.isPresent()) {
@@ -852,6 +884,14 @@ public abstract class EntityRendering extends EntityRendererFactory {
 					// TODO use flow direction for pipe arrow logistics
 					map.setPipe(pos, facing);
 				}
+			}
+		}
+
+		for (FPHeatBuffer heatBuffer : heatBuffers) {
+			for (FPHeatConnection conn : heatBuffer.connections) {
+				Direction facing = conn.direction.rotate(dir);
+				MapPosition pos = dir.rotate(MapPosition.convert(conn.position)).add(entity.getPosition());
+				map.setHeatPipe(pos, facing);
 			}
 		}
 	}

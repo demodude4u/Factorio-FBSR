@@ -9,6 +9,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+import com.demod.factorio.fakelua.LuaTable;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.IconDefWithQuality;
@@ -85,6 +86,13 @@ public abstract class LoaderRendering extends TransportBeltConnectableRendering 
 				register.accept(icon.createMapIcon(iconPos, iconSize, OptionalDouble.of(iconBorder), false, resolver));
 			}
 		}
+	}
+
+	@Override
+	public void defineEntity(Bindings bind, LuaTable lua) {
+		super.defineEntity(bind, lua);
+
+		bind.energySource(lua.get("energy_source"));
 	}
 
 	private MapPosition getBeltShift(MapEntity entity) {

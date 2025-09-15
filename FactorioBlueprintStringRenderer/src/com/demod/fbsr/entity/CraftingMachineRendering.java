@@ -117,6 +117,13 @@ public abstract class CraftingMachineRendering extends EntityWithOwnerRendering 
 	}
 
 	@Override
+	public void defineEntity(Bindings bind, LuaTable lua) {
+		super.defineEntity(bind, lua);
+		
+		bind.energySource(lua.get("energy_source"));
+	}
+
+	@Override
 	public Class<? extends BSEntity> getEntityClass() {
 		return BSCraftingMachineEntity.class;
 	}

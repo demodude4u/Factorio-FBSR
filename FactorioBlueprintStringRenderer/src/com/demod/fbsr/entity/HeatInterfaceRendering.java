@@ -13,12 +13,6 @@ public class HeatInterfaceRendering extends EntityWithOwnerRendering {
 		super.defineEntity(bind, lua);
 		
 		bind.sprite(lua.get("picture"));
-	}
-
-	@Override
-	public void populateWorldMap(WorldMap map, MapEntity entity) {
-		super.populateWorldMap(map, entity);
-
-		map.setHeatPipe(entity.getPosition());
+		bind.heatBuffer(lua.get("heat_buffer"));
 	}
 }

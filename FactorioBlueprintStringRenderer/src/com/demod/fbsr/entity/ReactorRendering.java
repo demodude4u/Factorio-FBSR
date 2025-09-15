@@ -19,14 +19,12 @@ public class ReactorRendering extends EntityWithOwnerRendering {
 		}
 		bind.sprite(lua.get("picture"));
 		bind.circuitConnector(lua.get("circuit_connector"));
+		bind.heatBuffer(lua.get("heat_buffer"));
+		bind.energySource(lua.get("energy_source"));
 	}
 
 	@Override
 	public void populateWorldMap(WorldMap map, MapEntity entity) {
 		super.populateWorldMap(map, entity);
-
-		for (Direction dir : Direction.values()) {
-			map.setHeatPipe(dir.offset(entity.getPosition(), 2));
-		}
 	}
 }

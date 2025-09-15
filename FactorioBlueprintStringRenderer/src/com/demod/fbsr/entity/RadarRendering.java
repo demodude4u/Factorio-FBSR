@@ -13,5 +13,6 @@ public class RadarRendering extends EntityWithOwnerRendering {
 		
 		bind.rotatedSprite(lua.get("pictures")).orientation(ORIENTATION);
 		bind.circuitConnector(lua.get("circuit_connector"));
+		bind.energySource(lua.get("energy_source"));
 	}
 }

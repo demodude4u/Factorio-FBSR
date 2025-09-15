@@ -12,5 +12,6 @@ public class PumpRendering extends EntityWithOwnerRendering {
 		bind.animation4Way(lua.get("animations"));
 		bind.circuitConnector4Way(lua.get("circuit_connector"));
 		bind.fluidBox(lua.get("fluid_box"));
+		bind.energySource(lua.get("energy_source"));
 	}
 }

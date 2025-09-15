@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+import com.demod.factorio.fakelua.LuaTable;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.EntityType;
@@ -59,6 +60,13 @@ public class HeatPipeRendering extends EntityWithOwnerRendering {
 	}
 
 	@Override
+	public void defineEntity(Bindings bind, LuaTable lua) {
+		super.defineEntity(bind, lua);
+
+		bind.heatBuffer(lua.get("heat_buffer"));
+	}
+
+	@Override
 	public void initAtlas(Consumer<ImageDef> register) {
 		super.initAtlas(register);
 
@@ -72,12 +80,5 @@ public class HeatPipeRendering extends EntityWithOwnerRendering {
 		protoConnectionSprites = Arrays.stream(heatPipeSpriteNameMapping)
 				.map(s -> new FPSpriteVariations(profile, prototype.lua().get("connection_sprites").get(s)))
 				.collect(Collectors.toList());
-	}
-
-	@Override
-	public void populateWorldMap(WorldMap map, MapEntity entity) {
-		super.populateWorldMap(map, entity);
-		
-		map.setHeatPipe(entity.getPosition());
 	}
 }

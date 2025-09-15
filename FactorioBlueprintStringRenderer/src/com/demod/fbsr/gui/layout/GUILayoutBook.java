@@ -283,7 +283,7 @@ public class GUILayoutBook implements AutoCloseable {
 				new Point2D.Double(bounds.x, bounds.y), 
 				new Color(0, 0, 0, 0), 
 				new Point2D.Double(bounds.x, bounds.y + bounds.height), 
-				new Color(0, 0, 0, 32)));
+				new Color(0, 0, 0, 48)));
 		g.fillRect(bounds.x, bounds.y, bounds.width, bounds.height);
 		g.setPaint(pp);
 

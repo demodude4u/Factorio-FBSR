@@ -611,6 +611,10 @@ public class WorldMap {
 				flags |= flag(facing);
 			}
 		}
+		Integer currentFlags = heatPipes.get(pos.getXCell(), pos.getYCell());
+		if (currentFlags != null) {
+			flags |= currentFlags;
+		}
 		heatPipes.put(pos.getXCell(), pos.getYCell(), flags);
 	}
 

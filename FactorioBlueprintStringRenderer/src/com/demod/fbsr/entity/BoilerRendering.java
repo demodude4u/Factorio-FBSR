@@ -19,7 +19,6 @@ public class BoilerRendering extends EntityWithOwnerRendering {
 	private static final int FRAME = 0;
 
 	private FPBoilerPictureSet protoPictures;
-	private boolean protoHasEnergySource;
 
 	@Override
 	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
@@ -35,6 +34,7 @@ public class BoilerRendering extends EntityWithOwnerRendering {
 		
 		bind.fluidBox(lua.get("fluid_box"));
 		bind.fluidBox(lua.get("output_fluid_box"));
+		bind.energySource(lua.get("energy_source"));
 	}
 
 	@Override
@@ -51,7 +51,6 @@ public class BoilerRendering extends EntityWithOwnerRendering {
 		super.initFromPrototype();
 
 		protoPictures = new FPBoilerPictureSet(profile, prototype.lua().get("pictures"));
-		protoHasEnergySource = !prototype.lua().get("energy_source").isnil();
 	}
 
 	@Override
@@ -60,9 +59,6 @@ public class BoilerRendering extends EntityWithOwnerRendering {
 
 		Direction dir = entity.getDirection();
 		MapPosition position = dir.back().offset(entity.getPosition(), 0.5);
-		if (protoHasEnergySource) {
-			map.setHeatPipe(position, dir.back());// TODO in the SimpleEntityRendering
-		}
 	}
 
 }

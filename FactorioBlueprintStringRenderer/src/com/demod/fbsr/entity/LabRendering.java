@@ -23,5 +23,6 @@ public class LabRendering extends EntityWithOwnerRendering {
 		super.defineEntity(bind, lua);
 		
 		bind.animation(lua.get("off_animation"));
+		bind.energySource(lua.get("energy_source"));
 	}
 }
