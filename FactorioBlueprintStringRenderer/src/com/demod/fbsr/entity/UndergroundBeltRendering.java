@@ -169,7 +169,7 @@ public class UndergroundBeltRendering extends TransportBeltConnectableRendering 
 		private final boolean input;
 
 		public UndergroundBeltCell(WorldMap map, MapPosition pos, Direction facing, boolean input) {
-			super(pos, facing, false, !input);
+			super(pos, facing, false, !input, input, !input);
 			this.map = map;
 			this.input = input;
 		}

@@ -219,9 +219,9 @@ public abstract class LoaderRendering extends TransportBeltConnectableRendering 
 
 		MapPosition pos = entity.getPosition();
 		if (input) {
-			map.setBelt(pos.add(beltShift), entity.getDirection(), false, false);
+			map.setBelt(pos.add(beltShift), entity.getDirection(), false, false, false, false);
 		} else {
-			map.setBelt(pos.add(beltShift), entity.getDirection(), false, true);
+			map.setBelt(pos.add(beltShift), entity.getDirection(), false, true, false, false);
 		}
 	}
 }

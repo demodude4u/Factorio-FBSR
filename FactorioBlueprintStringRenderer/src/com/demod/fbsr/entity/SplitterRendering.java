@@ -170,7 +170,7 @@ public class SplitterRendering extends TransportBeltConnectableRendering {
 		MapPosition pos = entity.getPosition();
 		MapPosition belt1Pos = direction.left().offset(pos, 0.5);
 		MapPosition belt2Pos = direction.right().offset(pos, 0.5);
-		map.setBelt(belt1Pos, direction, false, true);
-		map.setBelt(belt2Pos, direction, false, true);
+		map.setBelt(belt1Pos, direction, false, true, false, false);
+		map.setBelt(belt2Pos, direction, false, true, false, false);
 	}
 }

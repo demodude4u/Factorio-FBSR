@@ -105,7 +105,9 @@ public class TransportBeltRendering extends TransportBeltConnectableRendering {
 					Direction sideDir = dir.left();
 					int beltReaderframe;
 					Optional<BeltCell> sideBelt = map.getBelt(sideDir.offset(pos));
-					if (sideBelt.isPresent() && (sideBelt.get().getFacing() == sideDir.back())) {
+					if (sideBelt.isPresent() 
+							&& (sideBelt.get().getFacing() == sideDir.back())
+							&& !sideBelt.get().isUndergroundInput()) {
 						beltReaderframe = beltReaderBarLeft[dir.cardinal()];
 					} else {
 						beltReaderframe = beltReaderRailLeft[dir.cardinal()];
@@ -116,7 +118,9 @@ public class TransportBeltRendering extends TransportBeltConnectableRendering {
 					Direction sideDir = dir.right();
 					int beltReaderframe;
 					Optional<BeltCell> sideBelt = map.getBelt(sideDir.offset(pos));
-					if (sideBelt.isPresent() && (sideBelt.get().getFacing() == sideDir.back())) {
+					if (sideBelt.isPresent() 
+							&& (sideBelt.get().getFacing() == sideDir.back())
+							&& !sideBelt.get().isUndergroundInput()) {
 						beltReaderframe = beltReaderBarRight[dir.cardinal()];
 					} else {
 						beltReaderframe = beltReaderRailRight[dir.cardinal()];
@@ -194,7 +198,7 @@ public class TransportBeltRendering extends TransportBeltConnectableRendering {
 	public void populateWorldMap(WorldMap map, MapEntity entity) {
 		super.populateWorldMap(map, entity);
 		
-		map.setBelt(new BeltCell(entity.getPosition(), entity.getDirection(), true, true) {
+		map.setBelt(new BeltCell(entity.getPosition(), entity.getDirection(), true, true, false, false) {
 			@Override
 			public Optional<BeltCell> nextReadAllBelts() {
 				MapPosition nextPos = getFacing().offset(getPos());

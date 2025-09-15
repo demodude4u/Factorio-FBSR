@@ -80,21 +80,33 @@ public class WorldMap {
 
 	public static class BeltCell {
 		protected final MapPosition pos;
-		protected  final Direction facing;
-		protected  final boolean bendable;
-		protected  final boolean bendOthers;
+		protected final Direction facing;
+		protected final boolean bendable;
+		protected final boolean bendOthers;
+		protected final boolean undergroundInput;
+		protected final boolean undergroundOutput;
 
 		protected boolean beltReader = false;
 
-		public BeltCell(MapPosition pos, Direction facing, boolean bendable, boolean bendOthers) {
+		public BeltCell(MapPosition pos, Direction facing, boolean bendable, boolean bendOthers, boolean undergroundInput, boolean undergroundOutput) {
 			this.pos = pos;
 			this.facing = facing;
 			this.bendable = bendable;
 			this.bendOthers = bendOthers;
+			this.undergroundInput = undergroundInput;
+			this.undergroundOutput = undergroundOutput;
 		}
 
 		public boolean isBendable() {
 			return bendable;
+		}
+
+		public boolean isUndergroundInput() {
+			return undergroundInput;
+		}
+
+		public boolean isUndergroundOutput() {
+			return undergroundOutput;
 		}
 
 		public boolean canBendOthers() {
@@ -590,8 +602,8 @@ public class WorldMap {
 		list.add(new BeaconSource(kr, kc, beacon, distributionEffectivity));
 	}
 
-	public void setBelt(MapPosition pos, Direction dir, boolean bendable, boolean bendOthers) {
-		setBelt(new BeltCell(pos, dir, bendable, bendOthers));
+	public void setBelt(MapPosition pos, Direction dir, boolean bendable, boolean bendOthers, boolean undergroundEnter, boolean undergroundExit) {
+		setBelt(new BeltCell(pos, dir, bendable, bendOthers, undergroundEnter, undergroundExit));
 	}
 
 	public void setBelt(BeltCell beltCell) {
