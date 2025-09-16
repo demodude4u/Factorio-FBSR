@@ -1,10 +1,13 @@
 package com.demod.fbsr;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalDouble;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -12,6 +15,7 @@ import com.demod.factorio.prototype.DataPrototype;
 import com.demod.factorio.prototype.ItemPrototype;
 import com.demod.factorio.prototype.RecipePrototype;
 import com.demod.factorio.prototype.TilePrototype;
+import com.demod.fbsr.Profile.ManifestModInfo;
 import com.demod.fbsr.RichText.TagToken;
 import com.demod.fbsr.bs.BSBlueprint;
 import com.demod.fbsr.bs.BSBlueprintBook;
@@ -50,64 +54,101 @@ public abstract class ModdingResolver {
     }
 
     public static ModdingResolver byBlueprintBiases(FactorioManager factorioManager, BSBlueprint blueprint) {
-        Multiset<Profile> blueprintProfileCounts = HashMultiset.create();
-        
+        Set<String> entityNames = new LinkedHashSet<>();
+        Set<String> tileNames = new LinkedHashSet<>();
+
         for (BSMetaEntity entity : blueprint.entities) {
-            List<Profile> entityProfiles = factorioManager.lookupProfileByEntityName(entity.name);
-            
-            if (entityProfiles.stream().anyMatch(p -> p.isVanilla())) {
-                blueprintProfileCounts.add(factorioManager.getProfileVanilla());
-            
-            } else {
-                blueprintProfileCounts.addAll(entityProfiles);
+            List<EntityRendererFactory> factories = factorioManager.lookupEntityFactoryForName(entity.name);
+            for (EntityRendererFactory factory : factories) {
+                entityNames.add(entity.name);
             }
         }
-        
         for (BSTile tile : blueprint.tiles) {
-            List<Profile> tileProfiles = factorioManager.lookupProfileByTileName(tile.name);
-
-            if (tileProfiles.stream().anyMatch(p -> p.isVanilla())) {
-                blueprintProfileCounts.add(factorioManager.getProfileVanilla());
-            
-            } else {
-                blueprintProfileCounts.addAll(tileProfiles);
+            List<TileRendererFactory> factories = factorioManager.lookupTileFactoryForName(tile.name);
+            for (TileRendererFactory factory : factories) {
+                tileNames.add(tile.name);
             }
         }
 
-        // Order: <Profiles in Blueprint> ==> <Vanilla Profile> ==> <Other Profiles>
-        List<Profile> profileOrder = blueprintProfileCounts.entrySet().stream()
-                .sorted(Comparator.comparingInt(Multiset.Entry<Profile>::getCount).reversed())
-                .map(Multiset.Entry::getElement)
-                .collect(Collectors.toCollection(ArrayList::new));
-        profileOrder.removeIf(p -> p.isVanilla());
-        profileOrder.add(factorioManager.getProfileVanilla());
-
-        return byProfileOrder(factorioManager, profileOrder, true);
+        return byNameBiases(factorioManager, entityNames, tileNames);
     }
 
     public static ModdingResolver byBlueprintBiases(FactorioManager factorioManager, BSBlueprintBook book) {
-        Multiset<Profile> blueprintProfileCounts = HashMultiset.create();
+        Set<String> entityNames = new LinkedHashSet<>();
+        Set<String> tileNames = new LinkedHashSet<>();
+        
         for (BSBlueprint blueprint : book.getAllBlueprints()) {
             for (BSMetaEntity entity : blueprint.entities) {
-                blueprintProfileCounts.addAll(factorioManager.lookupProfileByEntityName(entity.name));
+                List<EntityRendererFactory> factories = factorioManager.lookupEntityFactoryForName(entity.name);
+                for (EntityRendererFactory factory : factories) {
+                    entityNames.add(entity.name);
+                }
             }
             for (BSTile tile : blueprint.tiles) {
-                blueprintProfileCounts.addAll(factorioManager.lookupProfileByTileName(tile.name));
+                List<TileRendererFactory> factories = factorioManager.lookupTileFactoryForName(tile.name);
+                for (TileRendererFactory factory : factories) {
+                    tileNames.add(tile.name);
+                }
             }
         }
-        List<Profile> profileRanking = blueprintProfileCounts.entrySet().stream()
-                .sorted(Comparator.comparingInt(Multiset.Entry<Profile>::getCount).reversed())
-                .map(Multiset.Entry::getElement)
-                .collect(Collectors.toCollection(ArrayList::new));
 
-        //Order: <Top Profile> ==> <Vanilla> ==> <Other Profiles>
-        List<Profile> profileOrder = new ArrayList<>();
-        if (!profileRanking.isEmpty()) {
-            profileOrder.add(profileRanking.remove(0));
+        return byNameBiases(factorioManager, entityNames, tileNames);
+    }
+
+    public static ModdingResolver byNameBiases(FactorioManager factorioManager, Collection<String> entityNames, Collection<String> tileNames) {
+        List<ManifestModInfo> mods = new ArrayList<>();
+        List<List<ManifestModInfo>> modClashes = new ArrayList<>();
+        
+        for (String entityName : entityNames) {
+            List<EntityRendererFactory> factories = factorioManager.lookupEntityFactoryForName(entityName);
+            
+            if (factories.stream().anyMatch(f -> f.getProfile().isVanilla())) {
+                continue;
+            }
+            
+            if (factories.size() == 1) {
+                mods.addAll(factories.get(0).getMods());
+                continue;
+            }
+
+            List<ManifestModInfo> factoryMods = factories.stream()
+                    .flatMap(f -> f.getMods().stream())
+                    .collect(Collectors.toList());
+            modClashes.add(factoryMods);
         }
-        profileRanking.stream().filter(Profile::isVanilla).forEach(profileOrder::add);
-        profileRanking.stream().filter(p -> !p.isVanilla()).forEach(profileOrder::add);
 
+        for (String tileName : tileNames) {
+            List<TileRendererFactory> factories = factorioManager.lookupTileFactoryForName(tileName);
+            
+            if (factories.stream().anyMatch(f -> f.getProfile().isVanilla())) {
+                continue;
+            }
+            
+            if (factories.size() == 1) {
+                mods.addAll(factories.get(0).getMods());
+                continue;
+            }
+
+            List<ManifestModInfo> factoryMods = factories.stream()
+                    .flatMap(f -> f.getMods().stream())
+                    .collect(Collectors.toList());
+            modClashes.add(factoryMods);
+        }
+
+        for (List<ManifestModInfo> clash : modClashes) {
+            if (clash.stream().noneMatch(mods::contains)) {
+                mods.addAll(clash);
+            }
+        }
+
+        mods.sort(Comparator.<ManifestModInfo>comparingLong(m -> m.downloads).reversed());
+        List<Profile> modProfiles = mods.stream()
+                .map(ManifestModInfo::getProfile)
+                .distinct()
+                .collect(Collectors.toList());
+
+        List<Profile> profileOrder = new ArrayList<>(modProfiles);
+        profileOrder.add(factorioManager.getProfileVanilla());
         return byProfileOrder(factorioManager, profileOrder, true);
     }
 
