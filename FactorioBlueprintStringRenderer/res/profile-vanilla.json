@@ -28,5 +28,9 @@
 		"tank": {"rendering": "CarRendering"},
 		"top-up-valve": {"modded": true}
 	},
-	"tile-overrides": {}
+	"tile-overrides": {
+		"water": {"modded": true},
+		"grass-1": {"modded": true},
+		"landfill": {"modded": true}
+	}
 }
