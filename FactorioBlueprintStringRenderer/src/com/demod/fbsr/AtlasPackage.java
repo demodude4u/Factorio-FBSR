@@ -540,9 +540,18 @@ public class AtlasPackage {
 
     private static Rectangle trimEmptyRect(BufferedImage imageSheet, Rectangle rect) {
 		Rectangle ret = new Rectangle(rect.width, rect.height);
-		int[] pixels = new int[rect.width * rect.height];
+		
+		//Rare modding issue
+		if (ret.width > imageSheet.getWidth()) {
+			ret.width = imageSheet.getWidth();
+		}
+		if (ret.height > imageSheet.getHeight()) {
+			ret.height = imageSheet.getHeight();
+		}
+		
+		int[] pixels = new int[ret.width * ret.height];
 		int span = ret.width;
-		imageSheet.getRGB(rect.x, rect.y, rect.width, rect.height, pixels, 0, span);
+		imageSheet.getRGB(rect.x, rect.y, ret.width, ret.height, pixels, 0, span);
 
 		// Top
 		boolean fullEmpty = true;
