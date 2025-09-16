@@ -124,7 +124,8 @@ public class Profile {
 
     public static enum ProfileWarning {
         VERSION_MISMATCH,
-        PROFILE_MISMATCH
+        PROFILE_MISMATCH,
+        VANILLA_MODIFIED
     }
 
     private final String name;
@@ -437,6 +438,10 @@ public class Profile {
             warnings.add(ProfileWarning.PROFILE_MISMATCH);
         }
 
+        if (hasVanillaModified()) {
+            warnings.add(ProfileWarning.VANILLA_MODIFIED);
+        }
+
         return warnings;
     }
 
@@ -540,6 +545,24 @@ public class Profile {
         JSONObject jsonProfile = readJsonFile(fileProfileConfig);
         JSONObject jsonAssetsProfile = readJsonAssetFile(ASSETS_ZIP_PROFILE_JSON);
         return !jsonProfile.similar(jsonAssetsProfile);
+    }
+
+    public boolean hasVanillaModified() {
+        if (!hasProfileConfig() || !isVanilla()) {
+            return false;
+        }
+        try (InputStream is = Profile.class.getClassLoader().getResourceAsStream("profile-vanilla.json")) {
+            JSONObject jsonDefault = new JSONObject(new JSONTokener(is));
+            JSONObject jsonProfile = readJsonFile(fileProfileConfig);
+            if (jsonProfile == null) {
+                return true;
+            }
+            return !jsonProfile.similar(jsonDefault);
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.exit(-1);
+            return true;
+        }
     }
 
     public boolean setEnabled(boolean enabled) {
