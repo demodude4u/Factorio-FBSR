@@ -65,6 +65,9 @@ public abstract class CraftingMachineRendering extends EntityWithOwnerRendering 
 					if (!visible) {
 						continue;
 					}
+					if (conn.direction.isEmpty() || conn.position.isEmpty()) {
+						continue;
+					}
 
 					Direction connDir = conn.direction.get();
 					MapPosition connPos = MapPosition.convert(conn.position.get());
