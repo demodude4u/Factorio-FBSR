@@ -2177,11 +2177,17 @@ public class Profile {
             return false;
         }
 
+        if (isVanilla()) {
+            System.out.println("Skipping update mods for vanilla.");
+            return true;
+        }
+
         JSONObject jsonProfile = readJsonFile(fileProfileConfig);
         JSONArray jsonMods = jsonProfile.getJSONArray("mods");
 
         List<ModNameAndVersion> required = new ArrayList<>();
         Set<String> rootNames = new HashSet<>();
+        List<String> builtinNames = new ArrayList<>();
         for (int i = 0; i < jsonMods.length(); i++) {
             String dependency = jsonMods.getString(i);
             
@@ -2192,6 +2198,12 @@ public class Profile {
             } else {
                 modName = dependency.trim();
             }
+
+            if (BUILTIN_MODS.contains(modName)) {
+                builtinNames.add(modName);
+                continue;
+            }
+
             required.add(new ModNameAndVersion(modName));
             rootNames.add(modName);
         }
@@ -2210,6 +2222,9 @@ public class Profile {
             String depString = mod.getName() + " = " + mod.getVersion();
             System.out.println("\t" + depString);
             jsonMods.put(depString);
+        }
+        for (String builtin : builtinNames) {
+            jsonMods.put(builtin);
         }
 
         writeProfileSortedJsonFile(fileProfileConfig, jsonProfile);
