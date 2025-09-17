@@ -58,8 +58,8 @@ public class CmdProfile {
 
     private static class ProfileSelect {
 
-        @Parameters(arity = "1..*", description = "Name of the profile", paramLabel = "<PROFILE>") List<String> names;
-        @Option(names = {"-a", "-all"}, description = "Apply to all profiles") boolean all;
+        @Parameters(arity = "1..*", description = "Profile name(s)", paramLabel = "<PROFILE>") List<String> names;
+        @Option(names = {"-a", "-all"}, description = "All profiles") boolean all;
 
         private boolean requireValid = true;
         private boolean requireEnabled = true;
