@@ -1,36 +1,36 @@
 {
-	"enabled": true,
-	"mods": [
+  "enabled": true,
+  "mods": [
 		"base",
 		"space-age",
 		"quality",
 		"elevated-rails"
-	],
-	"mod-overrides": {},
-	"entity-overrides": {
-		"bottomless-chest": {"modded": true},
-		"electric-energy-interface": {"modded": true},
-		"fluid-wagon": {"mods": []},
-		"infinity-cargo-wagon": {"modded": true},
-		"infinity-chest": {"modded": true},
-		"infinity-pipe": {"modded": true},
-		"linked-belt": {"modded": true},
-		"linked-chest": {"modded": true},
-		"loader": {"modded": true},
-		"locomotive": {"mods": []},
-		"one-way-valve": {"modded": true},
-		"overflow-valve": {"modded": true},
-		"proxy-container": {"modded": true},
-		"rail-chain-signal": {"mods": []},
-		"rail-signal": {"mods": []},
-		"simple-entity-with-force": {"modded": true},
-		"simple-entity-with-owner": {"modded": true},
-		"tank": {"rendering": "CarRendering"},
-		"top-up-valve": {"modded": true}
-	},
-	"tile-overrides": {
-		"water": {"modded": true},
-		"grass-1": {"modded": true},
-		"landfill": {"modded": true}
-	}
+  ],
+  "mod-overrides": {},
+  "entity-overrides": {
+    "bottomless-chest": {"modded": true},
+    "electric-energy-interface": {"modded": true},
+    "fluid-wagon": {"mods": []},
+    "infinity-cargo-wagon": {"modded": true},
+    "infinity-chest": {"modded": true},
+    "infinity-pipe": {"modded": true},
+    "linked-belt": {"modded": true},
+    "linked-chest": {"modded": true},
+    "loader": {"modded": true},
+    "locomotive": {"mods": []},
+    "one-way-valve": {"modded": true},
+    "overflow-valve": {"modded": true},
+    "proxy-container": {"modded": true},
+    "rail-chain-signal": {"mods": []},
+    "rail-signal": {"mods": []},
+    "simple-entity-with-force": {"modded": true},
+    "simple-entity-with-owner": {"modded": true},
+    "tank": {"rendering": "CarRendering"},
+    "top-up-valve": {"modded": true}
+  },
+  "tile-overrides": {
+    "grass-1": {"modded": true},
+    "landfill": {"modded": true},
+    "water": {"modded": true}
+  }
 }
