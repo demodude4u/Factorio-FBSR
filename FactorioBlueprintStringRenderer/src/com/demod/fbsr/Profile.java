@@ -1256,7 +1256,7 @@ public class Profile {
             rootNames.add("base");
         }
 
-        Optional<DepSolution> solvedOpt = DependencySolver.solveDebug(required);
+        Optional<DepSolution> solvedOpt = DependencySolver.solve(required);
         if (solvedOpt.isEmpty()) {
             System.out.println("Dependency resolution failed for profile: " + folderProfile.getName());
             return false;
@@ -2179,46 +2179,41 @@ public class Profile {
 
         JSONObject jsonProfile = readJsonFile(fileProfileConfig);
         JSONArray jsonMods = jsonProfile.getJSONArray("mods");
-        boolean changed = false;
+
+        List<ModNameAndVersion> required = new ArrayList<>();
+        Set<String> rootNames = new HashSet<>();
         for (int i = 0; i < jsonMods.length(); i++) {
             String dependency = jsonMods.getString(i);
             
             String modName;
-            Optional<String> modVersion;
             if (dependency.contains("=")) {
                 String[] parts = dependency.split("=", 2);
                 modName = parts[0].trim();
-                modVersion = Optional.of(parts[1].trim());
             } else {
                 modName = dependency.trim();
-                modVersion = Optional.empty();
             }
-
-            if (BUILTIN_MODS.contains(modName)) {
-                continue; // Skip built-in mods
-            }
-
-            try {
-                ModInfo latestMod = FactorioModPortal.findLatestMod(modName, false);
-                String latestVersion = latestMod.getVersion();
-
-                if (!modVersion.equals(Optional.of(latestVersion))) {
-                    jsonMods.put(i, modName + " = " + latestVersion);
-                    changed = true;
-                    System.out.println("Updating mod: " + modName + " from " + modVersion.orElse("<empty>") + " to " + latestVersion);
-                }
-
-            } catch (Exception e) {
-                System.out.println("Failed to update mod: " + modName + " - " + e.getMessage());
-                return false;
-            }
+            required.add(new ModNameAndVersion(modName));
+            rootNames.add(modName);
+        }
+        if (!rootNames.contains("base")) {
+            required.add(new ModNameAndVersion("base"));
         }
 
-        if (changed) {
-            writeProfileSortedJsonFile(fileProfileConfig, jsonProfile);
-
-            cleanManifest();
+        Optional<DepSolution> optSolution = DependencySolver.solve(required);
+        if (!optSolution.isPresent()) {
+            System.out.println("Failed to resolve dependencies for profile: " + folderProfile.getName());
+            return false;
         }
+
+        jsonMods.clear();
+        for (ModInfo mod : optSolution.get().mods) {
+            String depString = mod.getName() + " = " + mod.getVersion();
+            System.out.println("\t" + depString);
+            jsonMods.put(depString);
+        }
+
+        writeProfileSortedJsonFile(fileProfileConfig, jsonProfile);
+        cleanManifest();
 
         return true;
     }
