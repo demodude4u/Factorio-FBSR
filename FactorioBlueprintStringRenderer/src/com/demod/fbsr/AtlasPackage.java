@@ -400,7 +400,18 @@ public class AtlasPackage {
 				return null;
 			}
 			try (InputStream is = zipFile.getInputStream(entry)) {
-				BufferedImage image = ImageIO.read(is);
+				BufferedImage image = null;
+				try {
+					image = ImageIO.read(is);
+				} catch (OutOfMemoryError e) {
+					System.out.println("///////////////////////////////////////////");
+					System.out.println("///////////////////////////////////////////");
+					System.out.println("///// OUT OF MEMORY ///////////////////////");
+					System.out.println("///////////////////////////////////////////");
+					System.out.println("///////////////////////////////////////////");
+					System.in.read();
+					System.exit(-1);
+				}
 				return Atlas.load(this, id, image);
 			} catch (IOException e) {
 				LOGGER.error("Failed to read atlas: {}", entry.getName(), e);
