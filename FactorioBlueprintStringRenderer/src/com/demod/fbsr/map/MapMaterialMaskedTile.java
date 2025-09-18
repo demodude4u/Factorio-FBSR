@@ -9,8 +9,7 @@ import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.util.Optional;
 
-import com.demod.fbsr.Atlas;
-import com.demod.fbsr.Atlas.AtlasRef;
+import com.demod.fbsr.AtlasRef;
 import com.demod.fbsr.composite.MaskedTextureComposite;
 import com.demod.fbsr.composite.TintMaskedTextureComposite;
 import com.demod.fbsr.def.MaterialDef;
@@ -67,13 +66,12 @@ public class MapMaterialMaskedTile extends MapRenderable implements MapBounded {
 
 	private BufferedImage generateCompositeImage(Point offsetMaterial) {
 		AtlasRef maskRef = mask.getAtlasRef();
-		Atlas maskAtlas = maskRef.getAtlas();
 		Rectangle maskRect = maskRef.getRect();
 
 		BufferedImage ret = new BufferedImage(maskRect.width, maskRect.height, BufferedImage.TYPE_INT_ARGB);
 		Graphics2D g = ret.createGraphics();
 
-		g.drawImage(maskAtlas.getImage(), //
+		g.drawImage(mask.requestAtlas(), //
 				0, //
 				0, //
 				maskRect.width, //
@@ -84,13 +82,12 @@ public class MapMaterialMaskedTile extends MapRenderable implements MapBounded {
 				maskRect.y + maskRect.height, //
 				null);
 
-		Atlas materialAtlas = material.getAtlasRef().getAtlas();
 		if (tint.isPresent()) {
 			g.setComposite(new TintMaskedTextureComposite(tint.get()));
 		} else {
 			g.setComposite(new MaskedTextureComposite());
 		}
-		g.drawImage(materialAtlas.getImage(), //
+		g.drawImage(material.requestAtlas(), //
 				0, //
 				0, //
 				maskRect.width, //

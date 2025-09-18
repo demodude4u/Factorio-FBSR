@@ -11,8 +11,7 @@ import java.awt.geom.AffineTransform;
 import java.util.Optional;
 
 import com.demod.fbsr.def.MaterialDef;
-import com.demod.fbsr.Atlas;
-import com.demod.fbsr.Atlas.AtlasRef;
+import com.demod.fbsr.AtlasRef;
 import com.demod.fbsr.composite.TintComposite;
 import com.demod.fbsr.Layer;
 
@@ -43,7 +42,7 @@ public class MapMaterialTile extends MapRenderable implements MapBounded {
 	@Override
 	public void render(Graphics2D g) {
 		AtlasRef ref = def.getAtlasRef();
-		Image image = ref.getAtlas().getImage();
+		Image image = def.requestAtlas();
 		Rectangle source = ref.getRect();
 
 		Dimension tile = def.getTile();

@@ -5,9 +5,8 @@ import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 import java.util.function.Function;
 
-import com.demod.fbsr.Atlas;
 import com.demod.fbsr.AtlasPackage;
-import com.demod.fbsr.Atlas.AtlasRef;
+import com.demod.fbsr.AtlasRef;
 import com.demod.fbsr.FactorioManager;
 import com.demod.fbsr.Profile;
 
@@ -24,7 +23,6 @@ public class ImageDef {
 	protected final Rectangle source;
 	protected final AtlasRef atlasRef;
 
-	protected BufferedImage image = null;
 	private Rectangle trimmed = null;
 	private boolean trimmable = true;
 
@@ -122,4 +120,8 @@ public class ImageDef {
         String firstSegment = path.split("\\/")[0];
 		return firstSegment.substring(2, firstSegment.length() - 2);
     }
+
+	public BufferedImage requestAtlas() {
+		return profile.getAtlasManager().requestAtlas(atlasRef.getPackageId(), atlasRef.getAtlasId());
+	}
 }

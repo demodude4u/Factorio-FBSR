@@ -49,7 +49,6 @@ import org.rapidoid.commons.Arr;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.demod.fbsr.Atlas.AtlasRef;
 import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.def.ImageDef.ImageSheetLoader;
 import com.google.common.cache.CacheBuilder;
@@ -67,7 +66,32 @@ public class AtlasPackage {
 	public static int ATLAS_ICONS_SIZE = 2048;
 
 	private List<ImageDef> defs = new ArrayList<>();
-	private List<Atlas> atlases = new ArrayList<>();
+
+	private final AtlasManager atlasManager;
+	private final boolean alwaysLoaded;
+	private final int id;
+	
+	private File fileAssetsZip = null;
+	private int atlasCount = 0;
+
+	public AtlasPackage(AtlasManager atlasManager, boolean alwaysLoaded) {
+		this.atlasManager = atlasManager;
+		this.alwaysLoaded = alwaysLoaded;
+
+		id = atlasManager.register(this);
+	}
+
+	public AtlasManager getAtlasManager() {
+		return atlasManager;
+	}
+
+	public boolean isAlwaysLoaded() {
+		return alwaysLoaded;
+	}
+
+	public int getId() {
+		return id;
+	}
 
 	public JSONObject populateZip(ZipOutputStream zos) throws IOException {
 		for (ImageDef def : defs) {
@@ -139,9 +163,9 @@ public class AtlasPackage {
 		}).sum();
 		long progressPixels = 0;
 
-		List<Atlas> atlases = new ArrayList<>();
-		atlases.add(Atlas.init(this, atlases.size(), ATLAS_SIZE, ATLAS_SIZE));
-		Atlas iconsAtlas = null;
+		List<AtlasBuilder> atlases = new ArrayList<>();
+		atlases.add(AtlasBuilder.init(this, atlases.size(), ATLAS_SIZE, ATLAS_SIZE));
+		AtlasBuilder iconsAtlas = null;
 		int imageCount = 0;
 		for (DefGroup group : defGroups) {
 			BufferedImage imageSheet = group.loader.apply(group.key);
@@ -162,14 +186,14 @@ public class AtlasPackage {
 	
 				AtlasRef cached = locationCheck.get(locationKey);
 				if (cached != null) {
-					def.getAtlasRef().set(cached.getAtlas(), cached.getRect(), cached.getTrim());
+					def.getAtlasRef().link(cached);
 					continue;
 				}
 
 				String md5key = computeMD5(imageSheet, trimmed);
 				cached = md5Check.get(md5key);
 				if (cached != null) {
-					def.getAtlasRef().set(cached.getAtlas(), cached.getRect(), cached.getTrim());
+					def.getAtlasRef().link(cached);
 					locationCheck.put(locationKey, def.getAtlasRef());
 					continue;
 				}
@@ -177,10 +201,10 @@ public class AtlasPackage {
 				Rectangle rect = new Rectangle(trimmed.width, trimmed.height);
 				boolean icon = (rect.width <= IconManager.ICON_SIZE)  && (rect.height <= IconManager.ICON_SIZE);
 	
-				Atlas atlas;
+				AtlasBuilder atlas;
 				if (icon) {
 					if (iconsAtlas == null || (iconsAtlas.getIconCount() >= iconsAtlas.getIconMaxCount())) {
-						iconsAtlas = Atlas.initIcons(this, atlases.size(), ATLAS_ICONS_SIZE, ATLAS_ICONS_SIZE, IconManager.ICON_SIZE);
+						iconsAtlas = AtlasBuilder.initIcons(this, atlases.size(), ATLAS_ICONS_SIZE, ATLAS_ICONS_SIZE, IconManager.ICON_SIZE);
 						LOGGER.info("Icons Atlas {} -  {}/{} ({}%)", atlases.size(), imageCount, defs.size(),
 								(100 * progressPixels) / totalPixels);
 						atlases.add(iconsAtlas);
@@ -241,15 +265,19 @@ public class AtlasPackage {
 						}
 						LOGGER.info("Atlas {} -  {}/{} ({}%)", atlases.size(), imageCount, defs.size(),
 								(100 * progressPixels) / totalPixels);
-						atlases.add(Atlas.init(this, atlases.size(), ATLAS_SIZE, ATLAS_SIZE));
+						atlases.add(AtlasBuilder.init(this, atlases.size(), ATLAS_SIZE, ATLAS_SIZE));
 					}
 				}
 	
 				Point trim = new Point(trimmed.x - source.x, trimmed.y - source.y);
-				def.getAtlasRef().set(atlas, rect, trim);
+				def.getAtlasRef().set(id, atlas.getId(), rect, trim);
 				locationCheck.put(locationKey, def.getAtlasRef());
 				md5Check.put(md5key, def.getAtlasRef());
 			}
+		}
+
+		for (AtlasBuilder atlas : atlases) {
+			atlas.getGraphics().dispose();
 		}
 
 		JSONObject jsonManifest = new JSONObject();
@@ -259,7 +287,7 @@ public class AtlasPackage {
 			Rectangle source = def.getSource();
 			AtlasRef atlasRef = def.getAtlasRef();
 			JSONArray jsonEntry = new JSONArray();
-			Atlas atlas = atlasRef.getAtlas();
+			AtlasBuilder atlas = atlases.get(atlasRef.getAtlasId());
 			Rectangle rect = atlasRef.getRect();
 			Point trim = atlasRef.getTrim();
 
@@ -283,7 +311,7 @@ public class AtlasPackage {
 			jsonEntries.put(jsonEntry);
 		}
 
-		for (Atlas atlas : atlases) {
+		for (AtlasBuilder atlas : atlases) {
 			String filename = "atlas" + atlas.getId() + ".webp";
 			zos.putNextEntry(new ZipEntry(filename));
 
@@ -310,26 +338,62 @@ public class AtlasPackage {
 		return jsonManifest;
 	}
 
-    public boolean readFromZip(File fileAssetsZip, JSONObject jsonManifest) {
-		
-		try (ZipFile zipFile = new ZipFile(fileAssetsZip)) {
-	
-			if (!checkValidManifest(jsonManifest)) {
-				System.out.println("Atlas manifest is invalid or does not match current definitions. Assets need to be regenerated.");
-				return false;
-			}
-			
-			if (!loadAtlases(zipFile, jsonManifest)) {
-				System.out.println("Failed to load atlases from zip file: " + zipFile.getName());
-				return false;
-			}
-	
-			return true;
+	public void setZip(File fileAssetsZip) {
+		this.fileAssetsZip = fileAssetsZip;
+	}
 
-		} catch (IOException e1) {
-			System.out.println("Invalid zip file " + fileAssetsZip.getAbsolutePath() + " (" + e1.getMessage() + ")");
+    public boolean loadManifest(JSONObject jsonManifest) {
+		if (!checkValidManifest(jsonManifest)) {
+			System.out.println("Atlas manifest is invalid or does not match current definitions. Assets need to be regenerated.");
 			return false;
 		}
+			
+		JSONArray jsonEntries = jsonManifest.getJSONArray("entries");
+
+		defs.forEach(d -> d.getAtlasRef().reset());
+
+		atlasCount = (int) IntStream.range(0, jsonEntries.length()).mapToLong(i -> jsonEntries.getJSONArray(i).getInt(5)).max().orElse(0) + 1;
+
+		Map<String, AtlasRef> locationMap = new HashMap<>();
+		for (int i = 0; i < jsonEntries.length(); i++) {
+			JSONArray jsonEntry = jsonEntries.getJSONArray(i);
+			String path = jsonEntry.getString(0);
+			int srcX = jsonEntry.getInt(1);
+			int srcY = jsonEntry.getInt(2);
+			int srcWidth = jsonEntry.getInt(3);
+			int srcHeight = jsonEntry.getInt(4);
+			int atlasId = jsonEntry.getInt(5);
+			int atlasX = jsonEntry.getInt(6);
+			int atlasY = jsonEntry.getInt(7);
+			int atlasWidth = jsonEntry.getInt(8);
+			int atlasHeight = jsonEntry.getInt(9);
+			int trimX = jsonEntry.getInt(10);
+			int trimY = jsonEntry.getInt(11);
+			String locationKey = path + "|" + srcX + "|" + srcY + "|" + srcWidth + "|" + srcHeight;
+			AtlasRef ref = new AtlasRef();
+			Rectangle rect = new Rectangle(atlasX, atlasY, atlasWidth, atlasHeight);
+			Point trim = new Point(trimX, trimY);
+			ref.set(id, atlasId, rect, trim);
+			locationMap.put(locationKey, ref);
+		}
+
+		for (ImageDef image : defs) {
+			Rectangle source = image.getSource();
+			String locationKey = image.getPath() + "|" + source.x + "|" + source.y + "|" + source.width + "|"
+					+ source.height;
+			AtlasRef ref = locationMap.get(locationKey);
+			if (ref == null) {
+				LOGGER.error("MISSING ATLAS ENTRY FOR {}", locationKey);
+			} else {
+				image.getAtlasRef().link(ref);
+				Rectangle rect = ref.getRect();
+				Point trim = ref.getTrim();
+				Rectangle trimmed = new Rectangle(source.x + trim.x, source.y + trim.y, rect.width, rect.height);
+				image.setTrimmed(trimmed);
+			}
+		}
+
+		return true;
 	}
 
 	private boolean checkValidManifest(JSONObject jsonManifest) {
@@ -360,8 +424,6 @@ public class AtlasPackage {
 			manifestKeys.add(locationKey);
 		}
 
-		//TODO figure out why I'm getting extras in manifest, ignoring for now
-		// SetView<String> mismatched = Sets.symmetricDifference(currentKeys, manifestKeys);
 		SetView<String> mismatched = Sets.difference(currentKeys, manifestKeys);
 
 		if (!mismatched.isEmpty()) {
@@ -383,92 +445,41 @@ public class AtlasPackage {
 		return mismatched.isEmpty();
 	}
 
-	private boolean loadAtlases(ZipFile zipFile, JSONObject jsonManifest) {
-		JSONArray jsonEntries = jsonManifest.getJSONArray("entries");
+	public BufferedImage[] readAtlases(int... atlasIds) {
+		if (atlasIds.length == 0) {
+			return new BufferedImage[0];
+		}
 
-		defs.forEach(d -> d.getAtlasRef().reset());
+		LOGGER.info("Reading {} atlas {}", fileAssetsZip.getName(), Arrays.toString(atlasIds));
 
-		int[] atlasIds = IntStream.range(0, jsonEntries.length()).map(i -> jsonEntries.getJSONArray(i).getInt(5))
-				.distinct().toArray();
-		LOGGER.info("Read {} Atlases: {}", atlasIds.length, zipFile.getName());
-		AtomicBoolean failure = new AtomicBoolean(false);
-		atlases = Arrays.stream(atlasIds).parallel().mapToObj(id -> {
-			ZipEntry entry = zipFile.getEntry("atlas" + id + ".webp");
-			if (entry == null) {
-				LOGGER.error("Missing atlas zip entry: {}", id);
-				failure.set(true);
-				return null;
-			}
-			try (InputStream is = zipFile.getInputStream(entry)) {
-				BufferedImage image = null;
-				try {
-					image = ImageIO.read(is);
-				} catch (OutOfMemoryError e) {
-					System.out.println("///////////////////////////////////////////");
-					System.out.println("///////////////////////////////////////////");
-					System.out.println("///// OUT OF MEMORY ///////////////////////");
-					System.out.println("///////////////////////////////////////////");
-					System.out.println("///////////////////////////////////////////");
-					System.in.read();
-					System.exit(-1);
+		BufferedImage[] images = new BufferedImage[atlasIds.length];
+		try (ZipFile zip = new ZipFile(fileAssetsZip)) {
+			for (int i = 0; i < atlasIds.length; i++) {
+				int atlasId = atlasIds[i];
+				ZipEntry entry = zip.getEntry("atlas" + atlasId + ".webp");
+				try (InputStream is = zip.getInputStream(entry)) {
+					images[i] = ImageIO.read(is);
 				}
-				return Atlas.load(this, id, image);
-			} catch (IOException e) {
-				LOGGER.error("Failed to read atlas: {}", entry.getName(), e);
-				failure.set(true);
-				return null;
 			}
-		}).sorted(Comparator.comparing(a -> a.getId())).collect(Collectors.toList());
-
-		if (failure.get()) {
-			LOGGER.error("Failed to load some atlases, aborting.");
-			return false;
-		}
-
-		// XXX not an elegant approach
-		class RefValues {
-			Atlas atlas;
-			Rectangle rect;
-			Point trim;
-		}
-		Map<String, RefValues> locationMap = new HashMap<>();
-		for (int i = 0; i < jsonEntries.length(); i++) {
-			JSONArray jsonEntry = jsonEntries.getJSONArray(i);
-			String path = jsonEntry.getString(0);
-			int srcX = jsonEntry.getInt(1);
-			int srcY = jsonEntry.getInt(2);
-			int srcWidth = jsonEntry.getInt(3);
-			int srcHeight = jsonEntry.getInt(4);
-			int id = jsonEntry.getInt(5);
-			int atlasX = jsonEntry.getInt(6);
-			int atlasY = jsonEntry.getInt(7);
-			int atlasWidth = jsonEntry.getInt(8);
-			int atlasHeight = jsonEntry.getInt(9);
-			int trimX = jsonEntry.getInt(10);
-			int trimY = jsonEntry.getInt(11);
-			String locationKey = path + "|" + srcX + "|" + srcY + "|" + srcWidth + "|" + srcHeight;
-			RefValues ref = new RefValues();
-			ref.atlas = atlases.get(id);
-			ref.rect = new Rectangle(atlasX, atlasY, atlasWidth, atlasHeight);
-			ref.trim = new Point(trimX, trimY);
-			locationMap.put(locationKey, ref);
-		}
-
-		for (ImageDef image : defs) {
-			Rectangle source = image.getSource();
-			String locationKey = image.getPath() + "|" + source.x + "|" + source.y + "|" + source.width + "|"
-					+ source.height;
-			RefValues ref = locationMap.get(locationKey);
-			if (ref == null) {
-				LOGGER.error("MISSING ATLAS ENTRY FOR {}", locationKey);
-			} else {
-				image.getAtlasRef().set(ref.atlas, ref.rect, ref.trim);
-				image.setTrimmed(
-						new Rectangle(source.x + ref.trim.x, source.y + ref.trim.y, ref.rect.width, ref.rect.height));
+			return images;
+		} catch (OutOfMemoryError e) {
+			System.out.println("///////////////////////////////////////////");
+			System.out.println("///////////////////////////////////////////");
+			System.out.println("///// OUT OF MEMORY ///////////////////////");
+			System.out.println("///////////////////////////////////////////");
+			System.out.println("///////////////////////////////////////////");
+			try {
+				System.in.read();
+			} catch (IOException e1) {
+				e1.printStackTrace();
 			}
+			System.exit(-1);
+			return null;
+		} catch (Exception e) {
+			e.printStackTrace();
+			System.exit(-1);
+			return null;
 		}
-
-		return true;
 	}
 
 	public void registerDef(ImageDef def) {
@@ -482,18 +493,15 @@ public class AtlasPackage {
 		return defs;
 	}
 
-	public List<Atlas> getAtlases() {
-		return atlases;
+	public int getAtlasCount() {
+		return atlasCount;
 	}
 
-    private static void copyToAtlas(BufferedImage imageSheet, ImageDef def, Atlas atlas, Rectangle rect) {
-		// XXX Inefficient to make a context for every image
-		Graphics2D g = atlas.getImage().createGraphics();
+    private static void copyToAtlas(BufferedImage imageSheet, ImageDef def, AtlasBuilder atlas, Rectangle rect) {
 		Rectangle src = def.getTrimmed();
 		Rectangle dst = rect;
-		g.drawImage(imageSheet, dst.x, dst.y, dst.x + dst.width, dst.y + dst.height, src.x, src.y, src.x + src.width,
+		atlas.getGraphics().drawImage(imageSheet, dst.x, dst.y, dst.x + dst.width, dst.y + dst.height, src.x, src.y, src.x + src.width,
 				src.y + src.height, null);
-		g.dispose();
 	}
 
     private static String computeMD5(BufferedImage imageSheet, Rectangle rect) {

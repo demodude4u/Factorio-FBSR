@@ -157,6 +157,7 @@ public class Profile {
     private FactorioManager factorioManager;
     private GUIStyle guiStyle;
     private IconManager iconManager;
+    private AtlasManager atlasManager;
 
     public static Profile byName(String name) {
         Config config = Config.load();
@@ -207,7 +208,6 @@ public class Profile {
     public void resetLoadedData() {
         factorioData = new FactorioData(fileAssets);
         renderingRegistry = new RenderingRegistry(this);
-        atlasPackage = new AtlasPackage();
 
         if (FactorioManager.hasFactorioInstall()) {
             modLoader = new ModLoader(FactorioManager.getFactorioInstall(), folderBuildMods);
@@ -218,6 +218,8 @@ public class Profile {
         factorioManager = null;
         guiStyle = null;
         iconManager = null;
+        atlasManager = null;
+        atlasPackage = null;
     }
 
     @Override
@@ -285,6 +287,10 @@ public class Profile {
         return iconManager;
     }
 
+    public AtlasManager getAtlasManager() {
+        return atlasManager;
+    }
+
     public RenderingRegistry getRenderingRegistry() {
         return renderingRegistry;
     }
@@ -299,6 +305,11 @@ public class Profile {
 
     public void setIconManager(IconManager iconManager) {
         this.iconManager = iconManager;
+    }
+
+    public void setAtlasManager(AtlasManager atlasManager) {
+        this.atlasManager = atlasManager;
+        atlasPackage = new AtlasPackage(atlasManager, isVanilla());
     }
 
     public void setFactorioData(FactorioData factorioData) {

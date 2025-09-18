@@ -53,6 +53,7 @@ import com.demod.factorio.FactorioData;
 import com.demod.factorio.Utils;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.factorio.prototype.DataPrototype;
+import com.demod.fbsr.AtlasRef;
 import com.demod.fbsr.BlendMode;
 import com.demod.fbsr.BlueprintFinder;
 import com.demod.fbsr.BlueprintFinder.FindBlueprintRawResult;
@@ -71,7 +72,6 @@ import com.demod.fbsr.RenderResult;
 import com.demod.fbsr.RenderUtils;
 import com.demod.fbsr.RenderingRegistry;
 import com.demod.fbsr.WebUtils;
-import com.demod.fbsr.Atlas.AtlasRef;
 import com.demod.fbsr.bs.BSBlueprint;
 import com.demod.fbsr.bs.BSBlueprint.BlueprintModInfo;
 import com.demod.fbsr.bs.BSBlueprintBook;
@@ -1681,7 +1681,7 @@ public class DiscordService extends AbstractIdleService {
 			for (ImageDef def : profile.getAtlasPackage().getDefs()) {
 				AtlasRef ref = def.getAtlasRef();
 				Rectangle r = ref.getRect();
-				String checkKey = ref.getAtlas().getId() + ":" + r.x + ":" + r.y + ":" + r.width + ":" + r.height;
+				String checkKey = ref.getAtlasId() + ":" + r.x + ":" + r.y + ":" + r.width + ":" + r.height;
 				if (dupeCheck.add(checkKey)) {
 					if (def.getPath().startsWith("TAG[")) {
 						iconCount++;

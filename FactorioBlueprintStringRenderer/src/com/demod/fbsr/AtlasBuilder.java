@@ -1,53 +1,13 @@
 package com.demod.fbsr;
 
 import java.awt.Dimension;
-import java.awt.Point;
+import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Atlas {
-
-    public static class AtlasRef {
-        private boolean valid = false;
-        private Atlas atlas = null;
-        private Rectangle rect = null;
-        private Point trim = null;
-
-        public AtlasRef() {
-        }
-
-        public boolean isValid() {
-            return valid;
-        }
-
-        void set(Atlas atlas, Rectangle rect, Point trim) {
-            valid = true;
-            this.atlas = atlas;
-            this.rect = rect;
-            this.trim = trim;
-        }
-
-        void reset() {
-            valid = false;
-            atlas = null;
-            rect = null;
-            trim = null;
-        }
-
-        public Atlas getAtlas() {
-            return atlas;
-        }
-
-        public Rectangle getRect() {
-            return rect;
-        }
-
-        public Point getTrim() {
-            return trim;
-        }
-    }
+public class AtlasBuilder {
 
     private final AtlasPackage atlasPackage;
     private final int id;
@@ -60,11 +20,13 @@ public class Atlas {
     private final int iconMaxCount;
     
     private final BufferedImage image;
+    private final Graphics2D graphics;
     private final Quadtree occupied;
     private final List<Dimension> failedPackingSizes;
+
     private int iconCount = 0;
 
-    private Atlas(AtlasPackage atlasPackage, int id, int width, int height, BufferedImage image, Quadtree occupied, boolean iconMode, int iconSize) {
+    private AtlasBuilder(AtlasPackage atlasPackage, int id, int width, int height, BufferedImage image, Quadtree occupied, boolean iconMode, int iconSize) {
         this.atlasPackage = atlasPackage;
         this.id = id;
         this.width = width;
@@ -77,6 +39,8 @@ public class Atlas {
         this.iconSize = iconSize;
         iconColumns = (width / iconSize);
         iconMaxCount = (height / iconSize) * iconColumns;
+
+        graphics = image.createGraphics();
     }
 
     public AtlasPackage getAtlasPackage() {
@@ -97,6 +61,10 @@ public class Atlas {
     
     public BufferedImage getImage() {
         return image;
+    }
+
+    public Graphics2D getGraphics() {
+        return graphics;
     }
 
     public Quadtree getOccupied() {
@@ -127,24 +95,18 @@ public class Atlas {
         return iconSize;
     }
 
-    public static Atlas init(AtlasPackage atlasPackage, int id, int width, int height) {
-        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
-        Quadtree occupied = new Quadtree(0, new Rectangle(0, 0, width, height));
-        return new Atlas(atlasPackage, id, width, height, image, occupied, false, -1);
-    }
-
-    public static Atlas initIcons(AtlasPackage atlasPackage, int id, int width, int height, int iconSize) {
-        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
-        return new Atlas(atlasPackage, id, width, height, image, null, true, iconSize);
-    }
-
-    public static Atlas load(AtlasPackage atlasPackage, int id, BufferedImage image) {
-        int width = image.getWidth();
-        int height = image.getHeight();
-        return new Atlas(atlasPackage, id, width, height, image, null, false, -1);
-    }
-
     public List<Dimension> getFailedPackingSizes() {
         return failedPackingSizes;
+    }
+
+    public static AtlasBuilder init(AtlasPackage atlasPackage, int id, int width, int height) {
+        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        Quadtree occupied = new Quadtree(0, new Rectangle(0, 0, width, height));
+        return new AtlasBuilder(atlasPackage, id, width, height, image, occupied, false, -1);
+    }
+
+    public static AtlasBuilder initIcons(AtlasPackage atlasPackage, int id, int width, int height, int iconSize) {
+        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        return new AtlasBuilder(atlasPackage, id, width, height, image, null, true, iconSize);
     }
 }

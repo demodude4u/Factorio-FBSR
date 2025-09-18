@@ -114,6 +114,7 @@ public class FBSR {
 	private static FactorioManager factorioManager;
 	private static GUIStyle guiStyle;
 	private static IconManager iconManager;
+	private static AtlasManager atlasManager;
 
 	private static final ExecutorService executor = Executors.newWorkStealingPool();
 
@@ -604,6 +605,10 @@ public class FBSR {
 	public static IconManager getIconManager() {
 		return iconManager;
 	}
+	
+	public static AtlasManager getAtlasManager() {
+		return atlasManager;
+	}
 
 	private static void addToItemAmount(Map<BSItemWithQualityID, Double> items, BSItemWithQualityID item, double add) {
 		double amount = items.getOrDefault(item, 0.0);
@@ -715,11 +720,13 @@ public class FBSR {
 		factorioManager = new FactorioManager(profiles);
 		guiStyle = new GUIStyle();
 		iconManager = new IconManager(factorioManager);
+		atlasManager = new AtlasManager();
 
 		for (Profile profile : profiles) {
 			profile.setFactorioManager(factorioManager);
 			profile.setGuiStyle(guiStyle);
 			profile.setIconManager(iconManager);
+			profile.setAtlasManager(atlasManager);
 		}
 
 		if (!factorioManager.initializePrototypes()) {
@@ -740,11 +747,14 @@ public class FBSR {
 		}
 
 		iconManager.initialize();
-
+		
 		profiles.stream().forEach(profile -> {
-			profile.getAtlasPackage().readFromZip(profile.getFileAssets(), profile.getAssetsAtlasManifest());
+			AtlasPackage atlasPackage = profile.getAtlasPackage();
+			atlasPackage.setZip(profile.getFileAssets());
+			atlasPackage.loadManifest(profile.getAssetsAtlasManifest());
 		});
-
+		atlasManager.initialize();
+		
 		LOGGER.info("FBSR loaded -- Factorio {} -- {} Entities, {} Tiles", 
 				factorioManager.getProfileVanilla().getAssetsFactorioVersion(),
 				factorioManager.getEntityFactoryByNameMap().size(),
@@ -766,6 +776,7 @@ public class FBSR {
 		factorioManager = null;
 		guiStyle = null;
 		iconManager = null;
+		atlasManager = null;
 
 		System.gc();
 
@@ -805,11 +816,13 @@ public class FBSR {
 		FactorioManager factorioManager = new FactorioManager(profiles);
 		GUIStyle guiStyle = new GUIStyle();
 		IconManager iconManager = new IconManager(factorioManager);
+		AtlasManager atlasManager = new AtlasManager();
 
 		for (Profile p : profiles) {
 			p.setFactorioManager(factorioManager);
 			p.setGuiStyle(guiStyle);
 			p.setIconManager(iconManager);
+			p.setAtlasManager(atlasManager);
 
 			if (p == profile) {
 				p.setFactorioData(new FactorioData(p.getFileDumpDataJson(), p.getDumpFactorioVersion()));
@@ -840,6 +853,7 @@ public class FBSR {
 			}
 
 			iconManager.initialize();
+			atlasManager.initialize();
 
 			JSONObject jsonAtlasManifest = profile.getAtlasPackage().populateZip(zos);
 			return jsonAtlasManifest;

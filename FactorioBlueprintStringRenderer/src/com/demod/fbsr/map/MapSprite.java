@@ -8,8 +8,7 @@ import java.awt.Rectangle;
 import java.awt.geom.AffineTransform;
 import java.util.Optional;
 
-import com.demod.fbsr.Atlas;
-import com.demod.fbsr.Atlas.AtlasRef;
+import com.demod.fbsr.AtlasRef;
 import com.demod.fbsr.BlendMode;
 import com.demod.fbsr.composite.TintComposite;
 import com.demod.fbsr.composite.TintOverlayComposite;
@@ -51,7 +50,7 @@ public class MapSprite extends MapRenderable implements MapBounded {
 	@Override
 	public void render(Graphics2D g) {
 		AtlasRef ref = def.getAtlasRef();
-		Image image = ref.getAtlas().getImage();
+		Image image = def.requestAtlas();
 		Rectangle source = ref.getRect();
 
 		Composite pc = g.getComposite();

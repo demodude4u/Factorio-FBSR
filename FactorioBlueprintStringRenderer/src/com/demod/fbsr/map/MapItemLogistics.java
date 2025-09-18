@@ -12,9 +12,8 @@ import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.demod.fbsr.Atlas;
+import com.demod.fbsr.AtlasRef;
 import com.demod.fbsr.FBSR;
-import com.demod.fbsr.Atlas.AtlasRef;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.LogisticGridCell;
 import com.demod.fbsr.RenderUtils;
@@ -72,7 +71,7 @@ public class MapItemLogistics extends MapRenderable {
 				return Color.MAGENTA;
 			}
 			AtlasRef ref = icon.get().getAtlasRef();
-			Color color = RenderUtils.getAverageColor(ref.getAtlas().getImage(), ref.getRect());
+			Color color = RenderUtils.getAverageColor(icon.get().requestAtlas(), ref.getRect());
 			float[] hsb = Color.RGBtoHSB(color.getRed(), color.getGreen(), color.getBlue(), null);
 			return Color.getHSBColor(hsb[0], Math.max(0.25f, hsb[1]), Math.max(0.5f, hsb[2]));
 		});

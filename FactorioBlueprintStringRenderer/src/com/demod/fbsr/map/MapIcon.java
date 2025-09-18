@@ -6,12 +6,12 @@ import java.awt.Image;
 import java.awt.Rectangle;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.RoundRectangle2D;
+import java.awt.image.BufferedImage;
 import java.util.Optional;
 import java.util.OptionalDouble;
 
-import com.demod.fbsr.Atlas;
+import com.demod.fbsr.AtlasRef;
 import com.demod.fbsr.FBSR;
-import com.demod.fbsr.Atlas.AtlasRef;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.ModdingResolver;
 import com.demod.fbsr.def.IconDef;
@@ -21,7 +21,7 @@ public class MapIcon extends MapRenderable {
 	private static final Color BACKGROUND = new Color(0, 0, 0, 180);
 
 	private final MapPosition position;
-	private final ImageDef image;
+	private final ImageDef def;
 	private final double size;
 	private final OptionalDouble border;
 	private final Optional<String> quality;
@@ -31,7 +31,7 @@ public class MapIcon extends MapRenderable {
 			Optional<String> quality, ModdingResolver resolver) {
 		super(above ? Layer.ENTITY_INFO_ICON_ABOVE : Layer.ENTITY_INFO_ICON);
 		this.position = position;
-		this.image = image;
+		this.def = image;
 		this.size = size;
 		this.border = border;
 		this.quality = quality;
@@ -53,11 +53,11 @@ public class MapIcon extends MapRenderable {
 					b * 2));
 		}
 
-		AtlasRef ref = image.getAtlasRef();
+		AtlasRef ref = def.getAtlasRef();
 		if (!ref.isValid()) {
-			throw new IllegalStateException("Icon not assigned to atlas! " + image.getPath());
+			throw new IllegalStateException("Icon not assigned to atlas! " + def.getPath());
 		}
-		Image image = ref.getAtlas().getImage();
+		BufferedImage image = def.requestAtlas();
 		Rectangle source = ref.getRect();
 
 		AffineTransform pat = g.getTransform();
@@ -74,7 +74,7 @@ public class MapIcon extends MapRenderable {
 			g.translate(0, 1.0 - qSize);
 			g.scale(qSize, qSize);
 			AtlasRef qRef = qDef.getAtlasRef();
-			Image qImage = qRef.getAtlas().getImage();
+			BufferedImage qImage = qDef.requestAtlas();
 			Rectangle qSource = qRef.getRect();
 			g.drawImage(qImage, 0, 0, 1, 1, qSource.x, qSource.y, qSource.x + qSource.width, qSource.y + qSource.height,
 					null);
