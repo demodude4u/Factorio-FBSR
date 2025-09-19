@@ -38,6 +38,7 @@ Commands:
   profile-explore          Open file manager for the specified profile
   profile-default-vanilla  Generate default vanilla profile
   mod-query                List mods based on filters
+  overlap-report           Detect name overlaps for entities and tiles across all profiles
   profile-status           Get the status of a profile
   profile-factorio         Run Factorio with the specified profile
   profile-test-book        Generate blueprint book with test blueprints
@@ -278,8 +279,8 @@ Show current configuration
 ```
 Usage:   build [-f] [-force-assets] [-force-dump] (<PROFILE>... | -a)
 Build all steps
-      <PROFILE>...    Name of the profile
-  -a, -all            Apply to all profiles
+      <PROFILE>...    Profile name(s)
+  -a, -all            All profiles
   -f, -force          Force regeneration of all steps, even if they already
                         exist
       -force-assets   Force regeneration of assets
@@ -291,8 +292,8 @@ Build all steps
 ```
 Usage:   build-download (<PROFILE>... | -a)
 Download mods
-      <PROFILE>...   Name of the profile
-  -a, -all           Apply to all profiles
+      <PROFILE>...   Profile name(s)
+  -a, -all           All profiles
 
 ```
 ## `build-dump` — Dump factorio data
@@ -300,8 +301,8 @@ Download mods
 ```
 Usage:   build-dump [-f] (<PROFILE>... | -a)
 Dump factorio data
-      <PROFILE>...   Name of the profile
-  -a, -all           Apply to all profiles
+      <PROFILE>...   Profile name(s)
+  -a, -all           All profiles
   -f, -force         Force regeneration of the manifest, even if it already
                        exists
 
@@ -311,8 +312,8 @@ Dump factorio data
 ```
 Usage:   build-assets [-f] (<PROFILE>... | -a)
 Generate assets
-      <PROFILE>...   Name of the profile
-  -a, -all           Apply to all profiles
+      <PROFILE>...   Profile name(s)
+  -a, -all           All profiles
   -f, -force         Force regeneration of the assets, even if they already
                        exist
 
@@ -322,8 +323,8 @@ Generate assets
 ```
 Usage:   build-manifest [-f] (<PROFILE>... | -a)
 Build the manifest
-      <PROFILE>...   Name of the profile
-  -a, -all           Apply to all profiles
+      <PROFILE>...   Profile name(s)
+  -a, -all           All profiles
   -f, -force         Force regeneration of the manifest, even if it already
                        exists
 
@@ -333,8 +334,8 @@ Build the manifest
 ```
 Usage:   clean-assets (<PROFILE>... | -a)
 Delete the generated assets
-      <PROFILE>...   Name of the profile
-  -a, -all           Apply to all profiles
+      <PROFILE>...   Profile name(s)
+  -a, -all           All profiles
 
 ```
 ## `clean-build` — Delete the build files (including downloaded mods)
@@ -342,8 +343,8 @@ Delete the generated assets
 ```
 Usage:   clean-build (<PROFILE>... | -a)
 Delete the build files (including downloaded mods)
-      <PROFILE>...   Name of the profile
-  -a, -all           Apply to all profiles
+      <PROFILE>...   Profile name(s)
+  -a, -all           All profiles
 
 ```
 ## `profile-new` — Create a new profile
@@ -360,8 +361,8 @@ Create a new profile
 ```
 Usage:   profile-delete [-c] (<PROFILE>... | -a) ([-profile] [-build] [-assets])
 Delete profile, build, or assets data
-      <PROFILE>...   Name of the profile
-  -a, -all           Apply to all profiles
+      <PROFILE>...   Profile name(s)
+  -a, -all           All profiles
       -assets        Delete the assets zip
       -build         Delete the build folder
   -c, -confirm       Skip confirmation prompt
@@ -373,8 +374,8 @@ Delete profile, build, or assets data
 ```
 Usage:   profile-disable (<PROFILE>... | -a)
 Disable a profile
-      <PROFILE>...   Name of the profile
-  -a, -all           Apply to all profiles
+      <PROFILE>...   Profile name(s)
+  -a, -all           All profiles
 
 ```
 ## `profile-edit` — Open the profile configuration file in the default editor
@@ -390,8 +391,8 @@ Open the profile configuration file in the default editor
 ```
 Usage:   profile-enable (<PROFILE>... | -a)
 Enable a profile
-      <PROFILE>...   Name of the profile
-  -a, -all           Apply to all profiles
+      <PROFILE>...   Profile name(s)
+  -a, -all           All profiles
 
 ```
 ## `profile-explore` — Open file manager for the specified profile
@@ -427,13 +428,20 @@ List mods based on filters
   -t, -tile[=<arg3>...]      Filter by tile
 
 ```
+## `overlap-report` — Detect name overlaps for entities and tiles across all profiles
+
+```
+Usage:   overlap-report
+Detect name overlaps for entities and tiles across all profiles
+
+```
 ## `profile-status` — Get the status of a profile
 
 ```
 Usage:   profile-status [-de] (<PROFILE>... | -a)
 Get the status of a profile
-      <PROFILE>...   Name of the profile
-  -a, -all           Apply to all profiles
+      <PROFILE>...   Profile name(s)
+  -a, -all           All profiles
   -d, -detailed      Include detailed information about the profile
   -e, -enabled       Include only enabled profiles
 
@@ -451,8 +459,8 @@ Run Factorio with the specified profile
 ```
 Usage:   profile-test-book (<PROFILE>... | -a)
 Generate blueprint book with test blueprints
-      <PROFILE>...   Name of the profile
-  -a, -all           Apply to all profiles
+      <PROFILE>...   Profile name(s)
+  -a, -all           All profiles
 
 ```
 ## `profile-test-entity` — Render test image of an entity
@@ -475,8 +483,8 @@ Render test image of an entity
 ```
 Usage:   profile-test (<PROFILE>... | -a)
 Render test blueprints
-      <PROFILE>...   Name of the profile
-  -a, -all           Apply to all profiles
+      <PROFILE>...   Profile name(s)
+  -a, -all           All profiles
 
 ```
 ## `profile-update-mods` — Update mod versions
@@ -484,8 +492,8 @@ Render test blueprints
 ```
 Usage:   profile-update-mods (<PROFILE>... | -a)
 Update mod versions
-      <PROFILE>...   Name of the profile
-  -a, -all           Apply to all profiles
+      <PROFILE>...   Profile name(s)
+  -a, -all           All profiles
 
 ```
 ## `dump-entity` — Dump an entity prototype from factorio data
