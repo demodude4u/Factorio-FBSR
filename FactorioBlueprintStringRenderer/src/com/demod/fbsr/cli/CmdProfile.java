@@ -3,7 +3,10 @@ package com.demod.fbsr.cli;
 import java.awt.Desktop;
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Array;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -29,6 +32,7 @@ import org.slf4j.MDC;
 
 import com.demod.factorio.DataTable;
 import com.demod.factorio.FactorioData;
+import com.demod.factorio.Utils;
 import com.demod.factorio.prototype.DataPrototype;
 import com.demod.fbsr.Dir16;
 import com.demod.fbsr.EntityRendererFactory;
@@ -465,8 +469,8 @@ public class CmdProfile {
         tableMessage.forEach(System.out::println);
     }
 
-    @Command(name = "overlap-report", description = "Detect name overlaps for entities and tiles across all profiles")
-    public static void overlapReport() {
+    @Command(name = "report-overlaps", description = "Detect name overlaps for entities and tiles across all profiles")
+    public static void reportOverlaps() {
         if (!Profile.vanilla().hasAssets()) {
             System.out.println("Vanilla profile does not have assets generated. Cannot run overlap report.");
             return;
@@ -532,6 +536,93 @@ public class CmdProfile {
                 .sorted(Map.Entry.comparingByKey())
                 .forEach(e -> System.out.println(" - " + e.getKey() + ": " + e.getValue().stream().flatMap(f -> f.getMods().stream()).map(m -> m.name).distinct().sorted().collect(Collectors.joining(", "))));
         System.out.println();
+    }
+
+    @Command(name = "report-mods", description = "Generate detailed mod, entity, and tile information for all profiles.")
+    public static void reportMods() {
+
+        Multimap<String, ManifestModInfo> mods = ArrayListMultimap.create();
+        Multimap<String, EntityRendererFactory> entities = ArrayListMultimap.create();
+        Multimap<String, TileRendererFactory> tiles = ArrayListMultimap.create();
+        
+        for (Profile profile : Profile.listProfiles()) {
+            if (!profile.hasAssets()) {
+                continue;
+            }
+
+            for (ManifestModInfo mod : profile.listMods()) {
+                if (mod.builtin) {
+                    continue;
+                }
+                mods.put(mod.name, mod);
+            }
+
+            RenderingRegistry registry = new RenderingRegistry(profile);
+            registry.loadConfig(profile.getAssetsRenderingConfiguration());
+            
+            for (EntityRendererFactory factory : registry.getEntityFactories()) {
+                entities.put(factory.getName(), factory);
+            }
+            for (TileRendererFactory factory : registry.getTileFactories()) {
+                tiles.put(factory.getName(), factory);
+            }
+        }
+
+        JSONObject json = new JSONObject();
+        Utils.terribleHackToHaveOrderedJSONObject(json);
+
+        json.put("report_generated_on", Instant.now().toString());
+
+        JSONArray jsonMods = new JSONArray();
+        json.put("mods", jsonMods);
+        for (String name : mods.keySet().stream().sorted().collect(Collectors.toList())) {
+            JSONObject jsonMod = new JSONObject();
+            Utils.terribleHackToHaveOrderedJSONObject(jsonMod);
+            jsonMods.put(jsonMod);
+
+            jsonMod.put("name", name);
+            ManifestModInfo modInfo = mods.get(name).stream()
+                    .sorted((m1, m2) -> m2.updated.compareTo(m1.updated))
+                    .findFirst().orElse(null);
+            if (modInfo != null) {
+                jsonMod.put("title", modInfo.title);
+                jsonMod.put("version", modInfo.version);
+                jsonMod.put("owner", modInfo.owner);
+                jsonMod.put("category", modInfo.category);
+                jsonMod.put("tags", modInfo.tags);
+                jsonMod.put("downloads", modInfo.downloads);
+                jsonMod.put("updated", modInfo.updated);
+            }
+
+            List<String> entityNames = mods.get(name).stream()
+                    .flatMap(m -> entities.entries().stream().filter(e -> e.getValue().getMods().stream().anyMatch(mm -> mm.name.equals(m.name))).map(e -> e.getKey()))
+                    .distinct()
+                    .sorted()
+                    .collect(Collectors.toList());
+            jsonMod.put("entities", entityNames);
+            
+            List<String> tileNames = mods.get(name).stream()
+                    .flatMap(m -> tiles.entries().stream().filter(e -> e.getValue().getMods().stream().anyMatch(mm -> mm.name.equals(m.name))).map(e -> e.getKey()))
+                    .distinct()
+                    .sorted()
+                    .collect(Collectors.toList());
+            jsonMod.put("tiles", tileNames);
+
+            List<String> profiles = mods.get(name).stream()
+                    .map(m -> m.getProfile().getName())
+                    .sorted()
+                    .collect(Collectors.toList());
+            jsonMod.put("profiles", profiles);
+        }
+
+        File outputFile = new File("report-names.json");
+        try {
+            Files.writeString(outputFile.toPath(), json.toString(2), StandardCharsets.UTF_8);
+            System.out.println("Report generated: " + outputFile.getAbsolutePath());
+            Desktop.getDesktop().open(outputFile);
+        } catch (IOException e) {
+            System.out.println("Failed to write report: " + e.getMessage());
+        }
     }
 
     @Command(name = "profile-disable", description = "Disable a profile")
