@@ -3,6 +3,7 @@ package com.demod.fbsr.entity;
 import com.demod.factorio.fakelua.LuaTable;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.EntityType;
+import com.demod.fbsr.bind.Bindings;
 
 @EntityType("electric-energy-interface")
 public class ElectricEnergyInterfaceRendering extends EntityWithOwnerRendering {

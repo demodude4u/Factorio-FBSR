@@ -20,6 +20,7 @@ import com.demod.fbsr.ModdingResolver;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.WorldMap.BeltBend;
 import com.demod.fbsr.WorldMap.BeltCell;
+import com.demod.fbsr.bind.Bindings;
 import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.bs.entity.BSInserterEntity;
 import com.demod.fbsr.def.ImageDef;

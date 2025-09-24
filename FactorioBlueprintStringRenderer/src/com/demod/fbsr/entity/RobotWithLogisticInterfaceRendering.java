@@ -2,6 +2,7 @@ package com.demod.fbsr.entity;
 
 import com.demod.factorio.fakelua.LuaTable;
 import com.demod.fbsr.EntityType;
+import com.demod.fbsr.bind.Bindings;
 
 @EntityType("robot-with-logistic-interface")
 public class RobotWithLogisticInterfaceRendering extends EntityWithOwnerRendering {

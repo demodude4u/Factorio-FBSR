@@ -8,6 +8,7 @@ import com.demod.fbsr.EntityType;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.WorldMap;
+import com.demod.fbsr.bind.Bindings;
 import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.def.SpriteDef;
 import com.demod.fbsr.fp.FPSprite4Way;

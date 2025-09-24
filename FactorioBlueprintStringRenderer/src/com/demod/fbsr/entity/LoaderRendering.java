@@ -17,6 +17,7 @@ import com.demod.fbsr.Layer;
 import com.demod.fbsr.ModdingResolver;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.WorldMap.BeltBend;
+import com.demod.fbsr.bind.Bindings;
 import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.bs.entity.BSLoaderEntity;
 import com.demod.fbsr.def.ImageDef;

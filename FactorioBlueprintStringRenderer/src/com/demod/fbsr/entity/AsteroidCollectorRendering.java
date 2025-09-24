@@ -12,6 +12,7 @@ import com.demod.fbsr.EntityType;
 import com.demod.fbsr.IconDefWithQuality;
 import com.demod.fbsr.ModdingResolver;
 import com.demod.fbsr.WorldMap;
+import com.demod.fbsr.bind.Bindings;
 import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.bs.entity.BSAsteroidCollectorEntity;
 import com.demod.fbsr.def.IconDef;

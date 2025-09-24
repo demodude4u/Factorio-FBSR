@@ -12,6 +12,7 @@ import com.demod.fbsr.IconDefWithQuality;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.ModdingResolver;
 import com.demod.fbsr.WorldMap;
+import com.demod.fbsr.bind.Bindings;
 import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.bs.BSSignalID;
 import com.demod.fbsr.bs.entity.BSDisplayPanelEntity;
@@ -51,7 +52,7 @@ public class DisplayPanelRendering extends EntityWithOwnerRendering {
 	}
 
 	@Override
-	public void defineEntity(EntityRendering.Bindings bind, LuaTable lua) {
+	public void defineEntity(Bindings bind, LuaTable lua) {
 		super.defineEntity(bind, lua);
 
 		bind.sprite4Way(lua.get("sprites"));

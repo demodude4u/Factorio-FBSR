@@ -12,6 +12,7 @@ import com.demod.fbsr.EntityType;
 import com.demod.fbsr.IconDefWithQuality;
 import com.demod.fbsr.LogisticGridCell;
 import com.demod.fbsr.WorldMap;
+import com.demod.fbsr.bind.Bindings;
 import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapPosition;
 import com.demod.fbsr.map.MapRenderable;

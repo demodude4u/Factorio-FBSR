@@ -2,6 +2,7 @@ package com.demod.fbsr.entity;
 
 import com.demod.factorio.fakelua.LuaTable;
 import com.demod.factorio.fakelua.LuaValue;
+import com.demod.fbsr.bind.Bindings;
 
 public abstract class BaseContainerRendering extends EntityWithOwnerRendering {
 	@Override

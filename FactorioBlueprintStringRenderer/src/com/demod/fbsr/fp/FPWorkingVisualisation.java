@@ -9,6 +9,7 @@ import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.Profile;
+import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.def.SpriteDef;
 import com.google.common.collect.ImmutableList;
 
@@ -37,6 +38,13 @@ public class FPWorkingVisualisation {
 				.ifPresent(animation -> {
 					animation.defineSprites(consumer, frame);
 				});
+	}
+
+	public void getDefs(Consumer<ImageDef> register, int frame) {
+		northAnimation.ifPresent(a -> a.defineSprites(register, frame));
+		eastAnimation.ifPresent(a -> a.defineSprites(register, frame));
+		southAnimation.ifPresent(a -> a.defineSprites(register, frame));
+		westAnimation.ifPresent(a -> a.defineSprites(register, frame));
 	}
 
 	public List<SpriteDef> defineSprites(Direction direction, int frame) {

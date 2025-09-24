@@ -9,6 +9,7 @@ import com.demod.fbsr.EntityType;
 import com.demod.fbsr.WirePoint;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.WirePoint.WireColor;
+import com.demod.fbsr.bind.Bindings;
 import com.demod.fbsr.fp.FPWireConnectionPoint;
 import com.demod.fbsr.map.MapEntity;
 import com.demod.fbsr.map.MapRenderable;

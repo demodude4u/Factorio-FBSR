@@ -16,6 +16,7 @@ import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.ModdingResolver;
 import com.demod.fbsr.WorldMap;
+import com.demod.fbsr.bind.Bindings;
 import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.bs.entity.BSCraftingMachineEntity;
 import com.demod.fbsr.def.IconDef;
@@ -37,9 +38,11 @@ public abstract class CraftingMachineRendering extends EntityWithOwnerRendering 
 
 	private FPWorkingVisualisations protoGraphicsSet;
 	private Optional<FPWorkingVisualisations> protoGraphicsSetFlipped;
-	private boolean protoFluidBoxesOffWhenNoFluidRecipe;
 	private List<FPFluidBox> protoFluidBoxes;
 
+	protected boolean isFluidBoxesOffWhenNoFluidRecipe() {
+		return false;
+	}
 
 	@Override
 	public void createRenderers(Consumer<MapRenderable> register, WorldMap map, MapEntity entity) {
@@ -59,7 +62,7 @@ public abstract class CraftingMachineRendering extends EntityWithOwnerRendering 
 		for (FPFluidBox fluidBox : protoFluidBoxes) {
 			if (fluidBox.pipeCovers.isPresent() || fluidBox.pipePicture.isPresent()) {
 				for (FPPipeConnectionDefinition conn : fluidBox.pipeConnections) {
-					boolean visible = !protoFluidBoxesOffWhenNoFluidRecipe 
+					boolean visible = !isFluidBoxesOffWhenNoFluidRecipe() 
 							|| (bsEntity.isFluidInput() && conn.isInput()) 
 							|| (bsEntity.isFluidOutput() && conn.isOutput());
 					if (!visible) {
@@ -150,7 +153,6 @@ public abstract class CraftingMachineRendering extends EntityWithOwnerRendering 
 		protoGraphicsSetFlipped = FPUtils.opt(profile, prototype.lua().get("graphics_set_flipped"),
 				FPWorkingVisualisations::new);
 
-		protoFluidBoxesOffWhenNoFluidRecipe = prototype.lua().get("fluid_boxes_off_when_no_fluid_recipe").optboolean(false);
 		protoFluidBoxes = FPUtils.list(profile, prototype.lua().get("fluid_boxes"), FPFluidBox::new);
 	}
 
@@ -205,7 +207,7 @@ public abstract class CraftingMachineRendering extends EntityWithOwnerRendering 
 		Direction dir = entity.getDirection();
 		for (FPFluidBox fluidBox : protoFluidBoxes) {
 			for (FPPipeConnectionDefinition conn : fluidBox.pipeConnections) {
-				boolean visible = !protoFluidBoxesOffWhenNoFluidRecipe 
+				boolean visible = !isFluidBoxesOffWhenNoFluidRecipe()
 						|| (bsEntity.isFluidInput() && conn.isInput()) 
 						|| (bsEntity.isFluidOutput() && conn.isOutput());
 				if (!visible) {

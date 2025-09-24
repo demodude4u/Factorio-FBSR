@@ -14,6 +14,7 @@ import com.demod.fbsr.FPUtils;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.WirePoint;
 import com.demod.fbsr.WirePoint.WireColor;
+import com.demod.fbsr.bind.Bindings;
 import com.demod.fbsr.WorldMap;
 import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.def.SpriteDef;
