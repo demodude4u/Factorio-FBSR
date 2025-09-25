@@ -66,14 +66,14 @@ public class Bindings {
 	}
 
 	private <T extends BindDef, P> T addDefs(LuaValue lua, Function<LuaValue, P> protoCtor, Function<P, T> bindCtor, Supplier<T> bindNoopCtor) {
-		P proto = protoCtor.apply(lua);
-		return addDefs(proto, () -> bindCtor.apply(proto), bindNoopCtor);
-	}
-
-	private <T extends BindDef, P> T addDefs(P proto, Supplier<T> bindCtor, Supplier<T> bindNoopCtor) {
-		if (proto == null) {
+		if (lua.isnil()) {
 			return bindNoopCtor.get();
 		}
+		P proto = protoCtor.apply(lua);
+		return addDefs(proto, () -> bindCtor.apply(proto));
+	}
+
+	private <T extends BindDef, P> T addDefs(P proto, Supplier<T> bindCtor) {
 		T ret = bindCtor.get();
 		defs.add(ret);
 		return ret;
@@ -185,10 +185,7 @@ public class Bindings {
 		if (lua.isnil()) {
 			return BindFluidBox.NOOP;
 		}
-		BindFluidBox bind = new BindFluidBox(
-				ImmutableList.of(new FPFluidBox(profile, lua)));
-		fluidBoxes.add(bind);
-		return bind;
+		return fluidBox(new FPFluidBox(profile, lua));
 	}
 
 	public BindFluidBox fluidBox(FPFluidBox proto) {
@@ -399,6 +396,9 @@ public class Bindings {
 	}
 
 	public BindDirDef sprite4Way(LuaValue lua) {
+		if (lua.isnil()) {
+			return new BindDirDef();
+		}
 		return sprite4Way(new FPSprite4Way(profile, lua));
 	}
 
@@ -417,7 +417,7 @@ public class Bindings {
 					proto.getDefs(register);
 				}
 			}
-		}, BindDirDef::new);
+		});
 	}
 
 	public BindVarDef spriteVariations(LuaValue lua) {
@@ -449,6 +449,6 @@ public class Bindings {
 					proto.getDefs(register, frame);
 				}
 			}
-		}, BindDirFrameDef::new);
+		});
 	}
 }

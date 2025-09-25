@@ -38,7 +38,6 @@ public abstract class CraftingMachineRendering extends EntityWithOwnerRendering 
 
 	private FPWorkingVisualisations protoGraphicsSet;
 	private Optional<FPWorkingVisualisations> protoGraphicsSetFlipped;
-	private List<FPFluidBox> protoFluidBoxes;
 
 	protected boolean isFluidBoxesOffWhenNoFluidRecipe() {
 		return false;
@@ -58,61 +57,20 @@ public abstract class CraftingMachineRendering extends EntityWithOwnerRendering 
 			protoGraphicsSet.defineSprites(entityRegister, entity.getDirection(), FRAME);
 		}
 
-		Direction dir = entity.getDirection();
-		for (FPFluidBox fluidBox : protoFluidBoxes) {
-			if (fluidBox.pipeCovers.isPresent() || fluidBox.pipePicture.isPresent()) {
-				for (FPPipeConnectionDefinition conn : fluidBox.pipeConnections) {
-					boolean visible = !isFluidBoxesOffWhenNoFluidRecipe() 
-							|| (bsEntity.isFluidInput() && conn.isInput()) 
-							|| (bsEntity.isFluidOutput() && conn.isOutput());
-					if (!visible) {
-						continue;
-					}
-					if (conn.direction.isEmpty() || conn.position.isEmpty()) {
-						continue;
-					}
-
-					Direction connDir = conn.direction.get();
-					MapPosition connPos = MapPosition.convert(conn.position.get());
-					
-					if (bsEntity.mirror) {
-						connDir = connDir.flipX();
-						connPos = connPos.flipX();
-					}
-					
-					Direction facing = connDir.rotate(dir);
-					MapPosition point = facing.offset(dir.rotate(connPos).add(entity.getPosition()), 1);
-					Consumer<SpriteDef> pointRegister = s -> register.accept(new MapSprite(s, Layer.OBJECT, point));
-
-					if (fluidBox.pipePicture.isPresent()) {
-						fluidBox.pipePicture.get().defineSprites(pointRegister, facing);
-					}
-
-					if (fluidBox.pipeCovers.isPresent() && !map.isPipe(point, facing)) {
-						fluidBox.pipeCovers.get().defineSprites(pointRegister, facing);
-					}
-				}
-			}
-		}
-
-		if (bsEntity.recipe.isPresent() && map.isAltMode()) {
-
+		if (bsEntity.getProtoRecipe().isPresent() && map.isAltMode()) {
+			RecipePrototype protoRecipe = bsEntity.getProtoRecipe().get();
 			ModdingResolver resolver = entity.getResolver();
-
-			Optional<IconDef> icon = resolver.resolveIconRecipeName(bsEntity.recipe.get());
+			Optional<IconDef> icon = resolver.resolveIconRecipeName(protoRecipe.getName());
 			if (icon.isEmpty()) {
-				if (bsEntity.getProtoRecipe().isPresent()) {
-					RecipePrototype protoRecipe = bsEntity.getProtoRecipe().get();
-					String name;
-					if (protoRecipe.lua().get("results") != LuaValue.NIL) {
-						name = protoRecipe.lua().get("results").get(1).get("name").toString();
-					} else {
-						name = protoRecipe.lua().get("result").toString();
-					}
-					icon = resolver.resolveIconItemName(name);
-					if (icon.isEmpty()) {
-						icon = resolver.resolveIconFluidName(name);
-					}
+				String name;
+				if (protoRecipe.lua().get("results") != LuaValue.NIL) {
+					name = protoRecipe.lua().get("results").get(1).get("name").toString();
+				} else {
+					name = protoRecipe.lua().get("result").toString();
+				}
+				icon = resolver.resolveIconItemName(name);
+				if (icon.isEmpty()) {
+					icon = resolver.resolveIconFluidName(name);
 				}
 			}
 			if (icon.isPresent()) {
@@ -127,6 +85,13 @@ public abstract class CraftingMachineRendering extends EntityWithOwnerRendering 
 		super.defineEntity(bind, lua);
 		
 		bind.energySource(lua.get("energy_source"));
+
+		bind.fluidBoxes(lua.get("fluid_boxes")).connectorConditional((map, entity, fb, conn) -> {
+			BSCraftingMachineEntity bsEntity = entity.<BSCraftingMachineEntity>fromBlueprint();
+			return !isFluidBoxesOffWhenNoFluidRecipe() 
+					|| (bsEntity.isFluidInput() && conn.isInput()) 
+					|| (bsEntity.isFluidOutput() && conn.isOutput());
+		});
 	}
 
 	@Override
@@ -142,7 +107,6 @@ public abstract class CraftingMachineRendering extends EntityWithOwnerRendering 
 			protoGraphicsSetFlipped.get().getDefs(register, FRAME);
 		}
 		protoGraphicsSet.getDefs(register, FRAME);
-		protoFluidBoxes.forEach(fp -> fp.getDefs(register));
 	}
 
 	@Override
@@ -152,34 +116,18 @@ public abstract class CraftingMachineRendering extends EntityWithOwnerRendering 
 		protoGraphicsSet = new FPWorkingVisualisations(profile, prototype.lua().get("graphics_set"));
 		protoGraphicsSetFlipped = FPUtils.opt(profile, prototype.lua().get("graphics_set_flipped"),
 				FPWorkingVisualisations::new);
-
-		protoFluidBoxes = FPUtils.list(profile, prototype.lua().get("fluid_boxes"), FPFluidBox::new);
 	}
 
 	@Override
 	public void populateLogistics(WorldMap map, MapEntity entity) {
 		super.populateLogistics(map, entity);
 
-		Optional<String> recipe = entity.<BSCraftingMachineEntity>fromBlueprint().recipe;
-		if (recipe.isPresent()) {
-			Optional<RecipePrototype> optRecipe = profile.getFactorioData().getTable().getRecipe(recipe.get());
-			if (optRecipe.isPresent()) {
-				RecipePrototype protoRecipe = optRecipe.get();
-				setLogisticMachine(map, entity.getBounds(), protoRecipe);
-			}
-		}
-	}
-
-	@Override
-	public void populateWorldMap(WorldMap map, MapEntity entity) {
-		super.populateWorldMap(map, entity);
-
 		BSCraftingMachineEntity bsEntity = entity.<BSCraftingMachineEntity>fromBlueprint();
-
 		bsEntity.setProtoRecipe(bsEntity.recipe.flatMap(n -> entity.getResolver().resolveRecipeName(n)));
 
 		if (bsEntity.getProtoRecipe().isPresent()) {
 			RecipePrototype protoRecipe = bsEntity.getProtoRecipe().get();
+			setLogisticMachine(map, entity.getBounds(), protoRecipe);
 
 			List<LuaValue> inputs = new ArrayList<>();
 			List<LuaValue> outputs = new ArrayList<>();
@@ -203,32 +151,5 @@ public abstract class CraftingMachineRendering extends EntityWithOwnerRendering 
 			bsEntity.setFluidInput(fluidInput);
 			bsEntity.setFluidOutput(fluidOutput);
 		}
-
-		Direction dir = entity.getDirection();
-		for (FPFluidBox fluidBox : protoFluidBoxes) {
-			for (FPPipeConnectionDefinition conn : fluidBox.pipeConnections) {
-				boolean visible = !isFluidBoxesOffWhenNoFluidRecipe()
-						|| (bsEntity.isFluidInput() && conn.isInput()) 
-						|| (bsEntity.isFluidOutput() && conn.isOutput());
-				if (!visible) {
-					continue;
-				}
-
-				if (conn.direction.isPresent() && conn.position.isPresent()) {
-					Direction connDir = conn.direction.get();
-					MapPosition connPos = MapPosition.convert(conn.position.get());
-					
-					if (bsEntity.mirror) {
-						connDir = connDir.flipX();
-						connPos = connPos.flipX();
-					}
-
-					Direction facing = connDir.rotate(dir);
-					MapPosition pos = dir.rotate(connPos).add(entity.getPosition());
-					map.setPipe(pos, facing);
-				}
-			}
-		}
 	}
-
 }

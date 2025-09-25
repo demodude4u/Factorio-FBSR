@@ -62,8 +62,8 @@ public class ThrusterRendering extends EntityWithOwnerRendering {
 						Direction connDir = pipeConn.direction.get();
 						MapPosition connPos = MapPosition.convert(pipeConn.position.get());
 						Direction facing = connDir.rotate(dir);
-						MapPosition point = facing.offset(dir.rotate(connPos).add(entity.getPosition()), 1);
-						return map.isPipe(point, facing);
+						MapPosition fbPos = dir.rotate(connPos).add(entity.getPosition());
+						return map.isPipeConnected(fbPos, facing);
 					});
 				}
 			}

@@ -138,6 +138,30 @@ public class WorldMap {
 		}
 	}
 
+	public static class PipeCell {
+		private final MapPosition pos;
+		private int facingBits;
+		private long layersBits;
+
+		public PipeCell(MapPosition pos, int facingBits, long layersBits) {
+			this.pos = pos;
+			this.facingBits = facingBits;
+			this.layersBits = layersBits;
+		}
+
+		public MapPosition getPos() {
+			return pos;
+		}
+
+		public int getFacingBits() {
+			return facingBits;
+		}
+
+		public long getLayersBits() {
+			return layersBits;
+		}
+	}
+
 	// public static class RailEdge {
 	// 	private final RailPoint start;
 	// 	private final RailPoint end;
@@ -299,7 +323,7 @@ public class WorldMap {
 	// Row: X
 	// Column: Y
 	private final Table<Integer, Integer, BeltCell> belts = HashBasedTable.create();
-	private final Table<Integer, Integer, Integer> pipes = HashBasedTable.create();
+	private final Table<Integer, Integer, PipeCell> pipes = HashBasedTable.create();
 	private final Table<Integer, Integer, Integer> pipePieceAdjCodes = HashBasedTable.create();
 	private final Table<Integer, Integer, Integer> heatPipes = HashBasedTable.create();
 	private final Table<Integer, Integer, Object> walls = HashBasedTable.create();
@@ -348,7 +372,7 @@ public class WorldMap {
 		return unknownTiles.add(name);
 	}
 
-	private int flag(Direction facing) {
+	private int facingBit(Direction facing) {
 		return 1 << facing.cardinal();
 	}
 
@@ -550,7 +574,7 @@ public class WorldMap {
 	public boolean isHeatPipe(MapPosition pos, Direction facing) {
 		int kr = pos.getXCell();
 		int kc = pos.getYCell();
-		return heatPipes.contains(kr, kc) && (heatPipes.get(kr, kc) & flag(facing)) > 0;
+		return heatPipes.contains(kr, kc) && (heatPipes.get(kr, kc) & facingBit(facing)) > 0;
 	}
 
 	public boolean isHorizontalGate(MapPosition pos) {
@@ -564,10 +588,30 @@ public class WorldMap {
 				.filter(p -> p.getKey().equals(name) && p.getValue().ordinal() == dir.ordinal()).isPresent();
 	}
 
-	public boolean isPipe(MapPosition pos, Direction facing) {
-		int kr = pos.getXCell();
-		int kc = pos.getYCell();
-		return pipes.contains(kr, kc) && (pipes.get(kr, kc) & flag(facing)) > 0;
+	public boolean isPipeConnected(MapPosition pos, Direction facing) {
+		PipeCell pipe = pipes.get(pos.getXCell(), pos.getYCell());
+		if (pipe == null) {
+			return false;
+		}
+		return isPipeConnected(pipe, facing);
+	}
+
+	public boolean isPipeConnected(PipeCell pipe, Direction facing) {
+		MapPosition adjPos = facing.offset(pipe.getPos());
+		PipeCell adjPipe = pipes.get(adjPos.getXCell(), adjPos.getYCell());
+		if (adjPipe == null) {
+			return false;
+		}
+
+		if ((pipe.getLayersBits() & adjPipe.getLayersBits()) == 0) {
+			return false;
+		}
+
+		if ((facingBit(facing.back()) & adjPipe.getFacingBits()) == 0) {
+			return false;
+		}
+
+		return true;
 	}
 
 	public boolean isElevatedPipe(MapPosition pos) {
@@ -620,7 +664,7 @@ public class WorldMap {
 			flags = 0b1111;
 		} else {
 			for (Direction facing : facings) {
-				flags |= flag(facing);
+				flags |= facingBit(facing);
 			}
 		}
 		Integer currentFlags = heatPipes.get(pos.getXCell(), pos.getYCell());
@@ -642,20 +686,24 @@ public class WorldMap {
 		elevatedPipes.put(pos.getXCell(), pos.getYCell(), entity);
 	}
 
-	public void setPipe(MapPosition pos, Direction... facings) {
-		int flags = 0;
+	public void setPipe(MapPosition pos, long layerBits, Direction... facings) {
+		int facingBits = 0;
 		if (facings.length == 0) {
-			flags = 0b1111;
+			facingBits = 0b1111;
 		} else {
 			for (Direction facing : facings) {
-				flags |= flag(facing);
+				facingBits |= facingBit(facing);
 			}
 		}
-		Integer currentFlags = pipes.get(pos.getXCell(), pos.getYCell());
-		if (currentFlags != null) {
-			flags |= currentFlags;
+
+		PipeCell pipe = pipes.get(pos.getXCell(), pos.getYCell());
+		if (pipe == null) {
+			pipe = new PipeCell(pos, facingBits, layerBits);
+			pipes.put(pos.getXCell(), pos.getYCell(), pipe);
+		} else {
+			pipe.facingBits |= facingBits;
+			pipe.layersBits |= layerBits;
 		}
-		pipes.put(pos.getXCell(), pos.getYCell(), flags);
 	}
 
 	public void setPipePieceAdjCode(MapPosition pos, int adjCode) {

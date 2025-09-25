@@ -57,8 +57,13 @@ public abstract class EntityRendering extends EntityRendererFactory {
 			}
 			
 			for (FPFluidBox fluidBox : bindFluidBox.getFluidBoxes()) {
-				if (fluidBox.pipeCovers.isPresent() || fluidBox.pipePicture.isPresent()) {
-					for (FPPipeConnectionDefinition conn : fluidBox.pipeConnections) {
+				boolean pipeCovers = fluidBox.pipeCovers.isPresent() && bindFluidBox.showPipeCovers();
+				if (pipeCovers || fluidBox.pipePicture.isPresent()) {
+					for (FPPipeConnectionDefinition conn : fluidBox.pipeConnections) {	
+						if (!bindFluidBox.connectorTest(map, entity, fluidBox, conn)) {
+							continue;
+						}
+
 						if (!conn.connectionType.equals("normal") || conn.position.isEmpty() || conn.direction.isEmpty()) {
 							continue;
 						}
@@ -67,14 +72,15 @@ public abstract class EntityRendering extends EntityRendererFactory {
 						MapPosition connPos = MapPosition.convert(conn.position.get());
 	
 						Direction facing = connDir.rotate(dir);
-						MapPosition point = facing.offset(dir.rotate(connPos).add(entity.getPosition()), 1);
-						Consumer<SpriteDef> pointRegister = s -> register.accept(new MapSprite(s, Layer.OBJECT, point));
+						MapPosition fbPos = dir.rotate(connPos).add(entity.getPosition());
+						MapPosition adjPos = facing.offset(fbPos, 1);
+						Consumer<SpriteDef> pointRegister = s -> register.accept(new MapSprite(s, Layer.OBJECT, adjPos));
 	
 						if (fluidBox.pipePicture.isPresent()) {
 							fluidBox.pipePicture.get().defineSprites(pointRegister, facing);
 						}
 	
-						if (fluidBox.pipeCovers.isPresent() && !map.isPipe(point, facing)) {
+						if (pipeCovers && !map.isPipeConnected(fbPos, facing)) {
 							fluidBox.pipeCovers.get().defineSprites(pointRegister, facing);
 						}
 					}
@@ -97,7 +103,7 @@ public abstract class EntityRendering extends EntityRendererFactory {
 					MapPosition point = facing.offset(dir.rotate(connPos).add(entity.getPosition()), 1);
 					Consumer<SpriteDef> pointRegister = s -> register.accept(new MapSprite(s, Layer.OBJECT, point));
 
-					if (heatBuffer.pipeCovers.isPresent() && !map.isPipe(point, facing)) {
+					if (heatBuffer.pipeCovers.isPresent() && !map.isHeatPipe(point, facing)) {
 						heatBuffer.pipeCovers.get().defineSprites(pointRegister, facing);
 					}
 				}
@@ -193,11 +199,17 @@ public abstract class EntityRendering extends EntityRendererFactory {
 			
 			for (FPFluidBox fluidBox : bindFluidBox.getFluidBoxes()) {
 				for (FPPipeConnectionDefinition conn : fluidBox.pipeConnections) {
+					if (!bindFluidBox.connectorTest(map, entity, fluidBox, conn)) {
+						continue;
+					}
+					if (!conn.connectionType.equals("normal")) {
+						continue;
+					}
 					if (conn.direction.isPresent() && conn.position.isPresent()) {
 						Direction facing = conn.direction.get().rotate(dir);
 						MapPosition pos = dir.rotate(MapPosition.convert(conn.position.get())).add(entity.getPosition());
 						// TODO use flow direction for pipe arrow logistics
-						map.setPipe(pos, facing);
+						map.setPipe(pos, conn.getLayerBits(), facing);
 					}
 				}
 			}

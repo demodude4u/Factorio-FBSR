@@ -13,12 +13,6 @@ public class PipeToGroundRendering extends EntityWithOwnerRendering {
 		super.defineEntity(bind, lua);
 		
 		bind.sprite4Way(lua.get("pictures"));
-	}
-
-	@Override
-	public void populateWorldMap(WorldMap map, MapEntity entity) {
-		super.populateWorldMap(map, entity);
-
-		map.setPipe(entity.getPosition(), entity.getDirection());
+		bind.fluidBox(lua.get("fluid_box")).ignorePipeCovers();
 	}
 }

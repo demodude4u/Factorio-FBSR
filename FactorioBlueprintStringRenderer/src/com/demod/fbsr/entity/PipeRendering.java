@@ -6,12 +6,14 @@ import java.util.OptionalInt;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+import com.demod.factorio.fakelua.LuaTable;
 import com.demod.factorio.fakelua.LuaValue;
 import com.demod.fbsr.Direction;
 import com.demod.fbsr.EntityRendererFactory;
 import com.demod.fbsr.EntityType;
 import com.demod.fbsr.Layer;
 import com.demod.fbsr.WorldMap;
+import com.demod.fbsr.bind.Bindings;
 import com.demod.fbsr.def.ImageDef;
 import com.demod.fbsr.fp.FPSprite;
 import com.demod.fbsr.map.MapEntity;
@@ -82,6 +84,13 @@ public class PipeRendering extends EntityWithOwnerRendering {
 	}
 
 	@Override
+	public void defineEntity(Bindings bind, LuaTable lua) {
+		super.defineEntity(bind, lua);
+
+		bind.fluidBox(lua.get("fluid_box")).ignorePipeCovers();
+	}
+
+	@Override
 	public void initAtlas(Consumer<ImageDef> register) {
 		super.initAtlas(register);
 
@@ -98,25 +107,19 @@ public class PipeRendering extends EntityWithOwnerRendering {
 	}
 
 	public boolean pipeFacingMeFrom(Direction direction, WorldMap map, MapEntity entity) {
-		return map.isPipe(direction.offset(entity.getPosition()), direction.back());
-	}
-
-	@Override
-	public void populateWorldMap(WorldMap map, MapEntity entity) {
-		super.populateWorldMap(map, entity);
-		
-		map.setPipe(entity.getPosition());
+		return map.isPipeConnected(entity.getPosition(), direction);
 	}
 
 	@Override
 	public void populateLogistics(WorldMap map, MapEntity entity) {
 		super.populateLogistics(map, entity);
 
+		MapPosition pos = entity.getPosition();
 		int adjCode = 0;
-		adjCode |= ((pipeFacingMeFrom(Direction.NORTH, map, entity) ? 1 : 0) << 0);
-		adjCode |= ((pipeFacingMeFrom(Direction.EAST, map, entity) ? 1 : 0) << 1);
-		adjCode |= ((pipeFacingMeFrom(Direction.SOUTH, map, entity) ? 1 : 0) << 2);
-		adjCode |= ((pipeFacingMeFrom(Direction.WEST, map, entity) ? 1 : 0) << 3);
+		adjCode |= ((map.isPipeConnected(pos, Direction.NORTH) ? 1 : 0) << 0);
+		adjCode |= ((map.isPipeConnected(pos, Direction.EAST) ? 1 : 0) << 1);
+		adjCode |= ((map.isPipeConnected(pos, Direction.SOUTH) ? 1 : 0) << 2);
+		adjCode |= ((map.isPipeConnected(pos, Direction.WEST) ? 1 : 0) << 3);
 		map.setPipePieceAdjCode(entity.getPosition(), adjCode);
 	}
 }
