@@ -26,6 +26,7 @@ import java.util.OptionalInt;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -1494,9 +1495,11 @@ public class DiscordService extends AbstractIdleService {
 			String url = message.getAttachments().get(0).getUrl();
 			replyContent = label.map(s -> s + " ").orElse("") + url;
 			reporting.addField(new Field("Message URL", url, true));
+			reporting.suppress();
 
 		} else if (command.equals("reply-zoom")) {
 			String cacheKey = raw;
+			AtomicBoolean newRender = new AtomicBoolean(false);
 			CachedMessageImageResult cachedResult = recentLazyLoadedMessages.get(cacheKey, () -> {
 				String messageId = split[1];
 
@@ -1520,8 +1523,13 @@ public class DiscordService extends AbstractIdleService {
 
 				Message messageImage = useDiscordForFileHosting(imageFilename, shrinkResult.data).get();
 
+				newRender.set(true);
 				return new CachedMessageImageResult(blueprint.label, messageImage.getId());
 			});
+
+			if (!newRender.get()) {
+				reporting.suppress();
+			}
 
 			TextChannel hostingChannel = bot.getJDA().getTextChannelById(hostingChannelID);
 			Message messageImage = hostingChannel.retrieveMessageById(cachedResult.messageId).complete();
@@ -1569,6 +1577,7 @@ public class DiscordService extends AbstractIdleService {
 			String raw = event.getValues().get(0);
 
 			String cacheKey = command + "|" + raw;
+			AtomicBoolean newRender = new AtomicBoolean(false);
 			CachedMessageImageResult cachedResult = recentLazyLoadedMessages.get(cacheKey, () -> {
 				String[] split = raw.split("\\|");
 				String messageId = split[0];
@@ -1594,8 +1603,13 @@ public class DiscordService extends AbstractIdleService {
 
 				Message messageImage = useDiscordForFileHosting(imageFilename, shrinkResult.data).get();
 
+				newRender.set(true);
 				return new CachedMessageImageResult(blueprint.label, messageImage.getId());
 			});
+
+			if (!newRender.get()) {
+				reporting.suppress();
+			}
 
 			TextChannel hostingChannel = bot.getJDA().getTextChannelById(hostingChannelID);
 			Message messageImage = hostingChannel.retrieveMessageById(cachedResult.messageId).complete();
