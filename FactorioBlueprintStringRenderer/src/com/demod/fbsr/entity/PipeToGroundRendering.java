@@ -13,6 +13,6 @@ public class PipeToGroundRendering extends EntityWithOwnerRendering {
 		super.defineEntity(bind, lua);
 		
 		bind.sprite4Way(lua.get("pictures"));
-		bind.fluidBox(lua.get("fluid_box")).ignorePipeCovers();
+		bind.fluidBox(lua.get("fluid_box"));
 	}
 }
