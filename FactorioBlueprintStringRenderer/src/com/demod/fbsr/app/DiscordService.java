@@ -24,6 +24,7 @@ import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.OptionalInt;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -448,17 +449,28 @@ public class DiscordService extends AbstractIdleService {
 	}
 
 	public static class BlueprintPreviewRequest {
+		public final Optional<Message> hostedBlueprint;
 		public final String content;
 		public final List<String> attachmentUrls;
 		public final CommandReporting reporting;
 		public final String lockKey;
-
-		public boolean ignoreNoBlueprints;
+		
+		public OptionalInt bookIndex = OptionalInt.empty();
+		public boolean ignoreNoBlueprints = false;
 		public Consumer<BSBlueprintString> onParseSuccess = bs -> {};
 
 		public BlueprintPreviewRequest(String content, List<String> attachmentUrls, CommandReporting reporting, String lockKey) {
+			this.hostedBlueprint = Optional.empty();
 			this.content = content;
 			this.attachmentUrls = attachmentUrls;
+			this.reporting = reporting;
+			this.lockKey = lockKey;
+		}
+
+		public BlueprintPreviewRequest(Message hostedBlueprint, CommandReporting reporting, String lockKey) {
+			this.hostedBlueprint = Optional.of(hostedBlueprint);
+			this.content = hostedBlueprint.getContentStripped();
+			this.attachmentUrls = hostedBlueprint.getAttachments().stream().map(Attachment::getUrl).collect(Collectors.toList());
 			this.reporting = reporting;
 			this.lockKey = lockKey;
 		}
@@ -563,38 +575,70 @@ public class DiscordService extends AbstractIdleService {
 		List<ItemComponent> actionButtonRow = new ArrayList<>();
 		allActionRows.add(actionButtonRow);
 
-		Future<Message> futBlueprintStringUpload;
-		try {
-			String blueprintFilename = WebUtils.formatBlueprintFilename(blueprintString.findFirstLabel(), "txt");
-			String blueprintRaw = blueprintString.getRaw().get();
-			byte[] blueprintBytes = blueprintRaw.getBytes(StandardCharsets.UTF_8);
-
-			if (blueprintBytes.length > MAX_FILE_SIZE) {
-				String entryName = blueprintFilename;
-				blueprintFilename = blueprintFilename.substring(0, blueprintFilename.length()-4) + ".zip";
-				try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
-						ZipOutputStream zos = new ZipOutputStream(baos)) {
-					ZipEntry entry = new ZipEntry(entryName);
-					zos.putNextEntry(entry);
-					zos.write(blueprintBytes);
-					zos.closeEntry();
-					zos.finish();
-					futBlueprintStringUpload = useDiscordForFileHosting(blueprintFilename, baos.toByteArray());
+		Future<Message> futBlueprintStringUpload = null;
+		if (request.hostedBlueprint.isPresent()) {
+			Future<Message> fut = CompletableFuture.completedFuture(request.hostedBlueprint.get());
+		} else {
+			try {
+				String blueprintFilename = WebUtils.formatBlueprintFilename(blueprintString.findFirstLabel(), "txt");
+				String blueprintRaw = blueprintString.getRaw().get();
+				byte[] blueprintBytes = blueprintRaw.getBytes(StandardCharsets.UTF_8);
+	
+				if (blueprintBytes.length > MAX_FILE_SIZE) {
+					String entryName = blueprintFilename;
+					blueprintFilename = blueprintFilename.substring(0, blueprintFilename.length()-4) + ".zip";
+					try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
+							ZipOutputStream zos = new ZipOutputStream(baos)) {
+						ZipEntry entry = new ZipEntry(entryName);
+						zos.putNextEntry(entry);
+						zos.write(blueprintBytes);
+						zos.closeEntry();
+						zos.finish();
+						futBlueprintStringUpload = useDiscordForFileHosting(blueprintFilename, baos.toByteArray());
+					}
+				} else {
+					futBlueprintStringUpload = useDiscordForFileHosting(blueprintFilename, blueprintRaw);
 				}
-			} else {
-				futBlueprintStringUpload = useDiscordForFileHosting(blueprintFilename, blueprintRaw);
+			} catch (IOException e) {
+				reporting.addException(e);
+				return BlueprintPreviewResponse.message("Internal failure: " + e.getMessage(), Color.red);
 			}
-		} catch (IOException e) {
-			reporting.addException(e);
-			return BlueprintPreviewResponse.message("Internal failure: " + e.getMessage(), Color.red);
 		}
 
 		boolean spaceAge = false;
 		boolean modded = false;
 
+		boolean blueprintLayout = false;
+		boolean bookLayout = false;
+		boolean deconstructionPlannerLayout = false;
+		boolean upgradePlannerLayout = false;
+		BSBlueprint blueprint = null;
+		BSBlueprintBook book = null;
+		BSDeconstructionPlanner deconstructionPlanner = null;
+		BSUpgradePlanner upgradePlanner = null;
 		if (blueprintString.blueprint.isPresent()) {
-			BSBlueprint blueprint = blueprintString.blueprint.get();
+			blueprintLayout = true;
+			blueprint = blueprintString.blueprint.get();
+		} else if (blueprintString.blueprintBook.isPresent()) {
+			if (request.bookIndex.isPresent()) {
+				blueprintLayout = true;
+				int index = request.bookIndex.getAsInt();
+				blueprint = blueprintString.findAllBlueprints().get(index);
+			} else {
+				bookLayout = true;
+				book = blueprintString.blueprintBook.get();
+			}
+		} else if (blueprintString.deconstructionPlanner.isPresent()) {
+			deconstructionPlannerLayout = true;
+			deconstructionPlanner = blueprintString.deconstructionPlanner.get();
+		} else if (blueprintString.upgradePlanner.isPresent()) {
+			upgradePlannerLayout = true;
+			upgradePlanner = blueprintString.upgradePlanner.get();
+		} else {
+			return BlueprintPreviewResponse.message("Blueprint string is valid, but there is no blueprint, book, or planner!", Color.yellow);
+		}
 
+		if (blueprintLayout) {
 			ModdingResolver resolver = ModdingResolver.byBlueprintBiases(factorioManager, blueprint);
 
 			reporting.addField(new Field("Blueprint Version", blueprint.version.toString(), true));
@@ -626,8 +670,13 @@ public class DiscordService extends AbstractIdleService {
 					if (!futBlueprintStringUpload.isDone()) {
 						LOGGER.info("\tWaiting on blueprint string upload...");
 					}
-					actionButtonRow.add(Button.secondary("reply-zoom|" + futBlueprintStringUpload.get().getId(), "Zoom In")
-							.withEmoji(EMOJI_SEARCH));
+					if (request.bookIndex.isPresent()) {
+						actionButtonRow.add(Button.secondary("reply-book-zoom|" + futBlueprintStringUpload.get().getId() + "|" + request.bookIndex.getAsInt(), "Zoom In")
+								.withEmoji(EMOJI_SEARCH));
+					} else {
+						actionButtonRow.add(Button.secondary("reply-zoom|" + futBlueprintStringUpload.get().getId(), "Zoom In")
+								.withEmoji(EMOJI_SEARCH));
+					}
 				} catch (InterruptedException | ExecutionException e) {
 					reporting.addException(e);
 					return BlueprintPreviewResponse.message("Internal failure: " + e.getMessage(), Color.red);
@@ -636,8 +685,7 @@ public class DiscordService extends AbstractIdleService {
 
 			label = blueprint.label;
 
-		} else if (blueprintString.blueprintBook.isPresent()) {
-			BSBlueprintBook book = blueprintString.blueprintBook.get();
+		} else if (bookLayout) {
 			List<BSBlueprint> blueprints = book.getAllBlueprints();
 
 			reporting.addField(new Field("Blueprint Version", book.version.toString(), true));
@@ -691,8 +739,8 @@ public class DiscordService extends AbstractIdleService {
 					int j = 0;
 					int start = i;
 					while (j < 25 && i < blueprints.size()) {
-						BSBlueprint blueprint = blueprints.get(i);
-						String optionLabel = blueprint.label.orElse("Untitled Blueprint " + (i + 1));
+						BSBlueprint bookBlueprint = blueprints.get(i);
+						String optionLabel = bookBlueprint.label.orElse("Untitled Blueprint " + (i + 1));
 						menuBuilder.addOption(optionLabel, id + "|" + i);
 						i++;
 						j++;
@@ -710,30 +758,28 @@ public class DiscordService extends AbstractIdleService {
 
 			label = book.label;
 
-		} else if (blueprintString.deconstructionPlanner.isPresent()) {
+		} else if (deconstructionPlannerLayout) {
 			EmbedBuilder builder = new EmbedBuilder();
-			BSDeconstructionPlanner planner = blueprintString.deconstructionPlanner.get();
 			builder.setColor(Color.darkGray);
 			builder.setDescription("Blueprint string is a deconstruction planner.");
-			if (planner.label.isPresent()) {
-				builder.addField(new Field("Label", planner.label.get(), false));
+			if (deconstructionPlanner.label.isPresent()) {
+				builder.addField(new Field("Label", deconstructionPlanner.label.get(), false));
 			}
-			if (planner.description.isPresent()) {
-				builder.addField(new Field("Description", planner.description.get(), false));
+			if (deconstructionPlanner.description.isPresent()) {
+				builder.addField(new Field("Description", deconstructionPlanner.description.get(), false));
 			}
 			embed = Optional.of(builder.build());
 			// TODO more details from deconstruction planner
 
-		} else if (blueprintString.upgradePlanner.isPresent()) {
+		} else if (upgradePlannerLayout) {
 			EmbedBuilder builder = new EmbedBuilder();
-			BSUpgradePlanner planner = blueprintString.upgradePlanner.get();
 			builder.setColor(Color.darkGray);
 			builder.setDescription("Blueprint string is an upgrade planner.");
-			if (planner.label.isPresent()) {
-				builder.addField(new Field("Label", planner.label.get(), false));
+			if (upgradePlanner.label.isPresent()) {
+				builder.addField(new Field("Label", upgradePlanner.label.get(), false));
 			}
-			if (planner.description.isPresent()) {
-				builder.addField(new Field("Description", planner.description.get(), false));
+			if (upgradePlanner.description.isPresent()) {
+				builder.addField(new Field("Description", upgradePlanner.description.get(), false));
 			}
 			embed = Optional.of(builder.build());
 			// TODO more details from upgrade planner
@@ -1540,48 +1586,12 @@ public class DiscordService extends AbstractIdleService {
 			reporting.addField(new Field("Message URL", url, true));
 			reporting.setImageURL(url);
 
-		} else {
-			LOGGER.warn("UNKNOWN COMMAND {}", command);
-			event.reply("Unknown Command: " + command).setEphemeral(true).queue();
-		}
-
-		if (replyContent != null) {
-			if (event.getChannelType() != ChannelType.PRIVATE) {
-				hook.sendMessage(replyContent).queue();
-			} else {
-				hook.deleteOriginal().queue();
-			}
-
-			try {
-				PrivateChannel privateChannel = event.getUser().openPrivateChannel().complete();
-				Message replyMessage = privateChannel
-						.sendMessage(event.getMessage().getJumpUrl() + "\n====> " + replyContent).complete();
-				reporting.addReply(replyMessage);
-			} catch (ErrorResponseException e) {
-				if (e.getErrorResponse() != ErrorResponse.CANNOT_SEND_TO_USER) {
-					throw e;
-				}
-			}
-		}
-	}
-
-	public void onSelectionInteraction(StringSelectInteractionEvent event, CommandReporting reporting)
-			throws InterruptedException, ExecutionException, IOException {
-		String command = event.getComponentId();
-
-		InteractionHook hook = event.deferReply(true).complete();
-
-		String replyContent = null;
-
-		if (command.startsWith("reply-book-blueprint")) {
-			String raw = event.getValues().get(0);
-
-			String cacheKey = command + "|" + raw;
+		} else if (command.equals("reply-book-zoom")) {
+			String cacheKey = raw;
 			AtomicBoolean newRender = new AtomicBoolean(false);
 			CachedMessageImageResult cachedResult = recentLazyLoadedMessages.get(cacheKey, () -> {
-				String[] split = raw.split("\\|");
-				String messageId = split[0];
-				int index = Integer.parseInt(split[1]);
+				String messageId = split[1];
+				int index = Integer.parseInt(split[2]);
 
 				TextChannel hostingChannel = bot.getJDA().getTextChannelById(hostingChannelID);
 				Message message = hostingChannel.retrieveMessageById(messageId).complete();
@@ -1621,7 +1631,7 @@ public class DiscordService extends AbstractIdleService {
 			reporting.setImageURL(url);
 
 		} else {
-			LOGGER.info("UNKNOWN COMMAND {}", command);
+			LOGGER.warn("UNKNOWN COMMAND {}", command);
 			event.reply("Unknown Command: " + command).setEphemeral(true).queue();
 		}
 
@@ -1641,6 +1651,75 @@ public class DiscordService extends AbstractIdleService {
 				if (e.getErrorResponse() != ErrorResponse.CANNOT_SEND_TO_USER) {
 					throw e;
 				}
+			}
+		}
+	}
+
+	public void onSelectionInteraction(StringSelectInteractionEvent event, CommandReporting reporting)
+			throws InterruptedException, ExecutionException, IOException {
+		String command = event.getComponentId();
+
+		InteractionHook hook = event.deferReply(true).complete();
+
+		BlueprintPreviewResponse response;
+
+		if (command.startsWith("reply-book-blueprint")) {
+			String raw = event.getValues().get(0);
+			String cacheKey = command + "|" + raw;
+
+			String[] split = raw.split("\\|");
+			String messageId = split[0];
+			int index = Integer.parseInt(split[1]);
+
+			TextChannel hostingChannel = bot.getJDA().getTextChannelById(hostingChannelID);
+			Message message = hostingChannel.retrieveMessageById(messageId).complete();
+
+			BlueprintPreviewRequest request = new BlueprintPreviewRequest("", ImmutableList.of(message.getAttachments().get(0).getUrl()), reporting, cacheKey);
+			request.bookIndex = OptionalInt.of(index);
+			response = requestBlueprintPreview(request);
+
+		} else {
+			LOGGER.info("UNKNOWN COMMAND {}", command);
+			hook.sendMessage("Unknown Command: " + command).queue();
+			return;
+		}
+
+		try {
+			PrivateChannel privateChannel = event.getUser().openPrivateChannel().complete();
+
+			MessageCreateAction reply = null;
+			if (response.type == ResponseType.EMBED) {
+				reply = privateChannel.sendMessageEmbeds(response.embed);
+			} else if (response.type == ResponseType.IMAGE) {
+				reply = privateChannel.sendFiles(FileUpload.fromData(response.imageBytes, response.imageFilename));
+			}
+
+			Message message = null;
+			if (response.type != ResponseType.NONE) {
+				for (List<ItemComponent> actionRow : response.actionRows) {
+					reply.addActionRow(actionRow);
+				}
+
+				message = reply.complete();
+				reporting.addReply(message);
+				
+				if (!response.moreActionRows.isEmpty()) {
+					MessageCreateAction reply2 = message.replyEmbeds(new EmbedBuilder().appendDescription("-# More Actions...").build());
+					for (List<ItemComponent> actionRow : response.moreActionRows) {
+						reply2.addActionRow(actionRow);
+					}
+					reporting.addReply(reply2.complete());
+				}
+			}
+
+			if (message != null && event.getChannelType() != ChannelType.PRIVATE) {
+				hook.sendMessage("Sent you a DM: " + message.getJumpUrl()).queue();
+			} else {
+				hook.deleteOriginal().queue();
+			}
+		} catch (ErrorResponseException e) {
+			if (e.getErrorResponse() != ErrorResponse.CANNOT_SEND_TO_USER) {
+				throw e;
 			}
 		}
 	}
