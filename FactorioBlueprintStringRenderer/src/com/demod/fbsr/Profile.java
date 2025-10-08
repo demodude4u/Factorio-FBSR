@@ -91,6 +91,7 @@ public class Profile {
 	private static final Logger LOGGER = LoggerFactory.getLogger(Profile.class);
 
     public static final String MODDED_KEY = "__MODDED__";
+    public static final String EDITOR_KEY = "__EDITOR__";
 
     public static final String ASSETS_ZIP_VERSION_TXT = "version.txt";
     public static final String ASSETS_ZIP_PROFILE_JSON = "profile.json";
@@ -808,6 +809,10 @@ public class Profile {
                                 if (!overrideMods.contains(MODDED_KEY)) {
                                     overrideMods.add(MODDED_KEY);
                                 }
+                            } else if (jsonOverride.has("editor") && jsonOverride.getBoolean("editor")) {
+                                if (!overrideMods.contains(EDITOR_KEY)) {
+                                    overrideMods.add(EDITOR_KEY);
+                                }
                             }
                             if (jsonOverride.has("mods-append")) {
                                 JSONArray jsonModsAppend = jsonOverride.getJSONArray("mods-append");
@@ -939,6 +944,8 @@ public class Profile {
 
                             } else if (jsonOverride.has("modded") && jsonOverride.getBoolean("modded")) {
                                 overrideMods = Optional.of(ImmutableList.of(MODDED_KEY));
+                            } else if (jsonOverride.has("editor") && jsonOverride.getBoolean("editor")) {
+                                overrideMods = Optional.of(ImmutableList.of(EDITOR_KEY));
 
                             } else {
                                 overrideMods = Optional.empty();

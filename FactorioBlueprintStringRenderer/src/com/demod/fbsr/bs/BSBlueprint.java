@@ -5,6 +5,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -87,16 +88,19 @@ public class BSBlueprint {
 	public static class BlueprintModInfo {
 		public final List<String> spaceAgeMods;
 		public final List<String> mods;
-		
-		public BlueprintModInfo(List<String> spaceAgeMods, List<String> mods) {
+		public final boolean editor;
+
+		public BlueprintModInfo(List<String> spaceAgeMods, List<String> mods, boolean editor) {
 			this.spaceAgeMods = ImmutableList.copyOf(spaceAgeMods);
 			this.mods = ImmutableList.copyOf(mods);
+			this.editor = editor;
 		}
 	}
 	public static final List<String> SPACE_AGE_MODS = ImmutableList.of("space-age", "elevated-rails", "quality");
     public BlueprintModInfo loadModInfo(ModdingResolver resolver) {
         Set<String> spaceAgeMods = new LinkedHashSet<>();
         Set<String> mods = new LinkedHashSet<>();
+		AtomicBoolean anyEditor = new AtomicBoolean(false);
 		Consumer<ManifestModInfo> addMod = mod -> {
 			if (SPACE_AGE_MODS.contains(mod.name)) {
 				spaceAgeMods.add(mod.title);
@@ -108,6 +112,8 @@ public class BSBlueprint {
 			EntityRendererFactory factory = resolver.resolveFactoryEntityName(name);
 			if (factory.isUnknown() || factory.isUnknownModded()) {
 				mods.add("Modded");
+			} else if (factory.isEditor()) {
+				anyEditor.set(true);
 			} else {
 				factory.getMods().forEach(addMod);
 			}
@@ -116,13 +122,17 @@ public class BSBlueprint {
 			TileRendererFactory factory = resolver.resolveFactoryTileName(name);
 			if (factory.isUnknown() || factory.isUnknownModded()) {
 				mods.add("Modded");
+			} else if (factory.isEditor()) {
+				anyEditor.set(true);
 			} else {
 				factory.getMods().forEach(addMod);
 			}
 		});
+		boolean editor = anyEditor.get() && mods.isEmpty();
 		return new BlueprintModInfo(
 			spaceAgeMods.stream().sorted().collect(Collectors.toList()),
-			mods.stream().sorted().collect(Collectors.toList())
+			mods.stream().sorted().collect(Collectors.toList()),
+			editor
 		);
 	}
 }

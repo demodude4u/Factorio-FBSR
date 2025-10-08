@@ -219,6 +219,7 @@ public class GUILayoutBook implements AutoCloseable {
 
 	private List<String> spaceAgeMods;
 	private List<String> mods;
+	private boolean editor;
 
 	private volatile String lockKey = null;
 
@@ -379,6 +380,18 @@ public class GUILayoutBook implements AutoCloseable {
 			label.render(g);
 			boundsCell = boundsCell.indexed(1, 0);
 		}
+		if (editor) {
+			String mod = "Editor";
+			int minWidth = fm.stringWidth(mod) + 16;
+			GUIBox boundsLabel = (minWidth > boundsCell.width) ? boundsCell.expandLeft(minWidth - boundsCell.width)
+					: boundsCell;
+			g.setComposite(new TintComposite(180, 240, 235, 255));
+			guiStyle.CIRCLE_WHITE.render(g, boundsLabel);
+			g.setComposite(pc);
+			GUILabel label = new GUILabel(boundsLabel, mod, fontMod, Color.black, GUIAlign.CENTER);
+			label.render(g);
+			boundsCell = boundsCell.indexed(1, 0);
+		}
 		for (String mod : mods) {
 			int minWidth = fm.stringWidth(mod) + 16;
 			GUIBox boundsLabel = (minWidth > boundsCell.width) ? boundsCell.expandLeft(minWidth - boundsCell.width)
@@ -523,13 +536,16 @@ public class GUILayoutBook implements AutoCloseable {
 			pc = g.getComposite();
 			Set<String> mods = new LinkedHashSet<>();
 			Set<String> spaceAgeMods = new LinkedHashSet<>();
+			boolean anyEditor = false;
 			for (BSBlueprint blueprint : book.getAllBlueprints()) {
 				BlueprintModInfo modInfo = blueprint.loadModInfo(resolver);
 				mods.addAll(modInfo.mods);
 				spaceAgeMods.addAll(modInfo.spaceAgeMods);
+				anyEditor |= modInfo.editor;
 			}
 			this.spaceAgeMods = spaceAgeMods.stream().sorted().collect(Collectors.toList());
 			this.mods = mods.stream().sorted().collect(Collectors.toList());
+			this.editor = anyEditor && mods.isEmpty();
 
 			if (!mods.isEmpty()) {
 				tint = new TintComposite(450, 300, 80, 255);

@@ -82,9 +82,7 @@ public class GUILayoutBlueprint {
 	private int itemFontOffset;
 	private boolean itemShowCellBackground;
 
-	private List<String> spaceAgeMods;
-
-	private List<String> mods;
+	private BlueprintModInfo modInfo;
 
 	private Composite pc;
 	private Composite tint;
@@ -105,9 +103,9 @@ public class GUILayoutBlueprint {
 		drawImagePane(bounds.shrinkTop(titleHeight).shrinkLeft(infoPaneWidth));
 
 		String versionText;
-		if (!mods.isEmpty()) {
+		if (!modInfo.mods.isEmpty()) {
 			versionText = "Modded Factorio " + blueprint.version;
-		} else if (!spaceAgeMods.isEmpty()) {
+		} else if (!modInfo.spaceAgeMods.isEmpty()) {
 			versionText = "Factorio Space Age " + blueprint.version;
 		} else {
 			versionText = "Factorio " + blueprint.version;
@@ -190,7 +188,7 @@ public class GUILayoutBlueprint {
 		
 		GUIBox boundsCell;
 		Font fontMod;
-		if (spaceAgeMods.size() + mods.size() > 4) {
+		if (modInfo.spaceAgeMods.size() + modInfo.mods.size() > 4) {
 			boundsCell = bounds.cutTop(20).cutRight(80);
 			fontMod = guiStyle.FONT_BP_BOLD.deriveFont(10f);
 		} else {
@@ -199,7 +197,7 @@ public class GUILayoutBlueprint {
 		}
 
 		FontMetrics fmMod = g.getFontMetrics(fontMod);
-		for (String mod : spaceAgeMods) {
+		for (String mod : modInfo.spaceAgeMods) {
 			int minWidth = fmMod.stringWidth(mod) + 16;
 			GUIBox boundsLabel = (minWidth > boundsCell.width) ? boundsCell.expandLeft(minWidth - boundsCell.width)
 					: boundsCell;
@@ -208,7 +206,19 @@ public class GUILayoutBlueprint {
 			label.render(g);
 			boundsCell = boundsCell.indexed(1, 0);
 		}
-		for (String mod : mods) {
+		if (modInfo.editor) {
+			String mod = "Editor";
+			int minWidth = fmMod.stringWidth(mod) + 16;
+			GUIBox boundsLabel = (minWidth > boundsCell.width) ? boundsCell.expandLeft(minWidth - boundsCell.width)
+					: boundsCell;
+			g.setComposite(new TintComposite(180, 240, 235, 255));
+			guiStyle.CIRCLE_WHITE.render(g, boundsLabel);
+			g.setComposite(pc);
+			GUILabel label = new GUILabel(boundsLabel, mod, fontMod, Color.black, GUIAlign.CENTER);
+			label.render(g);
+			boundsCell = boundsCell.indexed(1, 0);
+		}
+		for (String mod : modInfo.mods) {
 			int minWidth = fmMod.stringWidth(mod) + 16;
 			GUIBox boundsLabel = (minWidth > boundsCell.width) ? boundsCell.expandLeft(minWidth - boundsCell.width)
 					: boundsCell;
@@ -483,9 +493,7 @@ public class GUILayoutBlueprint {
 		totalItems = FBSR.generateTotalItems(blueprint);
 		totalRawItems = baseDataOnly ? FBSR.generateTotalRawItems(totalItems) : ImmutableMap.of();
 
-		BlueprintModInfo modInfo = blueprint.loadModInfo(resolver);
-		mods = modInfo.mods;
-		spaceAgeMods = modInfo.spaceAgeMods;
+		modInfo = blueprint.loadModInfo(resolver);
 
 		int itemCount = totalItems.size() + totalRawItems.size();
 		int itemRowMax;
@@ -537,9 +545,9 @@ public class GUILayoutBlueprint {
 			g.scale(scale, scale);
 
 			pc = g.getComposite();
-			if (!mods.isEmpty()) {
+			if (!modInfo.mods.isEmpty()) {
 				tint = new TintComposite(450, 300, 80, 255);
-			} else if (!spaceAgeMods.isEmpty()) {
+			} else if (!modInfo.spaceAgeMods.isEmpty()) {
 				tint = new TintComposite(350, 350, 400, 255);
 			} else {
 				tint = pc;

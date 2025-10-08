@@ -134,6 +134,7 @@ public abstract class EntityRendererFactory {
 	protected Profile profile = null;
 	protected List<ManifestModInfo> mods = null;
 	protected boolean unknownModded = false;
+	protected boolean editor = false;
 
 	protected EntityPrototype prototype = null;
 
@@ -317,6 +318,14 @@ public abstract class EntityRendererFactory {
 
 	public boolean isUnknownModded() {
 		return unknownModded;
+	}
+
+	public void setEditor(boolean editor) {
+		this.editor = editor;
+	}
+
+	public boolean isEditor() {
+		return editor;
 	}
 
 	protected void setLogisticAcceptFilter(WorldMap map, MapPosition gridPos, Direction cellDir,

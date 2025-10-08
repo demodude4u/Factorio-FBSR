@@ -529,6 +529,7 @@ public class TileRendererFactory {
 	protected TilePrototype prototype;
 	protected List<ManifestModInfo> mods;
 	protected boolean unknownModded = false;
+	protected boolean editor = false;
 
 	private FPTileTransitionsVariants protoVariants;
 	private Optional<FPTileMainPictures> protoVariantsMainSize1;
@@ -622,6 +623,14 @@ public class TileRendererFactory {
 
 	public boolean isUnknownModded() {
 		return unknownModded;
+	}
+
+	public void setEditor(boolean editor) {
+		this.editor = editor;
+	}
+
+	public boolean isEditor() {
+		return editor;
 	}
 
 	public void setPrototype(TilePrototype prototype) {
