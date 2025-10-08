@@ -137,7 +137,7 @@ public abstract class CraftingMachineRendering extends EntityWithOwnerRendering 
 			}
 			LuaValue resultsLua = protoRecipe.lua().get("results");
 			if (!resultsLua.isnil()) {
-				outputs.add(resultsLua);
+				Utils.forEach(resultsLua.checktable(), (Consumer<LuaValue>) outputs::add);
 			}
 			boolean fluidInput = inputs.stream().anyMatch(lua -> {
 				LuaValue typeLua = lua.get("type");
