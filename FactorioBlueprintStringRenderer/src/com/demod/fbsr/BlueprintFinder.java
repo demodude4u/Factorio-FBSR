@@ -167,7 +167,7 @@ public final class BlueprintFinder {
 		FACTORIOPRINTS("https?://factorioprints\\.com/view/(?<id>[-_A-Za-z0-9]+)",
 				m -> "https://facorio-blueprints.firebaseio.com/blueprints/" + m.group("id") + ".json",
 				"View on Factorio Prints"), //
-		FACTORIOSCHOOL("https?://factorio\\.school/view/(?<id>[-_A-Za-z0-9]+)",
+		FACTORIOSCHOOL("https?://(?:www\\.)?factorio\\.school/view/(?<id>[-_A-Za-z0-9]+)",
 				m -> "https://facorio-blueprints.firebaseio.com/blueprints/" + m.group("id") + ".json",
 				"View on Factorio School"), //
 
