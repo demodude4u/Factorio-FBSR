@@ -101,12 +101,13 @@ public class Profile {
     public static final String ASSETS_ZIP_ATLAS_MANIFEST_JSON = "atlas-manifest.json";
 
     public static final Set<String> BUILTIN_MODS = Set.of(
-            "core", "base", "space-age", "quality", "elevated-rails");
+            "core", "base", "space-age", "quality", "elevated-rails", "recycler");
     public static final Map<String, String> BUILTIN_TITLES = Map.of(
         "base", "Base",
         "quality", "Quality",
         "space-age", "Space Age",
-        "elevated-rails", "Elevated Rails");
+        "elevated-rails", "Elevated Rails",
+        "recycler", "Recycler");
 
     //The BUILD statuses are named after the next step in the build process
     public static enum ProfileStatus {

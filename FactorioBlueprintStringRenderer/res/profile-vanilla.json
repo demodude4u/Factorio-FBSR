@@ -4,7 +4,8 @@
 		"base",
 		"space-age",
 		"quality",
-		"elevated-rails"
+		"elevated-rails",
+		"recycler"
   ],
   "mod-overrides": {},
   "entity-overrides": {

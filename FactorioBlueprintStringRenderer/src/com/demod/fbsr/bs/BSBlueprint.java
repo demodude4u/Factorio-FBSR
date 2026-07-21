@@ -96,7 +96,7 @@ public class BSBlueprint {
 			this.editor = editor;
 		}
 	}
-	public static final List<String> SPACE_AGE_MODS = ImmutableList.of("space-age", "elevated-rails", "quality");
+	public static final List<String> SPACE_AGE_MODS = ImmutableList.of("space-age", "elevated-rails", "quality", "recycler");
     public BlueprintModInfo loadModInfo(ModdingResolver resolver) {
         Set<String> spaceAgeMods = new LinkedHashSet<>();
         Set<String> mods = new LinkedHashSet<>();
