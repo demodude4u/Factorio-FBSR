@@ -59,6 +59,7 @@ import com.demod.fbsr.Profile.ProfileStatus;
 import com.demod.fbsr.WirePoint.WireColor;
 import com.demod.fbsr.WorldMap.BeltCell;
 import com.demod.fbsr.bs.BSBlueprint;
+import com.demod.fbsr.bs.BSBlueprintString;
 import com.demod.fbsr.bs.BSEntity;
 import com.demod.fbsr.bs.BSItemStack;
 import com.demod.fbsr.bs.BSItemStackItem;
@@ -69,6 +70,8 @@ import com.demod.fbsr.bs.BSTile;
 import com.demod.fbsr.bs.BSWire;
 import com.demod.fbsr.entity.ErrorRendering;
 import com.demod.fbsr.gui.GUIStyle;
+import com.demod.fbsr.gui.layout.GUILayoutBlueprint;
+import com.demod.fbsr.gui.layout.GUILayoutBook;
 import com.demod.fbsr.map.MapBounded;
 import com.demod.fbsr.map.MapDebug;
 import com.demod.fbsr.map.MapEntity;
@@ -117,6 +120,34 @@ public class FBSR {
 	private static AtlasManager atlasManager;
 
 	private static final ExecutorService executor = Executors.newWorkStealingPool();
+
+	public static class BlueprintPreview {
+		public final BufferedImage image;
+		public final String type;
+
+		public BlueprintPreview(BufferedImage image, String type) {
+			this.image = image;
+			this.type = type;
+		}
+	}
+
+	public static BlueprintPreview renderBlueprintPreview(BSBlueprintString blueprintString,
+			CommandReporting reporting) throws Exception {
+		if (blueprintString.blueprint.isPresent()) {
+			GUILayoutBlueprint layout = new GUILayoutBlueprint();
+			layout.setBlueprint(blueprintString.blueprint.get());
+			layout.setReporting(reporting);
+			return new BlueprintPreview(layout.generateDiscordImage(), "blueprint");
+		}
+		if (blueprintString.blueprintBook.isPresent()) {
+			try (GUILayoutBook layout = new GUILayoutBook()) {
+				layout.setBook(blueprintString.blueprintBook.get());
+				layout.setReporting(reporting);
+				return new BlueprintPreview(layout.generateDiscordImage(), "book");
+			}
+		}
+		throw new IllegalArgumentException("Blueprint string is not a blueprint or blueprint book");
+	}
 
 	private static final int MAX_CONCURRENT_PER_LOCK = 2;
 

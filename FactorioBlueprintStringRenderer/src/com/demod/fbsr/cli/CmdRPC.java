@@ -20,6 +20,7 @@ import com.demod.dcba.CommandReporting;
 import com.demod.factorio.Utils;
 import com.demod.fbsr.BlueprintFinder;
 import com.demod.fbsr.FBSR;
+import com.demod.fbsr.FBSR.BlueprintPreview;
 import com.demod.fbsr.RenderRequest;
 import com.demod.fbsr.RenderResult;
 import com.demod.fbsr.BlueprintFinder.FindBlueprintResult;
@@ -29,8 +30,6 @@ import com.demod.fbsr.app.RPCService;
 import com.demod.fbsr.app.ServiceFinder;
 import com.demod.fbsr.app.FBSRApps;
 import com.demod.fbsr.bs.BSBlueprintString;
-import com.demod.fbsr.gui.layout.GUILayoutBlueprint;
-import com.demod.fbsr.gui.layout.GUILayoutBook;
 import com.fasterxml.jackson.databind.JsonSerializable.Base;
 import com.google.common.util.concurrent.Uninterruptibles;
 
@@ -105,45 +104,25 @@ public class CmdRPC {
 
             BSBlueprintString blueprintString = searchResult.blueprintString.get();
             
-            String type;
-            BufferedImage image;
-            if (blueprintString.blueprint.isPresent()) {
-                type = "blueprint";
-                GUILayoutBlueprint layout = new GUILayoutBlueprint();
-                layout.setBlueprint(blueprintString.blueprint.get());
-                layout.setReporting(reporting);
-                image = layout.generateDiscordImage();
-
-            } else if (blueprintString.blueprintBook.isPresent()) {
-                type = "book";
-                try (GUILayoutBook layout = new GUILayoutBook()) {
-                    layout.setBook(blueprintString.blueprintBook.get());
-                    layout.setReporting(reporting);
-                    image = layout.generateDiscordImage();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    ret.put("success", false);
-                    ret.put("message", "Error while rendering book");
-                    ret.put("reason", e.getMessage());
-                    reportAddResponse(reporting, ret);
-                    return ret;
-                }
-
-            } else {
+            BlueprintPreview preview;
+            try {
+                preview = FBSR.renderBlueprintPreview(blueprintString, reporting);
+            } catch (Exception e) {
                 ret.put("success", false);
-                ret.put("message", "Blueprint string is not a blueprint or blueprint book");
+                ret.put("message", "Error while rendering preview");
+                ret.put("reason", e.getMessage());
                 reportAddResponse(reporting, ret);
                 return ret;
             }
 
             ret.put("success", true);
-            ret.put("type", type);
+            ret.put("type", preview.type);
             Optional<String> firstLabel = blueprintString.findFirstLabel();
             if (firstLabel.isPresent()) {
                 ret.put("label", firstLabel.get());
             }
             try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-                ImageIO.write(image, "PNG", baos);
+                ImageIO.write(preview.image, "PNG", baos);
                 baos.flush();
                 ret.put("filename", WebUtils.formatBlueprintFilename(blueprintString.findFirstLabel(), "png"));
                 ret.put("filedata", Base64.getEncoder().encodeToString(baos.toByteArray()));

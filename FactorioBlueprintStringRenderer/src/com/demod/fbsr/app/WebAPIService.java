@@ -29,10 +29,12 @@ import com.demod.fbsr.BlueprintFinder;
 import com.demod.fbsr.BlueprintFinder.FindBlueprintResult;
 import com.demod.fbsr.Config;
 import com.demod.fbsr.FBSR;
+import com.demod.fbsr.FBSR.BlueprintPreview;
 import com.demod.fbsr.RenderRequest;
 import com.demod.fbsr.RenderResult;
 import com.demod.fbsr.WebUtils;
 import com.demod.fbsr.bs.BSBlueprint;
+import com.demod.fbsr.bs.BSBlueprintString;
 import com.google.common.util.concurrent.AbstractIdleService;
 
 import net.dv8tion.jda.api.entities.MessageEmbed.Field;
@@ -56,6 +58,24 @@ public class WebAPIService extends AbstractIdleService {
 		ImageIO.write(image, "PNG", imageFile);
 
 		return fileName;
+	}
+
+	private static BSBlueprintString findBlueprintString(String content, CommandReporting reporting) {
+		List<FindBlueprintResult> results = BlueprintFinder.search(content);
+		results.forEach(result -> result.failureCause.ifPresent(reporting::addException));
+		return results.stream()
+				.flatMap(result -> result.blueprintString.stream())
+				.findFirst()
+				.orElseThrow(() -> new IllegalArgumentException("No blueprint string found"));
+	}
+
+	private static void writePngResponse(org.rapidoid.http.Resp response, BufferedImage image) throws IOException {
+		response.contentType(MediaType.IMAGE_PNG);
+		try (ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+			ImageIO.write(image, "PNG", output);
+			output.flush();
+			response.body(output.toByteArray());
+		}
 	}
 
 	@Override
@@ -118,17 +138,39 @@ public class WebAPIService extends AbstractIdleService {
 					 */
 
 					String content = body.getString("blueprint");
+					JSONObject options = body.optJSONObject("options");
 
 					List<FindBlueprintResult> blueprintStrings = BlueprintFinder.search(content);
 					blueprintStrings.forEach(f -> f.failureCause.ifPresent(e -> reporting.addException(e)));
 					List<BSBlueprint> blueprints = blueprintStrings.stream().filter(f -> f.blueprintString.isPresent())
 							.flatMap(f -> f.blueprintString.get().findAllBlueprints().stream())
 							.collect(Collectors.toList());
+					if (body.has("book_filter")) {
+						String filter = body.getString("book_filter").toLowerCase();
+						blueprints = blueprints.stream()
+								.filter(blueprint -> blueprint.label
+										.map(label -> label.toLowerCase().contains(filter))
+										.orElse(false))
+								.collect(Collectors.toList());
+					}
+					if (body.has("book_index")) {
+						int index = body.getInt("book_index");
+						if (index < 0 || index >= blueprints.size()) {
+							throw new IllegalArgumentException(
+									"Book index out of range. There are " + blueprints.size() + " blueprints.");
+						}
+						blueprints = List.of(blueprints.get(index));
+					}
+					if (blueprints.isEmpty()) {
+						throw new IllegalArgumentException("No blueprints matched the request.");
+					}
 					List<Long> renderTimes = new ArrayList<>();
 
 					for (BSBlueprint blueprint : blueprints) {
 						try {
-							RenderRequest request = new RenderRequest(blueprint, reporting);
+							RenderRequest request = options == null
+									? new RenderRequest(blueprint, reporting)
+									: new RenderRequest(blueprint, reporting, options);
 							RenderResult result = FBSR.renderBlueprintAsync(request).get();
 							renderTimes.add(result.renderTime);
 
@@ -173,12 +215,7 @@ public class WebAPIService extends AbstractIdleService {
 				}
 
 				if (returnSingleImage != null) {
-					resp.contentType(MediaType.IMAGE_PNG);
-					try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-						ImageIO.write(returnSingleImage, "PNG", baos);
-						baos.flush();
-						resp.body(baos.toByteArray());
-					}
+					writePngResponse(resp, returnSingleImage);
 					return resp;
 
 				} else {
@@ -226,6 +263,47 @@ public class WebAPIService extends AbstractIdleService {
 						.ifPresent(s -> s.getBot().submitReport(reporting));
 			}
 
+		});
+
+		On.post("/blueprint/preview").serve((req, resp) -> {
+			LOGGER.info("Web API preview POST!");
+			CommandReporting reporting = new CommandReporting(
+					"Web API preview / " + req.clientIpAddress() + " / "
+							+ Optional.ofNullable(req.header("User-Agent", null)).orElse("<Unknown>"),
+					null, Instant.now());
+			try {
+				if (req.body() == null) {
+					resp.code(400);
+					resp.plain("Body is empty!");
+					return resp;
+				}
+
+				JSONObject body;
+				try {
+					body = new JSONObject(new String(req.body()));
+				} catch (Exception e) {
+					reporting.addException(e);
+					resp.code(400);
+					resp.plain("Malformed JSON: " + e.getMessage());
+					return resp;
+				}
+				reporting.setCommand(body.toString(2));
+
+				try {
+					BSBlueprintString blueprintString = findBlueprintString(body.getString("blueprint"), reporting);
+					BlueprintPreview preview = FBSR.renderBlueprintPreview(blueprintString, reporting);
+					writePngResponse(resp, preview.image);
+					return resp;
+				} catch (Exception e) {
+					reporting.addException(e);
+					resp.code(400);
+					resp.plain(e.getMessage());
+					return resp;
+				}
+			} finally {
+				ServiceFinder.findService(DiscordService.class)
+						.ifPresent(service -> service.getBot().submitReport(reporting));
+			}
 		});
 
 		LOGGER.info("Web API Initialized at {}:{}", address, port);
