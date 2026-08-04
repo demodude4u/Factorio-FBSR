@@ -152,7 +152,14 @@ public class FactorioModPortal {
 		return json;
 	}
 
+	// auth.factorio.com rate-limits logins (login-too-many-attempts), so one JVM run must
+	// not log in once per profile. Cache the auth params after the first successful login.
+	private static String cachedAuthParams = null;
+
 	public static synchronized String getAuthParams(String username, String password) throws IOException {
+		if (cachedAuthParams != null) {
+			return cachedAuthParams;
+		}
 		HttpURLConnection conn = (HttpURLConnection) URI.create("https://auth.factorio.com/api-login").toURL().openConnection();
 		conn.setRequestMethod("POST");
 		conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
@@ -176,7 +183,8 @@ public class FactorioModPortal {
 					throw new IOException(
 							"Authentication failed: (" + json.getString("error") + ") " + json.optString("message"));
 				}
-				return "?username=" + json.getString("username") + "&token=" + json.getString("token");
+				cachedAuthParams = "?username=" + json.getString("username") + "&token=" + json.getString("token");
+				return cachedAuthParams;
 			}
 		} else {
 			throw new IOException("Authentication failed: " + conn.getResponseMessage());
