@@ -1,6 +1,9 @@
 package com.demod.fbsr;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -15,6 +18,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.json.JSONArray;
+import org.json.JSONObject;
 
 import com.demod.factorio.ModInfo;
 import com.demod.factorio.ModInfo.Dependency;
@@ -73,9 +77,56 @@ public class DependencySolver {
 
     public static List<String> expandBuiltinDependencies(List<String> builtins) {
         List<String> out = new ArrayList<>(builtins);
+        if (FactorioManager.hasFactorioInstall()
+                && expandBuiltinDependenciesFromInstall(out, FactorioManager.getFactorioInstall())) {
+            return out;
+        }
+        // Fallback when no Factorio install is available to read the real declarations from.
         insertBuiltinDepIfPresent(out, "space-age", "quality");
         insertBuiltinDepIfPresent(out, "space-age", "elevated-rails");
+        // Factorio 2.1 made space-age and quality require the recycler builtin.
+        insertBuiltinDepIfPresent(out, "space-age", "recycler");
+        insertBuiltinDepIfPresent(out, "quality", "recycler");
         return out;
+    }
+
+    // Builtin mods declare their real dependencies in data/<name>/info.json inside the
+    // Factorio install; read those instead of maintaining a hardcoded list.
+    private static boolean expandBuiltinDependenciesFromInstall(List<String> out, File install) {
+        boolean readAny = false;
+        for (int pass = 0; pass < 10; pass++) {
+            List<String> before = new ArrayList<>(out);
+            for (String name : before) {
+                File infoFile = new File(install, "data/" + name + "/info.json");
+                if (!infoFile.isFile()) {
+                    continue;
+                }
+                JSONArray jsonDependencies;
+                try {
+                    String content = new String(Files.readAllBytes(infoFile.toPath()), StandardCharsets.UTF_8);
+                    jsonDependencies = new JSONObject(content).optJSONArray("dependencies");
+                } catch (IOException e) {
+                    return false;
+                }
+                readAny = true;
+                if (jsonDependencies == null) {
+                    continue;
+                }
+                for (int i = 0; i < jsonDependencies.length(); i++) {
+                    Dependency dependency = Dependency.parse(jsonDependencies.getString(i));
+                    String depName = dependency.getName();
+                    if (!dependency.isRequired() || !Profile.BUILTIN_MODS.contains(depName)
+                            || depName.equals("base") || depName.equals("core")) {
+                        continue;
+                    }
+                    insertBuiltinDepIfPresent(out, name, depName);
+                }
+            }
+            if (before.equals(out)) {
+                break;
+            }
+        }
+        return readAny;
     }
 
     private static void insertBuiltinDepIfPresent(List<String> out, String modName, String depName) {
