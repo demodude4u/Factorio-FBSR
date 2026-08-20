@@ -122,12 +122,16 @@ public class CmdProfile {
                 fail = true;
             }
         }
-        public void forEach(BiConsumer<Profile, ActionResult> action) {
+        // Reports whether every selected profile succeeded so callers can return an exit code.
+        // Selecting nothing counts as a failure: a caller that named a profile and silently
+        // got none cannot otherwise tell that apart from a build that worked. One profile
+        // failing no longer abandons the rest, which are usually buildable on their own.
+        public boolean forEach(BiConsumer<Profile, ActionResult> action) {
             ActionResult result = new ActionResult();
             List<Profile> profiles = get();
             if (profiles.isEmpty()) {
                 System.out.println("No" + (requireValid ? " valid" : "") + (requireEnabled ? " enabled" : "") + " profiles are selected.");
-                return;
+                return false;
             }
             for (Profile profile : profiles) {
                 MDC.put("profile", profile.getName());
@@ -136,14 +140,12 @@ public class CmdProfile {
                 } finally {
                     MDC.remove("profile");
                 }
-                if (result.fail) {
-                    break;
-                }
             }
             if (!result.messages.isEmpty()) {
                 System.out.println();
                 result.messages.forEach(System.out::println);
             }
+            return !result.fail;
         }
     }
 
@@ -859,54 +861,60 @@ public class CmdProfile {
     }
 
     @Command(name = "build-download", description = "Download mods")
-    public static void buildDownloadMods(
+    public static int buildDownloadMods(
             @ArgGroup(exclusive = true, multiplicity = "1") ProfileSelect profileSelect
     ) {
-        profileSelect.forEach((profile, result) -> {
+        boolean success = profileSelect.forEach((profile, result) -> {
             if (profile.buildDownload()) {
                 result.println("Mods downloaded successfully for profile: " + profile.getName());
             } else {
                 result.println("Failed to download mods for profile: " + profile.getName());
+                result.fail();
             }
         });
 
         printProfileStatus(profileSelect, true, false);
+        return success ? 0 : 1;
     }
 
     @Command(name = "build-dump", description = "Dump factorio data")
-    public static void buildDumpDataRaw(
+    public static int buildDumpDataRaw(
             @ArgGroup(exclusive = true, multiplicity = "1") ProfileSelect profileSelect,
             @Option(names = {"-f", "-force"}, description = "Force regeneration of the manifest, even if it already exists") boolean force
     ) {
-        profileSelect.forEach((profile, result) -> {
+        boolean success = profileSelect.forEach((profile, result) -> {
             if (profile.buildDump(force)) {
                 result.println("Factorio data dumped successfully for profile: " + profile.getName());
             } else {
                 result.println("Failed to dump factorio data for profile: " + profile.getName());
+                result.fail();
             }
         });
 
         printProfileStatus(profileSelect, true, false);
+        return success ? 0 : 1;
     }
 
     @Command(name = "build-assets", description = "Generate assets")
-    public static void buildGenerateAssets(
+    public static int buildGenerateAssets(
             @ArgGroup(exclusive = true, multiplicity = "1") ProfileSelect profileSelect,
             @Option(names = {"-f", "-force"}, description = "Force regeneration of the assets, even if they already exist") boolean force
     ) {
-        profileSelect.forEach((profile, result) -> {
+        boolean success = profileSelect.forEach((profile, result) -> {
             if (profile.buildAssets(force)) {
                 result.println("Assets generated successfully for profile: " + profile.getName());
             } else {
                 result.println("Failed to generate assets for profile: " + profile.getName());
+                result.fail();
             }
         });
 
         printProfileStatus(profileSelect, true, false);
+        return success ? 0 : 1;
     }
 
     @Command(name = "build", description = "Build all steps")
-    public static void buildAllSteps(
+    public static int buildAllSteps(
             @ArgGroup(exclusive = true, multiplicity = "1") ProfileSelect profileSelect,
             @Option(names = {"-f", "-force"}, description = "Force regeneration of all steps, even if they already exist") boolean force,
             @Option(names = {"-force-dump"}, description = "Force regeneration of factorio dump") boolean forceDump,
@@ -916,15 +924,16 @@ public class CmdProfile {
 
         if (!profileVanilla.isValid()) {
             System.out.println("No vanilla profile found, it must be created first using command 'profile-default-vanilla'");
-            return;
+            return 1;
         }
 
-        profileSelect.forEach((profile, result) -> {
+        boolean success = profileSelect.forEach((profile, result) -> {
             if (force || !profile.hasManifest()) {
                 if (profile.buildManifest(force)) {
                     result.println("Manifest generated successfully for profile: " + profile.getName());
                 } else {
                     result.println("Failed to generate manifest for profile: " + profile.getName());
+                    result.fail();
                 }
             }
 
@@ -932,6 +941,7 @@ public class CmdProfile {
                 result.println("Mods downloaded successfully for profile: " + profile.getName());
             } else {
                 result.println("Failed to download mods for profile: " + profile.getName());
+                result.fail();
             }
             
             if ((force || forceDump) || !profile.hasDump()) {
@@ -939,6 +949,7 @@ public class CmdProfile {
                     result.println("Factorio data dumped successfully for profile: " + profile.getName());
                 } else {
                     result.println("Failed to dump factorio data for profile: " + profile.getName());
+                    result.fail();
                 }
             }
 
@@ -947,6 +958,7 @@ public class CmdProfile {
                     result.println("Assets generated successfully for profile: " + profile.getName());
                 } else {
                     result.println("Failed to generate assets for profile: " + profile.getName());
+                    result.fail();
                 }
             }
         });
@@ -963,6 +975,7 @@ public class CmdProfile {
         }
 
         printProfileStatus(profileSelect, true, false);
+        return success ? 0 : 1;
     }
 
     @Command(name = "clean-build", description = "Delete the build files (including downloaded mods)")

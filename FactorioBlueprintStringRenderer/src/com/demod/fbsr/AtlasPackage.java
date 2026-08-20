@@ -313,7 +313,7 @@ public class AtlasPackage {
 
 		for (AtlasBuilder atlas : atlases) {
 			String filename = "atlas" + atlas.getId() + ".webp";
-			zos.putNextEntry(new ZipEntry(filename));
+			zos.putNextEntry(Profile.assetsZipEntry(filename));
 
 			ImageWriter writer = ImageIO.getImageWritersByMIMEType("image/webp").next();
 			try {

@@ -17,6 +17,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -99,6 +100,11 @@ public class Profile {
     public static final String ASSETS_ZIP_RENDERING_JSON = "rendering.json";
     public static final String ASSETS_ZIP_MANIFEST_JSON = "manifest.json";
     public static final String ASSETS_ZIP_ATLAS_MANIFEST_JSON = "atlas-manifest.json";
+
+    // A zip entry defaults to the current wall clock, so two builds of identical inputs
+    // produce packages that differ byte for byte and defeat any checksum built over them.
+    // The earliest instant the DOS timestamp field can hold is the start of 1980.
+    private static final LocalDateTime ASSETS_ZIP_ENTRY_TIME = LocalDateTime.of(1980, 1, 1, 0, 0, 0);
 
     public static final Set<String> BUILTIN_MODS = Set.of(
             "core", "base", "space-age", "quality", "elevated-rails");
@@ -1239,7 +1245,8 @@ public class Profile {
         }
 
         cleanDump();
-        deleteAssets();
+        // Generating a manifest is the first of four stages, so deleting the package here
+        // stranded the profile whenever any later stage failed.
 
         JSONObject jsonProfile = readJsonFile(fileProfileConfig);
         JSONArray jsonProfileMods = jsonProfile.optJSONArray("mods");
@@ -1374,18 +1381,10 @@ public class Profile {
             return false;
         }
 
-        if (!FactorioManager.hasModPortalApi()) {
-            System.out.println("Mod Portal API is not configured. Cannot download mods.");
-            return false;
-        }
-
         folderBuildMods.mkdirs();
 
-        String username = FactorioManager.getModPortalApiUsername();
-        String password = FactorioManager.getModPortalApiPassword();
-
         String authString = null;
-        
+
         JSONObject jsonManifest = readJsonFile(fileManifest);
         JSONObject jsonZips = jsonManifest.optJSONObject("zips");
         if (jsonZips != null) {
@@ -1393,12 +1392,20 @@ public class Profile {
                 JSONArray jsonZip = jsonZips.getJSONArray(key);
                 String downloadUrl = jsonZip.optString(0);
                 String sha1 = jsonZip.optString(1);
-                
+
                 File target = new File(folderBuildMods, key);
                 if (!target.exists()) {
+                    // Checked here rather than up front, so that a profile whose mods are all
+                    // present already succeeds offline. Reporting failure for a mod folder that
+                    // needs nothing made every credential-less build look broken.
+                    if (!FactorioManager.hasModPortalApi()) {
+                        System.out.println("Mod Portal API is not configured. Cannot download " + key + ".");
+                        return false;
+                    }
                     try {
                         if (authString == null) {
-                            authString = FactorioModPortal.getAuthParams(username, password);
+                            authString = FactorioModPortal.getAuthParams(FactorioManager.getModPortalApiUsername(),
+                                    FactorioManager.getModPortalApiPassword());
                         }
 
                         FactorioModPortal.downloadModDirect(target, downloadUrl, sha1, authString);
@@ -1413,7 +1420,9 @@ public class Profile {
 
         cleanInvalidDownloads();
         cleanDump();
-        deleteAssets();
+        // The existing package is not deleted here. Downloading is the first of three stages,
+        // and a failure in any of them used to leave the profile with no package at all.
+        // createAssets replaces it atomically once a complete replacement exists.
 
         if (modLoader != null) {
             modLoader.reload();
@@ -1444,7 +1453,8 @@ public class Profile {
             return false;
         }
 
-        deleteAssets();
+        // The existing package survives the dump too; atlas population can still fail after
+        // a successful dump, and the profile is better off stale than empty until then.
 
         folderBuildData.mkdirs();
 
@@ -1551,12 +1561,9 @@ public class Profile {
             }
         }
 
-        if (fileAssets.exists()) {
-            if (!fileAssets.delete()) {
-                System.out.println("Failed to delete old assets file: " + fileAssets.getAbsolutePath());
-                return false;
-            }
-        }
+        // The previous package is deliberately left in place until the replacement is
+        // complete: deleting it up front means any failure in between, an out of memory kill
+        // in particular, destroys a working package and leaves nothing behind.
 
         boolean success = false;
         try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(fileAssetsTemp))) {
@@ -1584,7 +1591,7 @@ public class Profile {
                     return false;
                 }
                 jsonRendering = optJsonRendering.get();
-                ZipEntry entryRendering = new ZipEntry(ASSETS_ZIP_RENDERING_JSON);
+                ZipEntry entryRendering = assetsZipEntry(ASSETS_ZIP_RENDERING_JSON);
                 zos.putNextEntry(entryRendering);
                 zos.write(jsonRendering.toString(2).getBytes(StandardCharsets.UTF_8));
                 zos.closeEntry();
@@ -1596,7 +1603,7 @@ public class Profile {
                     System.out.println("Failed to populate assets for profile: " + folderProfile.getName());
                     return false;
                 }
-                ZipEntry entryAtlasManifest = new ZipEntry(ASSETS_ZIP_ATLAS_MANIFEST_JSON);
+                ZipEntry entryAtlasManifest = assetsZipEntry(ASSETS_ZIP_ATLAS_MANIFEST_JSON);
                 zos.putNextEntry(entryAtlasManifest);
                 zos.write(jsonAtlasManifest.toString(2).getBytes(StandardCharsets.UTF_8));
                 zos.closeEntry();
@@ -1604,10 +1611,7 @@ public class Profile {
 
             zos.close();
 
-            if (!fileAssetsTemp.renameTo(fileAssets)) {
-                System.out.println("Failed to rename temp assets file to final assets file: " + fileAssetsTemp.getAbsolutePath() + " ==> " + fileAssets.getAbsolutePath());
-                return false;
-            }
+            Files.move(fileAssetsTemp.toPath(), fileAssets.toPath(), StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
             System.out.println("Failed to create assets zip for profile: " + folderProfile.getName());
             e.printStackTrace();
@@ -1621,13 +1625,23 @@ public class Profile {
         return true;
     }
 
+    // Every asset package entry goes through here so that no writer reintroduces a clock.
+    // setTimeLocal pins the DOS timestamp without converting it, but Java still derives an
+    // extended timestamp extra field from it through the default zone, so a package that is
+    // byte-identical across machines also needs the build to pin TZ.
+    public static ZipEntry assetsZipEntry(String zipEntryName) {
+        ZipEntry entry = new ZipEntry(zipEntryName);
+        entry.setTimeLocal(ASSETS_ZIP_ENTRY_TIME);
+        return entry;
+    }
+
     private static boolean copyIntoZip(ZipOutputStream zos, File file, String zipEntryName) {
         if (!file.exists()) {
             System.out.println("File " + file.getAbsolutePath() + " does not exist. Cannot copy into zip.");
             return false;
         }
         try (FileInputStream fis = new FileInputStream(file)) {
-            ZipEntry entry = new ZipEntry(zipEntryName);
+            ZipEntry entry = assetsZipEntry(zipEntryName);
             zos.putNextEntry(entry);
             byte[] buffer = new byte[8192];
             int bytesRead;
